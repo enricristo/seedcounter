@@ -24,6 +24,7 @@ import {
   Percent
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import type { Mark, Metadata, Session } from './types';
 
 const defaultMetadata: Metadata = {
@@ -487,7 +488,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden">
+    <>
+      <SpeedInsights />
+      <div className="flex flex-col h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden">
       {/* Header */}
       <header className="h-16 border-b border-neutral-200 bg-white flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
@@ -1040,6 +1043,7 @@ export default function App() {
       </AnimatePresence>
 
     </div>
+    </>
   );
 }
 
