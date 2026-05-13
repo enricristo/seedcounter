@@ -21,7 +21,10 @@ import {
   ZoomOut,
   Maximize,
   FolderUp,
-  Percent
+  Percent,
+  Moon,
+  Sun,
+  Hand
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Mark, Metadata, Session } from './types';
@@ -129,6 +132,51 @@ export default function App() {
     localStorage.setItem('seedCounterSessions', JSON.stringify(sessions));
   }, [sessions]);
 
+  
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  const [isPanningMode, setIsPanningMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+
+  const startDrag = (e: React.MouseEvent) => {
+    if (!isPanningMode && e.button !== 1) return;
+    setIsDragging(true);
+    setStartPan({ x: e.pageX, y: e.pageY });
+    if (containerRef.current) {
+      setScrollStart({ left: containerRef.current.scrollLeft, top: containerRef.current.scrollTop });
+    }
+  };
+
+  const handleDrag = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    if (containerRef.current) {
+      const dx = e.pageX - startPan.x;
+      const dy = e.pageY - startPan.y;
+      containerRef.current.scrollLeft = scrollStart.left - dx;
+      containerRef.current.scrollTop = scrollStart.top - dy;
+    }
+  };
+
+  const stopDrag = () => {
+    setIsDragging(false);
+  };
+useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = (Array.from(e.target.files || []) as File[]).filter(f => f.type.startsWith('image/'));
     if (files.length > 0) {
@@ -136,6 +184,7 @@ export default function App() {
       setCurrentImageIndex(0);
       loadImageFromFile(files[0]);
     }
+    e.target.value = '';
   };
 
   const loadImageFromFile = (file: File) => {
@@ -146,7 +195,17 @@ export default function App() {
       img.onload = () => {
         setImage(img);
         setMarks([]); // Reset marks for new image
-        setZoomLevel(1);
+        
+        // Calculate initial zoom to fit container
+        if (containerRef.current) {
+          const container = containerRef.current;
+          const fitX = (container.clientWidth - 64) / img.width;
+          const fitY = (container.clientHeight - 64) / img.height;
+          const fitZoom = Math.min(fitX, fitY, 1);
+          setZoomLevel(fitZoom);
+        } else {
+          setZoomLevel(1);
+        }
       };
       img.src = event.target?.result as string;
     };
@@ -222,6 +281,7 @@ export default function App() {
   }, [image, drawCanvas, marks, visualMode]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isPanningMode) return;
     if (!image || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -440,6 +500,44 @@ export default function App() {
     downloadBlob(csvContent, 'historico_contagens.csv', 'text/csv');
   };
 
+  const exportHistoryJSON = () => {
+    if (sessions.length === 0) return;
+    downloadBlob(JSON.stringify(sessions, null, 2), `seed-counter-backup-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+  };
+
+  const importHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string);
+          if (Array.isArray(data)) {
+            if (window.confirm(`Deseja importar ${data.length} contagens para o histórico? Isso será mesclado com as atuais.`)) {
+              setSessions(prev => {
+                const newSessions = [...prev];
+                data.forEach(s => {
+                  if (!newSessions.find(existing => existing.id === s.id)) {
+                    newSessions.push(s);
+                  }
+                });
+                return newSessions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              });
+              alert('Backup importado com sucesso!');
+            }
+          } else {
+            alert('O arquivo fornecido não parece ser um backup de histórico válido.');
+          }
+        } catch (error) {
+          alert('Erro ao ler o arquivo.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    e.target.value = '';
+  };
+
+
   const deleteSession = (id: string) => {
     if(window.confirm("Remover esta contagem do histórico local?")) {
       setSessions(prev => prev.filter(s => s.id !== id));
@@ -487,33 +585,41 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-50 font-sans overflow-hidden">
       {/* Header */}
-      <header className="h-16 border-b border-neutral-200 bg-white flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
+      <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="bg-red-500 p-2 rounded-lg text-white">
-            <Target size={20} />
+          <div className="bg-white p-1 rounded-lg">
+            <img src="/gpeorq.jpg" alt="GPEOrq Logo" className="h-10 w-10 object-contain mix-blend-multiply" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           </div>
           <div>
             <h1 className="font-semibold text-lg tracking-tight leading-tight">Contador de Sementes</h1>
-            <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Edição Acadêmica</p>
+            <p className="text-[10px] text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">Edição Acadêmica • GPEOrq / Unoeste</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-2 mr-2 text-neutral-500 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-100 dark:border-transparent dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-950 rounded-lg transition-colors tooltip"
+            title="Alternar Tema"
+          >
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          
+          <button 
             onClick={() => setIsHistoryModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors mr-2"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-600 dark:text-zinc-300 hover:text-neutral-900 dark:text-zinc-50 hover:bg-neutral-50 dark:bg-zinc-950 rounded-lg transition-colors mr-2"
           >
             <History size={18} />
             Histórico ({sessions.length})
           </button>
           
-          <div className="w-[1px] h-6 bg-neutral-200 mx-2" />
+          <div className="w-[1px] h-6 bg-neutral-100 dark:bg-zinc-900 mx-2" />
 
           <button 
             onClick={handleUndo}
             disabled={marks.length === 0}
-            className="p-2 hover:bg-neutral-100 rounded-full transition-colors disabled:opacity-30 tooltip text-neutral-600"
+            className="p-2 hover:bg-neutral-50 dark:bg-zinc-950 rounded-full transition-colors disabled:opacity-30 tooltip text-neutral-600 dark:text-zinc-300"
             title="Desfazer (Ctrl+Z)"
           >
             <Undo2 size={20} />
@@ -521,31 +627,31 @@ export default function App() {
           <button 
             onClick={handleReset}
             disabled={marks.length === 0}
-            className="p-2 hover:bg-neutral-100 rounded-full transition-colors disabled:opacity-30 text-neutral-600"
+            className="p-2 hover:bg-neutral-50 dark:bg-zinc-950 rounded-full transition-colors disabled:opacity-30 text-neutral-600 dark:text-zinc-300"
             title="Limpar Tudo"
           >
             <RotateCcw size={20} />
           </button>
           
-          <div className="w-[1px] h-6 bg-neutral-200 mx-2" />
+          <div className="w-[1px] h-6 bg-neutral-100 dark:bg-zinc-900 mx-2" />
 
           {imageQueue.length > 1 && (
-            <div className="flex items-center gap-1 mr-2 bg-neutral-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 mr-2 bg-neutral-50 dark:bg-zinc-950 rounded-lg p-1">
               <button 
                 onClick={handlePrevImage}
                 disabled={currentImageIndex === 0}
-                className="p-1 px-2 hover:bg-neutral-200 rounded text-neutral-600 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
+                className="p-1 px-2 hover:bg-neutral-100 dark:bg-zinc-900 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
                 title="Imagem Anterior"
               >
                 Anterior
               </button>
-              <div className="text-[10px] font-mono text-neutral-500 px-1">
+              <div className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 px-1">
                 {currentImageIndex + 1}/{imageQueue.length}
               </div>
               <button 
                 onClick={handleNextImage}
                 disabled={currentImageIndex === imageQueue.length - 1}
-                className="p-1 px-2 hover:bg-neutral-200 rounded text-neutral-600 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
+                className="p-1 px-2 hover:bg-neutral-100 dark:bg-zinc-900 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
                 title="Próxima Imagem"
               >
                 Próxima
@@ -556,7 +662,7 @@ export default function App() {
           <button 
             onClick={imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1 ? saveAndNext : () => saveCurrentSession(false)}
             disabled={!image}
-            className="flex items-center gap-2 bg-neutral-100 text-neutral-700 border border-neutral-200 px-3 py-2 rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50 font-medium text-sm"
+            className="flex items-center gap-2 bg-neutral-50 dark:bg-zinc-950 text-neutral-700 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-800 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:bg-zinc-900 transition-colors disabled:opacity-50 font-medium text-sm"
           >
             <Save size={16} />
             {imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1 ? "Salvar & Próxima" : "Salvar Sessão Local"}
@@ -565,7 +671,7 @@ export default function App() {
           <button 
             onClick={() => setIsExportModalOpen(true)}
             disabled={!image}
-            className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors disabled:bg-neutral-200 disabled:text-neutral-400 font-medium text-sm"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-white px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors disabled:bg-neutral-100 dark:bg-zinc-900 disabled:text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 font-medium text-sm"
           >
             <Download size={18} />
             Exportar...
@@ -575,21 +681,21 @@ export default function App() {
 
       <main className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-80 border-r border-neutral-200 bg-white flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
+        <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
           <div className="flex flex-col p-6 gap-6 min-h-max">
             
             {/* Actions */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Imagem & Sessão</h3>
+                <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">Imagem & Sessão</h3>
               </div>
               <div className="space-y-2">
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-50 hover:bg-neutral-100 rounded-xl border border-neutral-200 transition-all text-neutral-700 hover:text-neutral-900 font-medium group"
+                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-100 dark:bg-zinc-900 hover:bg-neutral-50 dark:bg-zinc-950 rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:text-zinc-50 font-medium group"
                 >
                   <div className="flex items-center gap-3">
-                    <Upload size={18} className="text-neutral-400 group-hover:text-neutral-600" />
+                    <Upload size={18} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:text-zinc-300" />
                     <span className="text-sm">Carregar Nova Imagem</span>
                   </div>
                 </button>
@@ -598,15 +704,16 @@ export default function App() {
                   ref={fileInputRef} 
                   onChange={handleFileUpload} 
                   accept="image/*" 
+                  multiple
                   className="hidden" 
                 />
 
                 <button 
                   onClick={() => importInputRef.current?.click()}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-50 hover:bg-neutral-100 rounded-xl border border-neutral-200 transition-all text-neutral-700 hover:text-neutral-900 font-medium group"
+                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-100 dark:bg-zinc-900 hover:bg-neutral-50 dark:bg-zinc-950 rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:text-zinc-50 font-medium group"
                 >
                   <div className="flex items-center gap-3">
-                    <FolderUp size={18} className="text-neutral-400 group-hover:text-neutral-600" />
+                    <FolderUp size={18} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:text-zinc-300" />
                     <span className="text-sm">Importar Sessão (JSON)</span>
                   </div>
                 </button>
@@ -622,7 +729,7 @@ export default function App() {
 
             {/* Totalizers */}
             <section>
-              <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Totalizadores</h3>
+              <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Totalizadores</h3>
               <div className="space-y-3">
                 <CounterItem 
                   label="Viáveis" 
@@ -638,21 +745,21 @@ export default function App() {
                   color="bg-amber-400" 
                   description="Pontos amarelos"
                 />
-                <div className="pt-2 mt-2 border-t border-neutral-100 flex justify-between items-baseline px-1">
-                  <span className="text-sm font-semibold text-neutral-600">Total Geral</span>
-                  <span className="text-xl font-bold font-mono text-neutral-900">{marks.length}</span>
+                <div className="pt-2 mt-2 border-t border-neutral-200 dark:border-zinc-800 flex justify-between items-baseline px-1">
+                  <span className="text-sm font-semibold text-neutral-600 dark:text-zinc-300">Total Geral</span>
+                  <span className="text-xl font-bold font-mono text-neutral-900 dark:text-zinc-50">{marks.length}</span>
                 </div>
                 
                 <div className="pt-3 flex gap-2">
                   <button
                     onClick={() => setVisualMode('dots')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${visualMode === 'dots' ? 'bg-neutral-900 text-white shadow-md' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${visualMode === 'dots' ? 'bg-emerald-600 hover:bg-emerald-500 text-white text-white shadow-md' : 'bg-neutral-50 dark:bg-zinc-950 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:bg-zinc-900'}`}
                   >
                     <Circle size={14} /> Pontos
                   </button>
                   <button
                     onClick={() => setVisualMode('numbers')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${visualMode === 'numbers' ? 'bg-neutral-900 text-white shadow-md' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${visualMode === 'numbers' ? 'bg-emerald-600 hover:bg-emerald-500 text-white text-white shadow-md' : 'bg-neutral-50 dark:bg-zinc-950 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:bg-zinc-900'}`}
                   >
                     <Hash size={14} /> Números
                   </button>
@@ -662,13 +769,13 @@ export default function App() {
 
             {/* Context / Metadata */}
             <section className="flex-1">
-              <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Contexto da Amostra</h3>
+              <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Contexto da Amostra</h3>
               <div className="space-y-3">
                 <MetadataInput 
                   label="Usuário (Pesquisador)" 
                   value={metadata.researcher} 
                   onChange={(v) => updateMetadata('researcher', v)} 
-                  placeholder="Ex: Maiara, Nelson"
+                  placeholder="Ex: Mayara, Nelson"
                 />
                 <MetadataInput 
                   label="Projeto" 
@@ -697,11 +804,11 @@ export default function App() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-neutral-600 ml-1">Observações e Comentários</label>
+                  <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-300 ml-1">Observações e Comentários</label>
                   <textarea 
                     value={metadata.notes}
                     onChange={(e) => updateMetadata('notes', e.target.value)}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-y min-h-[80px]"
+                    className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-y min-h-[80px]"
                     placeholder="Notas adicionais sobre a imagem ou anomalias..."
                   />
                 </div>
@@ -709,12 +816,12 @@ export default function App() {
             </section>
 
             {/* Help / Tip */}
-            <section className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-2">
+            <section className="bg-blue-950/30 p-4 rounded-xl border border-blue-900/50 mt-2">
               <div className="flex gap-3">
-                <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+                <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-blue-900">Como marcar:</p>
-                  <ul className="text-[10px] text-blue-800 space-y-1 opacity-80 list-disc pl-3">
+                  <p className="text-xs font-semibold text-blue-300">Como marcar:</p>
+                  <ul className="text-[10px] text-blue-200 space-y-1 opacity-80 list-disc pl-3">
                     <li><b>Clique:</b> Semente Viável</li>
                     <li><b>Shift + Clique:</b> Inviável/Detrito</li>
                     <li><b>Botão Dir.:</b> Inviável/Detrito</li>
@@ -728,69 +835,96 @@ export default function App() {
         {/* Viewport Area */}
         <div 
           ref={containerRef}
-          className="flex-1 bg-neutral-200 relative overflow-auto flex items-center justify-center p-8 selection:bg-none"
+          className={`flex-1 bg-neutral-100 dark:bg-zinc-900 relative overflow-auto ${isPanningMode ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
           onContextMenu={(e) => e.preventDefault()}
+          onMouseDown={startDrag}
+          onMouseMove={handleDrag}
+          onMouseUp={stopDrag}
+          onMouseLeave={stopDrag}
         >
-          <AnimatePresence mode="wait">
-            {!image ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="max-w-md w-full bg-white p-12 rounded-3xl shadow-xl shadow-neutral-400/10 border border-neutral-100 text-center flex flex-col items-center gap-6"
-              >
-                <div className="w-20 h-20 bg-neutral-50 rounded-full flex items-center justify-center text-neutral-300">
-                  <ImageIcon size={40} />
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold tracking-tight text-neutral-800">Selecione uma imagem</h2>
-                  <p className="text-sm text-neutral-500 leading-relaxed">
-                    Carregue a foto microscópica da amostra para iniciar a marcação manual.
-                  </p>
-                </div>
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-neutral-900 text-white px-6 py-3 rounded-xl hover:bg-neutral-800 transition-all font-medium text-sm shadow-lg shadow-neutral-900/10 active:scale-95"
+          <div className="w-fit h-fit min-w-full min-h-full flex items-center justify-center p-8 selection:bg-none">
+            <AnimatePresence mode="wait">
+              {!image ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="max-w-md w-full bg-white dark:bg-[#18181B] p-12 rounded-3xl shadow-xl shadow-neutral-400/10 dark:shadow-black/40 border border-neutral-200 dark:border-zinc-800 text-center flex flex-col items-center gap-6 m-auto"
                 >
-                  Procurar Arquivo
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="relative bg-white shadow-2xl rounded-sm overflow-hidden"
-                style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center', transition: 'transform 0.2s ease-out' }}
-              >
-                <canvas 
-                  ref={canvasRef}
-                  onClick={handleCanvasClick}
-                  onMouseDown={(e) => {
-                    // Handle right click with onMouseDown because onClick ignores button 2
-                    if (e.button === 2) handleCanvasClick(e as any);
-                  }}
-                  className="max-w-full h-auto cursor-crosshair block"
-                  style={{ maxHeight: 'calc(100vh - 12rem)' }}
-                />
-                
-                {/* Overlay Filename */}
-                <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded text-[10px] text-white/90 font-mono pointer-events-none">
-                  {filename}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <div className="w-20 h-20 bg-neutral-100 dark:bg-zinc-900 rounded-full flex items-center justify-center text-neutral-300 dark:text-zinc-600">
+                    <ImageIcon size={40} />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold tracking-tight text-neutral-800 dark:text-zinc-100">Selecione uma imagem</h2>
+                    <p className="text-sm text-neutral-500 dark:text-zinc-400 leading-relaxed">
+                      Carregue a foto microscópica da amostra para iniciar a marcação manual.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl hover:bg-neutral-800 transition-all font-medium text-sm shadow-lg shadow-neutral-400/10 dark:shadow-black/40 active:scale-95"
+                  >
+                    Procurar Arquivo
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="relative bg-white dark:bg-[#18181B] shadow-2xl rounded-sm inline-block"
+                >
+                  <canvas 
+                    ref={canvasRef}
+                    onClick={handleCanvasClick}
+                    onMouseDown={(e) => {
+                      // Handle right click with onMouseDown because onClick ignores button 2
+                      if (e.button === 2) handleCanvasClick(e as any);
+                    }}
+                    className={`${isPanningMode ? '' : 'cursor-crosshair'} block`}
+                    style={{ 
+                      width: `${image.width * zoomLevel}px`,
+                      height: `${image.height * zoomLevel}px`
+                    }}
+                  />
+                  
+                  {/* Overlay Filename */}
+                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded text-[10px] text-white/90 font-mono pointer-events-none z-10">
+                    {filename}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Zoom Controls */}
           {image && (
-            <div className="absolute right-6 bottom-6 flex flex-col gap-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-xl shadow-lg border border-neutral-200 z-10">
-              <button onClick={() => setZoomLevel(z => Math.min(z + 0.2, 5))} className="p-2 hover:bg-neutral-100 rounded-lg text-neutral-600 transition-colors" title="Aumentar Zoom">
+            <div className="fixed right-6 bottom-12 flex flex-col gap-2 bg-white dark:bg-[#18181B] backdrop-blur-md p-1.5 rounded-xl shadow-lg border border-neutral-200 dark:border-zinc-800 z-10">
+              <button 
+                onClick={() => setIsPanningMode(!isPanningMode)} 
+                className={`p-2 rounded-lg transition-colors ${isPanningMode ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'hover:bg-neutral-50 dark:hover:bg-zinc-950 text-neutral-600 dark:text-zinc-300'}`} 
+                title={isPanningMode ? "Modo Arrastar Ativo (Desativar para marcar)" : "Ativar Modo Arrastar"}
+              >
+                <Hand size={18} />
+              </button>
+              <div className="w-full h-px bg-neutral-200 dark:bg-zinc-800" />
+              <button onClick={() => setZoomLevel(z => Math.min(z * 1.25, 5))} className="p-2 hover:bg-neutral-50 dark:hover:bg-zinc-950 rounded-lg text-neutral-600 dark:text-zinc-300 transition-colors" title="Aumentar Zoom">
                 <ZoomIn size={18} />
               </button>
-              <button onClick={() => setZoomLevel(1)} className="text-xs font-mono font-medium hover:bg-neutral-100 rounded-lg py-1 transition-colors text-neutral-500" title="Resetar Zoom">
+              <button 
+                onClick={() => {
+                  if (containerRef.current && image) {
+                    const container = containerRef.current;
+                    const fitX = (container.clientWidth - 64) / image.width;
+                    const fitY = (container.clientHeight - 64) / image.height;
+                    setZoomLevel(Math.min(fitX, fitY, 1));
+                  }
+                }} 
+                className="text-[10px] font-mono font-medium hover:bg-neutral-50 dark:bg-zinc-950 rounded-lg py-1 transition-colors text-neutral-500 dark:text-zinc-400" 
+                title="Ajustar à Tela"
+              >
                 {Math.round(zoomLevel * 100)}%
               </button>
-              <button onClick={() => setZoomLevel(z => Math.max(z - 0.2, 0.2))} className="p-2 hover:bg-neutral-100 rounded-lg text-neutral-600 transition-colors" title="Diminuir Zoom">
+              <button onClick={() => setZoomLevel(z => Math.max(z / 1.25, 0.1))} className="p-2 hover:bg-neutral-50 dark:bg-zinc-950 rounded-lg text-neutral-600 dark:text-zinc-300 transition-colors" title="Diminuir Zoom">
                 <ZoomOut size={18} />
               </button>
             </div>
@@ -799,16 +933,21 @@ export default function App() {
       </main>
 
       {/* Footer / Status Bar */}
-      <footer className="h-8 border-t border-neutral-200 bg-white px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4 text-[10px] text-neutral-400 font-medium">
+      <footer className="h-8 border-t border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] px-6 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4 text-[10px] text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 font-medium">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
             Sistema Ativo
           </div>
           {filename && <div>{filename} • {image?.width}x{image?.height}px</div>}
         </div>
-        <div className="text-[10px] text-neutral-300 font-mono tracking-wider italic">
-          v1.1.0 • Edição Pesquisa
+        <div className="flex items-center gap-4">
+          <div className="text-[10px] text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">
+            Desenvolvido para o <b>Grupo de Pesquisa em Orquídeas (GPEOrq)</b> da <b>Unoeste</b>.
+          </div>
+          <div className="text-[10px] text-neutral-300 dark:text-zinc-600 font-mono tracking-wider italic">
+            v1.1.0
+          </div>
         </div>
       </footer>
 
@@ -819,23 +958,23 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-neutral-200"
+              className="bg-white dark:bg-[#18181B] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-neutral-200 dark:border-zinc-800"
             >
-              <div className="flex justify-between items-center p-5 border-b border-neutral-100 bg-neutral-50/50">
-                <h2 className="font-semibold text-lg text-neutral-800">Exportar Contagem</h2>
-                <button onClick={() => setIsExportModalOpen(false)} className="text-neutral-400 hover:text-neutral-700 p-1">
+              <div className="flex justify-between items-center p-5 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-100/50 dark:bg-neutral-100 dark:bg-zinc-900/50">
+                <h2 className="font-semibold text-lg text-neutral-800 dark:text-zinc-100">Exportar Contagem</h2>
+                <button onClick={() => setIsExportModalOpen(false)} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 hover:text-neutral-700 dark:text-zinc-200 p-1">
                   <X size={20} />
                 </button>
               </div>
               <div className="p-6">
                 
-                <div className="mb-6 bg-red-50 border border-red-100 text-red-800 p-4 rounded-xl flex items-start gap-3">
+                <div className="mb-6 bg-red-950/30 border border-red-900/50 text-red-400 p-4 rounded-xl flex items-start gap-3">
                   <Save className="shrink-0 mt-0.5" size={18} />
                   <div>
                     <h4 className="text-sm font-semibold mb-1">Salvar no Histórico Local</h4>
@@ -849,17 +988,17 @@ export default function App() {
                         }
                         setIsExportModalOpen(false);
                       }}
-                      className="bg-white border border-red-200 hover:border-red-300 text-red-700 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
+                      className="bg-white dark:bg-[#18181B] border border-red-900/50 hover:border-red-800 text-red-400 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
                     >
                       {imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1 ? "Salvar & Próxima Imagem" : "Salvar Sessão Localmente"}
                     </button>
                   </div>
                 </div>
 
-                <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Baixar Arquivos para esta amostra</h3>
+                <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Baixar Arquivos para esta amostra</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <ExportCard 
-                    icon={<FileText size={20} className="text-blue-500" />}
+                    icon={<FileText size={20} className="text-blue-400" />}
                     title="Relatório TXT"
                     desc="Texto estruturado e de fácil leitura."
                     onClick={exportTextReport}
@@ -896,53 +1035,65 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-8"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-8"
           >
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white flex flex-col rounded-2xl shadow-2xl w-full max-w-6xl h-full max-h-[85vh] overflow-hidden border border-neutral-200"
+              className="bg-white dark:bg-[#18181B] flex flex-col rounded-2xl shadow-2xl w-full max-w-6xl h-full max-h-[85vh] overflow-hidden border border-neutral-200 dark:border-zinc-800"
             >
-              <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-100 bg-neutral-50 shrink-0">
+              <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-100 dark:bg-zinc-900 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="bg-neutral-200 p-2 rounded-lg text-neutral-700">
+                  <div className="bg-neutral-100 dark:bg-zinc-900 p-2 rounded-lg text-neutral-700 dark:text-zinc-200">
                     <History size={20} />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-xl text-neutral-800">Histórico de Sessões</h2>
-                    <p className="text-xs text-neutral-500 pt-0.5">Contagens salvas localmente neste navegador</p>
+                    <h2 className="font-semibold text-xl text-neutral-800 dark:text-zinc-100">Histórico de Sessões</h2>
+                    <p className="text-xs text-neutral-500 dark:text-zinc-400 pt-0.5">Contagens salvas localmente neste navegador</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-sm font-medium transition-colors cursor-pointer">
+                    <Upload size={16} /> Importar JSON
+                    <input type="file" accept=".json" className="hidden" onChange={importHistoryJSON} />
+                  </label>
+                  <div className="h-6 w-px bg-neutral-200 dark:bg-zinc-800 mx-1" />
+                  <button 
+                    onClick={exportHistoryJSON}
+                    disabled={sessions.length === 0}
+                    className="flex items-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Download size={16} /> Backup JSON
+                  </button>
                   <button 
                     onClick={exportHistoryCSV}
                     disabled={sessions.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 text-sm font-medium transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     <Table size={16} />
-                    Exportar Tabela Completa (CSV)
+                    Exportar Completo (CSV)
                   </button>
-                  <button onClick={() => setIsHistoryModalOpen(false)} className="text-neutral-400 hover:text-neutral-700 p-2 bg-neutral-100 hover:bg-neutral-200 rounded-full transition-colors ml-2">
+                  <button onClick={() => setIsHistoryModalOpen(false)} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 hover:text-neutral-700 dark:text-zinc-200 p-2 bg-neutral-50 dark:bg-zinc-950 hover:bg-neutral-100 dark:bg-zinc-900 rounded-full transition-colors ml-2">
                     <X size={20} />
                   </button>
                 </div>
               </div>
               
-              <div className="flex-1 overflow-auto bg-white">
+              <div className="flex-1 overflow-auto bg-white dark:bg-[#18181B]">
                 {sessions.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                    <History size={48} className="text-neutral-200 mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-600">Nenhum registro ainda</h3>
-                    <p className="text-sm text-neutral-400 max-w-sm mt-2">
+                    <History size={48} className="text-neutral-200 dark:text-zinc-700 mb-4" />
+                    <h3 className="text-lg font-medium text-neutral-600 dark:text-zinc-300">Nenhum registro ainda</h3>
+                    <p className="text-sm text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 max-w-sm mt-2">
                       Após contar uma placa, clique em "Exportar Contagem" e depois em "Salvar Sessão Localmente" para adicionar os resultados aqui.
                     </p>
                   </div>
                 ) : (
                   <div className="flex flex-col md:flex-row h-full">
-                    <div className="flex-1 overflow-auto border-r border-neutral-100">
+                    <div className="flex-1 overflow-auto border-r border-neutral-200 dark:border-zinc-800">
                       <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-neutral-50 sticky top-0 z-10 border-b border-neutral-200 text-neutral-500 uppercase text-[10px] tracking-wider">
+                        <thead className="bg-neutral-100 dark:bg-zinc-900 sticky top-0 z-10 border-b border-neutral-200 dark:border-zinc-800 text-neutral-500 dark:text-zinc-400 uppercase text-[10px] tracking-wider">
                           <tr>
                             <th className="px-6 py-4 font-semibold">Data</th>
                             <th className="px-6 py-4 font-semibold">Arquivo</th>
@@ -950,33 +1101,33 @@ export default function App() {
                             <th className="px-6 py-4 font-semibold">Placa / Q</th>
                             <th className="px-6 py-4 font-semibold text-right text-red-600">Viáveis</th>
                             <th className="px-6 py-4 font-semibold text-right text-amber-500">Inviáveis</th>
-                            <th className="px-6 py-4 font-semibold text-right text-neutral-700">Total</th>
+                            <th className="px-6 py-4 font-semibold text-right text-neutral-700 dark:text-zinc-200">Total</th>
                             <th className="px-6 py-4 font-semibold"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                        <tbody className="divide-y divide-neutral-100 text-neutral-700 dark:text-zinc-200">
                           {sessions.map((s) => (
-                            <tr key={s.id} className="hover:bg-neutral-50/50 transition-colors">
+                            <tr key={s.id} className="hover:bg-neutral-100/50 dark:bg-neutral-100 dark:bg-zinc-900/50 transition-colors">
                               <td className="px-6 py-3">
-                                <div className="text-xs text-neutral-500">{new Date(s.date).toLocaleDateString()}</div>
-                                <div className="text-[10px] text-neutral-400">{new Date(s.date).toLocaleTimeString()}</div>
+                                <div className="text-xs text-neutral-500 dark:text-zinc-400">{new Date(s.date).toLocaleDateString()}</div>
+                                <div className="text-[10px] text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">{new Date(s.date).toLocaleTimeString()}</div>
                               </td>
                               <td className="px-6 py-3 font-mono text-[11px] truncate max-w-[150px]">{s.filename}</td>
                               <td className="px-6 py-3">
-                                <div className="font-medium text-neutral-900 truncate max-w-[150px]">{s.metadata.researcher || '-'}</div>
-                                <div className="text-xs text-neutral-500 truncate max-w-[150px]">{s.metadata.project || '-'}</div>
+                                <div className="font-medium text-neutral-900 dark:text-zinc-50 truncate max-w-[150px]">{s.metadata.researcher || '-'}</div>
+                                <div className="text-xs text-neutral-500 dark:text-zinc-400 truncate max-w-[150px]">{s.metadata.project || '-'}</div>
                               </td>
                               <td className="px-6 py-3">
                                 <div className="font-medium">{s.metadata.plate || '-'}</div>
-                                <div className="text-xs text-neutral-500">{s.metadata.quadrant||'-'} / {s.metadata.treatment||'-'}</div>
+                                <div className="text-xs text-neutral-500 dark:text-zinc-400">{s.metadata.quadrant||'-'} / {s.metadata.treatment||'-'}</div>
                               </td>
                               <td className="px-6 py-3 text-right font-mono font-bold text-red-500">{s.viableCount}</td>
                               <td className="px-6 py-3 text-right font-mono font-bold text-amber-500">{s.inviableCount}</td>
-                              <td className="px-6 py-3 text-right font-mono font-bold text-neutral-800">{s.viableCount + s.inviableCount}</td>
+                              <td className="px-6 py-3 text-right font-mono font-bold text-neutral-800 dark:text-zinc-100">{s.viableCount + s.inviableCount}</td>
                               <td className="px-6 py-3 text-right">
                                 <button 
                                   onClick={() => deleteSession(s.id)}
-                                  className="text-neutral-400 hover:text-red-500 p-1.5 rounded transition-colors"
+                                  className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 hover:text-red-500 p-1.5 rounded transition-colors"
                                   title="Excluir Registro"
                                 >
                                   <Trash2 size={16} />
@@ -989,31 +1140,31 @@ export default function App() {
                     </div>
                     
                     {/* Panel Stats */}
-                    <div className="w-full md:w-80 bg-neutral-50/50 flex flex-col p-6 overflow-y-auto">
-                      <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">Resumo por Placa</h3>
+                    <div className="w-full md:w-80 bg-neutral-100/50 dark:bg-neutral-100 dark:bg-zinc-900/50 flex flex-col p-6 overflow-y-auto">
+                      <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-4">Resumo por Placa</h3>
                       <div className="space-y-4">
                         {Object.entries(plateStats).map(([plate, stats]: [string, any]) => {
                           const vPct = stats.t > 0 ? Math.round((stats.v / stats.t) * 100) : 0;
                           const iPct = stats.t > 0 ? Math.round((stats.i / stats.t) * 100) : 0;
                           return (
-                            <div key={plate} className="bg-white border border-neutral-200 p-4 rounded-xl shadow-sm">
-                              <h4 className="font-semibold text-neutral-800 mb-2">{plate}</h4>
+                            <div key={plate} className="bg-white dark:bg-[#18181B] border border-neutral-200 dark:border-zinc-800 p-4 rounded-xl shadow-sm">
+                              <h4 className="font-semibold text-neutral-800 dark:text-zinc-100 mb-2">{plate}</h4>
                               <div className="flex justify-between items-end mb-1">
-                                <span className="text-xs text-neutral-500">Total</span>
+                                <span className="text-xs text-neutral-500 dark:text-zinc-400">Total</span>
                                 <span className="font-mono font-bold text-sm">{stats.t}</span>
                               </div>
-                              <div className="flex bg-neutral-100 rounded-full h-1.5 mb-3 overflow-hidden">
+                              <div className="flex bg-neutral-50 dark:bg-zinc-950 rounded-full h-1.5 mb-3 overflow-hidden">
                                 <div className="bg-red-500 h-full" style={{ width: `${vPct}%`}} />
                                 <div className="bg-amber-400 h-full" style={{ width: `${iPct}%`}} />
                               </div>
                               <div className="flex justify-between text-xs">
                                 <div className="flex flex-col">
                                   <span className="text-red-600 font-semibold">{vPct}% Viáveis</span>
-                                  <span className="text-neutral-400">{stats.v} sementes</span>
+                                  <span className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">{stats.v} sementes</span>
                                 </div>
                                 <div className="flex flex-col text-right">
                                   <span className="text-amber-500 font-semibold">{iPct}% Inviáveis</span>
-                                  <span className="text-neutral-400">{stats.i} sementes</span>
+                                  <span className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">{stats.i} sementes</span>
                                 </div>
                               </div>
                             </div>
@@ -1025,7 +1176,7 @@ export default function App() {
                 )}
               </div>
               {sessions.length > 0 && (
-                <div className="border-t border-neutral-100 p-4 bg-neutral-50 shrink-0 flex justify-end">
+                <div className="border-t border-neutral-200 dark:border-zinc-800 p-4 bg-neutral-100 dark:bg-zinc-900 shrink-0 flex justify-end">
                    <button 
                     onClick={clearHistory}
                     className="text-xs text-red-500 hover:text-red-700 font-medium px-4 py-2"
@@ -1045,19 +1196,19 @@ export default function App() {
 
 function CounterItem({ label, count, color, description, percent }: { label: string, count: number, color: string, description: string, percent?: string }) {
   return (
-    <div className="flex flex-col p-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors border border-transparent shadow-sm group relative overflow-hidden">
+    <div className="flex flex-col p-3 rounded-xl bg-neutral-100 dark:bg-zinc-900 hover:bg-neutral-50 dark:bg-zinc-950 transition-colors border border-transparent shadow-sm group relative overflow-hidden">
       <div className="flex items-center justify-between flex-wrap">
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 ${color} rounded-lg shadow-sm flex items-center justify-center text-white`}>
             <MousePointer2 size={14} className="group-hover:scale-110 transition-transform" />
           </div>
           <div className="flex flex-col z-10">
-            <span className="text-xs font-semibold text-neutral-800">{label}</span>
-            <span className="text-[9px] text-neutral-500">{description}</span>
+            <span className="text-xs font-semibold text-neutral-800 dark:text-zinc-100">{label}</span>
+            <span className="text-[9px] text-neutral-500 dark:text-zinc-400">{description}</span>
           </div>
         </div>
         <div className="flex flex-col items-end z-10">
-          <span className="text-lg font-bold font-mono tracking-tighter text-neutral-900">
+          <span className="text-lg font-bold font-mono tracking-tighter text-neutral-900 dark:text-zinc-50">
             {count}
           </span>
         </div>
@@ -1074,13 +1225,13 @@ function CounterItem({ label, count, color, description, percent }: { label: str
 function MetadataInput({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (v: string) => void, placeholder: string }) {
   return (
     <div className="flex flex-col gap-1.5 flex-1">
-      <label className="text-[11px] font-semibold text-neutral-600 ml-1">{label}</label>
+      <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-300 ml-1">{label}</label>
       <input 
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all placeholder:text-neutral-400"
+        className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all placeholder:text-neutral-900 dark:text-neutral-400 dark:text-zinc-500"
       />
     </div>
   );
@@ -1090,13 +1241,13 @@ function ExportCard({ icon, title, desc, onClick }: { icon: React.ReactNode, tit
   return (
     <button 
       onClick={onClick}
-      className="flex flex-col items-start text-left p-4 rounded-xl border border-neutral-200 hover:border-neutral-400 hover:shadow-md transition-all bg-white group active:scale-[0.98]"
+      className="flex flex-col items-start text-left p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:border-zinc-600 hover:shadow-md transition-all bg-white dark:bg-[#18181B] group active:scale-[0.98]"
     >
-      <div className="bg-neutral-50 p-2.5 rounded-lg mb-3 group-hover:bg-neutral-100 transition-colors">
+      <div className="bg-neutral-100 dark:bg-zinc-900 p-2.5 rounded-lg mb-3 group-hover:bg-neutral-50 dark:bg-zinc-950 transition-colors">
         {icon}
       </div>
-      <h4 className="font-semibold text-sm text-neutral-800 mb-1">{title}</h4>
-      <p className="text-[10px] text-neutral-500 leading-relaxed">{desc}</p>
+      <h4 className="font-semibold text-sm text-neutral-800 dark:text-zinc-100 mb-1">{title}</h4>
+      <p className="text-[10px] text-neutral-500 dark:text-zinc-400 leading-relaxed">{desc}</p>
     </button>
   );
 }
