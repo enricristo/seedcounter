@@ -1,0 +1,6 @@
+{
+  "name": "Orchid Seed Counter",
+  "description": "A manual assisted tool for counting orchid seeds on microscopic images with multi-category marking and data export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
