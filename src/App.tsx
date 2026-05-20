@@ -1,43 +1,49 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  Upload, 
-  RotateCcw, 
-  Download, 
-  Info, 
-  Trash2, 
-  Undo2,
-  MousePointer2,
-  Target,
-  FileText,
-  Image as ImageIcon,
-  FileJson,
-  Table,
-  History,
-  X,
-  Save,
-  Circle,
-  Hash,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  FolderUp,
-  Percent,
-  Moon,
-  Sun,
-  Hand
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import type { Mark, Metadata, Session } from './types';
+import { AnimatePresence } from 'motion/react';
 
-const defaultMetadata: Metadata = {
-  researcher: '',
-  project: '',
-  treatment: '',
-  plate: '',
-  quadrant: '',
-  notes: ''
-};
+// Components
+import { Header } from './components/layout/Header';
+import { Sidebar } from './components/layout/Sidebar';
+import { Footer } from './components/layout/Footer';
+import { ImageViewport } from './components/canvas/ImageViewport';
+import { MarkingCanvas } from './components/canvas/MarkingCanvas';
+import { ZoomControls } from './components/canvas/ZoomControls';
+import { DropZone } from './components/shared/DropZone';
 
+// Modals
+import { ExportModal } from './components/modals/ExportModal';
+import { HistoryModal } from './components/modals/HistoryModal';
+
+// Hooks
+import { useTheme } from './hooks/useTheme';
+import { useMarks } from './hooks/useMarks';
+import { useMetadata } from './hooks/useMetadata';
+import { useSessions } from './hooks/useSessions';
+import { useImageQueue } from './hooks/useImageQueue';
+import { useZoom } from './hooks/useZoom';
+import { usePanning } from './hooks/usePanning';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useDragDrop } from './hooks/useDragDrop';
+
+// Utils
+import { calculateSeedDimensions } from './lib/pca-utils';
+import { generatePDFReport } from './lib/pdf-generator';
+
+// Types
+import type { Mark, YoloSegmentation, Session } from './types';
+
+// Helper function to download locally generated data
+function downloadBlob(content: string, filename: string, contentType: string) {
+  const blob = new Blob([content], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// Render marks overlay helper for the canvas context
 function renderMarksToContext(ctx: CanvasRenderingContext2D, marks: Mark[], mode: 'dots' | 'numbers') {
   let viableCounter = 0;
   let inviableCounter = 0;
@@ -81,179 +87,103 @@ function renderMarksToContext(ctx: CanvasRenderingContext2D, marks: Mark[], mode
 }
 
 export default function App() {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [marks, setMarks] = useState<Mark[]>([]);
-  const [filename, setFilename] = useState<string>("");
-  const [metadata, setMetadata] = useState<Metadata>(defaultMetadata);
-  
-  const [sessions, setSessions] = useState<Session[]>([]);
+  // Theme & Darkmode State
+  const { isDarkMode, toggleTheme } = useTheme();
+
+  // Modal Open states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
-  const [zoomLevel, setZoomLevel] = useState(1);
 
+  // Manual marking class toggle
+  const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
+  const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
+
+  // Annotation states
+  const {
+    marks,
+    setMarks,
+    yoloSegmentations,
+    setYoloSegmentations,
+    segmentsVisible,
+    addMark,
+    undoMark,
+    addYoloSegmentations,
+    toggleSegmentationClass,
+    deleteSegmentation,
+    resetAllAnnotations
+  } = useMarks();
+
+  // Metadata sample inputs
+  const { metadata, setMetadata, updateMetadata } = useMetadata();
+
+  // Sessions CRUD history
+  const { sessions, setSessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
+
+  // Zooming controls
+  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = useZoom();
+
+  // Panning & Panning gesture drag mode
+  const {
+    isPanningMode,
+    isDragging: isPanningDrag,
+    startDrag,
+    handleDrag,
+    stopDrag,
+    togglePanningMode
+  } = usePanning();
+
+  // DOM Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const [imageQueue, setImageQueue] = useState<File[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-  const viableCount = marks.filter(m => m.type === 'viable').length;
-  const inviableCount = marks.filter(m => m.type === 'inviable').length;
-  
-  const viablePercent = marks.length > 0 ? ((viableCount / marks.length) * 100).toFixed(1) : "0";
-  const inviablePercent = marks.length > 0 ? ((inviableCount / marks.length) * 100).toFixed(1) : "0";
-
-  // Load saved metadata and history from localStorage
-  useEffect(() => {
-    try {
-      const savedMetadata = localStorage.getItem('lastMetadata');
-      if (savedMetadata) {
-        setMetadata(JSON.parse(savedMetadata));
+  // Multi-image Queue state
+  const {
+    image,
+    setImage,
+    filename,
+    setFilename,
+    imageQueue,
+    currentImageIndex,
+    loadFiles,
+    handleFileUpload,
+    handleNextImage,
+    handlePrevImage,
+    loadImageFromFile
+  } = useImageQueue({
+    onImageLoaded: (img) => {
+      // Reset annotations on new sample load
+      resetAllAnnotations();
+      
+      // Calculate fit screen zoom automatically
+      if (containerRef.current) {
+        const container = containerRef.current;
+        fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
       }
-      const savedSessions = localStorage.getItem('seedCounterSessions');
-      if (savedSessions) {
-        setSessions(JSON.parse(savedSessions));
-      }
-    } catch (e) {
-      console.error("Local storage error", e);
     }
-  }, []);
-
-  // Save metadata to localstorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('lastMetadata', JSON.stringify(metadata));
-  }, [metadata]);
-
-  // Save sessions to localstorage
-  useEffect(() => {
-    localStorage.setItem('seedCounterSessions', JSON.stringify(sessions));
-  }, [sessions]);
-
-  
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const [isPanningMode, setIsPanningMode] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
-  const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+  // Derived counts
+  const manualViable = marks.filter(m => m.type === 'viable').length;
+  const yoloViable = yoloSegmentations.filter(s => s.category === 'viable' && s.visible !== false).length;
+  const viableCount = manualViable + yoloViable;
 
-  const startDrag = (e: React.MouseEvent) => {
-    if (!isPanningMode && e.button !== 1) return;
-    setIsDragging(true);
-    setStartPan({ x: e.pageX, y: e.pageY });
-    if (containerRef.current) {
-      setScrollStart({ left: containerRef.current.scrollLeft, top: containerRef.current.scrollTop });
-    }
-  };
+  const manualInviable = marks.filter(m => m.type === 'inviable').length;
+  const yoloInviable = yoloSegmentations.filter(s => s.category === 'inviable' && s.visible !== false).length;
+  
+  const inviableCount = (metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0)
+    ? Math.max(0, metadata.baselineCount - viableCount)
+    : (manualInviable + yoloInviable);
 
-  const handleDrag = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    if (containerRef.current) {
-      const dx = e.pageX - startPan.x;
-      const dy = e.pageY - startPan.y;
-      containerRef.current.scrollLeft = scrollStart.left - dx;
-      containerRef.current.scrollTop = scrollStart.top - dy;
-    }
-  };
+  const totalCount = (metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0)
+    ? metadata.baselineCount
+    : (viableCount + inviableCount);
 
-  const stopDrag = () => {
-    setIsDragging(false);
-  };
-useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+  const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : "0";
+  const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : "0";
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = (Array.from(e.target.files || []) as File[]).filter(f => f.type.startsWith('image/'));
-    if (files.length > 0) {
-      setImageQueue(files);
-      setCurrentImageIndex(0);
-      loadImageFromFile(files[0]);
-    }
-    e.target.value = '';
-  };
-
-  const loadImageFromFile = (file: File) => {
-    setFilename(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        setMarks([]); // Reset marks for new image
-        
-        // Calculate initial zoom to fit container
-        if (containerRef.current) {
-          const container = containerRef.current;
-          const fitX = (container.clientWidth - 64) / img.width;
-          const fitY = (container.clientHeight - 64) / img.height;
-          const fitZoom = Math.min(fitX, fitY, 1);
-          setZoomLevel(fitZoom);
-        } else {
-          setZoomLevel(1);
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleNextImage = () => {
-    if (currentImageIndex < imageQueue.length - 1) {
-      const nextIndex = currentImageIndex + 1;
-      setCurrentImageIndex(nextIndex);
-      loadImageFromFile(imageQueue[nextIndex]);
-    }
-  };
-
-  const handlePrevImage = () => {
-    if (currentImageIndex > 0) {
-      const prevIndex = currentImageIndex - 1;
-      setCurrentImageIndex(prevIndex);
-      loadImageFromFile(imageQueue[prevIndex]);
-    }
-  };
-
-  const saveAndNext = () => {
-    saveCurrentSession(true);
-    handleNextImage();
-  };
-
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          if (data.metadata) setMetadata(data.metadata);
-          if (data.marks) setMarks(data.marks);
-          if (data.filename) setFilename(data.filename);
-          alert("Sessão importada com sucesso. Por favor, carregue a imagem correspondente, caso ainda não esteja carregada.");
-        } catch (error) {
-          alert("Erro ao importar o arquivo JSON. Arquivo corrompido ou formato inválido.");
-        }
-      };
-      reader.readAsText(file);
-    }
-    // reset input
-    if (importInputRef.current) importInputRef.current.value = '';
-  };
-
+  // Re-draw Canvas markings
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !image) return;
@@ -261,13 +191,13 @@ useEffect(() => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
+    // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw the image
+    // Draw base image
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-    // Draw marks
+    // Draw manual marks
     renderMarksToContext(ctx, marks, visualMode);
   }, [image, marks, visualMode]);
 
@@ -280,6 +210,7 @@ useEffect(() => {
     }
   }, [image, drawCanvas, marks, visualMode]);
 
+  // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanningMode) return;
     if (!image || !canvasRef.current) return;
@@ -287,29 +218,30 @@ useEffect(() => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     
-    // Scale coordinates if displayed size differs from internal size
+    // Scale coords
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    // Determine type: Left click = viable, Shift/Ctrl/Right/Middle = inviable
-    const type = (e.shiftKey || e.ctrlKey || e.button !== 0) ? 'inviable' : 'viable';
+    // Shift/Ctrl/Right/Middle clicks invert the active classification
+    const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
+    const type = shouldInvert 
+      ? (activeClassification === 'viable' ? 'inviable' : 'viable') 
+      : activeClassification;
 
-    setMarks(prev => [...prev, { x, y, type, id: Date.now() }]);
+    addMark(x, y, type);
   };
 
-  const handleUndo = () => {
-    setMarks(prev => prev.slice(0, -1));
-  };
-
+  // Reset markings prompt
   const handleReset = () => {
-    if (window.confirm("Deseja realmente limpar todas as marcações da imagem atual?")) {
-      setMarks([]);
+    if (window.confirm("Deseja realmente limpar todas as marcações manuais e segmentações YOLO da imagem atual?")) {
+      resetAllAnnotations();
     }
   };
 
+  // Save local history session
   const saveCurrentSession = (silent = false) => {
     if (!filename) return;
     const newSession: Session = {
@@ -318,15 +250,117 @@ useEffect(() => {
       filename,
       viableCount,
       inviableCount,
-      metadata: { ...metadata }
+      metadata: { ...metadata },
+      marks,
+      yoloSegmentations
     };
-    setSessions(prev => [newSession, ...prev]);
+    addSession(newSession);
     if (!silent) {
       alert("Sessão salva com sucesso no histórico local!");
     }
   };
 
-  // EXPORT FUNCTIONS //
+  const saveAndNext = () => {
+    saveCurrentSession(true);
+    handleNextImage();
+  };
+
+  // JSON Import Parser supporting backups, YOLO segmentations and single session files
+  const processJSONFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        
+        // 1. Check if it is a YOLO segmentation JSON file
+        if (parsed && (Array.isArray(parsed.segmentations) || parsed.segmentations)) {
+          const rawSegs = Array.isArray(parsed.segmentations) ? parsed.segmentations : [];
+          
+          // Map and calculate PCA dimensions
+          const mappedSegs: YoloSegmentation[] = rawSegs.map((seg: any, idx: number) => {
+            const polygon_points = seg.polygon_points || seg.points || [];
+            const { width, height } = calculateSeedDimensions(polygon_points);
+            
+            let category: 'viable' | 'inviable' = 'viable';
+            if (seg.category === 'inviable' || seg.class_name === 'inviavel' || seg.class === 1) {
+              category = 'inviable';
+            }
+            
+            return {
+              id: seg.id ?? idx,
+              category,
+              class_name: category === 'viable' ? 'viavel' : 'inviavel',
+              confidence: seg.confidence ?? 1.0,
+              polygon_points,
+              visible: seg.visible !== false,
+              edited: seg.edited ?? false,
+              width,
+              height
+            };
+          });
+          
+          addYoloSegmentations(mappedSegs);
+          alert(`YOLO segmentações importadas! Encontradas ${mappedSegs.length} segmentações.`);
+          return;
+        }
+
+        // 2. Check if it is a SeedCounter backup history array
+        if (Array.isArray(parsed)) {
+          const success = importSessions(parsed);
+          if (success) {
+            alert(`Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`);
+          } else {
+            alert("Formato de histórico inválido.");
+          }
+          return;
+        }
+
+        // 3. Check if it is a single SeedCounter session JSON
+        if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
+          if (parsed.metadata) setMetadata(parsed.metadata);
+          if (parsed.marks) setMarks(parsed.marks);
+          if (parsed.yoloSegmentations) {
+            const mapped = parsed.yoloSegmentations.map((seg: any) => {
+              const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
+              return {
+                ...seg,
+                width: seg.width ?? width,
+                height: seg.height ?? height
+              };
+            });
+            addYoloSegmentations(mapped);
+          }
+          if (parsed.filename) setFilename(parsed.filename);
+          alert("Sessão importada com sucesso!");
+          return;
+        }
+
+        alert("Arquivo JSON com formato não reconhecido (não é YOLO, Backup ou Sessão).");
+      } catch (error) {
+        console.error("Erro ao importar o arquivo JSON", error);
+        alert("Erro ao ler o arquivo JSON. Certifique-se de que é um formato válido.");
+      }
+    };
+    reader.readAsText(file);
+  }, [addYoloSegmentations, importSessions, setMetadata, setMarks, setFilename]);
+
+  // Drag & drop hook
+  const onFilesDropped = useCallback((files: File[]) => {
+    const images = files.filter(f => f.type.startsWith('image/'));
+    const jsons = files.filter(f => f.name.endsWith('.json') || f.type === 'application/json');
+
+    if (images.length > 0) {
+      loadFiles(images);
+    }
+    if (jsons.length > 0) {
+      processJSONFile(jsons[0]);
+    }
+  }, [loadFiles, processJSONFile]);
+
+  const { isDragActive } = useDragDrop({ onFilesDropped });
+
+  // Unified filename generation helper
   const generateExportName = (extension: string) => {
     const baseName = filename ? filename.split('.')[0] : 'contagem';
     const cleanPlate = metadata.plate ? `_${metadata.plate}` : '';
@@ -334,7 +368,8 @@ useEffect(() => {
     return `${baseName}${cleanPlate}${cleanQuad}.${extension}`;
   };
 
-  const exportTextReport = () => {
+  // EXPORTS
+  const handleExportTextReport = () => {
     const content = `Relatório de Contagem de Sementes\n` +
                     `----------------------------------\n` +
                     `Arquivo da Imagem: ${filename}\n` +
@@ -349,12 +384,12 @@ useEffect(() => {
                     `[ Resultados ]\n` +
                     `Sementes Viáveis (Vermelho): ${viableCount} (${viablePercent}%)\n` +
                     `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
-                    `Total: ${marks.length}\n`;
+                    `Total: ${totalCount}\n`;
 
     downloadBlob(content, generateExportName('txt'), 'text/plain');
   };
 
-  const exportJSON = () => {
+  const handleExportJSON = () => {
     const data = {
       filename,
       date: new Date().toISOString(),
@@ -362,17 +397,17 @@ useEffect(() => {
       results: {
         viableCount,
         inviableCount,
-        totalCount: marks.length,
+        totalCount,
         viablePercent: Number(viablePercent),
         inviablePercent: Number(inviablePercent)
       },
-      marks
+      marks,
+      yoloSegmentations
     };
     downloadBlob(JSON.stringify(data, null, 2), generateExportName('json'), 'application/json');
   };
 
-  const exportCSV = () => {
-    // Generate a single row CSV for this session
+  const handleExportCSV = () => {
     const headers = ['Data', 'Imagem', 'Pesquisador', 'Projeto', 'Tratamento', 'Placa', 'Quadrante', 'Viaveis', 'Inviaveis', 'Total', '% Viavel', '% Inviavel', 'Comentarios'];
     const row = [
       new Date().toLocaleString(),
@@ -384,13 +419,12 @@ useEffect(() => {
       metadata.quadrant,
       viableCount.toString(),
       inviableCount.toString(),
-      marks.length.toString(),
+      totalCount.toString(),
       viablePercent,
       inviablePercent,
-      metadata.notes.replace(/(\r\n|\n|\r)/gm, " ") // Clean newlines in comments
+      metadata.notes.replace(/(\r\n|\n|\r)/gm, " ")
     ];
     
-    // Process quotes for CSV
     const csvContent = [headers, row]
       .map(e => e.map(item => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -398,40 +432,62 @@ useEffect(() => {
     downloadBlob(csvContent, generateExportName('csv'), 'text/csv');
   };
 
-  const exportAnnotatedImage = () => {
+  const handleExportAnnotatedImage = () => {
     if (!canvasRef.current || !image) return;
     
-    // Create an offscreen canvas to paint the summary box on top without affecting live view
     const offscreenCanvas = document.createElement('canvas');
     offscreenCanvas.width = image.width;
     offscreenCanvas.height = image.height;
     const ctx = offscreenCanvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw image and marks
+    // Draw base image
     ctx.drawImage(image, 0, 0);
+
+    // Draw YOLO segmentations
+    if (segmentsVisible && yoloSegmentations.length > 0) {
+      yoloSegmentations
+        .filter(seg => seg.visible !== false)
+        .forEach(seg => {
+          ctx.beginPath();
+          const first = seg.polygon_points[0];
+          if (first) {
+            ctx.moveTo(first[0], first[1]);
+            for (let i = 1; i < seg.polygon_points.length; i++) {
+              ctx.lineTo(seg.polygon_points[i][0], seg.polygon_points[i][1]);
+            }
+            ctx.closePath();
+            
+            const isViable = seg.category === 'viable';
+            ctx.fillStyle = isViable ? 'rgba(239, 68, 68, 0.25)' : 'rgba(251, 191, 36, 0.25)';
+            ctx.fill();
+            
+            ctx.strokeStyle = isViable ? '#ef4444' : '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        });
+    }
+
+    // Draw manual marks
     renderMarksToContext(ctx, marks, visualMode);
 
-    // Draw Summary Box
+    // Summary Box
     const padding = 20;
-    // We adjust the box dimensions based on the contents
     const hasMoreDetails = !!(metadata.plate || metadata.quadrant);
     const boxW = 340;
     const boxH = hasMoreDetails ? 160 : 140;
     
-    // Shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 4;
     
-    // Background
-    ctx.fillStyle = 'rgba(23, 23, 23, 0.85)'; // Neutral 900 with opacity
+    ctx.fillStyle = 'rgba(23, 23, 23, 0.85)';
     ctx.beginPath();
     ctx.roundRect(padding, padding, boxW, boxH, 12);
     ctx.fill();
     
-    // Reset shadow for text
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
@@ -443,7 +499,7 @@ useEffect(() => {
     ctx.fillText(`Relatório de Contagem`, padding + 24, padding + 24);
     
     ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#a3a3a3'; // Neutral 400
+    ctx.fillStyle = '#a3a3a3';
     ctx.fillText(`Amostra: ${filename}`, padding + 24, padding + 56);
     
     let statsY = padding + 80;
@@ -454,10 +510,10 @@ useEffect(() => {
     }
     
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillStyle = '#ef4444'; // Red
+    ctx.fillStyle = '#ef4444';
     ctx.fillText(`Viáveis: ${viableCount}`, padding + 24, statsY);
     
-    ctx.fillStyle = '#fbbf24'; // Yellow
+    ctx.fillStyle = '#fbbf24';
     ctx.fillText(`Inviáveis: ${inviableCount}`, padding + 160, statsY);
 
     const dataUrl = offscreenCanvas.toDataURL('image/png');
@@ -467,8 +523,24 @@ useEffect(() => {
     link.click();
   };
 
-  // HISTORY EXPORT
-  const exportHistoryCSV = () => {
+  const handleExportPDF = () => {
+    generatePDFReport({
+      filename,
+      metadata,
+      viableCount,
+      inviableCount,
+      totalCount,
+      viablePercent,
+      inviablePercent,
+      marks,
+      yoloSegmentations,
+      canvasElement: canvasRef.current,
+      imageElement: image,
+      visualMode
+    });
+  };
+
+  const handleExportHistoryCSV = () => {
     if (sessions.length === 0) return;
     const headers = ['Data', 'Imagem', 'Pesquisador', 'Projeto', 'Tratamento', 'Placa', 'Quadrante', 'Viaveis', 'Inviaveis', 'Total', '% Viavel', '% Inviavel', 'Comentarios'];
     
@@ -500,754 +572,176 @@ useEffect(() => {
     downloadBlob(csvContent, 'historico_contagens.csv', 'text/csv');
   };
 
-  const exportHistoryJSON = () => {
+  const handleExportHistoryJSON = () => {
     if (sessions.length === 0) return;
     downloadBlob(JSON.stringify(sessions, null, 2), `seed-counter-backup-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
 
-  const importHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target?.result as string);
-          if (Array.isArray(data)) {
-            if (window.confirm(`Deseja importar ${data.length} contagens para o histórico? Isso será mesclado com as atuais.`)) {
-              setSessions(prev => {
-                const newSessions = [...prev];
-                data.forEach(s => {
-                  if (!newSessions.find(existing => existing.id === s.id)) {
-                    newSessions.push(s);
-                  }
-                });
-                return newSessions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-              });
-              alert('Backup importado com sucesso!');
-            }
-          } else {
-            alert('O arquivo fornecido não parece ser um backup de histórico válido.');
-          }
-        } catch (error) {
-          alert('Erro ao ler o arquivo.');
-        }
-      };
-      reader.readAsText(file);
+      processJSONFile(file);
     }
     e.target.value = '';
   };
 
+  const handleBrowseFiles = () => {
+    fileInputRef.current?.click();
+  };
 
-  const deleteSession = (id: string) => {
-    if(window.confirm("Remover esta contagem do histórico local?")) {
-      setSessions(prev => prev.filter(s => s.id !== id));
+  const handleFitToScreen = () => {
+    if (image && containerRef.current) {
+      fitToScreen(containerRef.current.clientWidth, containerRef.current.clientHeight, image.width, image.height);
     }
   };
 
-  const clearHistory = () => {
-    if(window.confirm("Tem certeza que deseja apagar TODO o histórico? Esta ação não pode ser desfeita.")) {
-      setSessions([]);
-    }
-  };
-
-  const plateStats = sessions.reduce((acc, s) => {
-    const p = s.metadata.plate || 'Não definida';
-    if (!acc[p]) acc[p] = { v: 0, i: 0, t: 0 };
-    acc[p].v += s.viableCount;
-    acc[p].i += s.inviableCount;
-    acc[p].t += (s.viableCount + s.inviableCount);
-    return acc;
-  }, {} as Record<string, {v: number, i: number, t: number}>);
-
-  const downloadBlob = (content: string, filename: string, contentType: string) => {
-    const blob = new Blob([content], { type: contentType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const updateMetadata = (key: keyof Metadata, value: string) => {
-    setMetadata(prev => ({ ...prev, [key]: value }));
-  };
+  // Keyboard shortcuts binding
+  useKeyboardShortcuts({
+    onUndo: undoMark,
+    onSetVisualMode: setVisualMode,
+    onNextImage: handleNextImage,
+    onPrevImage: handlePrevImage,
+    onTogglePanning: togglePanningMode,
+    onZoomIn: zoomIn,
+    onZoomOut: zoomOut,
+    onResetZoom: handleFitToScreen,
+    onSaveSession: () => saveCurrentSession(false),
+    onOpenExport: () => setIsExportModalOpen(true),
+    onToggleTheme: toggleTheme,
+    hasImage: !!image,
+    hasNextImage: currentImageIndex < imageQueue.length - 1,
+    hasPrevImage: currentImageIndex > 0
+  });
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-50 dark:bg-zinc-950 text-neutral-900 dark:text-zinc-50 font-sans overflow-hidden">
-      {/* Header */}
-      <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-white p-1 rounded-lg">
-            <img src="/gpeorq.jpg" alt="GPEOrq Logo" className="h-10 w-10 object-contain mix-blend-multiply" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-          </div>
-          <div>
-            <h1 className="font-semibold text-lg tracking-tight leading-tight">Contador de Sementes</h1>
-            <p className="text-[10px] text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">Edição Acadêmica • GPEOrq / Unoeste</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 mr-2 text-neutral-500 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-100 dark:border-transparent dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-950 rounded-lg transition-colors tooltip"
-            title="Alternar Tema"
-          >
-            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          
-          <button 
-            onClick={() => setIsHistoryModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-600 dark:text-zinc-300 hover:text-neutral-900 dark:text-zinc-50 hover:bg-neutral-50 dark:bg-zinc-950 rounded-lg transition-colors mr-2"
-          >
-            <History size={18} />
-            Histórico ({sessions.length})
-          </button>
-          
-          <div className="w-[1px] h-6 bg-neutral-100 dark:bg-zinc-900 mx-2" />
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-neutral-50 dark:bg-[#121214] text-neutral-850 dark:text-zinc-105 transition-colors duration-300 font-sans">
+      {/* 1. Header Toolbar */}
+      <Header 
+        isDarkMode={isDarkMode}
+        toggleTheme={toggleTheme}
+        sessionsCount={sessions.length}
+        openHistory={() => setIsHistoryModalOpen(true)}
+        onUndo={undoMark}
+        undoDisabled={marks.length === 0}
+        onReset={handleReset}
+        resetDisabled={marks.length === 0 && yoloSegmentations.length === 0}
+        hasImageQueue={imageQueue.length > 0}
+        currentImageIndex={currentImageIndex}
+        imageQueueLength={imageQueue.length}
+        onPrevImage={handlePrevImage}
+        onNextImage={handleNextImage}
+        onSaveSession={() => saveCurrentSession(false)}
+        onExport={() => setIsExportModalOpen(true)}
+        hasImage={!!image}
+      />
 
-          <button 
-            onClick={handleUndo}
-            disabled={marks.length === 0}
-            className="p-2 hover:bg-neutral-50 dark:bg-zinc-950 rounded-full transition-colors disabled:opacity-30 tooltip text-neutral-600 dark:text-zinc-300"
-            title="Desfazer (Ctrl+Z)"
-          >
-            <Undo2 size={20} />
-          </button>
-          <button 
-            onClick={handleReset}
-            disabled={marks.length === 0}
-            className="p-2 hover:bg-neutral-50 dark:bg-zinc-950 rounded-full transition-colors disabled:opacity-30 text-neutral-600 dark:text-zinc-300"
-            title="Limpar Tudo"
-          >
-            <RotateCcw size={20} />
-          </button>
-          
-          <div className="w-[1px] h-6 bg-neutral-100 dark:bg-zinc-900 mx-2" />
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        {/* 2. Sidebar panel */}
+        <Sidebar 
+          fileInputRef={fileInputRef}
+          importInputRef={importInputRef}
+          handleFileUpload={handleFileUpload}
+          handleImportJSON={processJSONFile}
+          viableCount={viableCount}
+          inviableCount={inviableCount}
+          viablePercent={viablePercent}
+          inviablePercent={inviablePercent}
+          totalCount={totalCount}
+          visualMode={visualMode}
+          setVisualMode={setVisualMode}
+          activeClassification={activeClassification}
+          setActiveClassification={setActiveClassification}
+          metadata={metadata}
+          updateMetadata={updateMetadata}
+          sessions={sessions}
+        />
 
-          {imageQueue.length > 1 && (
-            <div className="flex items-center gap-1 mr-2 bg-neutral-50 dark:bg-zinc-950 rounded-lg p-1">
-              <button 
-                onClick={handlePrevImage}
-                disabled={currentImageIndex === 0}
-                className="p-1 px-2 hover:bg-neutral-100 dark:bg-zinc-900 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
-                title="Imagem Anterior"
-              >
-                Anterior
-              </button>
-              <div className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 px-1">
-                {currentImageIndex + 1}/{imageQueue.length}
-              </div>
-              <button 
-                onClick={handleNextImage}
-                disabled={currentImageIndex === imageQueue.length - 1}
-                className="p-1 px-2 hover:bg-neutral-100 dark:bg-zinc-900 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
-                title="Próxima Imagem"
-              >
-                Próxima
-              </button>
-            </div>
-          )}
-
-          <button 
-            onClick={imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1 ? saveAndNext : () => saveCurrentSession(false)}
-            disabled={!image}
-            className="flex items-center gap-2 bg-neutral-50 dark:bg-zinc-950 text-neutral-700 dark:text-zinc-200 border border-neutral-200 dark:border-zinc-800 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:bg-zinc-900 transition-colors disabled:opacity-50 font-medium text-sm"
-          >
-            <Save size={16} />
-            {imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1 ? "Salvar & Próxima" : "Salvar Sessão Local"}
-          </button>
-
-          <button 
-            onClick={() => setIsExportModalOpen(true)}
-            disabled={!image}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-white px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors disabled:bg-neutral-100 dark:bg-zinc-900 disabled:text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 font-medium text-sm"
-          >
-            <Download size={18} />
-            Exportar...
-          </button>
-        </div>
-      </header>
-
-      <main className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
-          <div className="flex flex-col p-6 gap-6 min-h-max">
-            
-            {/* Actions */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">Imagem & Sessão</h3>
-              </div>
-              <div className="space-y-2">
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-100 dark:bg-zinc-900 hover:bg-neutral-50 dark:bg-zinc-950 rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:text-zinc-50 font-medium group"
-                >
-                  <div className="flex items-center gap-3">
-                    <Upload size={18} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:text-zinc-300" />
-                    <span className="text-sm">Carregar Nova Imagem</span>
-                  </div>
-                </button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload} 
-                  accept="image/*" 
-                  multiple
-                  className="hidden" 
-                />
-
-                <button 
-                  onClick={() => importInputRef.current?.click()}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-neutral-100 dark:bg-zinc-900 hover:bg-neutral-50 dark:bg-zinc-950 rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:text-zinc-50 font-medium group"
-                >
-                  <div className="flex items-center gap-3">
-                    <FolderUp size={18} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:text-zinc-300" />
-                    <span className="text-sm">Importar Sessão (JSON)</span>
-                  </div>
-                </button>
-                <input 
-                  type="file" 
-                  ref={importInputRef} 
-                  onChange={handleImportJSON} 
-                  accept="application/json,.json" 
-                  className="hidden" 
-                />
-              </div>
-            </section>
-
-            {/* Totalizers */}
-            <section>
-              <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Totalizadores</h3>
-              <div className="space-y-3">
-                <CounterItem 
-                  label="Viáveis" 
-                  count={viableCount} 
-                  percent={viablePercent}
-                  color="bg-red-500" 
-                  description="Pontos vermelhos"
-                />
-                <CounterItem 
-                  label="Inviáveis (Detritos)" 
-                  count={inviableCount} 
-                  percent={inviablePercent}
-                  color="bg-amber-400" 
-                  description="Pontos amarelos"
-                />
-                <div className="pt-2 mt-2 border-t border-neutral-200 dark:border-zinc-800 flex justify-between items-baseline px-1">
-                  <span className="text-sm font-semibold text-neutral-600 dark:text-zinc-300">Total Geral</span>
-                  <span className="text-xl font-bold font-mono text-neutral-900 dark:text-zinc-50">{marks.length}</span>
-                </div>
-                
-                <div className="pt-3 flex gap-2">
-                  <button
-                    onClick={() => setVisualMode('dots')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${visualMode === 'dots' ? 'bg-emerald-600 hover:bg-emerald-500 text-white text-white shadow-md' : 'bg-neutral-50 dark:bg-zinc-950 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:bg-zinc-900'}`}
-                  >
-                    <Circle size={14} /> Pontos
-                  </button>
-                  <button
-                    onClick={() => setVisualMode('numbers')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${visualMode === 'numbers' ? 'bg-emerald-600 hover:bg-emerald-500 text-white text-white shadow-md' : 'bg-neutral-50 dark:bg-zinc-950 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:bg-zinc-900'}`}
-                  >
-                    <Hash size={14} /> Números
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* Context / Metadata */}
-            <section className="flex-1">
-              <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Contexto da Amostra</h3>
-              <div className="space-y-3">
-                <MetadataInput 
-                  label="Usuário (Pesquisador)" 
-                  value={metadata.researcher} 
-                  onChange={(v) => updateMetadata('researcher', v)} 
-                  placeholder="Ex: Mayara, Nelson"
-                />
-                <MetadataInput 
-                  label="Projeto" 
-                  value={metadata.project} 
-                  onChange={(v) => updateMetadata('project', v)} 
-                  placeholder="Ex: Projeto Orquídeas 2026"
-                />
-                <MetadataInput 
-                  label="Tratamento / Experimento" 
-                  value={metadata.treatment} 
-                  onChange={(v) => updateMetadata('treatment', v)} 
-                  placeholder="Ex: 25° 3h"
-                />
-                <div className="flex gap-3">
-                  <MetadataInput 
-                    label="Placa" 
-                    value={metadata.plate} 
-                    onChange={(v) => updateMetadata('plate', v)} 
-                    placeholder="Ex: P12"
-                  />
-                  <MetadataInput 
-                    label="Quadrante" 
-                    value={metadata.quadrant} 
-                    onChange={(v) => updateMetadata('quadrant', v)} 
-                    placeholder="Ex: Q3"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-300 ml-1">Observações e Comentários</label>
-                  <textarea 
-                    value={metadata.notes}
-                    onChange={(e) => updateMetadata('notes', e.target.value)}
-                    className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-y min-h-[80px]"
-                    placeholder="Notas adicionais sobre a imagem ou anomalias..."
-                  />
-                </div>
-              </div>
-            </section>
-
-            {/* Help / Tip */}
-            <section className="bg-blue-950/30 p-4 rounded-xl border border-blue-900/50 mt-2">
-              <div className="flex gap-3">
-                <Info size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-blue-300">Como marcar:</p>
-                  <ul className="text-[10px] text-blue-200 space-y-1 opacity-80 list-disc pl-3">
-                    <li><b>Clique:</b> Semente Viável</li>
-                    <li><b>Shift + Clique:</b> Inviável/Detrito</li>
-                    <li><b>Botão Dir.:</b> Inviável/Detrito</li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-          </div>
-        </aside>
-
-        {/* Viewport Area */}
-        <div 
-          ref={containerRef}
-          className={`flex-1 bg-neutral-100 dark:bg-zinc-900 relative overflow-auto ${isPanningMode ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
-          onContextMenu={(e) => e.preventDefault()}
-          onMouseDown={startDrag}
-          onMouseMove={handleDrag}
-          onMouseUp={stopDrag}
-          onMouseLeave={stopDrag}
+        {/* 3. Image viewport scroll and Zoom area */}
+        <ImageViewport
+          containerRef={containerRef}
+          image={image}
+          onBrowseFiles={handleBrowseFiles}
+          isPanningMode={isPanningMode}
+          isDragging={isPanningDrag}
+          startDrag={startDrag}
+          handleDrag={handleDrag}
+          stopDrag={stopDrag}
         >
-          <div className="w-fit h-fit min-w-full min-h-full flex items-center justify-center p-8 selection:bg-none">
-            <AnimatePresence mode="wait">
-              {!image ? (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="max-w-md w-full bg-white dark:bg-[#18181B] p-12 rounded-3xl shadow-xl shadow-neutral-400/10 dark:shadow-black/40 border border-neutral-200 dark:border-zinc-800 text-center flex flex-col items-center gap-6 m-auto"
-                >
-                  <div className="w-20 h-20 bg-neutral-100 dark:bg-zinc-900 rounded-full flex items-center justify-center text-neutral-300 dark:text-zinc-600">
-                    <ImageIcon size={40} />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-semibold tracking-tight text-neutral-800 dark:text-zinc-100">Selecione uma imagem</h2>
-                    <p className="text-sm text-neutral-500 dark:text-zinc-400 leading-relaxed">
-                      Carregue a foto microscópica da amostra para iniciar a marcação manual.
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl hover:bg-neutral-800 transition-all font-medium text-sm shadow-lg shadow-neutral-400/10 dark:shadow-black/40 active:scale-95"
-                  >
-                    Procurar Arquivo
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="relative bg-white dark:bg-[#18181B] shadow-2xl rounded-sm inline-block"
-                >
-                  <canvas 
-                    ref={canvasRef}
-                    onClick={handleCanvasClick}
-                    onMouseDown={(e) => {
-                      // Handle right click with onMouseDown because onClick ignores button 2
-                      if (e.button === 2) handleCanvasClick(e as any);
-                    }}
-                    className={`${isPanningMode ? '' : 'cursor-crosshair'} block`}
-                    style={{ 
-                      width: `${image.width * zoomLevel}px`,
-                      height: `${image.height * zoomLevel}px`
-                    }}
-                  />
-                  
-                  {/* Overlay Filename */}
-                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded text-[10px] text-white/90 font-mono pointer-events-none z-10">
-                    {filename}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Zoom Controls */}
           {image && (
-            <div className="fixed right-6 bottom-12 flex flex-col gap-2 bg-white dark:bg-[#18181B] backdrop-blur-md p-1.5 rounded-xl shadow-lg border border-neutral-200 dark:border-zinc-800 z-10">
-              <button 
-                onClick={() => setIsPanningMode(!isPanningMode)} 
-                className={`p-2 rounded-lg transition-colors ${isPanningMode ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'hover:bg-neutral-50 dark:hover:bg-zinc-950 text-neutral-600 dark:text-zinc-300'}`} 
-                title={isPanningMode ? "Modo Arrastar Ativo (Desativar para marcar)" : "Ativar Modo Arrastar"}
-              >
-                <Hand size={18} />
-              </button>
-              <div className="w-full h-px bg-neutral-200 dark:bg-zinc-800" />
-              <button onClick={() => setZoomLevel(z => Math.min(z * 1.25, 5))} className="p-2 hover:bg-neutral-50 dark:hover:bg-zinc-950 rounded-lg text-neutral-600 dark:text-zinc-300 transition-colors" title="Aumentar Zoom">
-                <ZoomIn size={18} />
-              </button>
-              <button 
-                onClick={() => {
-                  if (containerRef.current && image) {
-                    const container = containerRef.current;
-                    const fitX = (container.clientWidth - 64) / image.width;
-                    const fitY = (container.clientHeight - 64) / image.height;
-                    setZoomLevel(Math.min(fitX, fitY, 1));
-                  }
-                }} 
-                className="text-[10px] font-mono font-medium hover:bg-neutral-50 dark:bg-zinc-950 rounded-lg py-1 transition-colors text-neutral-500 dark:text-zinc-400" 
-                title="Ajustar à Tela"
-              >
-                {Math.round(zoomLevel * 100)}%
-              </button>
-              <button onClick={() => setZoomLevel(z => Math.max(z / 1.25, 0.1))} className="p-2 hover:bg-neutral-50 dark:bg-zinc-950 rounded-lg text-neutral-600 dark:text-zinc-300 transition-colors" title="Diminuir Zoom">
-                <ZoomOut size={18} />
-              </button>
-            </div>
+            <MarkingCanvas 
+              image={image}
+              marks={marks}
+              yoloSegmentations={yoloSegmentations}
+              segmentsVisible={segmentsVisible}
+              visualMode={visualMode}
+              zoomLevel={zoomLevel}
+              isPanningMode={isPanningMode}
+              onCanvasClick={handleCanvasClick}
+              canvasRef={canvasRef}
+              onToggleSegmentationClass={toggleSegmentationClass}
+              onDeleteSegmentation={deleteSegmentation}
+            />
           )}
-        </div>
-      </main>
+        </ImageViewport>
 
-      {/* Footer / Status Bar */}
-      <footer className="h-8 border-t border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4 text-[10px] text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 font-medium">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Sistema Ativo
-          </div>
-          {filename && <div>{filename} • {image?.width}x{image?.height}px</div>}
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-[10px] text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">
-            Desenvolvido para o <b>Grupo de Pesquisa em Orquídeas (GPEOrq)</b> da <b>Unoeste</b>.
-          </div>
-          <div className="text-[10px] text-neutral-300 dark:text-zinc-600 font-mono tracking-wider italic">
-            v1.1.0
-          </div>
-        </div>
-      </footer>
+        {/* 4. Floating Zoom and Panning controls */}
+        {image && (
+          <ZoomControls 
+            isPanningMode={isPanningMode}
+            togglePanningMode={togglePanningMode}
+            zoomIn={zoomIn}
+            zoomOut={zoomOut}
+            zoomLevel={zoomLevel}
+            onFitToScreen={handleFitToScreen}
+          />
+        )}
+      </div>
 
-      {/* Export Modal */}
+      {/* 5. Footer Status Bar */}
+      <Footer 
+        filename={filename}
+        imageWidth={image?.width}
+        imageHeight={image?.height}
+      />
+
+      {/* 6. Drag Drop file upload overlay */}
+      <DropZone isVisible={isDragActive} />
+
+      {/* 7. Action Modals */}
       <AnimatePresence>
         {isExportModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white dark:bg-[#18181B] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-neutral-200 dark:border-zinc-800"
-            >
-              <div className="flex justify-between items-center p-5 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-100/50 dark:bg-neutral-100 dark:bg-zinc-900/50">
-                <h2 className="font-semibold text-lg text-neutral-800 dark:text-zinc-100">Exportar Contagem</h2>
-                <button onClick={() => setIsExportModalOpen(false)} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 hover:text-neutral-700 dark:text-zinc-200 p-1">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="p-6">
-                
-                <div className="mb-6 bg-red-950/30 border border-red-900/50 text-red-400 p-4 rounded-xl flex items-start gap-3">
-                  <Save className="shrink-0 mt-0.5" size={18} />
-                  <div>
-                    <h4 className="text-sm font-semibold mb-1">Salvar no Histórico Local</h4>
-                    <p className="text-xs opacity-80 mb-3">Armazena os metadados e os números da contagem dentro do navegador. Útil para consolidar tabelas complexas depois.</p>
-                    <button 
-                      onClick={() => {
-                        if (imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1) {
-                          saveAndNext();
-                        } else {
-                          saveCurrentSession();
-                        }
-                        setIsExportModalOpen(false);
-                      }}
-                      className="bg-white dark:bg-[#18181B] border border-red-900/50 hover:border-red-800 text-red-400 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
-                    >
-                      {imageQueue.length > 1 && currentImageIndex < imageQueue.length - 1 ? "Salvar & Próxima Imagem" : "Salvar Sessão Localmente"}
-                    </button>
-                  </div>
-                </div>
-
-                <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Baixar Arquivos para esta amostra</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <ExportCard 
-                    icon={<FileText size={20} className="text-blue-400" />}
-                    title="Relatório TXT"
-                    desc="Texto estruturado e de fácil leitura."
-                    onClick={exportTextReport}
-                  />
-                  <ExportCard 
-                    icon={<Table size={20} className="text-emerald-500" />}
-                    title="Planilha (CSV)"
-                    desc="Formato CSV. Ideal para Excel ou R."
-                    onClick={exportCSV}
-                  />
-                  <ExportCard 
-                    icon={<FileJson size={20} className="text-amber-500" />}
-                    title="Dados Brutos (JSON)"
-                    desc="Inclui coordenadas xy de todos pontos."
-                    onClick={exportJSON}
-                  />
-                  <ExportCard 
-                    icon={<ImageIcon size={20} className="text-purple-500" />}
-                    title="Imagem Anotada"
-                    desc="Salva a imagem PNG com os pontos."
-                    onClick={exportAnnotatedImage}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+          <ExportModal 
+            isOpen={isExportModalOpen}
+            onClose={() => setIsExportModalOpen(false)}
+            filename={filename}
+            hasImageQueue={imageQueue.length > 0}
+            currentImageIndex={currentImageIndex}
+            imageQueueLength={imageQueue.length}
+            onSaveCurrentSession={() => saveCurrentSession(true)}
+            onSaveAndNext={saveAndNext}
+            exportTextReport={handleExportTextReport}
+            exportCSV={handleExportCSV}
+            exportJSON={handleExportJSON}
+            exportAnnotatedImage={handleExportAnnotatedImage}
+            exportPDF={handleExportPDF}
+          />
         )}
       </AnimatePresence>
 
-      {/* History Modal */}
       <AnimatePresence>
         {isHistoryModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-8"
-          >
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-[#18181B] flex flex-col rounded-2xl shadow-2xl w-full max-w-6xl h-full max-h-[85vh] overflow-hidden border border-neutral-200 dark:border-zinc-800"
-            >
-              <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-100 dark:bg-zinc-900 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="bg-neutral-100 dark:bg-zinc-900 p-2 rounded-lg text-neutral-700 dark:text-zinc-200">
-                    <History size={20} />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-xl text-neutral-800 dark:text-zinc-100">Histórico de Sessões</h2>
-                    <p className="text-xs text-neutral-500 dark:text-zinc-400 pt-0.5">Contagens salvas localmente neste navegador</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-sm font-medium transition-colors cursor-pointer">
-                    <Upload size={16} /> Importar JSON
-                    <input type="file" accept=".json" className="hidden" onChange={importHistoryJSON} />
-                  </label>
-                  <div className="h-6 w-px bg-neutral-200 dark:bg-zinc-800 mx-1" />
-                  <button 
-                    onClick={exportHistoryJSON}
-                    disabled={sessions.length === 0}
-                    className="flex items-center gap-2 px-3 py-2 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    <Download size={16} /> Backup JSON
-                  </button>
-                  <button 
-                    onClick={exportHistoryCSV}
-                    disabled={sessions.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    <Table size={16} />
-                    Exportar Completo (CSV)
-                  </button>
-                  <button onClick={() => setIsHistoryModalOpen(false)} className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 hover:text-neutral-700 dark:text-zinc-200 p-2 bg-neutral-50 dark:bg-zinc-950 hover:bg-neutral-100 dark:bg-zinc-900 rounded-full transition-colors ml-2">
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex-1 overflow-auto bg-white dark:bg-[#18181B]">
-                {sessions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-                    <History size={48} className="text-neutral-200 dark:text-zinc-700 mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-600 dark:text-zinc-300">Nenhum registro ainda</h3>
-                    <p className="text-sm text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 max-w-sm mt-2">
-                      Após contar uma placa, clique em "Exportar Contagem" e depois em "Salvar Sessão Localmente" para adicionar os resultados aqui.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col md:flex-row h-full">
-                    <div className="flex-1 overflow-auto border-r border-neutral-200 dark:border-zinc-800">
-                      <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-neutral-100 dark:bg-zinc-900 sticky top-0 z-10 border-b border-neutral-200 dark:border-zinc-800 text-neutral-500 dark:text-zinc-400 uppercase text-[10px] tracking-wider">
-                          <tr>
-                            <th className="px-6 py-4 font-semibold">Data</th>
-                            <th className="px-6 py-4 font-semibold">Arquivo</th>
-                            <th className="px-6 py-4 font-semibold">Pesquisador / Projeto</th>
-                            <th className="px-6 py-4 font-semibold">Placa / Q</th>
-                            <th className="px-6 py-4 font-semibold text-right text-red-600">Viáveis</th>
-                            <th className="px-6 py-4 font-semibold text-right text-amber-500">Inviáveis</th>
-                            <th className="px-6 py-4 font-semibold text-right text-neutral-700 dark:text-zinc-200">Total</th>
-                            <th className="px-6 py-4 font-semibold"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-100 text-neutral-700 dark:text-zinc-200">
-                          {sessions.map((s) => (
-                            <tr key={s.id} className="hover:bg-neutral-100/50 dark:bg-neutral-100 dark:bg-zinc-900/50 transition-colors">
-                              <td className="px-6 py-3">
-                                <div className="text-xs text-neutral-500 dark:text-zinc-400">{new Date(s.date).toLocaleDateString()}</div>
-                                <div className="text-[10px] text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">{new Date(s.date).toLocaleTimeString()}</div>
-                              </td>
-                              <td className="px-6 py-3 font-mono text-[11px] truncate max-w-[150px]">{s.filename}</td>
-                              <td className="px-6 py-3">
-                                <div className="font-medium text-neutral-900 dark:text-zinc-50 truncate max-w-[150px]">{s.metadata.researcher || '-'}</div>
-                                <div className="text-xs text-neutral-500 dark:text-zinc-400 truncate max-w-[150px]">{s.metadata.project || '-'}</div>
-                              </td>
-                              <td className="px-6 py-3">
-                                <div className="font-medium">{s.metadata.plate || '-'}</div>
-                                <div className="text-xs text-neutral-500 dark:text-zinc-400">{s.metadata.quadrant||'-'} / {s.metadata.treatment||'-'}</div>
-                              </td>
-                              <td className="px-6 py-3 text-right font-mono font-bold text-red-500">{s.viableCount}</td>
-                              <td className="px-6 py-3 text-right font-mono font-bold text-amber-500">{s.inviableCount}</td>
-                              <td className="px-6 py-3 text-right font-mono font-bold text-neutral-800 dark:text-zinc-100">{s.viableCount + s.inviableCount}</td>
-                              <td className="px-6 py-3 text-right">
-                                <button 
-                                  onClick={() => deleteSession(s.id)}
-                                  className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 hover:text-red-500 p-1.5 rounded transition-colors"
-                                  title="Excluir Registro"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    
-                    {/* Panel Stats */}
-                    <div className="w-full md:w-80 bg-neutral-100/50 dark:bg-neutral-100 dark:bg-zinc-900/50 flex flex-col p-6 overflow-y-auto">
-                      <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-4">Resumo por Placa</h3>
-                      <div className="space-y-4">
-                        {Object.entries(plateStats).map(([plate, stats]: [string, any]) => {
-                          const vPct = stats.t > 0 ? Math.round((stats.v / stats.t) * 100) : 0;
-                          const iPct = stats.t > 0 ? Math.round((stats.i / stats.t) * 100) : 0;
-                          return (
-                            <div key={plate} className="bg-white dark:bg-[#18181B] border border-neutral-200 dark:border-zinc-800 p-4 rounded-xl shadow-sm">
-                              <h4 className="font-semibold text-neutral-800 dark:text-zinc-100 mb-2">{plate}</h4>
-                              <div className="flex justify-between items-end mb-1">
-                                <span className="text-xs text-neutral-500 dark:text-zinc-400">Total</span>
-                                <span className="font-mono font-bold text-sm">{stats.t}</span>
-                              </div>
-                              <div className="flex bg-neutral-50 dark:bg-zinc-950 rounded-full h-1.5 mb-3 overflow-hidden">
-                                <div className="bg-red-500 h-full" style={{ width: `${vPct}%`}} />
-                                <div className="bg-amber-400 h-full" style={{ width: `${iPct}%`}} />
-                              </div>
-                              <div className="flex justify-between text-xs">
-                                <div className="flex flex-col">
-                                  <span className="text-red-600 font-semibold">{vPct}% Viáveis</span>
-                                  <span className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">{stats.v} sementes</span>
-                                </div>
-                                <div className="flex flex-col text-right">
-                                  <span className="text-amber-500 font-semibold">{iPct}% Inviáveis</span>
-                                  <span className="text-neutral-900 dark:text-neutral-400 dark:text-zinc-500">{stats.i} sementes</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {sessions.length > 0 && (
-                <div className="border-t border-neutral-200 dark:border-zinc-800 p-4 bg-neutral-100 dark:bg-zinc-900 shrink-0 flex justify-end">
-                   <button 
-                    onClick={clearHistory}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium px-4 py-2"
-                  >
-                    Apagar todo o histórico
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
+          <HistoryModal 
+            isOpen={isHistoryModalOpen}
+            onClose={() => setIsHistoryModalOpen(false)}
+            sessions={sessions}
+            onDeleteSession={deleteSession}
+            onClearHistory={clearSessions}
+            onExportHistoryJSON={handleExportHistoryJSON}
+            onExportHistoryCSV={handleExportHistoryCSV}
+            onImportHistoryJSON={handleImportHistoryJSON}
+          />
         )}
       </AnimatePresence>
-
     </div>
-  );
-}
-
-function CounterItem({ label, count, color, description, percent }: { label: string, count: number, color: string, description: string, percent?: string }) {
-  return (
-    <div className="flex flex-col p-3 rounded-xl bg-neutral-100 dark:bg-zinc-900 hover:bg-neutral-50 dark:bg-zinc-950 transition-colors border border-transparent shadow-sm group relative overflow-hidden">
-      <div className="flex items-center justify-between flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 ${color} rounded-lg shadow-sm flex items-center justify-center text-white`}>
-            <MousePointer2 size={14} className="group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="flex flex-col z-10">
-            <span className="text-xs font-semibold text-neutral-800 dark:text-zinc-100">{label}</span>
-            <span className="text-[9px] text-neutral-500 dark:text-zinc-400">{description}</span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end z-10">
-          <span className="text-lg font-bold font-mono tracking-tighter text-neutral-900 dark:text-zinc-50">
-            {count}
-          </span>
-        </div>
-      </div>
-      {percent && (
-        <div className="absolute top-0 right-0 h-full flex items-center justify-end pr-3 opacity-10 group-hover:opacity-20 transition-opacity">
-          <span className="text-4xl font-black font-mono tracking-tighter -mr-2">{percent}%</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MetadataInput({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (v: string) => void, placeholder: string }) {
-  return (
-    <div className="flex flex-col gap-1.5 flex-1">
-      <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-300 ml-1">{label}</label>
-      <input 
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all placeholder:text-neutral-900 dark:text-neutral-400 dark:text-zinc-500"
-      />
-    </div>
-  );
-}
-
-function ExportCard({ icon, title, desc, onClick }: { icon: React.ReactNode, title: string, desc: string, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className="flex flex-col items-start text-left p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:border-zinc-600 hover:shadow-md transition-all bg-white dark:bg-[#18181B] group active:scale-[0.98]"
-    >
-      <div className="bg-neutral-100 dark:bg-zinc-900 p-2.5 rounded-lg mb-3 group-hover:bg-neutral-50 dark:bg-zinc-950 transition-colors">
-        {icon}
-      </div>
-      <h4 className="font-semibold text-sm text-neutral-800 dark:text-zinc-100 mb-1">{title}</h4>
-      <p className="text-[10px] text-neutral-500 dark:text-zinc-400 leading-relaxed">{desc}</p>
-    </button>
   );
 }
