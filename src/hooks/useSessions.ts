@@ -1,60 +1,67 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import type { Session } from '../types';
+import { db } from '../lib/db';
 
 export function useSessions() {
-  const [sessions, setSessions] = useState<Session[]>(() => {
-    try {
-      const saved = localStorage.getItem('seedCounterSessions');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const sessions = useLiveQuery(() => db.sessions.orderBy('date').reverse().toArray(), []) ?? [];
 
-  // Persist sessions to localStorage
+  // Migration from localStorage to Dexie (runs once)
   useEffect(() => {
-    try {
-      localStorage.setItem('seedCounterSessions', JSON.stringify(sessions));
-    } catch (e) {
-      console.error("Failed to save sessions to localStorage", e);
-    }
-  }, [sessions]);
-
-  const addSession = useCallback((session: Session) => {
-    setSessions(prev => [session, ...prev]);
+    const migrate = async () => {
+      try {
+        const saved = localStorage.getItem('seedCounterSessions');
+        if (saved) {
+          const parsed: Session[] = JSON.parse(saved);
+          if (parsed.length > 0) {
+            const count = await db.sessions.count();
+            if (count === 0) {
+              await db.sessions.bulkAdd(parsed);
+              localStorage.removeItem('seedCounterSessions'); // cleanup after successful migration
+              console.log('Migrated sessions to IndexedDB successfully');
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to migrate sessions from localStorage", e);
+      }
+    };
+    migrate();
   }, []);
 
-  const deleteSession = useCallback((id: string) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
+  const addSession = useCallback(async (session: Session) => {
+    await db.sessions.put(session);
   }, []);
 
-  const clearSessions = useCallback(() => {
+  const deleteSession = useCallback(async (id: string) => {
+    await db.sessions.delete(id);
+  }, []);
+
+  const clearSessions = useCallback(async () => {
     if (window.confirm("Deseja realmente limpar todo o histórico de contagens?")) {
-      setSessions([]);
+      await db.sessions.clear();
     }
   }, []);
 
-  const importSessions = useCallback((imported: Session[]) => {
+  const importSessions = useCallback(async (imported: Session[]) => {
     if (Array.isArray(imported)) {
-      setSessions(prev => {
-        // Prevent duplicate IDs by keeping unique ones
-        const combined = [...imported, ...prev];
-        const unique = combined.filter(
-          (session, index, self) => self.findIndex(s => s.id === session.id) === index
-        );
-        return unique;
-      });
-      return true;
+      try {
+        await db.sessions.bulkPut(imported);
+        return true;
+      } catch (error) {
+        console.error("Failed to import sessions:", error);
+        return false;
+      }
     }
     return false;
   }, []);
 
   return {
     sessions,
-    setSessions,
     addSession,
     deleteSession,
     clearSessions,
     importSessions
   };
 }
+

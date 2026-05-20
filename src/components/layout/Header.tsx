@@ -63,7 +63,7 @@ export function Header({
             Contador de Sementes
           </h1>
           <p className="text-[9px] text-emerald-600 dark:text-emerald-400 uppercase tracking-widest font-bold">
-            Edição Acadêmica • GPEOrq / Unoeste
+            Edição Acadêmica • <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:underline">GPEOrq</a> / Unoeste
           </p>
         </div>
       </div>

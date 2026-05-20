@@ -53,6 +53,16 @@ export function MetadataForm({
           />
         </div>
 
+        <MetadataInput 
+          label="Calibração Espacial (µm/px)" 
+          value={metadata.umPerPixel !== undefined ? metadata.umPerPixel.toString() : ''} 
+          onChange={(v) => {
+            const val = parseFloat(v);
+            updateMetadata('umPerPixel', isNaN(val) ? undefined : val);
+          }} 
+          placeholder="Ex: 2.5"
+        />
+
         {/* Comments & Observations */}
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-400 ml-1 uppercase tracking-wide">

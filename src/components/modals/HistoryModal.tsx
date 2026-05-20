@@ -7,7 +7,9 @@ import {
   Table as TableIcon, 
   Trash2, 
   BarChart4, 
-  TrendingUp 
+  TrendingUp,
+  Play,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PlateViabilityChart } from '../charts/PlateViabilityChart';
@@ -22,7 +24,9 @@ interface HistoryModalProps {
   onClearHistory: () => void;
   onExportHistoryJSON: () => void;
   onExportHistoryCSV: () => void;
+  onExportHistoryBatchPDF?: () => void;
   onImportHistoryJSON: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onLoadSession?: (id: string) => void;
 }
 
 export function HistoryModal({
@@ -33,7 +37,9 @@ export function HistoryModal({
   onClearHistory,
   onExportHistoryJSON,
   onExportHistoryCSV,
-  onImportHistoryJSON
+  onExportHistoryBatchPDF,
+  onImportHistoryJSON,
+  onLoadSession
 }: HistoryModalProps) {
   const [activeChartTab, setActiveChartTab] = useState<'bar' | 'trend'>('bar');
 
@@ -97,10 +103,20 @@ export function HistoryModal({
             <button 
               onClick={onExportHistoryCSV}
               disabled={sessions.length === 0}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
             >
               <TableIcon size={14} />
-              <span>Planilha Geral (CSV)</span>
+              <span>CSV Geral</span>
+            </button>
+
+            {/* Export Batch PDF */}
+            <button 
+              onClick={onExportHistoryBatchPDF}
+              disabled={sessions.length === 0}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
+            >
+              <FileText size={14} />
+              <span>Laudo PDF (Lote)</span>
             </button>
 
             {/* Close */}
@@ -181,7 +197,14 @@ export function HistoryModal({
                           <td className="px-6 py-3 text-right font-mono font-bold text-xs text-neutral-900 dark:text-zinc-100">
                             {totalCount}
                           </td>
-                          <td className="px-6 py-3 text-right">
+                          <td className="px-6 py-3 text-right flex items-center justify-end gap-1">
+                            <button 
+                              onClick={() => onLoadSession && onLoadSession(s.id)}
+                              className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded transition-colors cursor-pointer flex items-center gap-1"
+                              title="Continuar Sessão"
+                            >
+                              <Play size={15} fill="currentColor" />
+                            </button>
                             <button 
                               onClick={() => onDeleteSession(s.id)}
                               className="text-neutral-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400 p-1.5 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded transition-colors cursor-pointer"

@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import type { Metadata } from '../types';
+import { db } from '../lib/db';
 
 const defaultMetadata: Metadata = {
   researcher: '',
@@ -12,34 +14,54 @@ const defaultMetadata: Metadata = {
   useDifferential: false
 };
 
+const METADATA_ID = 'current_metadata';
+
 export function useMetadata() {
-  const [metadata, setMetadata] = useState<Metadata>(() => {
-    try {
-      const saved = localStorage.getItem('lastMetadata');
-      return saved ? JSON.parse(saved) : defaultMetadata;
-    } catch {
-      return defaultMetadata;
-    }
-  });
+  const storedMetadata = useLiveQuery(() => db.metadataStore.get(METADATA_ID));
+  const metadata = storedMetadata?.data ?? defaultMetadata;
 
-  // Keep localStorage in sync
+  // Migration from localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('lastMetadata', JSON.stringify(metadata));
-    } catch (e) {
-      console.error("Failed to save metadata to localStorage", e);
-    }
-  }, [metadata]);
-
-  const updateMetadata = useCallback(<K extends keyof Metadata>(key: K, value: Metadata[K]) => {
-    setMetadata(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    const migrate = async () => {
+      try {
+        const saved = localStorage.getItem('lastMetadata');
+        if (saved) {
+          const parsed: Metadata = JSON.parse(saved);
+          const existing = await db.metadataStore.get(METADATA_ID);
+          if (!existing) {
+            await db.metadataStore.put({ id: METADATA_ID, data: parsed });
+            localStorage.removeItem('lastMetadata');
+            console.log('Migrated metadata to IndexedDB successfully');
+          }
+        }
+      } catch (e) {
+        console.error("Failed to migrate metadata from localStorage", e);
+      }
+    };
+    migrate();
   }, []);
 
-  const resetMetadata = useCallback(() => {
-    setMetadata(defaultMetadata);
+  const setMetadata = useCallback(async (newMetadata: Metadata | ((prev: Metadata) => Metadata)) => {
+    if (typeof newMetadata === 'function') {
+      const existing = await db.metadataStore.get(METADATA_ID);
+      const current = existing?.data ?? defaultMetadata;
+      await db.metadataStore.put({ id: METADATA_ID, data: newMetadata(current) });
+    } else {
+      await db.metadataStore.put({ id: METADATA_ID, data: newMetadata });
+    }
+  }, []);
+
+  const updateMetadata = useCallback(async <K extends keyof Metadata>(key: K, value: Metadata[K]) => {
+    const existing = await db.metadataStore.get(METADATA_ID);
+    const current = existing?.data ?? defaultMetadata;
+    await db.metadataStore.put({ 
+      id: METADATA_ID, 
+      data: { ...current, [key]: value } 
+    });
+  }, []);
+
+  const resetMetadata = useCallback(async () => {
+    await db.metadataStore.put({ id: METADATA_ID, data: defaultMetadata });
   }, []);
 
   return {
@@ -49,3 +71,4 @@ export function useMetadata() {
     resetMetadata
   };
 }
+

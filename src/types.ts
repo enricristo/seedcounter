@@ -26,6 +26,7 @@ export interface Metadata {
   notes: string;
   baselineCount?: number;
   useDifferential?: boolean;
+  umPerPixel?: number; // Spatial calibration: micrometers per pixel
 }
 
 export interface Session {
@@ -37,4 +38,5 @@ export interface Session {
   metadata: Metadata;
   marks?: Mark[]; // Optional saved manual marks
   yoloSegmentations?: YoloSegmentation[]; // Optional saved YOLO segmentations
+  imageData?: string; // Base64 encoded image to allow reloading the session
 }

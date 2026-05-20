@@ -27,7 +27,7 @@ import { useDragDrop } from './hooks/useDragDrop';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
-import { generatePDFReport } from './lib/pdf-generator';
+import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
 
 // Types
 import type { Mark, YoloSegmentation, Session } from './types';
@@ -117,7 +117,7 @@ export default function App() {
   const { metadata, setMetadata, updateMetadata } = useMetadata();
 
   // Sessions CRUD history
-  const { sessions, setSessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
+  const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
 
   // Zooming controls
   const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = useZoom();
@@ -162,6 +162,30 @@ export default function App() {
         fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
       }
     }
+  });
+
+
+  useKeyboardShortcuts({
+    onUndo: undoMark,
+    onSetVisualMode: setVisualMode,
+    onNextImage: handleNextImage,
+    onPrevImage: handlePrevImage,
+    onTogglePanning: togglePanningMode,
+    onZoomIn: zoomIn,
+    onZoomOut: zoomOut,
+    onResetZoom: () => {
+      if (containerRef.current && image) {
+        fitToScreen(containerRef.current.clientWidth, containerRef.current.clientHeight, image.width, image.height);
+      } else {
+        resetZoom();
+      }
+    },
+    onSaveSession: () => saveCurrentSession(true),
+    onOpenExport: () => setIsExportModalOpen(true),
+    onToggleTheme: toggleTheme,
+    hasImage: !!image,
+    hasNextImage: imageQueue.length > 0 && currentImageIndex < imageQueue.length - 1,
+    hasPrevImage: imageQueue.length > 0 && currentImageIndex > 0
   });
 
   // Derived counts
@@ -244,6 +268,19 @@ export default function App() {
   // Save local history session
   const saveCurrentSession = (silent = false) => {
     if (!filename) return;
+
+    let imageDataStr = undefined;
+    if (image) {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(image, 0, 0);
+        imageDataStr = canvas.toDataURL('image/jpeg', 0.85); // High quality but compressed
+      }
+    }
+
     const newSession: Session = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
@@ -252,11 +289,40 @@ export default function App() {
       inviableCount,
       metadata: { ...metadata },
       marks,
-      yoloSegmentations
+      yoloSegmentations,
+      imageData: imageDataStr
     };
     addSession(newSession);
     if (!silent) {
       alert("Sessão salva com sucesso no histórico local!");
+    }
+  };
+
+  const handleLoadSession = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    // Restore metadata and counts
+    setMetadata(session.metadata);
+    setFilename(session.filename);
+    setMarks(session.marks || []);
+    setYoloSegmentations(session.yoloSegmentations || []);
+    
+    // Restore image if available
+    if (session.imageData) {
+      const img = new Image();
+      img.onload = () => {
+        setImage(img);
+        setZoomLevel(1);
+        setIsHistoryModalOpen(false);
+      };
+      img.onerror = () => {
+        alert("Erro ao carregar a imagem salva da sessão.");
+      };
+      img.src = session.imageData;
+    } else {
+      setIsHistoryModalOpen(false);
+      alert(`Sessão carregada, mas esta sessão antiga não possui a imagem salva no banco.\nPor favor, carregue o arquivo de imagem "${session.filename}" manualmente.`);
     }
   };
 
@@ -525,11 +591,11 @@ export default function App() {
 
   const handleExportPDF = () => {
     generatePDFReport({
-      filename,
+      filename: filename || 'sem-titulo.jpg',
       metadata,
       viableCount,
       inviableCount,
-      totalCount,
+      totalCount: viableCount + inviableCount,
       viablePercent,
       inviablePercent,
       marks,
@@ -538,6 +604,10 @@ export default function App() {
       imageElement: image,
       visualMode
     });
+  };
+
+  const handleExportHistoryBatchPDF = () => {
+    generateBatchPDFReport(sessions, visualMode);
   };
 
   const handleExportHistoryCSV = () => {
@@ -680,6 +750,7 @@ export default function App() {
               canvasRef={canvasRef}
               onToggleSegmentationClass={toggleSegmentationClass}
               onDeleteSegmentation={deleteSegmentation}
+              umPerPixel={metadata.umPerPixel}
             />
           )}
         </ImageViewport>
@@ -734,10 +805,12 @@ export default function App() {
             isOpen={isHistoryModalOpen}
             onClose={() => setIsHistoryModalOpen(false)}
             sessions={sessions}
+            onLoadSession={handleLoadSession}
             onDeleteSession={deleteSession}
             onClearHistory={clearSessions}
             onExportHistoryJSON={handleExportHistoryJSON}
             onExportHistoryCSV={handleExportHistoryCSV}
+            onExportHistoryBatchPDF={handleExportHistoryBatchPDF}
             onImportHistoryJSON={handleImportHistoryJSON}
           />
         )}

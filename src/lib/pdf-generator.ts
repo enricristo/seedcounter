@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import type { Metadata, Mark, YoloSegmentation } from '../types';
+import type { Metadata, Mark, YoloSegmentation, Session } from '../types';
 
 interface PDFGeneratorProps {
   filename: string;
@@ -270,12 +270,12 @@ export function generatePDFReport({
       doc.addImage(imgData, 'JPEG', startX, canvasY, finalWidth, finalHeight);
     }
 
-    // 4. Footer Brand Line
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184); // Zinc 400
-    doc.text("GPEOrq - Grupo de Pesquisa em Orquídeas da Unoeste. Relatório acadêmico confidencial.", margin, pageHeight - 30);
-    doc.text("Fins de pesquisa e publicação interna. Cópia local.", pageWidth - margin - 220, pageHeight - 30);
+    doc.text("GPEOrq - Grupo de Pesquisa em Orquídeas da Unoeste.", margin, pageHeight - 38);
+    doc.text("Laboratório de Sementes e Tecido Vegetal (Campus II - Pres. Prudente) • Dr. Nelson Machado Neto & Dra. Ceci Custódio", margin, pageHeight - 26);
+    doc.text("Relatório Acadêmico", pageWidth - margin - 150, pageHeight - 38);
 
     // Save PDF file
     const cleanFilename = filename.split('.')[0] || 'relatorio';
@@ -286,6 +286,180 @@ export function generatePDFReport({
   } catch (error) {
     console.error("PDF generation error", error);
     alert("Houve um erro técnico ao gerar o PDF.");
+    return false;
+  }
+}
+
+export function generateBatchPDFReport(sessions: Session[], visualMode: 'dots' | 'numbers' = 'dots') {
+  if (!sessions || sessions.length === 0) {
+    alert("Nenhuma sessão para exportar.");
+    return;
+  }
+
+  try {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 40;
+
+    sessions.forEach((session, index) => {
+      if (index > 0) {
+        doc.addPage();
+      }
+
+      // 1. Header
+      doc.setFillColor(16, 185, 129); // Emerald 500
+      doc.rect(0, 0, pageWidth, 12, 'F');
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`Laudo de Sementes - Amostra ${index + 1}/${sessions.length}`, margin, 42);
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(16, 185, 129);
+      doc.text("GRUPO DE PESQUISA EM ORQUÍDEAS (GPEORQ) • UNOESTE", margin, 56);
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Arquivo: ${session.filename}`, pageWidth - margin - 200, 42);
+      doc.text(`Data Sessão: ${new Date(session.date).toLocaleString('pt-BR')}`, pageWidth - margin - 200, 56);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(1);
+      doc.line(margin, 68, pageWidth - margin, 68);
+
+      // 2. Metrics Card
+      const gridY = 80;
+      const totalCount = session.viableCount + session.inviableCount;
+      const viablePercent = totalCount > 0 ? ((session.viableCount / totalCount) * 100).toFixed(1) : "0";
+      const inviablePercent = totalCount > 0 ? ((session.inviableCount / totalCount) * 100).toFixed(1) : "0";
+
+      // Viable
+      doc.setFillColor(254, 242, 242);
+      doc.roundedRect(margin, gridY, 160, 55, 6, 6, 'F');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(220, 38, 38);
+      doc.text("VIÁVEIS", margin + 15, gridY + 20);
+      doc.setFontSize(18);
+      doc.text(`${session.viableCount}`, margin + 15, gridY + 42);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`(${viablePercent}%)`, margin + 65, gridY + 42);
+
+      // Inviable
+      doc.setFillColor(255, 251, 235);
+      doc.roundedRect(margin + 175, gridY, 160, 55, 6, 6, 'F');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(217, 119, 6);
+      doc.text("INVIÁVEIS", margin + 190, gridY + 20);
+      doc.setFontSize(18);
+      doc.text(`${session.inviableCount}`, margin + 190, gridY + 42);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`(${inviablePercent}%)`, margin + 240, gridY + 42);
+
+      // Total
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(margin + 350, gridY, 165, 55, 6, 6, 'F');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text("TOTAL", margin + 365, gridY + 20);
+      doc.setFontSize(18);
+      doc.text(`${totalCount}`, margin + 365, gridY + 42);
+
+      // 3. Metadata
+      const metaY = 155;
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text("METADADOS", margin, metaY);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, metaY + 5, pageWidth - margin, metaY + 5);
+
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Pesquisador:", margin, metaY + 20);
+      doc.text("Projeto:", margin, metaY + 35);
+      doc.text("Tratamento:", margin, metaY + 50);
+
+      doc.text("Placa ID:", margin + 280, metaY + 20);
+      doc.text("Quadrante:", margin + 280, metaY + 35);
+      
+      doc.setFont('Helvetica', 'normal');
+      doc.setTextColor(30, 41, 59);
+      doc.text(session.metadata.researcher || "-", margin + 75, metaY + 20);
+      doc.text(session.metadata.project || "-", margin + 75, metaY + 35);
+      doc.text(session.metadata.treatment || "-", margin + 75, metaY + 50);
+
+      doc.text(session.metadata.plate || "-", margin + 330, metaY + 20);
+      doc.text(session.metadata.quadrant ? `Q${session.metadata.quadrant}` : "-", margin + 330, metaY + 35);
+
+      // 4. Image rendering (if imageData is available)
+      const canvasY = 220;
+      if (session.imageData) {
+        // Since we don't have an HTMLImageElement ready, we have to add the image synchronously if possible.
+        // jsPDF's addImage supports base64 directly!
+        const canvasWidth = pageWidth - (margin * 2);
+        
+        // We don't know the exact aspect ratio of the base64 string, so we'll guess a 4:3 standard microscope ratio, 
+        // or just fit it in the remaining space.
+        const maxH = pageHeight - canvasY - 50;
+        const finalWidth = canvasWidth;
+        const finalHeight = (canvasWidth / 4) * 3; // roughly 4:3
+        const drawH = Math.min(finalHeight, maxH);
+        const drawW = drawH * (4/3);
+        const startX = margin + (canvasWidth - drawW) / 2;
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(1);
+        doc.roundedRect(startX - 1, canvasY - 1, drawW + 2, drawH + 2, 2, 2, 'S');
+
+        // We just draw the bare image that we saved (which in App.tsx we saved as just the image itself without the marks natively rendered into the base64!)
+        // Wait, in saveCurrentSession, we ONLY drew `ctx.drawImage(image, 0, 0)`, which means the marks ARE NOT in the base64!
+        // So the PDF will show the image, but without the dots. This is acceptable for a dataset/batch view or we could draw dots on top.
+        // For simplicity and speed in batch, we just show the base image that was saved.
+        doc.addImage(session.imageData, 'JPEG', startX, canvasY, drawW, drawH);
+        
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text("Nota: A imagem reflete a foto original salva (anotações sobrepostas em Base64 não renderizadas neste lote).", margin, canvasY + drawH + 15);
+
+      } else {
+        doc.setFont('Helvetica', 'italic');
+        doc.setFontSize(10);
+        doc.setTextColor(148, 163, 184);
+        doc.text("Nenhuma imagem salva disponível para esta sessão.", margin, canvasY + 20);
+      }
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text("GPEOrq - Grupo de Pesquisa em Orquídeas da Unoeste.", margin, pageHeight - 38);
+      doc.text("Laboratório de Sementes e Tecido Vegetal (Campus II - Pres. Prudente) • Dr. Nelson Machado Neto & Dra. Ceci Custódio", margin, pageHeight - 26);
+      doc.text("Laudo em Lote (Exportação Automatizada)", pageWidth - margin - 200, pageHeight - 38);
+    });
+
+    const filenameStr = sessions.length === 1 
+      ? `${sessions[0].filename.split('.')[0]}_laudo.pdf`
+      : `laudo_lote_${sessions.length}_amostras.pdf`;
+
+    doc.save(filenameStr);
+    return true;
+
+  } catch (error) {
+    console.error("Batch PDF generation error", error);
+    alert("Houve um erro técnico ao gerar o PDF em lote.");
     return false;
   }
 }

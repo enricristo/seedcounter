@@ -13,6 +13,7 @@ interface MarkingCanvasProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   onToggleSegmentationClass: (id: number) => void;
   onDeleteSegmentation: (id: number) => void;
+  umPerPixel?: number;
 }
 
 export function MarkingCanvas({
@@ -26,7 +27,8 @@ export function MarkingCanvas({
   onCanvasClick,
   canvasRef,
   onToggleSegmentationClass,
-  onDeleteSegmentation
+  onDeleteSegmentation,
+  umPerPixel
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -155,8 +157,8 @@ export function MarkingCanvas({
             <div>Confiança: {(hoveredSeg.confidence * 100).toFixed(1)}%</div>
             {hoveredSeg.width && hoveredSeg.height && (
               <>
-                <div>Comprimento: {hoveredSeg.width} px</div>
-                <div>Largura: {hoveredSeg.height} px</div>
+                <div>Comprimento: {hoveredSeg.width} px {umPerPixel ? `(${(hoveredSeg.width * umPerPixel).toFixed(1)} µm)` : ''}</div>
+                <div>Largura: {hoveredSeg.height} px {umPerPixel ? `(${(hoveredSeg.height * umPerPixel).toFixed(1)} µm)` : ''}</div>
               </>
             )}
             <div className="text-[8px] text-neutral-400 pt-1 border-t border-neutral-700/30 mt-1 uppercase">
