@@ -13,6 +13,7 @@
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@types/jszip": "^3.4.0",
     "@vitejs/plugin-react": "^5.0.4",
     "dexie": "^4.4.2",
     "dexie-react-hooks": "^4.4.0",
@@ -20,11 +21,14 @@
     "express": "^4.21.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "jstat": "^1.9.6",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "recharts": "^3.8.1",
+    "simple-statistics": "^7.8.9",
     "vite": "^6.2.3"
   },
   "devDependencies": {

@@ -24,13 +24,21 @@ import { useZoom } from './hooks/useZoom';
 import { usePanning } from './hooks/usePanning';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
+import { useViewNavigation } from './hooks/useViewNavigation';
+import { useFeatureFlag, useFeatureFlags, FeatureFlagsDebugPanel } from './context/FeatureFlagContext';
+import { useExperiments } from './hooks/useExperiments';
+
+// Features
+import { LongitudinalView, ExperimentModal, PlateRunModal } from './features/longitudinal';
+import { StatsView } from './features/stats';
+import { YoloExportModal } from './features/yolo-export';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
 
 // Types
-import type { Mark, YoloSegmentation, Session } from './types';
+import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './types';
 
 // Helper function to download locally generated data
 function downloadBlob(content: string, filename: string, contentType: string) {
@@ -90,9 +98,40 @@ export default function App() {
   // Theme & Darkmode State
   const { isDarkMode, toggleTheme } = useTheme();
 
+  // View navigation
+  const { currentView, navigate } = useViewNavigation('counter');
+
+  // Experiments CRUD
+  const { experiments } = useExperiments();
+
+  // Feature Flags
+  const isLongitudinalEnabled = useFeatureFlag('longitudinalView');
+  const isStatsEnabled = useFeatureFlag('statsView');
+  const isYoloExportEnabled = useFeatureFlag('yoloExport');
+  const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
+
+  // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
+  const { toggle: toggleFlag } = useFeatureFlags();
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        toggleFlag('debugPanel');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleFlag]);
+
   // Modal Open states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isExperimentModalOpen, setIsExperimentModalOpen] = useState(false);
+  const [selectedExperimentForEdit, setSelectedExperimentForEdit] = useState<Experiment | undefined>(undefined);
+  const [isPlateRunModalOpen, setIsPlateRunModalOpen] = useState(false);
+  const [selectedExperimentForRun, setSelectedExperimentForRun] = useState<Experiment | undefined>(undefined);
+  const [selectedTreatmentIdForRun, setSelectedTreatmentIdForRun] = useState<string | undefined>(undefined);
+  const [selectedPlateRunForEdit, setSelectedPlateRunForEdit] = useState<PlateRun | undefined>(undefined);
 
   // Manual marking class toggle
   const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
@@ -315,6 +354,7 @@ export default function App() {
         setImage(img);
         setZoomLevel(1);
         setIsHistoryModalOpen(false);
+        navigate('counter');
       };
       img.onerror = () => {
         alert("Erro ao carregar a imagem salva da sessão.");
@@ -322,6 +362,7 @@ export default function App() {
       img.src = session.imageData;
     } else {
       setIsHistoryModalOpen(false);
+      navigate('counter');
       alert(`Sessão carregada, mas esta sessão antiga não possui a imagem salva no banco.\nPor favor, carregue o arquivo de imagem "${session.filename}" manualmente.`);
     }
   };
@@ -703,80 +744,120 @@ export default function App() {
         onSaveSession={() => saveCurrentSession(false)}
         onExport={() => setIsExportModalOpen(true)}
         hasImage={!!image}
+        
+        currentView={currentView}
+        onViewChange={navigate}
+        isLongitudinalEnabled={isLongitudinalEnabled}
+        isStatsEnabled={isStatsEnabled}
       />
 
-      <div className="flex flex-1 min-h-0 overflow-hidden relative">
-        {/* 2. Sidebar panel */}
-        <Sidebar 
-          fileInputRef={fileInputRef}
-          importInputRef={importInputRef}
-          handleFileUpload={handleFileUpload}
-          handleImportJSON={processJSONFile}
-          viableCount={viableCount}
-          inviableCount={inviableCount}
-          viablePercent={viablePercent}
-          inviablePercent={inviablePercent}
-          totalCount={totalCount}
-          visualMode={visualMode}
-          setVisualMode={setVisualMode}
-          activeClassification={activeClassification}
-          setActiveClassification={setActiveClassification}
-          metadata={metadata}
-          updateMetadata={updateMetadata}
-          sessions={sessions}
-        />
+      {currentView === 'counter' && (
+        <div className="flex flex-1 min-h-0 overflow-hidden relative">
+          {/* 2. Sidebar panel */}
+          <Sidebar 
+            fileInputRef={fileInputRef}
+            importInputRef={importInputRef}
+            handleFileUpload={handleFileUpload}
+            handleImportJSON={processJSONFile}
+            viableCount={viableCount}
+            inviableCount={inviableCount}
+            viablePercent={viablePercent}
+            inviablePercent={inviablePercent}
+            totalCount={totalCount}
+            visualMode={visualMode}
+            setVisualMode={setVisualMode}
+            activeClassification={activeClassification}
+            setActiveClassification={setActiveClassification}
+            metadata={metadata}
+            updateMetadata={updateMetadata}
+            sessions={sessions}
+          />
 
-        {/* 3. Image viewport scroll and Zoom area */}
-        <ImageViewport
-          containerRef={containerRef}
-          image={image}
-          onBrowseFiles={handleBrowseFiles}
-          isPanningMode={isPanningMode}
-          isDragging={isPanningDrag}
-          startDrag={startDrag}
-          handleDrag={handleDrag}
-          stopDrag={stopDrag}
-        >
+          {/* 3. Image viewport scroll and Zoom area */}
+          <ImageViewport
+            containerRef={containerRef}
+            image={image}
+            onBrowseFiles={handleBrowseFiles}
+            isPanningMode={isPanningMode}
+            isDragging={isPanningDrag}
+            startDrag={startDrag}
+            handleDrag={handleDrag}
+            stopDrag={stopDrag}
+          >
+            {image && (
+              <MarkingCanvas 
+                image={image}
+                marks={marks}
+                yoloSegmentations={yoloSegmentations}
+                segmentsVisible={segmentsVisible}
+                visualMode={visualMode}
+                zoomLevel={zoomLevel}
+                isPanningMode={isPanningMode}
+                onCanvasClick={handleCanvasClick}
+                canvasRef={canvasRef}
+                onToggleSegmentationClass={toggleSegmentationClass}
+                onDeleteSegmentation={deleteSegmentation}
+                umPerPixel={metadata.umPerPixel}
+              />
+            )}
+          </ImageViewport>
+
+          {/* 4. Floating Zoom and Panning controls */}
           {image && (
-            <MarkingCanvas 
-              image={image}
-              marks={marks}
-              yoloSegmentations={yoloSegmentations}
-              segmentsVisible={segmentsVisible}
-              visualMode={visualMode}
-              zoomLevel={zoomLevel}
+            <ZoomControls 
               isPanningMode={isPanningMode}
-              onCanvasClick={handleCanvasClick}
-              canvasRef={canvasRef}
-              onToggleSegmentationClass={toggleSegmentationClass}
-              onDeleteSegmentation={deleteSegmentation}
-              umPerPixel={metadata.umPerPixel}
+              togglePanningMode={togglePanningMode}
+              zoomIn={zoomIn}
+              zoomOut={zoomOut}
+              zoomLevel={zoomLevel}
+              onFitToScreen={handleFitToScreen}
             />
           )}
-        </ImageViewport>
+        </div>
+      )}
 
-        {/* 4. Floating Zoom and Panning controls */}
-        {image && (
-          <ZoomControls 
-            isPanningMode={isPanningMode}
-            togglePanningMode={togglePanningMode}
-            zoomIn={zoomIn}
-            zoomOut={zoomOut}
-            zoomLevel={zoomLevel}
-            onFitToScreen={handleFitToScreen}
-          />
-        )}
-      </div>
+      {currentView === 'longitudinal' && isLongitudinalEnabled && (
+        <LongitudinalView 
+          onViewSession={handleLoadSession} 
+          onCreateExperiment={() => {
+            setSelectedExperimentForEdit(undefined);
+            setIsExperimentModalOpen(true);
+          }}
+          onEditExperiment={(experiment) => {
+            setSelectedExperimentForEdit(experiment);
+            setIsExperimentModalOpen(true);
+          }}
+          onAddPlateRun={(experimentId, treatmentId, existingRun) => {
+            const exp = experiments.find(e => e.id === experimentId);
+            if (exp) {
+              setSelectedExperimentForRun(exp);
+              setSelectedTreatmentIdForRun(treatmentId);
+              setSelectedPlateRunForEdit(existingRun);
+              setIsPlateRunModalOpen(true);
+            }
+          }}
+        />
+      )}
+
+      {currentView === 'stats' && isStatsEnabled && (
+        <StatsView 
+          sessions={sessions} 
+          experiments={experiments} 
+          onViewSession={handleLoadSession} 
+        />
+      )}
 
       {/* 5. Footer Status Bar */}
-      <Footer 
-        filename={filename}
-        imageWidth={image?.width}
-        imageHeight={image?.height}
-      />
+      {currentView === 'counter' && (
+        <Footer 
+          filename={filename}
+          imageWidth={image?.width}
+          imageHeight={image?.height}
+        />
+      )}
 
       {/* 6. Drag Drop file upload overlay */}
-      <DropZone isVisible={isDragActive} />
+      {currentView === 'counter' && <DropZone isVisible={isDragActive} />}
 
       {/* 7. Action Modals */}
       <AnimatePresence>
@@ -795,6 +876,8 @@ export default function App() {
             exportJSON={handleExportJSON}
             exportAnnotatedImage={handleExportAnnotatedImage}
             exportPDF={handleExportPDF}
+            isYoloExportEnabled={isYoloExportEnabled}
+            onOpenYoloExport={() => setIsYoloExportModalOpen(true)}
           />
         )}
       </AnimatePresence>
@@ -815,6 +898,42 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {isYoloExportModalOpen && isYoloExportEnabled && (
+          <YoloExportModal 
+            isOpen={isYoloExportModalOpen}
+            onClose={() => setIsYoloExportModalOpen(false)}
+            sessions={sessions}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isExperimentModalOpen && (
+          <ExperimentModal 
+            isOpen={isExperimentModalOpen}
+            onClose={() => setIsExperimentModalOpen(false)}
+            experiment={selectedExperimentForEdit}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isPlateRunModalOpen && selectedExperimentForRun && (
+          <PlateRunModal 
+            isOpen={isPlateRunModalOpen}
+            onClose={() => setIsPlateRunModalOpen(false)}
+            experiment={selectedExperimentForRun}
+            treatmentId={selectedTreatmentIdForRun}
+            plateRun={selectedPlateRunForEdit}
+            sessions={sessions}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 8. Feature Flags Debug Panel */}
+      <FeatureFlagsDebugPanel />
     </div>
   );
 }

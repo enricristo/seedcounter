@@ -6,7 +6,8 @@ import {
   Table, 
   FileJson, 
   Image as ImageIcon,
-  FileCheck2
+  FileCheck2,
+  Layers
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ExportCard } from '../shared/ExportCard';
@@ -26,6 +27,10 @@ interface ExportModalProps {
   exportJSON: () => void;
   exportAnnotatedImage: () => void;
   exportPDF: () => void;
+
+  // YOLO beta export
+  isYoloExportEnabled?: boolean;
+  onOpenYoloExport?: () => void;
 }
 
 export function ExportModal({
@@ -41,7 +46,9 @@ export function ExportModal({
   exportCSV,
   exportJSON,
   exportAnnotatedImage,
-  exportPDF
+  exportPDF,
+  isYoloExportEnabled = false,
+  onOpenYoloExport
 }: ExportModalProps) {
   if (!isOpen) return null;
 
@@ -76,7 +83,7 @@ export function ExportModal({
         {/* Modal Content */}
         <div className="p-6 space-y-6">
           {/* Save locally Banner */}
-          <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-950/30 text-emerald-800 dark:text-emerald-400 p-4.5 rounded-2xl flex items-start gap-3.5 shadow-sm">
+          <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-950/30 text-emerald-800 dark:text-emerald-450 p-4.5 rounded-2xl flex items-start gap-3.5 shadow-sm">
             <div className="bg-emerald-100 dark:bg-emerald-950/40 p-2 rounded-xl text-emerald-600 dark:text-emerald-450 shrink-0 mt-0.5 shadow-inner">
               <Save size={18} />
             </div>
@@ -160,6 +167,22 @@ export function ExportModal({
                   <span>Baixar Foto Anotada (PNG)</span>
                 </button>
               </div>
+
+              {/* YOLO Export Option (BETA) */}
+              {isYoloExportEnabled && onOpenYoloExport && (
+                <div className="col-span-2">
+                  <button
+                    onClick={() => {
+                      onOpenYoloExport();
+                      onClose();
+                    }}
+                    className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-amber-300 dark:border-amber-900/40 bg-amber-50/10 dark:bg-amber-950/10 hover:bg-amber-50/20 dark:hover:bg-amber-950/20 hover:shadow-sm transition-all text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
+                  >
+                    <Layers size={15} className="group-hover:scale-105 transition-transform text-amber-600 dark:text-amber-400" />
+                    <span>Exportar Dataset YOLO (BETA)</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

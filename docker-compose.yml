@@ -1,0 +1,39 @@
+# docker-compose.yml — orquestra os ambientes do frontend.
+#
+# Use "profiles" para escolher o que sobe:
+#   Desenvolvimento (hot reload):  docker compose --profile dev up
+#   Producao (testar build local): docker compose --profile prod up --build
+#
+# A GEMINI_API_KEY e lida do arquivo .env (nao versionado). Copie o
+# .env.example para .env e preencha a chave.
+
+services:
+  # ---- Desenvolvimento: Vite com hot reload ----
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # Monta o codigo-fonte: alteracoes refletem na hora.
+      - .:/app
+      # Mantem o node_modules do container (nao sobrescreve com o do host).
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: unless-stopped
+
+  # ---- Producao: nginx servindo o build estatico ----
+  prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GEMINI_API_KEY: ${GEMINI_API_KEY}
+    ports:
+      - "8080:80"
+    restart: unless-stopped
