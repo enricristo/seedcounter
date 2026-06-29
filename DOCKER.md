@@ -150,7 +150,36 @@ feature "no ar" antes de mergear na `main`.
 
 ---
 
-## 6. Resumo rápido (cola)
+## 6. Publicar a imagem no Docker Hub (opcional / futuro)
+
+Só é necessário se um dia você quiser rodar fora do Vercel (VPS, outro servidor,
+laboratório offline). O Vercel **não** usa essa imagem — ele continua publicando
+a `main` por conta própria.
+
+```bash
+# 1. login no Docker Hub (uma vez)
+docker login
+
+# 2. buildar a imagem de produção já com a tag do Docker Hub
+#    (passe a chave como build-arg; ela fica embutida no bundle)
+docker build -t docker.io/enricristo/seedcounter:latest \
+  --build-arg GEMINI_API_KEY=SUA_CHAVE .
+
+# 3. enviar para o Docker Hub
+docker push docker.io/enricristo/seedcounter:latest
+
+# 4. em qualquer servidor com Docker, rodar:
+docker run -d -p 80:80 docker.io/enricristo/seedcounter:latest
+```
+
+> ⚠️ Como a `GEMINI_API_KEY` fica embutida no JavaScript do cliente, **não
+> publique uma imagem pública** com uma chave sensível. Para imagem pública, use
+> uma chave restrita por domínio/uso no Google AI Studio, ou mantenha o
+> repositório do Docker Hub como **privado**.
+
+---
+
+## 7. Resumo rápido (cola)
 
 | Ação                                  | Comando                                         |
 | ------------------------------------- | ----------------------------------------------- |

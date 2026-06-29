@@ -20,4 +20,8 @@ EXPOSE 3000
 # (especialmente em hosts Windows/macOS via Docker Desktop).
 ENV CHOKIDAR_USEPOLLING=true
 
+# Verifica se o vite dev server ja esta respondendo.
+HEALTHCHECK --interval=5s --timeout=3s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
 CMD ["npm", "run", "dev"]
