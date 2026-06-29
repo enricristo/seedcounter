@@ -8,6 +8,21 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     base: './',
+    build: {
+      // Warn on chunks > 1.5MB (was 500KB, now increased for gradual optimization)
+      // TODO: Optimize with dynamic imports and code-splitting
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          // Manual chunk splitting for better caching
+          manualChunks: {
+            'recharts-charts': ['recharts'],
+            'pdf-export': ['jspdf', 'html2canvas'],
+            'db-lib': ['dexie', 'dexie-react-hooks'],
+          },
+        },
+      },
+    },
     plugins: [
       react(), 
       tailwindcss(),
@@ -69,7 +84,11 @@ export default defineConfig(({mode}) => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Inside Docker, usePolling is required for file changes to be detected
+      // (set via CHOKIDAR_USEPOLLING in docker-compose.yml).
+      watch: process.env.DISABLE_HMR === 'true'
+        ? null
+        : { usePolling: process.env.CHOKIDAR_USEPOLLING === 'true' },
     },
   };
 });
