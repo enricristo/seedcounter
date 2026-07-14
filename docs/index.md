@@ -1,10 +1,30 @@
-# SeedCounter — Documentação
+# 📚 Índice de Documentação — Sua Auditoria Docker
 
-Esta pasta `docs/` contém páginas estáticas para uso com GitHub Pages. Ela foi adicionada para permitir uma pré-visualização estática do projeto sem tocar no deploy atual do Vercel. Se quiser ativar o GitHub Pages para este repositório, pode configurar para servir a partir da pasta `docs/` na branch principal ou configurar uma ação para publicar a partir de uma branch específica.
+Bem-vindo! Este é seu guia de navegação para toda a auditoria.
 
-Conteúdo sugerido:
-- Uma página de apresentação com screenshots
-- Instruções de instalação e uso rápido
-- Links para exportação de dados e contato
+---
 
-(Arquivo gerado automaticamente pela atualização do README.)
+## 🎯 Comece Aqui
+
+### Para Iniciantes (30-60 min)
+1. **[FINAL_REPORT.md](./FINAL_REPORT.md)** ← Leia primeiro (10 min)
+   - Resumo do que mudou
+   - Score final: 8.9/10
+   - O que fazer agora
+
+2. **[QUICKSTART.md](./QUICKSTART.md)** ← Depois (20 min)
+   - Setup local
+   - 3 ações imediatas
+   - Comandos prontos para copiar/colar
+
+3. **Execute as ações** (~20 min)
+   - Criar `.env`
+   - Instalar ESLint + Prettier
+   - Testar Docker
+
+---
+
+## 📖 Documentação Completa
+
+### Entender a Auditoria
+- **[AUDIT_

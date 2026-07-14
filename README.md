@@ -1,89 +1,72 @@
-# SeedCounter — Contador de Sementes (Pesquisa)
+<div align="center">
 
-[![Status](https://img.shields.io/badge/status-active-brightgreen)](https://vercel.com) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+# 🌱 Contador de Sementes (SeedCounter)
 
-Uma ferramenta 100% client-side para contagem manual-assistida de sementes em imagens de placas de cultura, projetada para privacidade de dados de pesquisa, facilidade de uso no laboratório e exportação de resultados para análise.
+**Contagem manual-assistida e análise de viabilidade de sementes, direto no navegador.**
 
----
+[![App ao vivo](https://img.shields.io/badge/app-ao%20vivo-10b981)](https://seedcounter.vercel.app)
+[![Feito com Vite](https://img.shields.io/badge/Vite-React%2019-646cff)](https://vitejs.dev)
+[![PWA](https://img.shields.io/badge/PWA-offline-5a0fc8)](#)
+[![Licença: MIT](https://img.shields.io/badge/licença-MIT-blue.svg)](LICENSE)
 
-Índice
-- Visão geral
-- Funcionalidades
-- Instalação (desenvolvimento)
-- Uso (rápido)
-- Deploy (opções seguras)
-- Dados e backup
-- Contribuição
-- Licença
+[**▶ Abrir o app**](https://seedcounter.vercel.app) · [Como usar](#-como-usar) · [Rodar localmente](#-rodar-localmente) · [Como citar](#-como-citar)
+
+</div>
 
 ---
 
-Visão geral
+Ferramenta desenvolvida para o **GPEOrq — Laboratório de Sementes e Tecido Vegetal da Unoeste**, voltada à contagem e à análise de viabilidade de sementes (incluindo sementes de orquídea, em escala milimétrica) a partir de imagens de placas. Tudo roda no navegador: **nenhum dado sai do seu computador**.
 
-SeedCounter é uma aplicação que permite marcar e contar sementes em imagens, diferenciando itens viáveis de detritos, com opções de exportação em CSV/JSON/PDF para posterior análise estatística.
+## ✨ Funcionalidades
 
-Funcionalidades principais
-- Marcação visual: marca sementes viáveis e inviáveis com cliques (suporte a teclas modificadoras).
-- Totalmente client-side: todas as operações e dados ficam no navegador por padrão (Local Storage). Sem backend por padrão.
-- Exportação: CSV, JSON, imagens anotadas e PDF.
-- Fluxo em lotes: suporte a importação de múltiplas placas e avançar em fila.
-- Backup/Importação: exportação e importação de histórico em JSON.
+- **Marcação manual-assistida** de sementes viáveis e inviáveis com cliques (teclas modificadoras para categorias).
+- **Modo diferencial** para separar sementes de detritos/impurezas.
+- **Modo longitudinal** para acompanhar experimentos de germinação ao longo do tempo.
+- **Estatística embutida**: taxa de germinação, intervalo de confiança de Wilson e curvas de germinação (gráficos).
+- **Exportação**: CSV, JSON, imagem anotada e PDF — além de **export no formato YOLO** para treinar modelos de detecção.
+- **100% client-side**: os dados ficam no navegador (IndexedDB). Sem backend, sem nuvem.
+- **PWA / offline**: pode ser instalado e usado sem internet nos computadores do laboratório.
+- **Lotes e backup**: importação de múltiplas placas e exportação/importação do histórico em JSON.
 
-Instalação (desenvolvimento)
+## 🚀 Usar agora
 
-Requisitos
-- Node.js 18+ e npm instalados
+Acesse a versão publicada: **https://seedcounter.vercel.app**
 
-Passos
-1. Clone o repositório
+Não precisa instalar nada — abre no navegador e, por ser PWA, pode ser instalado como aplicativo.
+
+## 🧭 Como usar
+
+1. Abra a imagem da placa no aplicativo.
+2. Marque sementes viáveis com **clique esquerdo**.
+3. Marque detritos/inviáveis com **Shift + clique** (ou clique direito).
+4. Acompanhe a contagem e a estatística no painel lateral.
+5. Use **Exportar** para salvar CSV / JSON / imagem anotada / PDF.
+
+## 💻 Rodar localmente
+
+Requisitos: **Node.js 22+** e npm (ou apenas Docker).
 
 ```bash
 git clone https://github.com/enricristo/seedcounter.git
 cd seedcounter
-```
-
-2. Instale dependências
-
-```bash
 npm install
-```
-
-3. Rodar em modo de desenvolvimento
-
-```bash
+cp .env.example .env      # opcional: preencha GEMINI_API_KEY para as funções de IA
 npm run dev
 ```
 
-Acesse em http://localhost:3000
+Acesse **http://localhost:3000**.
 
-Uso (rápido)
+Com **Docker** (ambiente padronizado, ideal para os computadores do laboratório):
 
-1. Abra a imagem da placa no aplicativo.
-2. Marque sementes viáveis com clique esquerdo.
-3. Marque detritos/inviáveis com Shift+clique ou clique direito.
-4. Use “Exportar” para salvar CSV/JSON/Imagem anotada.
+```bash
+docker compose --profile dev up          # desenvolvimento, http://localhost:3000
+docker compose --profile prod up --build  # build de produção, http://localhost:8080
+```
 
-Deploy (opções seguras — não alteram o deploy atual no Vercel)
+Guia completo de Docker e do fluxo de trabalho: [`docs/DOCKER.md`](docs/DOCKER.md).
 
-- Vercel: recomendado para compartilhar internamente no laboratório. Se o projeto já está conectado e funcionando no Vercel, não é preciso alterar nada aqui — manter o deploy atual.
-- GitHub Pages: adiciona uma pasta `docs/` com conteúdo estático (pré-visualização). Neste branch as mudanças ficam em `docs-upgrade` e não afetam o deploy do Vercel até que o PR seja mesclado e as configurações de Pages sejam aplicadas.
-- Deploy offline: para ambientes sem internet, executar `npm run build` e servir os arquivos estáticos localmente (ou empacotar via Nativefier para um executável).
+## 🗂️ Estrutura
 
-Dados e backup
-
-- Histórico e contagens são salvos localmente. Para backup, use a funcionalidade de exportar JSON/CSV e armazene em local seguro.
-
-Contribuição
-
-Contribuições são bem-vindas. Para contribuir:
-1. Fork + clone
-2. Crie uma branch com uma mudança por PR (`feature/descrição`)
-3. Abra PR descrevendo o que foi alterado
-
-Licença
-
-MIT — ver arquivo LICENSE
-
-Contato
-
-Para dúvidas ou suporte: abra uma issue no repositório ou envie e-mail ao mantenedor.
+```
+seedcounter/
+├─ src/      
