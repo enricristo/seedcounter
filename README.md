@@ -94,11 +94,19 @@ Vite · React 19 · TypeScript · Tailwind CSS · PWA (Workbox) · Dexie (Indexe
 
 Contribuições são bem-vindas! Veja [`CONTRIBUTING.md`](CONTRIBUTING.md) para o fluxo de branches (`develop` → `main`) e boas práticas.
 
+## 👥 Autores e equipe
+
+Projeto do **GPEOrq — Laboratório de Sementes e Tecido Vegetal (Unoeste)**:
+
+- **Desenvolvimento:** Enrico S. Ambrosio
+- **Orientação:** Prof. Dr. Nelson Barbosa Machado Neto
+- **Aplicação em pesquisa e validação (testes):** Mayara de Oliveira Vidotto Figueiredo (doutoranda)
+
 ## 📖 Como citar
 
 Se este software foi útil na sua pesquisa, por favor cite:
 
-> Ambrosio, E. S. *Contador de Sementes (SeedCounter): ferramenta client-side para contagem e análise de viabilidade de sementes*. GPEOrq — Laboratório de Sementes e Tecido Vegetal, Universidade do Oeste Paulista (Unoeste), 2026. Disponível em: https://seedcounter.vercel.app
+> AMBROSIO, E. S.; FIGUEIREDO, M. O. V.; MACHADO NETO, N. B. *Contador de Sementes (SeedCounter): ferramenta client-side para contagem e análise de viabilidade de sementes*. GPEOrq — Laboratório de Sementes e Tecido Vegetal, Universidade do Oeste Paulista (Unoeste), 2026. Disponível em: https://seedcounter.vercel.app
 
 ## 📄 Licença
 
