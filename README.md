@@ -69,4 +69,43 @@ Guia completo de Docker e do fluxo de trabalho: [`docs/DOCKER.md`](docs/DOCKER.m
 
 ```
 seedcounter/
-├─ src/      
+├─ src/                 # código da aplicação (React + TypeScript)
+│  ├─ components/       # componentes de UI
+│  ├─ features/         # módulos: longitudinal, estatística, export YOLO
+│  ├─ hooks/            # hooks (sessões, experimentos, metadados)
+│  ├─ context/          # contextos (feature flags)
+│  └─ lib/              # banco (Dexie), estatística, exportadores
+├─ public/              # assets estáticos (logo, imagens)
+├─ docs/                # documentação (Docker, deploy, relatórios)
+├─ Dockerfile(.dev)     # imagens Docker (produção / desenvolvimento)
+└─ docker-compose.yml
+```
+
+## 🔒 Privacidade e segurança
+
+- Os dados de contagem **nunca saem do navegador** (armazenados localmente via IndexedDB).
+- A `GEMINI_API_KEY` (usada nas funções de IA) é embutida no bundle do cliente em tempo de build. Se você usa esse recurso, **restrinja a chave por domínio/uso** no Google AI Studio para evitar abuso. Veja [`SECURITY.md`](SECURITY.md).
+
+## 🛠️ Tecnologias
+
+Vite · React 19 · TypeScript · Tailwind CSS · PWA (Workbox) · Dexie (IndexedDB) · Recharts · jsPDF · Google Gemini (`@google/genai`).
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Veja [`CONTRIBUTING.md`](CONTRIBUTING.md) para o fluxo de branches (`develop` → `main`) e boas práticas.
+
+## 📖 Como citar
+
+Se este software foi útil na sua pesquisa, por favor cite:
+
+> Ambrosio, E. S. *Contador de Sementes (SeedCounter): ferramenta client-side para contagem e análise de viabilidade de sementes*. GPEOrq — Laboratório de Sementes e Tecido Vegetal, Universidade do Oeste Paulista (Unoeste), 2026. Disponível em: https://seedcounter.vercel.app
+
+## 📄 Licença
+
+Distribuído sob a licença **MIT** — veja [`LICENSE`](LICENSE).
+
+---
+
+<div align="center">
+Feito com 🌱 para o GPEOrq · Unoeste
+</div>
