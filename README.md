@@ -1,52 +1,111 @@
-# Contador de Sementes - Edição Pesquisa Acadêmica
+<div align="center">
 
-Uma ferramenta **100% Client-Side** para contagem manual-assistida de sementes e análises em placas de cultura, desenvolvida com foco em segurança de dados de pesquisa, usabilidade e agilidade no laboratório.
+# 🌱 Contador de Sementes (SeedCounter)
 
-## Funcionalidades
-- **Marcação Visual Inteligente:** Diferencie sementes viáveis (clique esquerdo) de inviáveis/detritos (shift + clique ou clique direito).
-- **Sem Backend / Nuvem Privada:** O "banco de dados" utiliza a capacidade da própria máquina do pesquisador (Local Storage do navegador) garantindo privacidade acadêmica absoluta de experimentos não publicados.
-- **Exportação Multiformato:** PDF/Imagem anotada, dados brutos georreferenciados (JSON) e planilha agregada para análise estatística (R, Excel, Python).
-- **Trabalho em Lotes (Queue):** Importe dezenas de placas de uma vez e avance rapidamente registrando estatísticas contínuas usando "Salvar e Próxima".
+**Contagem manual-assistida e análise de viabilidade de sementes, direto no navegador.**
+
+[![App ao vivo](https://img.shields.io/badge/app-ao%20vivo-10b981)](https://seedcounter.vercel.app)
+[![Feito com Vite](https://img.shields.io/badge/Vite-React%2019-646cff)](https://vitejs.dev)
+[![PWA](https://img.shields.io/badge/PWA-offline-5a0fc8)](#)
+[![Licença: MIT](https://img.shields.io/badge/licença-MIT-blue.svg)](LICENSE)
+
+[**▶ Abrir o app**](https://seedcounter.vercel.app) · [Como usar](#-como-usar) · [Rodar localmente](#-rodar-localmente) · [Como citar](#-como-citar)
+
+</div>
 
 ---
 
-## Como Fazer o Deploy (Colocar em Prática no Laboratório)
+Ferramenta desenvolvida para o **GPEOrq — Laboratório de Sementes e Tecido Vegetal da Unoeste**, voltada à contagem e à análise de viabilidade de sementes (incluindo sementes de orquídea, em escala milimétrica) a partir de imagens de placas. Tudo roda no navegador: **nenhum dado sai do seu computador**.
 
-### 1. Implantação na Web (Para a equipe inteira)
-A forma mais recomendada para acesso fácil via qualquer computador do laboratório. Por não usar servidor ou banco de dados em nuvem, ferramentas como a Vercel hospedam este site livremente de forma **gratuita para sempre**.
+## ✨ Funcionalidades
 
-1. **Baixe o projeto:** Utilize o menu de opções ("Settings > Export as ZIP") do AI Studio para baixar os arquivos.
-2. Crie uma conta no [Vercel](https://vercel.com) ou [Netlify](https://netlify.com).
-3. Na Vercel, clique em **Add New... -> Project**.
-4. Não precisa conectar com o GitHub se não quiser. Basta clicar na aba **Upload** e arrastar a sua pasta inteira (extraída do `.zip`) para dentro.
-5. O sistema fará o _build_ automático (`npm run build`) e fornecerá um link público seguro (ex: `contador-sementes.vercel.app`), pronto para acesso de qualquer outro computador ou tablet.
+- **Marcação manual-assistida** de sementes viáveis e inviáveis com cliques (teclas modificadoras para categorias).
+- **Modo diferencial** para separar sementes de detritos/impurezas.
+- **Modo longitudinal** para acompanhar experimentos de germinação ao longo do tempo.
+- **Estatística embutida**: taxa de germinação, intervalo de confiança de Wilson e curvas de germinação (gráficos).
+- **Exportação**: CSV, JSON, imagem anotada e PDF — além de **export no formato YOLO** para treinar modelos de detecção.
+- **100% client-side**: os dados ficam no navegador (IndexedDB). Sem backend, sem nuvem.
+- **PWA / offline**: pode ser instalado e usado sem internet nos computadores do laboratório.
+- **Lotes e backup**: importação de múltiplas placas e exportação/importação do histórico em JSON.
 
-### 2. Implantação Local / Sem Internet (Offline Seguro)
-Se o computador conectado aos microscópios e câmeras do laboratório não tiver internet:
+## 🚀 Usar agora
 
-1. Instale o [Node.js](https://nodejs.org/) na máquina.
-2. Com um pendrive, coloque a pasta inteira deste projeto nesse computador.
-3. Abra o terminal (Prompt de Comando) na pasta do projeto e instale uma única vez instalando os pacotes requeridos:
-   ```bash
-   npm install
-   ```
-4. Para abrir o contador no dia a dia, execute:
-   ```bash
-   npm run dev
-   ```
-5. Basta acessar o link `http://localhost:3000` ou (ou o IP que for mostrado no console) diretamente no navegador (Google Chrome, Firefox, etc). O sistema rodará super leve.
+Acesse a versão publicada: **https://seedcounter.vercel.app**
 
-### 3. Gerando um Aplicativo "Desktop" Executável (.exe)
-Caso o usuário precise utilizar a solução fora de um navegador genérico (que possa ser fechado por engano) você pode transformar essa ferramenta em uma janela independente do Windows/Mac usando o [Nativefier](https://github.com/nativefier/nativefier) ou serviços similares.
+Não precisa instalar nada — abre no navegador e, por ser PWA, pode ser instalado como aplicativo.
 
-Rodando a solução localmente via Node (`npm run dev`), abra outro terminal e digite:
+## 🧭 Como usar
+
+1. Abra a imagem da placa no aplicativo.
+2. Marque sementes viáveis com **clique esquerdo**.
+3. Marque detritos/inviáveis com **Shift + clique** (ou clique direito).
+4. Acompanhe a contagem e a estatística no painel lateral.
+5. Use **Exportar** para salvar CSV / JSON / imagem anotada / PDF.
+
+## 💻 Rodar localmente
+
+Requisitos: **Node.js 22+** e npm (ou apenas Docker).
+
 ```bash
-npx nativefier --name "SeedCounter" "http://localhost:3000"
+git clone https://github.com/enricristo/seedcounter.git
+cd seedcounter
+npm install
+cp .env.example .env      # opcional: preencha GEMINI_API_KEY para as funções de IA
+npm run dev
 ```
-Uma pasta chamada `SeedCounter-win32-x64` será criada contendo o executável. 
+
+Acesse **http://localhost:3000**.
+
+Com **Docker** (ambiente padronizado, ideal para os computadores do laboratório):
+
+```bash
+docker compose --profile dev up          # desenvolvimento, http://localhost:3000
+docker compose --profile prod up --build  # build de produção, http://localhost:8080
+```
+
+Guia completo de Docker e do fluxo de trabalho: [`docs/DOCKER.md`](docs/DOCKER.md).
+
+## 🗂️ Estrutura
+
+```
+seedcounter/
+├─ src/                 # código da aplicação (React + TypeScript)
+│  ├─ components/       # componentes de UI
+│  ├─ features/         # módulos: longitudinal, estatística, export YOLO
+│  ├─ hooks/            # hooks (sessões, experimentos, metadados)
+│  ├─ context/          # contextos (feature flags)
+│  └─ lib/              # banco (Dexie), estatística, exportadores
+├─ public/              # assets estáticos (logo, imagens)
+├─ docs/                # documentação (Docker, deploy, relatórios)
+├─ Dockerfile(.dev)     # imagens Docker (produção / desenvolvimento)
+└─ docker-compose.yml
+```
+
+## 🔒 Privacidade e segurança
+
+- Os dados de contagem **nunca saem do navegador** (armazenados localmente via IndexedDB).
+- A `GEMINI_API_KEY` (usada nas funções de IA) é embutida no bundle do cliente em tempo de build. Se você usa esse recurso, **restrinja a chave por domínio/uso** no Google AI Studio para evitar abuso. Veja [`SECURITY.md`](SECURITY.md).
+
+## 🛠️ Tecnologias
+
+Vite · React 19 · TypeScript · Tailwind CSS · PWA (Workbox) · Dexie (IndexedDB) · Recharts · jsPDF · Google Gemini (`@google/genai`).
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Veja [`CONTRIBUTING.md`](CONTRIBUTING.md) para o fluxo de branches (`develop` → `main`) e boas práticas.
+
+## 📖 Como citar
+
+Se este software foi útil na sua pesquisa, por favor cite:
+
+> Ambrosio, E. S. *Contador de Sementes (SeedCounter): ferramenta client-side para contagem e análise de viabilidade de sementes*. GPEOrq — Laboratório de Sementes e Tecido Vegetal, Universidade do Oeste Paulista (Unoeste), 2026. Disponível em: https://seedcounter.vercel.app
+
+## 📄 Licença
+
+Distribuído sob a licença **MIT** — veja [`LICENSE`](LICENSE).
 
 ---
 
-### Manutenção dos Dados
-
-A aba **Histórico** salva informações via sessão (no banco Web local) e via importação/exportação de JSON puro. Para fazer *backup* de todas contagens realizadas, lembre os pesquisadores de ao fim da semana clicarem em **"Exportar Tabela Completa (CSV)"** na área do histórico.
+<div align="center">
+Feito com 🌱 para o GPEOrq · Unoeste
+</div>
