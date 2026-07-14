@@ -1,52 +1,89 @@
-# Contador de Sementes - Edição Pesquisa Acadêmica
+# SeedCounter — Contador de Sementes (Pesquisa)
 
-Uma ferramenta **100% Client-Side** para contagem manual-assistida de sementes e análises em placas de cultura, desenvolvida com foco em segurança de dados de pesquisa, usabilidade e agilidade no laboratório.
+[![Status](https://img.shields.io/badge/status-active-brightgreen)](https://vercel.com) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Funcionalidades
-- **Marcação Visual Inteligente:** Diferencie sementes viáveis (clique esquerdo) de inviáveis/detritos (shift + clique ou clique direito).
-- **Sem Backend / Nuvem Privada:** O "banco de dados" utiliza a capacidade da própria máquina do pesquisador (Local Storage do navegador) garantindo privacidade acadêmica absoluta de experimentos não publicados.
-- **Exportação Multiformato:** PDF/Imagem anotada, dados brutos georreferenciados (JSON) e planilha agregada para análise estatística (R, Excel, Python).
-- **Trabalho em Lotes (Queue):** Importe dezenas de placas de uma vez e avance rapidamente registrando estatísticas contínuas usando "Salvar e Próxima".
+Uma ferramenta 100% client-side para contagem manual-assistida de sementes em imagens de placas de cultura, projetada para privacidade de dados de pesquisa, facilidade de uso no laboratório e exportação de resultados para análise.
 
 ---
 
-## Como Fazer o Deploy (Colocar em Prática no Laboratório)
+Índice
+- Visão geral
+- Funcionalidades
+- Instalação (desenvolvimento)
+- Uso (rápido)
+- Deploy (opções seguras)
+- Dados e backup
+- Contribuição
+- Licença
 
-### 1. Implantação na Web (Para a equipe inteira)
-A forma mais recomendada para acesso fácil via qualquer computador do laboratório. Por não usar servidor ou banco de dados em nuvem, ferramentas como a Vercel hospedam este site livremente de forma **gratuita para sempre**.
+---
 
-1. **Baixe o projeto:** Utilize o menu de opções ("Settings > Export as ZIP") do AI Studio para baixar os arquivos.
-2. Crie uma conta no [Vercel](https://vercel.com) ou [Netlify](https://netlify.com).
-3. Na Vercel, clique em **Add New... -> Project**.
-4. Não precisa conectar com o GitHub se não quiser. Basta clicar na aba **Upload** e arrastar a sua pasta inteira (extraída do `.zip`) para dentro.
-5. O sistema fará o _build_ automático (`npm run build`) e fornecerá um link público seguro (ex: `contador-sementes.vercel.app`), pronto para acesso de qualquer outro computador ou tablet.
+Visão geral
 
-### 2. Implantação Local / Sem Internet (Offline Seguro)
-Se o computador conectado aos microscópios e câmeras do laboratório não tiver internet:
+SeedCounter é uma aplicação que permite marcar e contar sementes em imagens, diferenciando itens viáveis de detritos, com opções de exportação em CSV/JSON/PDF para posterior análise estatística.
 
-1. Instale o [Node.js](https://nodejs.org/) na máquina.
-2. Com um pendrive, coloque a pasta inteira deste projeto nesse computador.
-3. Abra o terminal (Prompt de Comando) na pasta do projeto e instale uma única vez instalando os pacotes requeridos:
-   ```bash
-   npm install
-   ```
-4. Para abrir o contador no dia a dia, execute:
-   ```bash
-   npm run dev
-   ```
-5. Basta acessar o link `http://localhost:3000` ou (ou o IP que for mostrado no console) diretamente no navegador (Google Chrome, Firefox, etc). O sistema rodará super leve.
+Funcionalidades principais
+- Marcação visual: marca sementes viáveis e inviáveis com cliques (suporte a teclas modificadoras).
+- Totalmente client-side: todas as operações e dados ficam no navegador por padrão (Local Storage). Sem backend por padrão.
+- Exportação: CSV, JSON, imagens anotadas e PDF.
+- Fluxo em lotes: suporte a importação de múltiplas placas e avançar em fila.
+- Backup/Importação: exportação e importação de histórico em JSON.
 
-### 3. Gerando um Aplicativo "Desktop" Executável (.exe)
-Caso o usuário precise utilizar a solução fora de um navegador genérico (que possa ser fechado por engano) você pode transformar essa ferramenta em uma janela independente do Windows/Mac usando o [Nativefier](https://github.com/nativefier/nativefier) ou serviços similares.
+Instalação (desenvolvimento)
 
-Rodando a solução localmente via Node (`npm run dev`), abra outro terminal e digite:
+Requisitos
+- Node.js 18+ e npm instalados
+
+Passos
+1. Clone o repositório
+
 ```bash
-npx nativefier --name "SeedCounter" "http://localhost:3000"
+git clone https://github.com/enricristo/seedcounter.git
+cd seedcounter
 ```
-Uma pasta chamada `SeedCounter-win32-x64` será criada contendo o executável. 
 
----
+2. Instale dependências
 
-### Manutenção dos Dados
+```bash
+npm install
+```
 
-A aba **Histórico** salva informações via sessão (no banco Web local) e via importação/exportação de JSON puro. Para fazer *backup* de todas contagens realizadas, lembre os pesquisadores de ao fim da semana clicarem em **"Exportar Tabela Completa (CSV)"** na área do histórico.
+3. Rodar em modo de desenvolvimento
+
+```bash
+npm run dev
+```
+
+Acesse em http://localhost:3000
+
+Uso (rápido)
+
+1. Abra a imagem da placa no aplicativo.
+2. Marque sementes viáveis com clique esquerdo.
+3. Marque detritos/inviáveis com Shift+clique ou clique direito.
+4. Use “Exportar” para salvar CSV/JSON/Imagem anotada.
+
+Deploy (opções seguras — não alteram o deploy atual no Vercel)
+
+- Vercel: recomendado para compartilhar internamente no laboratório. Se o projeto já está conectado e funcionando no Vercel, não é preciso alterar nada aqui — manter o deploy atual.
+- GitHub Pages: adiciona uma pasta `docs/` com conteúdo estático (pré-visualização). Neste branch as mudanças ficam em `docs-upgrade` e não afetam o deploy do Vercel até que o PR seja mesclado e as configurações de Pages sejam aplicadas.
+- Deploy offline: para ambientes sem internet, executar `npm run build` e servir os arquivos estáticos localmente (ou empacotar via Nativefier para um executável).
+
+Dados e backup
+
+- Histórico e contagens são salvos localmente. Para backup, use a funcionalidade de exportar JSON/CSV e armazene em local seguro.
+
+Contribuição
+
+Contribuições são bem-vindas. Para contribuir:
+1. Fork + clone
+2. Crie uma branch com uma mudança por PR (`feature/descrição`)
+3. Abra PR descrevendo o que foi alterado
+
+Licença
+
+MIT — ver arquivo LICENSE
+
+Contato
+
+Para dúvidas ou suporte: abra uma issue no repositório ou envie e-mail ao mantenedor.
