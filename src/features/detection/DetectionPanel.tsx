@@ -189,14 +189,18 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
       {/* Polaridade */}
       <div className="space-y-1.5">
         <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-          Sementes são
+          Contraste da imagem
         </label>
+        <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-snug">
+          As sementes aparecem mais escuras ou mais claras que o fundo da placa?
+          Em “Auto” o programa decide sozinho.
+        </p>
         <div className="grid grid-cols-3 gap-1">
           {([
             ['auto', 'Auto'],
             ['dark', 'Escuras'],
             ['light', 'Claras'],
-          ] as const).map(([value, txt]) => (
+          ] as const).map(([value, txt]: readonly ['auto' | 'dark' | 'light', string]) => (
             <button
               key={value}
               onClick={() => setPolarity(value)}

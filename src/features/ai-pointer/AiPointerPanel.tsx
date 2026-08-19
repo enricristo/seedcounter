@@ -81,10 +81,14 @@ export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: Ai
       });
       setDetections(result);
     } catch (err) {
+      console.error('[AI Pointer] falha na inferência:', err);
+      const msg = err instanceof Error ? err.message : String(err);
       setError(
-        err instanceof Error && /fetch|404|network/i.test(err.message)
-          ? 'Modelo não encontrado. Publique o arquivo .onnx em public/models/.'
-          : 'Falha ao executar o modelo. Veja o console para detalhes.'
+        /fetch|404|not found/i.test(msg)
+          ? 'Modelo não encontrado em public/models/.'
+          : /wasm|backend|no available backend/i.test(msg)
+            ? 'Falha ao carregar o motor de inferência (WASM). Verifique a conexão na primeira execução.'
+            : `Falha ao executar o modelo: ${msg.slice(0, 120)}`
       );
     } finally {
       setIsRunning(false);

@@ -25,6 +25,16 @@ interface MarkingCanvasProps {
   umPerPixel?: number;
   /** Prévia da detecção assistida (Fase E). */
   detectionPreview?: DetectionPreview | null;
+  /** Ferramenta ativa (Fase F — editor). */
+  activeTool?: 'viable' | 'inviable' | 'eraser' | 'pan';
+  /** Raio da borracha, em pixels da imagem. */
+  eraserRadius?: number;
+  /** Remove uma marcação específica (clique direto nela). */
+  onRemoveMark?: (id: number) => void;
+  /** Inverte a classe de uma marcação (viável ↔ inviável). */
+  onToggleMarkClass?: (id: number) => void;
+  /** Apaga todas as marcações dentro do raio (arrastar a borracha). */
+  onEraseArea?: (x: number, y: number, radius: number) => void;
 }
 
 export function MarkingCanvas({
@@ -40,10 +50,53 @@ export function MarkingCanvas({
   onToggleSegmentationClass,
   onDeleteSegmentation,
   umPerPixel,
-  detectionPreview
+  detectionPreview,
+  activeTool = 'viable',
+  eraserRadius = 20,
+  onRemoveMark,
+  onToggleMarkClass,
+  onEraseArea
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [hoveredMarkId, setHoveredMarkId] = useState<number | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [isErasing, setIsErasing] = useState(false);
+
+  const isEraser = activeTool === 'eraser';
+
+  /** Converte a posição do mouse para coordenadas da imagem original. */
+  const toImageCoords = (e: React.MouseEvent): { x: number; y: number } | null => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * image.width,
+      y: ((e.clientY - rect.top) / rect.height) * image.height,
+    };
+  };
+
+  const handleLayerMouseMove = (e: React.MouseEvent) => {
+    if (!isEraser) {
+      if (cursorPos) setCursorPos(null);
+      return;
+    }
+    const pos = toImageCoords(e);
+    if (!pos) return;
+    setCursorPos(pos);
+    // Arrastar com o botão pressionado apaga continuamente.
+    if (isErasing && onEraseArea) onEraseArea(pos.x, pos.y, eraserRadius);
+  };
+
+  const handleLayerMouseDown = (e: React.MouseEvent) => {
+    if (!isEraser || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsErasing(true);
+    const pos = toImageCoords(e);
+    if (pos && onEraseArea) onEraseArea(pos.x, pos.y, eraserRadius);
+  };
+
+  const stopErasing = () => setIsErasing(false);
 
   const handlePolygonMouseMove = (e: React.MouseEvent, seg: YoloSegmentation) => {
     if (isPanningMode) return;
@@ -96,6 +149,71 @@ export function MarkingCanvas({
           height: '100%'
         }}
       />
+
+      {/* Fase F — Camada interativa: hover nas marcações + borracha */}
+      {(isEraser || onRemoveMark || onToggleMarkClass) && (
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox={`0 0 ${image.width} ${image.height}`}
+          style={{
+            width: '100%',
+            height: '100%',
+            zIndex: 8,
+            cursor: isEraser ? 'none' : 'default',
+            pointerEvents: isEraser ? 'auto' : 'none',
+          }}
+          onMouseMove={handleLayerMouseMove}
+          onMouseDown={handleLayerMouseDown}
+          onMouseUp={stopErasing}
+          onMouseLeave={() => { stopErasing(); setCursorPos(null); setHoveredMarkId(null); }}
+        >
+          {/* Alvos de interação sobre cada marcação */}
+          {marks.map(mark => {
+            const isHovered = hoveredMarkId === mark.id;
+            const r = Math.max(6, image.width / 130);
+            // Cor do realce indica a ação: vermelho apaga, branco inverte.
+            const highlight = isEraser ? '#f43f5e' : '#ffffff';
+            return (
+              <circle
+                key={`hit-${mark.id}`}
+                cx={mark.x}
+                cy={mark.y}
+                r={r}
+                fill={isHovered ? (isEraser ? 'rgba(244,63,94,0.35)' : 'rgba(255,255,255,0.22)') : 'transparent'}
+                stroke={isHovered ? highlight : 'none'}
+                strokeWidth={Math.max(1.5, image.width / 500)}
+                style={{ pointerEvents: 'auto', cursor: isEraser ? 'none' : 'pointer' }}
+                onMouseEnter={() => setHoveredMarkId(mark.id)}
+                onMouseLeave={() => setHoveredMarkId(null)}
+                onClick={e => {
+                  e.stopPropagation();
+                  // Borracha, Shift ou Alt apagam; clique simples inverte a classe.
+                  if (isEraser || e.shiftKey || e.altKey) {
+                    onRemoveMark?.(mark.id);
+                    setHoveredMarkId(null);
+                  } else {
+                    onToggleMarkClass?.(mark.id);
+                  }
+                }}
+              />
+            );
+          })}
+
+          {/* Cursor da borracha */}
+          {isEraser && cursorPos && (
+            <circle
+              cx={cursorPos.x}
+              cy={cursorPos.y}
+              r={eraserRadius}
+              fill="rgba(244,63,94,0.12)"
+              stroke="#f43f5e"
+              strokeWidth={Math.max(1.5, image.width / 600)}
+              strokeDasharray={`${image.width / 120},${image.width / 200}`}
+              pointerEvents="none"
+            />
+          )}
+        </svg>
+      )}
 
       {/* Fase E — Máscara da detecção assistida (ajuda no ajuste dos parâmetros) */}
       {detectionPreview?.showMask && detectionPreview.maskDataUrl && detectionPreview.maskRect && (

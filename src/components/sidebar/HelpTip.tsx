@@ -53,11 +53,12 @@ export function HelpTip() {
             className="space-y-1.5"
           >
             <ul className="text-[10px] text-neutral-600 dark:text-zinc-300 space-y-1 pl-3.5 list-disc font-medium">
-              <li><strong className="text-blue-800 dark:text-blue-400">Clique Esquerdo:</strong> Adiciona semente Viável (Vermelho)</li>
-              <li><strong className="text-blue-800 dark:text-blue-400">Shift + Clique / Ctrl + Clique:</strong> Adiciona semente Inviável (Amarelo)</li>
-              <li><strong className="text-blue-800 dark:text-blue-400">Clique Direito:</strong> Adiciona semente Inviável (Amarelo)</li>
-              <li><strong className="text-blue-800 dark:text-blue-400">Scroll do Mouse:</strong> Ajusta o Zoom na posição do cursor</li>
-              <li><strong className="text-blue-800 dark:text-blue-400">Arraste de Botão do Meio (Scroll):</strong> Panning/Movimentação da imagem</li>
+              <li><strong className="text-blue-800 dark:text-blue-400">Clique Esquerdo:</strong> Adiciona semente na classe da ferramenta ativa</li>
+              <li><strong className="text-blue-800 dark:text-blue-400">Shift / Ctrl + Clique:</strong> Adiciona na classe oposta</li>
+              <li><strong className="text-blue-800 dark:text-blue-400">Clique Direito:</strong> Adiciona na classe oposta</li>
+              <li><strong className="text-blue-800 dark:text-blue-400">Shift / Alt + Clique numa marcação:</strong> Apaga aquela marcação</li>
+              <li><strong className="text-blue-800 dark:text-blue-400">Scroll do Mouse:</strong> Zoom na posição do cursor</li>
+              <li><strong className="text-blue-800 dark:text-blue-400">Borracha + arrastar:</strong> Apaga tudo dentro do círculo</li>
             </ul>
           </motion.div>
         ) : (
@@ -69,6 +70,30 @@ export function HelpTip() {
             transition={{ duration: 0.15 }}
             className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] font-medium text-neutral-600 dark:text-zinc-300 pl-1"
           >
+            <div className="flex justify-between items-center bg-red-100/60 dark:bg-red-950/20 p-1 px-1.5 rounded">
+              <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">V</span>
+              <span>Marcar Viável</span>
+            </div>
+            <div className="flex justify-between items-center bg-amber-100/60 dark:bg-amber-950/20 p-1 px-1.5 rounded">
+              <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">I</span>
+              <span>Marcar Inviável</span>
+            </div>
+            <div className="flex justify-between items-center bg-neutral-100/50 dark:bg-zinc-900/30 p-1 px-1.5 rounded">
+              <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">X</span>
+              <span>Inverter Classe</span>
+            </div>
+            <div className="flex justify-between items-center bg-rose-100/60 dark:bg-rose-950/20 p-1 px-1.5 rounded">
+              <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">E</span>
+              <span>Borracha</span>
+            </div>
+            <div className="flex justify-between items-center bg-neutral-100/50 dark:bg-zinc-900/30 p-1 px-1.5 rounded">
+              <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">Alt</span>
+              <span>Borracha temporária</span>
+            </div>
+            <div className="flex justify-between items-center bg-neutral-100/50 dark:bg-zinc-900/30 p-1 px-1.5 rounded">
+              <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">[ ]</span>
+              <span>Tamanho da borracha</span>
+            </div>
             <div className="flex justify-between items-center bg-neutral-100/50 dark:bg-zinc-900/30 p-1 px-1.5 rounded">
               <span className="text-neutral-400 dark:text-zinc-500 font-bold font-mono">1</span>
               <span>Visualizar Pontos</span>

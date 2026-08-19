@@ -13,17 +13,7 @@
 // e cacheado pelo navegador.
 // =============================================================================
 
-// Tipos mínimos locais: evitam depender do pacote em tempo de compilação.
-// O módulo real é carregado sob demanda via import() dinâmico.
-interface OrtTensor {
-  dims: readonly number[];
-  data: Float32Array | unknown;
-}
-interface OrtSession {
-  inputNames: string[];
-  outputNames: string[];
-  run(feeds: Record<string, unknown>): Promise<Record<string, OrtTensor>>;
-}
+import type { InferenceSession as OrtSession, Tensor as OrtTensor } from 'onnxruntime-web';
 
 export const YOLO_CLASSES = ['inviavel', 'viavel'] as const;
 export type YoloClassName = (typeof YOLO_CLASSES)[number];
@@ -74,11 +64,18 @@ export async function loadModel(modelUrl: string = DEFAULT_MODEL_URL): Promise<O
   if (sessionPromise) return sessionPromise;
 
   sessionPromise = (async () => {
-    // Import dinâmico por variável: o pacote só é exigido em tempo de execução,
-    // permitindo compilar o projeto mesmo antes de instalá-lo.
-    const pkg = 'onnxruntime-web';
-    const ort = await import(/* @vite-ignore */ pkg);
+    // Import estático (o Vite precisa do literal para empacotar corretamente).
+    const ort = await import('onnxruntime-web');
     ortModule = ort;
+
+    // Os binários WASM não são empacotados pelo Vite: apontamos para o CDN
+    // na mesma versão do pacote instalado.
+    try {
+      const version = ort.env.versions?.web ?? '1.27.0';
+      ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${version}/dist/`;
+    } catch {
+      /* mantém o caminho padrão se a env não estiver acessível */
+    }
 
     // WebGPU é bem mais rápido; cai para WASM multi-thread quando não houver.
     const hasWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;

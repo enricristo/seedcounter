@@ -74,10 +74,9 @@ export function useKeyboardShortcuts({
           e.preventDefault();
           onSetVisualMode('numbers');
           break;
-        case 'h':
-          e.preventDefault();
-          if (hasImage) onTogglePanning();
-          break;
+        // 'h' é tratado pela barra de ferramentas (useTools), que é a fonte
+        // única de verdade do modo de interação. Manter aqui causaria dois
+        // estados de "modo mão" concorrentes.
         case '+':
         case '=':
           e.preventDefault();

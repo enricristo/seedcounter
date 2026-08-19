@@ -7,6 +7,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { ImageViewport } from './components/canvas/ImageViewport';
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
+import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
 
@@ -25,6 +26,7 @@ import { usePanning } from './hooks/usePanning';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
 import { useViewNavigation } from './hooks/useViewNavigation';
+import { useTools } from './hooks/useTools';
 import { useFeatureFlag, useFeatureFlags, FeatureFlagsDebugPanel } from './context/FeatureFlagContext';
 import { useExperiments } from './hooks/useExperiments';
 
@@ -116,6 +118,11 @@ export default function App() {
   const isAiPointerEnabled = useFeatureFlag('aiPointer');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
+
+  // Fase F — ferramentas de edição (marcar / borracha / mover)
+  const {
+    activeTool, setActiveTool, eraserRadius, setEraserRadius, isTemporary: isToolTemporary,
+  } = useTools();
   const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
 
   // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
@@ -154,6 +161,7 @@ export default function App() {
     segmentsVisible,
     addMark,
     undoMark,
+    removeMark,
     addYoloSegmentations,
     toggleSegmentationClass,
     deleteSegmentation,
@@ -172,6 +180,7 @@ export default function App() {
   // Panning & Panning gesture drag mode
   const {
     isPanningMode,
+    setIsPanningMode,
     isDragging: isPanningDrag,
     startDrag,
     handleDrag,
@@ -284,6 +293,8 @@ export default function App() {
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanningMode) return;
+    // Borracha e "mover" não criam marcações (a borracha age na camada própria).
+    if (activeTool === 'eraser' || activeTool === 'pan') return;
     if (!image || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -296,11 +307,12 @@ export default function App() {
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    // Shift/Ctrl/Right/Middle clicks invert the active classification
+    // A ferramenta ativa define a classe; Shift/Ctrl/botão direito invertem.
+    const baseType = activeTool === 'inviable' ? 'inviable' : 'viable';
     const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
-    const type = shouldInvert 
-      ? (activeClassification === 'viable' ? 'inviable' : 'viable') 
-      : activeClassification;
+    const type = shouldInvert
+      ? (baseType === 'viable' ? 'inviable' : 'viable')
+      : baseType;
 
     addMark(x, y, type);
   };
@@ -715,6 +727,62 @@ export default function App() {
     updateMetadata('imageSource', 'manual_camera');
   }, [loadFiles, updateMetadata]);
 
+  // A ferramenta ativa é a fonte única de verdade do modo de interação:
+  // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
+  // depois de trocar de ferramenta (o que bloqueava os cliques de marcação).
+  useEffect(() => {
+    setIsPanningMode(activeTool === 'pan');
+  }, [activeTool, setIsPanningMode]);
+
+  // Zoom com a roda do mouse, ancorado na posição do cursor.
+  // Usa listener nativo com passive:false — o React registra 'wheel' como
+  // passivo, o que impediria o preventDefault (a página rolaria junto).
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !image) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey && e.shiftKey) return; // deixa o scroll lateral livre
+      e.preventDefault();
+
+      const rect = container.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+      // Ponto sob o cursor, em coordenadas do conteúdo.
+      const contentX = container.scrollLeft + offsetX;
+      const contentY = container.scrollTop + offsetY;
+
+      setZoomLevel(prev => {
+        const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+        const next = Math.min(5, Math.max(0.1, prev * factor));
+        const ratio = next / prev;
+        // Reposiciona o scroll para manter o ponto sob o cursor.
+        requestAnimationFrame(() => {
+          container.scrollLeft = contentX * ratio - offsetX;
+          container.scrollTop = contentY * ratio - offsetY;
+        });
+        return next;
+      });
+    };
+
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => container.removeEventListener('wheel', onWheel);
+  }, [image, setZoomLevel]);
+
+  // Fase F — clicar numa marcação inverte a classe (viável ↔ inviável).
+  const handleToggleMarkClass = useCallback((id: number) => {
+    setMarks(prev => prev.map(m =>
+      m.id === id
+        ? { ...m, type: m.type === 'viable' ? 'inviable' : 'viable' }
+        : m
+    ));
+  }, [setMarks]);
+
+  // Fase F — borracha: remove todas as marcações dentro do raio.
+  const handleEraseArea = useCallback((x: number, y: number, radius: number) => {
+    setMarks(prev => prev.filter(m => Math.hypot(m.x - x, m.y - y) > radius));
+  }, [setMarks]);
+
   // Fase E — insere os pontos confirmados da detecção assistida.
   const handleAddDetectedMarks = useCallback((detected: Mark[]) => {
     setMarks(prev => [...prev, ...detected]);
@@ -828,6 +896,15 @@ export default function App() {
             stopDrag={stopDrag}
           >
             {image && (
+              <Toolbar
+                activeTool={activeTool}
+                onSelect={setActiveTool}
+                eraserRadius={eraserRadius}
+                onEraserRadiusChange={setEraserRadius}
+                isTemporary={isToolTemporary}
+              />
+            )}
+            {image && (
               <MarkingCanvas 
                 image={image}
                 marks={marks}
@@ -842,6 +919,11 @@ export default function App() {
                 onDeleteSegmentation={deleteSegmentation}
                 umPerPixel={metadata.umPerPixel}
                 detectionPreview={detectionPreview}
+                activeTool={activeTool}
+                eraserRadius={eraserRadius}
+                onRemoveMark={removeMark}
+                onToggleMarkClass={handleToggleMarkClass}
+                onEraseArea={handleEraseArea}
               />
             )}
           </ImageViewport>
