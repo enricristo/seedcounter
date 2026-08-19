@@ -6,7 +6,7 @@ import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { ImageViewport } from './components/canvas/ImageViewport';
-import { MarkingCanvas } from './components/canvas/MarkingCanvas';
+import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
 
@@ -34,6 +34,7 @@ import { StatsView } from './features/stats';
 import { YoloExportModal } from './features/yolo-export';
 import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
+import { AiPointerPanel } from './features/ai-pointer';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -112,7 +113,9 @@ export default function App() {
   const isYoloExportEnabled = useFeatureFlag('yoloExport');
   const isCameraEnabled = useFeatureFlag('cameraCapture');
   const isDetectionEnabled = useFeatureFlag('assistedDetection');
+  const isAiPointerEnabled = useFeatureFlag('aiPointer');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
   const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
 
   // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
@@ -790,12 +793,25 @@ export default function App() {
             sessions={sessions}
             onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
             detectionSlot={
-              isDetectionEnabled ? (
-                <DetectionPanel
-                  image={image}
-                  marks={marks}
-                  onAddMarks={handleAddDetectedMarks}
-                />
+              isAiPointerEnabled || isDetectionEnabled ? (
+                <div className="space-y-5">
+                  {isAiPointerEnabled && (
+                    <AiPointerPanel
+                      image={image}
+                      marks={marks}
+                      onAddMarks={handleAddDetectedMarks}
+                      onPreviewChange={setDetectionPreview}
+                    />
+                  )}
+                  {isDetectionEnabled && (
+                    <DetectionPanel
+                      image={image}
+                      marks={marks}
+                      onAddMarks={handleAddDetectedMarks}
+                      onPreviewChange={setDetectionPreview}
+                    />
+                  )}
+                </div>
               ) : undefined
             }
           />
@@ -825,6 +841,7 @@ export default function App() {
                 onToggleSegmentationClass={toggleSegmentationClass}
                 onDeleteSegmentation={deleteSegmentation}
                 umPerPixel={metadata.umPerPixel}
+                detectionPreview={detectionPreview}
               />
             )}
           </ImageViewport>

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
 import type { Mark, YoloSegmentation } from '../../types';
+import type { DetectedObject } from '../../lib/detect';
+
+/** Prévia da detecção assistida (Fase E) — candidatos ainda não confirmados. */
+export interface DetectionPreview {
+  objects: DetectedObject[];
+  maskDataUrl?: string;
+  maskRect?: { x: number; y: number; width: number; height: number };
+  showMask: boolean;
+}
 
 interface MarkingCanvasProps {
   image: HTMLImageElement;
@@ -14,6 +23,8 @@ interface MarkingCanvasProps {
   onToggleSegmentationClass: (id: number) => void;
   onDeleteSegmentation: (id: number) => void;
   umPerPixel?: number;
+  /** Prévia da detecção assistida (Fase E). */
+  detectionPreview?: DetectionPreview | null;
 }
 
 export function MarkingCanvas({
@@ -28,7 +39,8 @@ export function MarkingCanvas({
   canvasRef,
   onToggleSegmentationClass,
   onDeleteSegmentation,
-  umPerPixel
+  umPerPixel,
+  detectionPreview
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -84,6 +96,46 @@ export function MarkingCanvas({
           height: '100%'
         }}
       />
+
+      {/* Fase E — Máscara da detecção assistida (ajuda no ajuste dos parâmetros) */}
+      {detectionPreview?.showMask && detectionPreview.maskDataUrl && detectionPreview.maskRect && (
+        <img
+          src={detectionPreview.maskDataUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute pointer-events-none select-none"
+          style={{
+            left: `${(detectionPreview.maskRect.x / image.width) * 100}%`,
+            top: `${(detectionPreview.maskRect.y / image.height) * 100}%`,
+            width: `${(detectionPreview.maskRect.width / image.width) * 100}%`,
+            height: `${(detectionPreview.maskRect.height / image.height) * 100}%`,
+            imageRendering: 'pixelated',
+            zIndex: 3,
+          }}
+        />
+      )}
+
+      {/* Fase E — Marcadores dos candidatos detectados (ainda não confirmados) */}
+      {detectionPreview && detectionPreview.objects.length > 0 && (
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none select-none"
+          viewBox={`0 0 ${image.width} ${image.height}`}
+          style={{ width: '100%', height: '100%', zIndex: 6 }}
+        >
+          {detectionPreview.objects.map((o, i) => (
+            <circle
+              key={`det-${i}`}
+              cx={o.x}
+              cy={o.y}
+              r={Math.max(3, o.radius)}
+              fill="rgba(16, 185, 129, 0.20)"
+              stroke={o.split ? '#38bdf8' : '#10b981'}
+              strokeWidth={Math.max(1, image.width / 900)}
+              strokeDasharray={o.split ? `${image.width / 200},${image.width / 300}` : undefined}
+            />
+          ))}
+        </svg>
+      )}
 
       {/* SVG Overlay for YOLO Polygons */}
       {segmentsVisible && yoloSegmentations.length > 0 && (
