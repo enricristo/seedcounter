@@ -70,20 +70,46 @@ export function Header({
       {/* Brand Logo & Info */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
-          <div className="bg-white p-1 rounded-lg border border-neutral-100 dark:border-zinc-800 shadow-sm flex items-center justify-center">
-            <img 
-              src="/gpeorq.jpg" 
-              alt="GPEOrq Logo" 
-              className="h-9 w-9 object-contain mix-blend-multiply" 
-              onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-            />
+          <div className="flex items-center gap-1.5">
+            <a
+              href="https://www.instagram.com/gpeorq"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="GPEOrq — Grupo de Pesquisa em Orquídeas"
+              className="bg-white p-1 rounded-lg border border-neutral-100 dark:border-zinc-800 shadow-sm flex items-center justify-center hover:border-emerald-300 transition-colors"
+            >
+              <img
+                src="/logo-gpeorq.png"
+                alt="Logo GPEOrq"
+                className="h-9 w-9 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </a>
+            <a
+              href="https://www.instagram.com/gpsem_2000/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="GPSEM — Grupo de Estudos e Pesquisas em Sementes"
+              className="bg-white p-1 rounded-lg border border-neutral-100 dark:border-zinc-800 shadow-sm flex items-center justify-center hover:border-emerald-300 transition-colors"
+            >
+              <img
+                src="/logo-gpsem.png"
+                alt="Logo GPSEM"
+                className="h-9 w-9 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </a>
           </div>
           <div>
             <h1 className="font-bold text-base tracking-tight leading-tight text-neutral-800 dark:text-zinc-50">
               Contador de Sementes
             </h1>
             <p className="text-[9px] text-emerald-600 dark:text-emerald-450 uppercase tracking-widest font-bold">
-              Edição Acadêmica • <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:underline">GPEOrq</a> / Unoeste
+              Edição Acadêmica •{' '}
+              <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:underline">GPEOrq</a>
+              {' / '}
+              <a href="https://www.instagram.com/gpsem_2000/" target="_blank" rel="noopener noreferrer" className="hover:underline">GPSEM</a>
+              {' '}• Unoeste
             </p>
           </div>
         </div>

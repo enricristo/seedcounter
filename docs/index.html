@@ -108,7 +108,7 @@
       </div>
       <p style="margin-top:14px;color:var(--muted);font-size:.9rem;">Versão estável no botão verde · versão nova em testes no botão “beta”. Seu feedback é bem-vindo!</p>
       <div class="badges">
-        <span class="badge">GPEOrq · Unoeste</span>
+        <span class="badge">GPEOrq · GPSEM · Unoeste</span>
         <span class="badge">React + Vite</span>
         <span class="badge">PWA / Offline</span>
         <span class="badge">Licença MIT</span>
@@ -121,12 +121,16 @@
       <h2>O que ele faz</h2>
       <p class="sub">Uma ferramenta feita para o Laboratório de Sementes e Tecido Vegetal.</p>
       <div class="grid">
-        <div class="feature"><div class="ico">🖱️</div><h3>Marcação assistida</h3><p>Marque sementes viáveis e inviáveis com cliques e teclas modificadoras, por categoria.</p></div>
-        <div class="feature"><div class="ico">🔬</div><h3>Modo diferencial</h3><p>Separe sementes de detritos e impurezas com precisão, mesmo em escala milimétrica.</p></div>
+        <div class="feature"><div class="ico">🖱️</div><h3>Marcação assistida</h3><p>Ferramentas estilo editor gráfico: marcar, borracha, arrastar e inverter classe com atalhos.</p></div>
+        <div class="feature"><div class="ico">📷</div><h3>Captura por câmera</h3><p>Lupa e estereomicroscópio no computador, ou câmera do celular e tablet — direto no navegador.</p></div>
+        <div class="feature"><div class="ico">🧠</div><h3>Detecção por IA</h3><p>Modelo YOLOv8 treinado em sementes de orquídea roda no próprio navegador e classifica viável/inviável.</p></div>
+        <div class="feature"><div class="ico">📏</div><h3>Calibração espacial</h3><p>DPI de scanner, régua sobre a imagem, micrômetro de platina ou µm/px manual — medidas com significado físico.</p></div>
+        <div class="feature"><div class="ico">🔬</div><h3>Morfometria</h3><p>Comprimento, largura e área de cada semente por análise de componentes principais, em µm ou mm.</p></div>
         <div class="feature"><div class="ico">📈</div><h3>Estatística embutida</h3><p>Taxa de germinação, intervalo de confiança de Wilson e curvas de germinação.</p></div>
         <div class="feature"><div class="ico">⏳</div><h3>Modo longitudinal</h3><p>Acompanhe experimentos de germinação ao longo do tempo, placa a placa.</p></div>
-        <div class="feature"><div class="ico">📤</div><h3>Exportação completa</h3><p>CSV, JSON, imagem anotada, PDF — e formato YOLO para treinar modelos de detecção.</p></div>
+        <div class="feature"><div class="ico">📤</div><h3>Exportação completa</h3><p>CSV, JSON, imagem anotada, PDF — e formato YOLO para treinar novos modelos.</p></div>
         <div class="feature"><div class="ico">🔒</div><h3>Privado por padrão</h3><p>Os dados ficam no seu navegador (IndexedDB). Sem backend, sem nuvem, funciona offline.</p></div>
+      </div>
       </div>
     </div>
   </section>
@@ -147,12 +151,38 @@
 
   <section class="block">
     <div class="wrap">
+      <h2>Do laboratório ao modelo</h2>
+      <p class="sub">Cada contagem manual vira dado de treino para os próximos modelos.</p>
+      <div class="steps">
+        <div class="step"><p><strong>Adquirir</strong> — scanner de mesa (padrão do laboratório: HP Scanjet G2710 a 3600 DPI), lupa, microscópio ou câmera.</p></div>
+        <div class="step"><p><strong>Calibrar</strong> — define a escala real (µm por pixel) para que toda medida tenha significado físico.</p></div>
+        <div class="step"><p><strong>Contar e medir</strong> — manualmente, com detecção assistida ou com o modelo de IA; sempre sob revisão do pesquisador.</p></div>
+        <div class="step"><p><strong>Exportar</strong> — resultados para análise e anotações no formato YOLO para treinar modelos.</p></div>
+        <div class="step"><p><strong>Reaplicar</strong> — o dataset cresce e permite estender a abordagem a outras culturas e outros objetos.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <h2>Em desenvolvimento</h2>
+      <p class="sub">A versão de teste recebe os recursos primeiro; a versão estável só muda após validação.</p>
+      <div class="grid">
+        <div class="feature"><div class="ico">🧪</div><h3>Detecção assistida</h3><p>Contagem automática por visão computacional clássica, sem precisar de modelo treinado. Em ajuste.</p></div>
+        <div class="feature"><div class="ico">🗂️</div><h3>Protocolos reaplicáveis</h3><p>Salvar parâmetros de detecção e calibração como protocolo e reaplicar em lote, para reprodutibilidade.</p></div>
+        <div class="feature"><div class="ico">🌱</div><h3>Outras culturas</h3><p>A mesma abordagem aplicada a outras espécies — e, potencialmente, a contagens além de sementes.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
       <h2>Tecnologias</h2>
       <p class="sub">Leve, moderno e instalável como aplicativo.</p>
       <div class="tech">
         <span class="chip">Vite</span><span class="chip">React 19</span><span class="chip">TypeScript</span>
         <span class="chip">Tailwind CSS</span><span class="chip">PWA (Workbox)</span><span class="chip">Dexie / IndexedDB</span>
-        <span class="chip">Recharts</span><span class="chip">jsPDF</span><span class="chip">Google Gemini</span>
+        <span class="chip">Recharts</span><span class="chip">jsPDF</span><span class="chip">ONNX Runtime Web</span><span class="chip">YOLOv8-seg</span><span class="chip">Google Gemini</span>
       </div>
     </div>
   </section>
@@ -162,7 +192,7 @@
       <h2>Autores e equipe</h2>
       <p class="sub">GPEOrq — Laboratório de Sementes e Tecido Vegetal, Unoeste.</p>
       <div class="grid">
-        <div class="feature"><div class="ico">💻</div><h3>Enrico S. Ambrosio</h3><p>Desenvolvimento</p></div>
+        <div class="feature"><div class="ico">💻</div><h3>Enrico S. Ambrosio</h3><p>Desenvolvimento · Matemático, graduando em Agronomia<br><a href="mailto:enrico.ambrosio@unesp.br" style="color:var(--brand)">enrico.ambrosio@unesp.br</a></p></div>
         <div class="feature"><div class="ico">🎓</div><h3>Prof. Dr. Nelson Barbosa Machado Neto</h3><p>Orientação</p></div>
         <div class="feature"><div class="ico">🔬</div><h3>Mayara de Oliveira Vidotto Figueiredo</h3><p>Aplicação em pesquisa e validação (doutoranda)</p></div>
       </div>
@@ -179,7 +209,15 @@
 
   <footer>
     <div class="wrap">
-      Feito com 🌱 para o GPEOrq · Unoeste — Licença <a href="https://github.com/enricristo/seedcounter/blob/main/LICENSE">MIT</a><br />
+      <div style="display:flex;gap:14px;justify-content:center;margin-bottom:16px;">
+        <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener" title="GPEOrq">
+          <img src="https://seedcounter-teste.vercel.app/logo-gpeorq.png" alt="GPEOrq" style="height:52px;width:52px;object-fit:contain;background:#fff;border-radius:10px;padding:4px;" />
+        </a>
+        <a href="https://www.instagram.com/gpsem_2000/" target="_blank" rel="noopener" title="GPSEM">
+          <img src="https://seedcounter-teste.vercel.app/logo-gpsem.png" alt="GPSEM" style="height:52px;width:52px;object-fit:contain;background:#fff;border-radius:10px;padding:4px;" />
+        </a>
+      </div>
+      Feito com 🌱 para o GPEOrq e o GPSEM · Unoeste — Licença <a href="https://github.com/enricristo/seedcounter/blob/main/LICENSE">MIT</a><br />
       <a href="https://seedcounter.vercel.app">Abrir o app</a> · <a href="https://github.com/enricristo/seedcounter">Código no GitHub</a>
     </div>
   </footer>
