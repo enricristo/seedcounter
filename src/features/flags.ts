@@ -12,6 +12,8 @@ export type FeatureKey =
   | 'yoloExport'       // Phase B — YOLO dataset export (experimental)
   | 'statsView'        // Phase C — Statistical analysis panel
   | 'aiPointer'        // Phase D — AI-assisted annotation (experimental)
+  | 'cameraCapture'    // Phase E — Camera capture (loupe/microscope/mobile)
+  | 'assistedDetection'// Phase E — Classic CV assisted detection
   | 'debugPanel';      // Dev — Feature flags debug panel
 
 export interface FeatureFlag {
@@ -56,6 +58,22 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
     stable: false,
     phase: 'Fase D',
     description: 'Detecção semi-automática via ONNX YOLOv8 no navegador',
+  },
+  {
+    key: 'cameraCapture',
+    label: 'Capturar da Câmera',
+    defaultEnabled: true,
+    stable: true,
+    phase: 'Fase E',
+    description: 'Captura de imagem por lupa/microscópio (desktop) ou câmera de celular/tablet',
+  },
+  {
+    key: 'assistedDetection',
+    label: 'Detecção Assistida',
+    defaultEnabled: false,
+    stable: false,
+    phase: 'Fase E',
+    description: 'Contagem automática por visão computacional clássica (sem modelo treinado)',
   },
   {
     key: 'debugPanel',

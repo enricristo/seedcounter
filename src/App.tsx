@@ -32,6 +32,8 @@ import { useExperiments } from './hooks/useExperiments';
 import { LongitudinalView, ExperimentModal, PlateRunModal } from './features/longitudinal';
 import { StatsView } from './features/stats';
 import { YoloExportModal } from './features/yolo-export';
+import { CameraModal } from './features/camera';
+import { DetectionPanel } from './features/detection';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -108,6 +110,9 @@ export default function App() {
   const isLongitudinalEnabled = useFeatureFlag('longitudinalView');
   const isStatsEnabled = useFeatureFlag('statsView');
   const isYoloExportEnabled = useFeatureFlag('yoloExport');
+  const isCameraEnabled = useFeatureFlag('cameraCapture');
+  const isDetectionEnabled = useFeatureFlag('assistedDetection');
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
 
   // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
@@ -700,6 +705,18 @@ export default function App() {
     fileInputRef.current?.click();
   };
 
+  // Fase E — foto capturada entra no fluxo normal de imagens.
+  const handleCameraCapture = useCallback((file: File) => {
+    loadFiles([file]);
+    // Câmera exige calibração manual de escala (não há DPI de scanner).
+    updateMetadata('imageSource', 'manual_camera');
+  }, [loadFiles, updateMetadata]);
+
+  // Fase E — insere os pontos confirmados da detecção assistida.
+  const handleAddDetectedMarks = useCallback((detected: Mark[]) => {
+    setMarks(prev => [...prev, ...detected]);
+  }, [setMarks]);
+
   const handleFitToScreen = () => {
     if (image && containerRef.current) {
       fitToScreen(containerRef.current.clientWidth, containerRef.current.clientHeight, image.width, image.height);
@@ -771,6 +788,16 @@ export default function App() {
             metadata={metadata}
             updateMetadata={updateMetadata}
             sessions={sessions}
+            onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
+            detectionSlot={
+              isDetectionEnabled ? (
+                <DetectionPanel
+                  image={image}
+                  marks={marks}
+                  onAddMarks={handleAddDetectedMarks}
+                />
+              ) : undefined
+            }
           />
 
           {/* 3. Image viewport scroll and Zoom area */}
@@ -931,6 +958,15 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Fase E — Captura por câmera (lupa/microscópio e celular) */}
+      {isCameraEnabled && (
+        <CameraModal
+          isOpen={isCameraOpen}
+          onClose={() => setIsCameraOpen(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />

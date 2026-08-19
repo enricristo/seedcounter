@@ -25,6 +25,11 @@ interface SidebarProps {
   metadata: Metadata;
   updateMetadata: <K extends keyof Metadata>(key: K, value: Metadata[K]) => void;
   sessions: Session[];
+
+  /** Abre o modal de captura por câmera (Fase E). Ausente = botão oculto. */
+  onOpenCamera?: () => void;
+  /** Painel de detecção assistida (Fase E). Ausente = seção oculta. */
+  detectionSlot?: React.ReactNode;
 }
 
 export function Sidebar({
@@ -43,20 +48,31 @@ export function Sidebar({
   setActiveClassification,
   metadata,
   updateMetadata,
-  sessions
+  sessions,
+  onOpenCamera,
+  detectionSlot
 }: SidebarProps) {
   return (
     <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex flex-col shrink-0 overflow-y-auto custom-scrollbar transition-colors duration-300">
       <div className="flex flex-col p-5 gap-5 min-h-max">
         {/* Section 1: Files Upload & Import */}
-        <ImageActions 
+        <ImageActions
           fileInputRef={fileInputRef}
           importInputRef={importInputRef}
           handleFileUpload={handleFileUpload}
           handleImportJSON={handleImportJSON}
+          onOpenCamera={onOpenCamera}
         />
 
         <hr className="border-neutral-100 dark:border-zinc-800" />
+
+        {/* Seção opcional: detecção assistida (Fase E) */}
+        {detectionSlot && (
+          <>
+            {detectionSlot}
+            <hr className="border-neutral-100 dark:border-zinc-800" />
+          </>
+        )}
 
         {/* Section 2: Metrics Counters */}
         <Counters 

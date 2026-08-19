@@ -1,18 +1,21 @@
 import React from 'react';
-import { Upload, FolderUp } from 'lucide-react';
+import { Upload, FolderUp, Camera } from 'lucide-react';
 
 interface ImageActionsProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   importInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleImportJSON: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Abre a captura por câmera (Fase E). Ausente = botão oculto. */
+  onOpenCamera?: () => void;
 }
 
 export function ImageActions({
   fileInputRef,
   importInputRef,
   handleFileUpload,
-  handleImportJSON
+  handleImportJSON,
+  onOpenCamera
 }: ImageActionsProps) {
   return (
     <section className="space-y-2.5">
@@ -38,6 +41,17 @@ export function ImageActions({
           multiple
           className="hidden" 
         />
+
+        {/* Camera Capture Button (Fase E) */}
+        {onOpenCamera && (
+          <button
+            onClick={onOpenCamera}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
+          >
+            <Camera size={17} className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors" />
+            <span className="text-xs uppercase tracking-wide">Capturar da Câmera</span>
+          </button>
+        )}
 
         {/* Import Session Button */}
         <button 
