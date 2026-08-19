@@ -11,7 +11,7 @@ export function Footer({
   filename,
   imageWidth,
   imageHeight,
-  version = 'v2.0.0'
+  version = 'v3.0.0-beta'
 }: FooterProps) {
   return (
     <footer className="h-12 border-t border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] px-6 flex items-center justify-between shrink-0 transition-colors duration-300">
@@ -32,10 +32,15 @@ export function Footer({
       <div className="flex items-center gap-4">
         <div className="flex flex-col items-end">
           <div className="text-[10px] text-neutral-500 dark:text-zinc-400 font-medium">
-            <span className="font-bold text-emerald-600 dark:text-emerald-500">GPEOrq</span> (Grupo de Pesquisa em Orquídeas) / Unoeste • <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition-colors underline decoration-emerald-500/30 underline-offset-2">@gpeorq</a>
+            <span className="font-bold text-emerald-600 dark:text-emerald-500">GPEOrq</span> / <span className="font-bold text-emerald-600 dark:text-emerald-500">GPSEM</span> — Unoeste •{' '}
+            <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition-colors underline decoration-emerald-500/30 underline-offset-2">@gpeorq</a>
+            {' · '}
+            <a href="https://www.instagram.com/gpsem_2000/" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-500 transition-colors underline decoration-emerald-500/30 underline-offset-2">@gpsem_2000</a>
           </div>
-          <div className="text-[8px] text-neutral-400 dark:text-zinc-500 mt-0.5 max-w-xl text-right truncate">
-            Laboratório de Sementes e Laboratório de Tecido Vegetal (Campus II - Presidente Prudente - SP) • Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
+          <div className="text-[8px] text-neutral-400 dark:text-zinc-500 mt-0.5 max-w-2xl text-right truncate">
+            Desenvolvido por Enrico S. Ambrosio (Matemático, graduando em Agronomia) •{' '}
+            <a href="mailto:enrico.ambrosio@unesp.br" className="hover:text-emerald-500 transition-colors underline decoration-emerald-500/30 underline-offset-2">enrico.ambrosio@unesp.br</a>
+            {' • '}Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
           </div>
         </div>
         <div className="text-[10px] text-emerald-600 dark:text-emerald-500 font-mono font-bold tracking-wider italic bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded ml-2">

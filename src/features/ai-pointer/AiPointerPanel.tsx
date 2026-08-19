@@ -11,7 +11,9 @@ import {
   DEFAULT_MODEL_URL,
   type YoloDetection,
 } from '../../lib/yolo-onnx';
-import type { Mark } from '../../types';
+import { calculateSeedDimensions } from '../../lib/pca-utils';
+import { formatLength, formatArea } from '../../lib/calibration';
+import type { Mark, YoloSegmentation } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
 
 interface AiPointerPanelProps {
@@ -19,12 +21,19 @@ interface AiPointerPanelProps {
   marks: Mark[];
   onAddMarks: (marks: Mark[]) => void;
   onPreviewChange: (preview: DetectionPreview | null) => void;
+  /** Envia os contornos para morfometria (medidas por PCA). */
+  onAddSegmentations?: (segs: YoloSegmentation[]) => void;
+  /** Escala atual, para exibir as medidas em µm. */
+  umPerPixel?: number;
 }
 
 const DEDUPE_RADIUS = 12;
 
-export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: AiPointerPanelProps) {
+export function AiPointerPanel({
+  image, marks, onAddMarks, onPreviewChange, onAddSegmentations, umPerPixel,
+}: AiPointerPanelProps) {
   const [confidence, setConfidence] = useState(45);
+  const [withMorphometry, setWithMorphometry] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [detections, setDetections] = useState<YoloDetection[] | null>(null);
@@ -77,6 +86,7 @@ export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: Ai
     try {
       const result = await detectWithYolo(image, {
         confThreshold: confidence / 100,
+        withMasks: withMorphometry,
         onProgress: (done, total) => setProgress({ done, total }),
       });
       setDetections(result);
@@ -94,11 +104,12 @@ export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: Ai
       setIsRunning(false);
       setProgress(null);
     }
-  }, [image, confidence]);
+  }, [image, confidence, withMorphometry]);
 
   const handleConfirm = useCallback(() => {
     if (newDetections.length === 0) return;
     const base = Date.now();
+
     onAddMarks(
       newDetections.map((d, i) => ({
         x: d.x,
@@ -108,13 +119,51 @@ export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: Ai
         id: base + i + Math.random(),
       }))
     );
+
+    // Morfometria: envia os contornos para o app medir por PCA.
+    const withPolygons = newDetections.filter(d => d.polygon && d.polygon.length >= 3);
+    if (onAddSegmentations && withPolygons.length > 0) {
+      onAddSegmentations(
+        withPolygons.map((d, i) => ({
+          id: base + 1_000_000 + i,
+          category: d.className === 'viavel' ? ('viable' as const) : ('inviable' as const),
+          class_name: d.className,
+          confidence: d.confidence,
+          polygon_points: d.polygon as [number, number][],
+          visible: true,
+        }))
+      );
+    }
+
     setDetections(null);
-  }, [newDetections, onAddMarks]);
+  }, [newDetections, onAddMarks, onAddSegmentations]);
 
   const counts = useMemo(() => ({
     viavel: newDetections.filter(d => d.className === 'viavel').length,
     inviavel: newDetections.filter(d => d.className === 'inviavel').length,
   }), [newDetections]);
+
+  // Médias morfométricas das detecções com contorno disponível.
+  const morphSummary = useMemo(() => {
+    const withPoly = newDetections.filter(d => d.polygon && d.polygon.length >= 3);
+    if (withPoly.length === 0) return null;
+
+    let sumL = 0, sumW = 0, sumA = 0;
+    for (const d of withPoly) {
+      const { width, height } = calculateSeedDimensions(d.polygon as [number, number][]);
+      // O PCA devolve eixo maior e menor: comprimento é o maior.
+      sumL += Math.max(width, height);
+      sumW += Math.min(width, height);
+      sumA += d.maskArea ?? 0;
+    }
+    const n = withPoly.length;
+    return {
+      count: n,
+      meanLength: sumL / n,
+      meanWidth: sumW / n,
+      meanArea: sumA / n,
+    };
+  }, [newDetections]);
 
   return (
     <section className="space-y-3">
@@ -152,6 +201,17 @@ export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: Ai
           className="w-full accent-violet-500"
         />
       </div>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox" checked={withMorphometry}
+          onChange={e => setWithMorphometry(e.target.checked)}
+          className="accent-violet-500"
+        />
+        <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
+          Medir sementes (morfometria)
+        </span>
+      </label>
 
       <button
         onClick={handleRun}
@@ -193,6 +253,29 @@ export function AiPointerPanel({ image, marks, onAddMarks, onPreviewChange }: Ai
               </span>
             )}
           </p>
+
+          {/* Resumo morfométrico */}
+          {morphSummary && (
+            <div className="rounded-lg bg-violet-50 dark:bg-violet-950/25 border border-violet-200 dark:border-violet-900/40 px-2.5 py-2 space-y-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+                Morfometria ({morphSummary.count} medidas)
+              </p>
+              <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
+                Comprimento médio: <strong>{formatLength(morphSummary.meanLength, umPerPixel)}</strong>
+              </p>
+              <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
+                Largura média: <strong>{formatLength(morphSummary.meanWidth, umPerPixel)}</strong>
+              </p>
+              <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
+                Área média: <strong>{formatArea(morphSummary.meanArea, umPerPixel)}</strong>
+              </p>
+              {!umPerPixel && (
+                <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                  Sem calibração — valores em pixels.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <button

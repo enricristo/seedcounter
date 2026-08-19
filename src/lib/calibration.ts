@@ -145,7 +145,14 @@ export function formatArea(pixelArea: number, umPerPixel?: number): string {
 // Predefinições comuns
 // ---------------------------------------------------------------------------
 
-export const DPI_PRESETS = [300, 600, 1200, 2400, 4800] as const;
+export const DPI_PRESETS = [300, 600, 1200, 2400, 3600, 4800] as const;
+
+/**
+ * Padrão do Laboratório de Sementes (GPEOrq/Unoeste): HP Scanjet G2710 a 3600 DPI.
+ * Equivale a ~7,06 µm/px.
+ */
+export const DEFAULT_LAB_DPI = 3600;
+export const DEFAULT_LAB_SCANNER = 'HP Scanjet G2710';
 
 /** Referências típicas de laboratório, para agilizar a entrada. */
 export const REFERENCE_PRESETS: { label: string; length: number; unit: LengthUnit }[] = [

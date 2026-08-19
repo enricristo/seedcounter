@@ -8,6 +8,7 @@ import { Ruler, Check, AlertTriangle, Crosshair, Info } from 'lucide-react';
 import {
   computeUmPerPixel, umPerPixelToDpi, validateScale,
   DPI_PRESETS, REFERENCE_PRESETS, METHOD_LABELS, UNIT_LABELS,
+  DEFAULT_LAB_DPI, DEFAULT_LAB_SCANNER,
   type CalibrationMethod, type CalibrationData, type LengthUnit,
 } from '../../lib/calibration';
 
@@ -34,7 +35,7 @@ export function CalibrationPanel({
   isMeasuring,
 }: CalibrationPanelProps) {
   const [method, setMethod] = useState<CalibrationMethod>('dpi');
-  const [dpi, setDpi] = useState(600);
+  const [dpi, setDpi] = useState(DEFAULT_LAB_DPI);
   const [refLength, setRefLength] = useState(10);
   const [refUnit, setRefUnit] = useState<LengthUnit>('mm');
   const [refLabel, setRefLabel] = useState('');
@@ -113,19 +114,23 @@ export function CalibrationPanel({
         <div className="space-y-2">
           <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
             Use a resolução configurada no scanner ao digitalizar a placa.
+            Padrão do laboratório: <strong>{DEFAULT_LAB_SCANNER}</strong> a {DEFAULT_LAB_DPI} DPI.
           </p>
           <div className="flex flex-wrap gap-1">
             {DPI_PRESETS.map(p => (
               <button
                 key={p}
                 onClick={() => setDpi(p)}
+                title={p === DEFAULT_LAB_DPI ? `Padrão do laboratório (${DEFAULT_LAB_SCANNER})` : undefined}
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                   dpi === p
                     ? 'bg-sky-500 border-sky-500 text-white'
-                    : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                    : p === DEFAULT_LAB_DPI
+                      ? 'border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/30'
+                      : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
                 }`}
               >
-                {p}
+                {p}{p === DEFAULT_LAB_DPI ? ' ★' : ''}
               </button>
             ))}
           </div>

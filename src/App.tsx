@@ -38,6 +38,7 @@ import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
+import { FeaturesModal } from './features/settings';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -121,6 +122,8 @@ export default function App() {
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
 
   // Calibração — modo régua e última distância medida
+  const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
+  const [showRulers, setShowRulers] = useState(true);
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
 
@@ -853,6 +856,7 @@ export default function App() {
         onViewChange={navigate}
         isLongitudinalEnabled={isLongitudinalEnabled}
         isStatsEnabled={isStatsEnabled}
+        onOpenFeatures={() => setIsFeaturesOpen(true)}
       />
 
       {currentView === 'counter' && (
@@ -891,6 +895,8 @@ export default function App() {
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
+                      onAddSegmentations={addYoloSegmentations}
+                      umPerPixel={metadata.umPerPixel}
                     />
                   )}
                   {isDetectionEnabled && (
@@ -923,6 +929,8 @@ export default function App() {
                 eraserRadius={eraserRadius}
                 onEraserRadiusChange={setEraserRadius}
                 isTemporary={isToolTemporary}
+                showRulers={showRulers}
+                onToggleRulers={() => setShowRulers(v => !v)}
               />
             )}
             {image && (
@@ -946,6 +954,7 @@ export default function App() {
                 onToggleMarkClass={handleToggleMarkClass}
                 onMoveMark={handleMoveMark}
                 onEraseArea={handleEraseArea}
+                showRulers={showRulers}
                 isMeasuring={isMeasuring}
                 onMeasured={handleMeasured}
               />
@@ -1090,6 +1099,9 @@ export default function App() {
           onCapture={handleCameraCapture}
         />
       )}
+
+      {/* Painel visível de funcionalidades */}
+      <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />

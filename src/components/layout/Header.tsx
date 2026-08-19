@@ -9,7 +9,8 @@ import {
   Download,
   Calendar,
   BarChart4,
-  Activity
+  Activity,
+  Sparkles
 } from 'lucide-react';
 import type { AppView } from '../../types';
 
@@ -36,6 +37,8 @@ interface HeaderProps {
   onViewChange: (view: AppView) => void;
   isLongitudinalEnabled?: boolean;
   isStatsEnabled?: boolean;
+  /** Abre o painel visível de funcionalidades (feature flags). */
+  onOpenFeatures?: () => void;
 }
 
 export function Header({
@@ -59,7 +62,8 @@ export function Header({
   currentView,
   onViewChange,
   isLongitudinalEnabled = true,
-  isStatsEnabled = true
+  isStatsEnabled = true,
+  onOpenFeatures
 }: HeaderProps) {
   return (
     <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-all duration-300">
@@ -138,6 +142,17 @@ export function Header({
         >
           {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
         </button>
+
+        {/* Painel de funcionalidades (visível para quem usa a versão de teste) */}
+        {onOpenFeatures && (
+          <button
+            onClick={onOpenFeatures}
+            className="p-2 border border-neutral-200 hover:border-emerald-300 dark:border-zinc-800 dark:hover:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-neutral-500 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-400 rounded-lg transition-all"
+            title="Funcionalidades e recursos experimentais"
+          >
+            <Sparkles size={17} />
+          </button>
+        )}
         
         {/* History Modal Trigger */}
         {currentView === 'counter' && (

@@ -30,6 +30,14 @@ export interface YoloDetection {
   confidence: number;
   classId: number;
   className: YoloClassName;
+  /** Contorno da semente em coordenadas da imagem original (morfometria). */
+  polygon?: [number, number][];
+  /** Área da máscara, em pixels da imagem original. */
+  maskArea?: number;
+  /** Coeficientes de máscara (uso interno, descartados após gerar o polígono). */
+  maskCoeffs?: Float32Array;
+  /** Dados do recorte usados para remapear a máscara (uso interno). */
+  tileInfo?: { ratio: number; padX: number; padY: number; tileX: number; tileY: number };
 }
 
 export interface InferenceOptions {
@@ -41,6 +49,8 @@ export interface InferenceOptions {
   imgSize?: number;
   /** Sobreposição entre janelas, 0–0.5 (padrão 0.2). */
   overlap?: number;
+  /** Extrai contornos das máscaras para morfometria (mais lento). */
+  withMasks?: boolean;
   /** Progresso do processamento das janelas. */
   onProgress?: (done: number, total: number) => void;
 }
@@ -245,6 +255,14 @@ function decodeOutput(
     const bw = w / prep.ratio;
     const bh = h / prep.ratio;
 
+    // Coeficientes de máscara (canais após as classes), se houver.
+    let maskCoeffs: Float32Array | undefined;
+    const nm = channels - 4 - nc;
+    if (nm > 0) {
+      maskCoeffs = new Float32Array(nm);
+      for (let c = 0; c < nm; c++) maskCoeffs[c] = at(4 + nc + c, a);
+    }
+
     dets.push({
       x: Math.round(x),
       y: Math.round(y),
@@ -257,10 +275,147 @@ function decodeOutput(
       confidence: bestScore,
       classId: bestClass,
       className: YOLO_CLASSES[bestClass],
+      maskCoeffs,
+      tileInfo: { ratio: prep.ratio, padX: prep.padX, padY: prep.padY, tileX, tileY },
     });
   }
 
   return dets;
+}
+
+// ---------------------------------------------------------------------------
+// Morfometria — reconstrução das máscaras de segmentação
+// ---------------------------------------------------------------------------
+// O YOLOv8-seg entrega 32 "protótipos" de máscara (output1) e, por detecção,
+// 32 coeficientes. A máscara final é a combinação linear deles, passada por
+// sigmoide. Trabalhamos só dentro da caixa de cada semente — muito mais rápido
+// que reconstruir a máscara inteira.
+// ---------------------------------------------------------------------------
+
+/**
+ * Traça o contorno externo de uma máscara binária (Moore-neighbor tracing).
+ * Retorna os pontos em coordenadas da própria máscara.
+ */
+function traceContour(mask: Uint8Array, w: number, h: number): [number, number][] {
+  // Encontra o primeiro pixel preenchido (varredura em linha).
+  let startIdx = -1;
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i]) { startIdx = i; break; }
+  }
+  if (startIdx < 0) return [];
+
+  const sx = startIdx % w;
+  const sy = (startIdx / w) | 0;
+
+  // Vizinhança em 8 direções, sentido horário.
+  const dx = [1, 1, 0, -1, -1, -1, 0, 1];
+  const dy = [0, 1, 1, 1, 0, -1, -1, -1];
+
+  const contour: [number, number][] = [];
+  let cx = sx;
+  let cy = sy;
+  let dir = 0;
+  const maxSteps = w * h * 4; // trava de segurança
+
+  for (let step = 0; step < maxSteps; step++) {
+    contour.push([cx, cy]);
+
+    // Procura o próximo pixel de borda girando a partir da direção anterior.
+    let found = false;
+    const startDir = (dir + 6) % 8; // volta duas posições
+    for (let k = 0; k < 8; k++) {
+      const d = (startDir + k) % 8;
+      const nx = cx + dx[d];
+      const ny = cy + dy[d];
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      if (mask[ny * w + nx]) {
+        cx = nx; cy = ny; dir = d; found = true;
+        break;
+      }
+    }
+    if (!found) break;
+    if (cx === sx && cy === sy && contour.length > 2) break;
+  }
+
+  return contour;
+}
+
+/** Reduz a quantidade de pontos do contorno mantendo o formato (passo fixo). */
+function simplifyContour(points: [number, number][], maxPoints = 48): [number, number][] {
+  if (points.length <= maxPoints) return points;
+  const step = points.length / maxPoints;
+  const out: [number, number][] = [];
+  for (let i = 0; i < maxPoints; i++) out.push(points[Math.floor(i * step)]);
+  return out;
+}
+
+/**
+ * Gera o polígono de uma detecção a partir dos protótipos de máscara.
+ * Coordenadas de saída em pixels da imagem ORIGINAL.
+ */
+function buildPolygon(
+  det: YoloDetection,
+  protos: Float32Array,
+  protoC: number,
+  protoH: number,
+  protoW: number,
+  imgSize: number
+): { polygon: [number, number][]; area: number } | null {
+  const info = det.tileInfo;
+  const coeffs = det.maskCoeffs;
+  if (!info || !coeffs) return null;
+
+  // Fator entre a entrada do modelo e o espaço dos protótipos (normalmente 4).
+  const stride = imgSize / protoW;
+
+  // Caixa da detecção de volta ao espaço da entrada do modelo.
+  const bx = (det.bbox.x - info.tileX) * info.ratio + info.padX;
+  const by = (det.bbox.y - info.tileY) * info.ratio + info.padY;
+  const bw = det.bbox.width * info.ratio;
+  const bh = det.bbox.height * info.ratio;
+
+  // Recorte no espaço dos protótipos, com uma folga de 1 px.
+  const x0 = Math.max(0, Math.floor(bx / stride) - 1);
+  const y0 = Math.max(0, Math.floor(by / stride) - 1);
+  const x1 = Math.min(protoW, Math.ceil((bx + bw) / stride) + 1);
+  const y1 = Math.min(protoH, Math.ceil((by + bh) / stride) + 1);
+  const cw = x1 - x0;
+  const ch = y1 - y0;
+  if (cw <= 1 || ch <= 1) return null;
+
+  // Combinação linear dos protótipos + sigmoide, só na região da caixa.
+  const mask = new Uint8Array(cw * ch);
+  let area = 0;
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      let sum = 0;
+      const base = (y0 + y) * protoW + (x0 + x);
+      for (let c = 0; c < protoC; c++) {
+        sum += coeffs[c] * protos[c * protoH * protoW + base];
+      }
+      const prob = 1 / (1 + Math.exp(-sum));
+      if (prob > 0.5) { mask[y * cw + x] = 1; area++; }
+    }
+  }
+  if (area === 0) return null;
+
+  const contour = simplifyContour(traceContour(mask, cw, ch));
+  if (contour.length < 3) return null;
+
+  // Volta ao espaço da imagem original: protótipo -> entrada -> recorte -> original.
+  const polygon = contour.map(([px, py]) => {
+    const inputX = (x0 + px) * stride;
+    const inputY = (y0 + py) * stride;
+    return [
+      Math.round((inputX - info.padX) / info.ratio + info.tileX),
+      Math.round((inputY - info.padY) / info.ratio + info.tileY),
+    ] as [number, number];
+  });
+
+  // Área em pixels da imagem original (protótipo é reduzido por stride e ratio).
+  const areaOriginal = area * (stride / info.ratio) * (stride / info.ratio);
+
+  return { polygon, area: Math.round(areaOriginal) };
 }
 
 // ---------------------------------------------------------------------------
@@ -307,14 +462,41 @@ export async function detectWithYolo(
     const output = await session.run({ [inputName]: input });
     const first = output[session.outputNames[0]];
 
-    all.push(...decodeOutput(first, prep, t.x, t.y, opts.confThreshold));
+    const tileDets = decodeOutput(first, prep, t.x, t.y, opts.confThreshold);
+
+    // Morfometria: reconstrói máscaras só das detecções que sobrevivem ao NMS
+    // desta janela — evita processar centenas de caixas redundantes.
+    if (opts.withMasks && session.outputNames.length > 1) {
+      const protoTensor = output[session.outputNames[1]];
+      const pdims = protoTensor.dims as number[];
+      const protos = protoTensor.data as Float32Array;
+      if (pdims.length === 4) {
+        const kept = applyNMS(tileDets, opts.iouThreshold);
+        for (const det of kept) {
+          const res = buildPolygon(det, protos, pdims[1], pdims[2], pdims[3], tile);
+          if (res) {
+            det.polygon = res.polygon;
+            det.maskArea = res.area;
+          }
+        }
+        all.push(...kept);
+      } else {
+        all.push(...tileDets);
+      }
+    } else {
+      all.push(...tileDets);
+    }
+
     opts.onProgress?.(i + 1, tiles.length);
 
     // Cede o controle ao navegador para a interface não travar.
     await new Promise(r => setTimeout(r, 0));
   }
 
-  return applyNMS(all, opts.iouThreshold);
+  const final = applyNMS(all, opts.iouThreshold);
+  // Descarta dados intermediários pesados antes de devolver.
+  for (const d of final) { delete d.maskCoeffs; delete d.tileInfo; }
+  return final;
 }
 
 /** Verifica se o modelo existe no servidor, sem baixar tudo. */

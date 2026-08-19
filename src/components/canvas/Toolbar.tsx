@@ -4,7 +4,7 @@
 // =============================================================================
 
 import React from 'react';
-import { Circle, XCircle, Eraser, Hand } from 'lucide-react';
+import { Circle, XCircle, Eraser, Hand, Ruler } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 
 const ICONS: Record<ToolId, React.ElementType> = {
@@ -29,6 +29,9 @@ interface ToolbarProps {
   onEraserRadiusChange: (radius: number) => void;
   /** true quando a borracha está ativa temporariamente (Alt pressionado). */
   isTemporary?: boolean;
+  /** Réguas nas bordas ligadas? */
+  showRulers?: boolean;
+  onToggleRulers?: () => void;
 }
 
 export function Toolbar({
@@ -37,6 +40,8 @@ export function Toolbar({
   eraserRadius,
   onEraserRadiusChange,
   isTemporary,
+  showRulers,
+  onToggleRulers,
 }: ToolbarProps) {
   return (
     <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1.5 rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur p-1.5 shadow-xl">
@@ -66,6 +71,23 @@ export function Toolbar({
           </button>
         );
       })}
+
+      {/* Réguas nas bordas */}
+      {onToggleRulers && (
+        <button
+          onClick={onToggleRulers}
+          title="Mostrar/ocultar réguas nas bordas"
+          aria-label="Alternar réguas"
+          aria-pressed={!!showRulers}
+          className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
+            showRulers
+              ? 'bg-neutral-800 dark:bg-zinc-100 border-neutral-800 dark:border-zinc-100 text-white dark:text-zinc-900'
+              : 'border-transparent text-neutral-500 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+          }`}
+        >
+          <Ruler size={18} />
+        </button>
+      )}
 
       {/* Tamanho da borracha (só aparece quando ela está ativa) */}
       {activeTool === 'eraser' && (

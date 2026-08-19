@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Mark, YoloSegmentation } from '../../types';
 import type { DetectedObject } from '../../lib/detect';
+import { CanvasRulers } from './CanvasRulers';
 
 /** Prévia da detecção assistida (Fase E) — candidatos ainda não confirmados. */
 export interface DetectionPreview {
@@ -37,6 +38,8 @@ interface MarkingCanvasProps {
   onMoveMark?: (id: number, x: number, y: number) => void;
   /** Apaga todas as marcações dentro do raio (arrastar a borracha). */
   onEraseArea?: (x: number, y: number, radius: number) => void;
+  /** Exibe réguas nas bordas (estilo PowerPoint). */
+  showRulers?: boolean;
   /** Modo régua ativo: usuário clica dois pontos para calibrar. */
   isMeasuring?: boolean;
   /** Devolve a distância medida, em pixels da imagem. */
@@ -63,6 +66,7 @@ export function MarkingCanvas({
   onToggleMarkClass,
   onMoveMark,
   onEraseArea,
+  showRulers,
   isMeasuring,
   onMeasured
 }: MarkingCanvasProps) {
@@ -196,6 +200,16 @@ export function MarkingCanvas({
           height: '100%'
         }}
       />
+
+      {/* Réguas nas bordas, com unidades reais quando calibrado */}
+      {showRulers && (
+        <CanvasRulers
+          imageWidth={image.width}
+          imageHeight={image.height}
+          zoomLevel={zoomLevel}
+          umPerPixel={umPerPixel}
+        />
+      )}
 
       {/* Régua de calibração — camada acima de tudo */}
       {isMeasuring && (
