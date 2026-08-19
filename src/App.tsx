@@ -37,6 +37,7 @@ import { YoloExportModal } from './features/yolo-export';
 import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
+import { CalibrationPanel } from './features/calibration';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -118,6 +119,10 @@ export default function App() {
   const isAiPointerEnabled = useFeatureFlag('aiPointer');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
+
+  // Calibração — modo régua e última distância medida
+  const [isMeasuring, setIsMeasuring] = useState(false);
+  const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
   const {
@@ -769,6 +774,12 @@ export default function App() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [image, setZoomLevel]);
 
+  // Calibração — recebe a distância medida pela régua e encerra o modo.
+  const handleMeasured = useCallback((pixels: number) => {
+    setMeasuredPixels(pixels);
+    setIsMeasuring(false);
+  }, []);
+
   // Fase F — clicar numa marcação inverte a classe (viável ↔ inviável).
   const handleToggleMarkClass = useCallback((id: number) => {
     setMarks(prev => prev.map(m =>
@@ -776,6 +787,11 @@ export default function App() {
         ? { ...m, type: m.type === 'viable' ? 'inviable' : 'viable' }
         : m
     ));
+  }, [setMarks]);
+
+  // Fase F — arrastar reposiciona a marcação (correção fina da detecção).
+  const handleMoveMark = useCallback((id: number, x: number, y: number) => {
+    setMarks(prev => prev.map(m => (m.id === id ? { ...m, x, y } : m)));
   }, [setMarks]);
 
   // Fase F — borracha: remove todas as marcações dentro do raio.
@@ -861,8 +877,14 @@ export default function App() {
             sessions={sessions}
             onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
             detectionSlot={
-              isAiPointerEnabled || isDetectionEnabled ? (
-                <div className="space-y-5">
+              <div className="space-y-5">
+                  <CalibrationPanel
+                    umPerPixel={metadata.umPerPixel}
+                    onChange={value => updateMetadata('umPerPixel', value)}
+                    onStartMeasure={() => { setMeasuredPixels(undefined); setIsMeasuring(true); }}
+                    measuredPixels={measuredPixels}
+                    isMeasuring={isMeasuring}
+                  />
                   {isAiPointerEnabled && (
                     <AiPointerPanel
                       image={image}
@@ -879,8 +901,7 @@ export default function App() {
                       onPreviewChange={setDetectionPreview}
                     />
                   )}
-                </div>
-              ) : undefined
+              </div>
             }
           />
 
@@ -923,7 +944,10 @@ export default function App() {
                 eraserRadius={eraserRadius}
                 onRemoveMark={removeMark}
                 onToggleMarkClass={handleToggleMarkClass}
+                onMoveMark={handleMoveMark}
                 onEraseArea={handleEraseArea}
+                isMeasuring={isMeasuring}
+                onMeasured={handleMeasured}
               />
             )}
           </ImageViewport>
