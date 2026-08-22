@@ -38,6 +38,8 @@ interface MarkingCanvasProps {
   onMoveMark?: (id: number, x: number, y: number) => void;
   /** Apaga todas as marcações dentro do raio (arrastar a borracha). */
   onEraseArea?: (x: number, y: number, radius: number) => void;
+  /** Filtro CSS de ajuste de imagem (prévia instantânea). */
+  canvasFilter?: string;
   /** Exibe réguas nas bordas (estilo PowerPoint). */
   showRulers?: boolean;
   /** Modo régua ativo: usuário clica dois pontos para calibrar. */
@@ -66,6 +68,7 @@ export function MarkingCanvas({
   onToggleMarkClass,
   onMoveMark,
   onEraseArea,
+  canvasFilter,
   showRulers,
   isMeasuring,
   onMeasured
@@ -195,9 +198,10 @@ export function MarkingCanvas({
           if (e.button === 2) onCanvasClick(e as any);
         }}
         className={`${isPanningMode ? '' : 'cursor-crosshair'} block absolute inset-0 w-full h-full`}
-        style={{ 
+        style={{
           width: '100%',
-          height: '100%'
+          height: '100%',
+          filter: canvasFilter && canvasFilter !== 'none' ? canvasFilter : undefined,
         }}
       />
 

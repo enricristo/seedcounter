@@ -7,7 +7,9 @@ import {
   FileJson, 
   Image as ImageIcon,
   FileCheck2,
-  Layers
+  Layers,
+  Ruler,
+  Database
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ExportCard } from '../shared/ExportCard';
@@ -24,6 +26,11 @@ interface ExportModalProps {
   
   exportTextReport: () => void;
   exportCSV: () => void;
+  /** Exportação por objeto — opcional. */
+  exportMeasurementsCSV?: () => void;
+  exportSQL?: () => void;
+  measurementCount?: number;
+  hasMorphometry?: boolean;
   exportJSON: () => void;
   exportAnnotatedImage: () => void;
   exportPDF: () => void;
@@ -44,6 +51,10 @@ export function ExportModal({
   onSaveAndNext,
   exportTextReport,
   exportCSV,
+  exportMeasurementsCSV,
+  exportSQL,
+  measurementCount = 0,
+  hasMorphometry = false,
   exportJSON,
   exportAnnotatedImage,
   exportPDF,
@@ -149,8 +160,32 @@ export function ExportModal({
                 onClick={exportCSV}
               />
               
+              {/* Por objeto — uma linha por semente */}
+              {exportMeasurementsCSV && (
+                <ExportCard
+                  icon={<Ruler size={20} className="text-violet-500" />}
+                  title="Por Semente (CSV)"
+                  desc={
+                    hasMorphometry
+                      ? `${measurementCount} objetos com medidas (comprimento, largura, área).`
+                      : `${measurementCount} objetos — posição e classe. Use a detecção por IA para incluir medidas.`
+                  }
+                  onClick={exportMeasurementsCSV}
+                />
+              )}
+
+              {/* Banco de dados */}
+              {exportSQL && (
+                <ExportCard
+                  icon={<Database size={20} className="text-indigo-500" />}
+                  title="Banco de Dados (SQL)"
+                  desc="Esquema e inserções para acumular amostras em SQLite/PostgreSQL."
+                  onClick={exportSQL}
+                />
+              )}
+
               {/* Raw JSON */}
-              <ExportCard 
+              <ExportCard
                 icon={<FileJson size={20} className="text-amber-500" />}
                 title="Dados Brutos (JSON)"
                 desc="Contém coordenadas X/Y de todos os pontos marcados."

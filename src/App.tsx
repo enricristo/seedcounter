@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 
 // Components
@@ -39,9 +39,12 @@ import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
+import { ImageAdjustPanel } from './features/image-adjust';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
+import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
+import { NEUTRAL_ADJUSTMENTS, applyAdjustments, isNeutral, toCssFilter, type ImageAdjustments } from './lib/image-adjust';
 import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
 
 // Types
@@ -124,6 +127,8 @@ export default function App() {
   // Calibração — modo régua e última distância medida
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [showRulers, setShowRulers] = useState(true);
+  const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
+  const [adjustEnabled, setAdjustEnabled] = useState(true);
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
 
@@ -542,6 +547,32 @@ export default function App() {
     downloadBlob(JSON.stringify(data, null, 2), generateExportName('json'), 'application/json');
   };
 
+  // --- Exportação por objeto (uma linha por semente) ---------------------
+  // Funciona em qualquer cenário: sem calibração sai em pixels, sem
+  // segmentação sai só posição e classe. Nenhuma camada é obrigatória.
+  const buildMeasurementContext = useCallback(() => ({
+    marks,
+    segmentations: yoloSegmentations,
+    metadata,
+    filename,
+  }), [marks, yoloSegmentations, metadata, filename]);
+
+  const handleExportMeasurementsCSV = useCallback(() => {
+    const ctx = buildMeasurementContext();
+    const rows = buildMeasurements(ctx);
+    const csv = measurementsToCSV(rows, ctx);
+    const base = (filename || 'amostra').replace(/\.[^.]+$/, '');
+    downloadBlob(csv, `${base}_medidas.csv`, 'text/csv;charset=utf-8;');
+  }, [buildMeasurementContext, filename]);
+
+  const handleExportSQL = useCallback(() => {
+    const ctx = buildMeasurementContext();
+    const rows = buildMeasurements(ctx);
+    const sql = measurementsToSQL(rows, ctx);
+    const base = (filename || 'amostra').replace(/\.[^.]+$/, '');
+    downloadBlob(sql, `${base}_medidas.sql`, 'text/plain;charset=utf-8;');
+  }, [buildMeasurementContext, filename]);
+
   const handleExportCSV = () => {
     const headers = ['Data', 'Imagem', 'Pesquisador', 'Projeto', 'Tratamento', 'Placa', 'Quadrante', 'Viaveis', 'Inviaveis', 'Total', '% Viavel', '% Inviavel', 'Comentarios'];
     const row = [
@@ -777,6 +808,19 @@ export default function App() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [image, setZoomLevel]);
 
+  // Imagem com os ajustes aplicados. Serve de entrada para a detecção —
+  // a imagem original permanece intacta para exibição e medidas.
+  const adjustedSource = useMemo(() => {
+    if (!image || !adjustEnabled || isNeutral(adjustments)) return image;
+    return applyAdjustments(image, adjustments) ?? image;
+  }, [image, adjustments, adjustEnabled]);
+
+  // Filtro CSS para a prévia instantânea no canvas.
+  const canvasFilter = useMemo(
+    () => (adjustEnabled ? toCssFilter(adjustments) : 'none'),
+    [adjustments, adjustEnabled]
+  );
+
   // Calibração — recebe a distância medida pela régua e encerra o modo.
   const handleMeasured = useCallback((pixels: number) => {
     setMeasuredPixels(pixels);
@@ -882,6 +926,13 @@ export default function App() {
             onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
             detectionSlot={
               <div className="space-y-5">
+                  <ImageAdjustPanel
+                    image={image}
+                    adjustments={adjustments}
+                    onChange={setAdjustments}
+                    enabled={adjustEnabled}
+                    onToggleEnabled={() => setAdjustEnabled(v => !v)}
+                  />
                   <CalibrationPanel
                     umPerPixel={metadata.umPerPixel}
                     onChange={value => updateMetadata('umPerPixel', value)}
@@ -891,7 +942,7 @@ export default function App() {
                   />
                   {isAiPointerEnabled && (
                     <AiPointerPanel
-                      image={image}
+                      image={adjustedSource}
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
@@ -901,7 +952,7 @@ export default function App() {
                   )}
                   {isDetectionEnabled && (
                     <DetectionPanel
-                      image={image}
+                      image={adjustedSource}
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
@@ -948,6 +999,7 @@ export default function App() {
                 onDeleteSegmentation={deleteSegmentation}
                 umPerPixel={metadata.umPerPixel}
                 detectionPreview={detectionPreview}
+                canvasFilter={canvasFilter}
                 activeTool={activeTool}
                 eraserRadius={eraserRadius}
                 onRemoveMark={removeMark}
@@ -1032,6 +1084,10 @@ export default function App() {
             onSaveAndNext={saveAndNext}
             exportTextReport={handleExportTextReport}
             exportCSV={handleExportCSV}
+            exportMeasurementsCSV={handleExportMeasurementsCSV}
+            exportSQL={handleExportSQL}
+            measurementCount={marks.length}
+            hasMorphometry={yoloSegmentations.some(s => s.visible !== false && s.polygon_points?.length >= 3)}
             exportJSON={handleExportJSON}
             exportAnnotatedImage={handleExportAnnotatedImage}
             exportPDF={handleExportPDF}

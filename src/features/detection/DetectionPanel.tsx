@@ -1,39 +1,74 @@
 // =============================================================================
 // SeedCounter — DetectionPanel
 // Detecção assistida por visão computacional clássica (sem modelo treinado).
-// O pesquisador ajusta os parâmetros, visualiza a máscara e confirma os pontos.
 // =============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Wand2, Check, X, Loader2, Info, Eye, EyeOff, Sparkles } from 'lucide-react';
-import { detectObjects, suggestMinArea, suggestSeparation, type DetectionResult } from '../../lib/detect';
+import { Wand2, Check, X, Loader2, Info, Eye, EyeOff, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  detectObjects, suggestMinArea, suggestSeparation,
+  type DetectionResult, type ThresholdMode, type GrayChannel,
+} from '../../lib/detect';
 import type { Mark } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
 
 interface DetectionPanelProps {
-  image: HTMLImageElement | null;
-  /** Marcações atuais — usadas para evitar duplicar pontos já existentes. */
+  image: HTMLImageElement | HTMLCanvasElement | null;
   marks: Mark[];
-  /** Insere as marcações confirmadas. */
   onAddMarks: (marks: Mark[]) => void;
-  /** Envia a prévia para o canvas desenhar. */
   onPreviewChange: (preview: DetectionPreview | null) => void;
 }
 
-/** Distância mínima (px) para considerar que já existe marcação no local. */
 const DEDUPE_RADIUS = 12;
 
+/** Cenários prontos — o usuário começa por aqui e ajusta se precisar. */
+const SCENARIOS = [
+  {
+    id: 'scanner',
+    label: 'Scanner (fundo claro)',
+    hint: 'Sementes sobre papel ou placa clara, iluminação uniforme',
+    values: { thresholdMode: 'otsu' as ThresholdMode, backgroundRadius: 0, denoise: 1, minArea: 60, channel: 'luminance' as GrayChannel },
+  },
+  {
+    id: 'uneven',
+    label: 'Fundo irregular',
+    hint: 'Iluminação desigual ou sombras — remove o fundo antes',
+    values: { thresholdMode: 'adaptive' as ThresholdMode, backgroundRadius: 60, denoise: 2, minArea: 80, channel: 'luminance' as GrayChannel },
+  },
+  {
+    id: 'lowcontrast',
+    label: 'Baixo contraste',
+    hint: 'Sementes translúcidas ou pouco distintas do fundo',
+    values: { thresholdMode: 'adaptive' as ThresholdMode, backgroundRadius: 40, denoise: 2, minArea: 50, channel: 'g' as GrayChannel },
+  },
+  {
+    id: 'crowded',
+    label: 'Muitas encostadas',
+    hint: 'Sementes agrupadas — tenta separar aglomerados',
+    values: { thresholdMode: 'otsu' as ThresholdMode, backgroundRadius: 40, denoise: 1, minArea: 60, splitTouching: true, channel: 'luminance' as GrayChannel },
+  },
+];
+
 export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: DetectionPanelProps) {
+  // Básico
   const [sensitivity, setSensitivity] = useState(50);
-  const [minArea, setMinArea] = useState(12);
-  const [separation, setSeparation] = useState(6);
+  const [minArea, setMinArea] = useState(60);
   const [polarity, setPolarity] = useState<'auto' | 'dark' | 'light'>('auto');
+  // Fundo e limiar
+  const [backgroundRadius, setBackgroundRadius] = useState(0);
+  const [thresholdMode, setThresholdMode] = useState<ThresholdMode>('otsu');
+  const [channel, setChannel] = useState<GrayChannel>('luminance');
+  const [denoise, setDenoise] = useState(1);
+  // Separação e forma
   const [splitTouching, setSplitTouching] = useState(false);
+  const [separation, setSeparation] = useState(8);
+  const [maxElongation, setMaxElongation] = useState(0);
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [showMask, setShowMask] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
 
-  // Remove candidatos que caem sobre marcações já existentes.
   const newCandidates = useMemo(() => {
     if (!result) return [];
     if (marks.length === 0) return result.objects;
@@ -42,12 +77,8 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
     );
   }, [result, marks]);
 
-  // Mantém o canvas sincronizado com o resultado e o botão de máscara.
   useEffect(() => {
-    if (!result) {
-      onPreviewChange(null);
-      return;
-    }
+    if (!result) { onPreviewChange(null); return; }
     onPreviewChange({
       objects: newCandidates,
       maskDataUrl: result.maskDataUrl,
@@ -56,14 +87,12 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
     });
   }, [result, newCandidates, showMask, onPreviewChange]);
 
-  // Limpa a prévia ao desmontar (ex.: ao desligar a flag).
   useEffect(() => () => onPreviewChange(null), [onPreviewChange]);
 
   const run = useCallback(
-    async (over?: { minArea?: number; separation?: number }) => {
+    async (over?: Partial<{ minArea: number; separation: number }>) => {
       if (!image) return null;
       setIsRunning(true);
-      // Cede um quadro ao navegador para a UI atualizar.
       await new Promise(r => setTimeout(r, 0));
       try {
         const r = detectObjects(image, {
@@ -72,6 +101,11 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           separation: over?.separation ?? separation,
           darkOnLight: polarity === 'auto' ? 'auto' : polarity === 'dark',
           splitTouching,
+          backgroundRadius,
+          thresholdMode,
+          channel,
+          denoise,
+          maxElongation,
           buildMask: true,
         });
         setResult(r);
@@ -80,15 +114,22 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
         setIsRunning(false);
       }
     },
-    [image, sensitivity, minArea, separation, polarity, splitTouching]
+    [image, sensitivity, minArea, separation, polarity, splitTouching,
+     backgroundRadius, thresholdMode, channel, denoise, maxElongation]
   );
 
-  const handleDetect = useCallback(() => { void run(); }, [run]);
+  const applyScenario = useCallback((v: Record<string, unknown>) => {
+    if ('thresholdMode' in v) setThresholdMode(v.thresholdMode as ThresholdMode);
+    if ('backgroundRadius' in v) setBackgroundRadius(v.backgroundRadius as number);
+    if ('denoise' in v) setDenoise(v.denoise as number);
+    if ('minArea' in v) setMinArea(v.minArea as number);
+    if ('channel' in v) setChannel(v.channel as GrayChannel);
+    setSplitTouching(('splitTouching' in v ? v.splitTouching : false) as boolean);
+  }, []);
 
-  /** Roda uma vez solto, mede os objetos e reajusta os parâmetros sozinho. */
   const handleAutoTune = useCallback(async () => {
     if (!image) return;
-    const probe = await run({ minArea: 4, separation: 4 });
+    const probe = await run({ minArea: 8, separation: 4 });
     if (!probe || probe.objects.length === 0) return;
     const nextMin = suggestMinArea(probe.objects);
     const nextSep = suggestSeparation(probe.objects);
@@ -100,18 +141,11 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
   const handleConfirm = useCallback(() => {
     if (newCandidates.length === 0) return;
     const base = Date.now();
-    onAddMarks(
-      newCandidates.map((c, i) => ({
-        x: c.x,
-        y: c.y,
-        type: 'viable' as const,
-        id: base + i + Math.random(),
-      }))
-    );
+    onAddMarks(newCandidates.map((c, i) => ({
+      x: c.x, y: c.y, type: 'viable' as const, id: base + i + Math.random(),
+    })));
     setResult(null);
   }, [newCandidates, onAddMarks]);
-
-  const handleDiscard = useCallback(() => setResult(null), []);
 
   const disabled = !image || isRunning;
   const splitCount = newCandidates.filter(o => o.split).length;
@@ -127,184 +161,214 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
         </span>
       </div>
 
-      {/* Sensibilidade */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-            Sensibilidade
-          </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{sensitivity}</span>
-        </div>
-        <input
-          type="range" min={0} max={100} step={1} value={sensitivity}
-          onChange={e => setSensitivity(Number(e.target.value))}
-          className="w-full accent-emerald-500"
-        />
-      </div>
-
-      {/* Área mínima */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-            Tamanho mínimo (px²)
-          </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{minArea}</span>
-        </div>
-        <input
-          type="range" min={2} max={400} step={2} value={minArea}
-          onChange={e => setMinArea(Number(e.target.value))}
-          className="w-full accent-emerald-500"
-        />
-      </div>
-
-      {/* Separação de sementes coladas */}
-      <div className={`space-y-1.5 ${splitTouching ? '' : 'opacity-40 pointer-events-none'}`}>
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-            Separação (raio, px)
-          </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{separation}</span>
-        </div>
-        <input
-          type="range" min={2} max={60} step={1} value={separation}
-          onChange={e => setSeparation(Number(e.target.value))}
-          className="w-full accent-sky-500"
-        />
-      </div>
-
-      {/* Interruptores */}
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox" checked={splitTouching}
-            onChange={e => setSplitTouching(e.target.checked)}
-            className="accent-sky-500"
-          />
-          <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
-            Separar sementes encostadas
-          </span>
-        </label>
-      </div>
-
-      {/* Polaridade */}
+      {/* Cenários — ponto de partida */}
       <div className="space-y-1.5">
         <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-          Contraste da imagem
+          Comece por um cenário
         </label>
-        <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-snug">
-          As sementes aparecem mais escuras ou mais claras que o fundo da placa?
-          Em “Auto” o programa decide sozinho.
-        </p>
-        <div className="grid grid-cols-3 gap-1">
-          {([
-            ['auto', 'Auto'],
-            ['dark', 'Escuras'],
-            ['light', 'Claras'],
-          ] as const).map(([value, txt]: readonly ['auto' | 'dark' | 'light', string]) => (
+        <div className="grid grid-cols-2 gap-1">
+          {SCENARIOS.map(s => (
             <button
-              key={value}
-              onClick={() => setPolarity(value)}
-              className={`px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border transition-colors ${
-                polarity === value
-                  ? 'bg-emerald-500 border-emerald-500 text-white'
-                  : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
-              }`}
+              key={s.id}
+              onClick={() => applyScenario(s.values)}
+              title={s.hint}
+              className="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors text-left leading-tight"
             >
-              {txt}
+              {s.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Ações principais */}
-      <div className="flex gap-2">
-        <button
-          onClick={handleDetect}
-          disabled={disabled}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold"
-        >
-          {isRunning
-            ? <Loader2 size={16} className="animate-spin text-emerald-500" />
-            : <Wand2 size={16} className="text-emerald-500" />}
-          <span className="text-xs uppercase tracking-wide">
-            {isRunning ? 'Detectando…' : 'Detectar'}
+      {/* Remoção de fundo — o ajuste que mais resolve */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+            Remover fundo
+          </label>
+          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
+            {backgroundRadius === 0 ? 'desligado' : `${backgroundRadius} px`}
           </span>
+        </div>
+        <input
+          type="range" min={0} max={200} step={10} value={backgroundRadius}
+          onChange={e => setBackgroundRadius(Number(e.target.value))}
+          className="w-full accent-emerald-500"
+        />
+        <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-snug">
+          Elimina gradiente de iluminação e o tom da placa. Use um valor
+          <strong> maior que a maior semente</strong>.
+        </p>
+      </div>
+
+      {/* Sensibilidade e tamanho mínimo */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Sensibilidade</label>
+          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{sensitivity}</span>
+        </div>
+        <input type="range" min={0} max={100} value={sensitivity}
+          onChange={e => setSensitivity(Number(e.target.value))} className="w-full accent-emerald-500" />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Tamanho mínimo (px²)</label>
+          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{minArea}</span>
+        </div>
+        <input type="range" min={5} max={2000} step={5} value={minArea}
+          onChange={e => setMinArea(Number(e.target.value))} className="w-full accent-emerald-500" />
+      </div>
+
+      {/* Avançado */}
+      <button
+        onClick={() => setShowAdvanced(v => !v)}
+        className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors"
+      >
+        Ajustes avançados
+        {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+      </button>
+
+      {showAdvanced && (
+        <div className="space-y-3 pl-1 border-l-2 border-neutral-100 dark:border-zinc-800">
+          {/* Limiar */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Limiar</label>
+            <div className="grid grid-cols-2 gap-1">
+              {([['otsu', 'Global'], ['adaptive', 'Local']] as const).map(([v, t]) => (
+                <button key={v} onClick={() => setThresholdMode(v)}
+                  title={v === 'otsu' ? 'Um corte para a imagem toda' : 'Corte por região — melhor com iluminação desigual'}
+                  className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
+                    thresholdMode === v ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Canal */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Canal analisado</label>
+            <div className="grid grid-cols-4 gap-1">
+              {([['luminance', 'Lum'], ['r', 'R'], ['g', 'G'], ['b', 'B']] as const).map(([v, t]) => (
+                <button key={v} onClick={() => setChannel(v)}
+                  className={`px-1 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
+                    channel === v ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Polaridade */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Contraste</label>
+            <div className="grid grid-cols-3 gap-1">
+              {([['auto', 'Auto'], ['dark', 'Escuras'], ['light', 'Claras']] as const).map(([v, t]) => (
+                <button key={v} onClick={() => setPolarity(v)}
+                  className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
+                    polarity === v ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Limpeza de ruído */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Limpeza de ruído</label>
+              <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{denoise}</span>
+            </div>
+            <input type="range" min={0} max={3} value={denoise}
+              onChange={e => setDenoise(Number(e.target.value))} className="w-full accent-emerald-500" />
+          </div>
+
+          {/* Alongamento máximo */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Alongamento máx.</label>
+              <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
+                {maxElongation === 0 ? 'sem limite' : `${maxElongation}:1`}
+              </span>
+            </div>
+            <input type="range" min={0} max={15} value={maxElongation}
+              onChange={e => setMaxElongation(Number(e.target.value))} className="w-full accent-emerald-500" />
+            <p className="text-[10px] text-neutral-500 dark:text-zinc-500">Descarta riscos e fios muito finos.</p>
+          </div>
+
+          {/* Separação */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={splitTouching}
+              onChange={e => setSplitTouching(e.target.checked)} className="accent-sky-500" />
+            <span className="text-[11px] text-neutral-600 dark:text-zinc-400">Separar sementes encostadas</span>
+          </label>
+
+          {splitTouching && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">Separação (raio, px)</label>
+                <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{separation}</span>
+              </div>
+              <input type="range" min={3} max={60} value={separation}
+                onChange={e => setSeparation(Number(e.target.value))} className="w-full accent-sky-500" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Ações */}
+      <div className="flex gap-2">
+        <button onClick={() => { void run(); }} disabled={disabled}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold">
+          {isRunning ? <Loader2 size={16} className="animate-spin text-emerald-500" /> : <Wand2 size={16} className="text-emerald-500" />}
+          <span className="text-xs uppercase tracking-wide">{isRunning ? 'Detectando…' : 'Detectar'}</span>
         </button>
-        <button
-          onClick={handleAutoTune}
-          disabled={disabled}
-          title="Ajusta tamanho mínimo e separação automaticamente"
-          className="flex items-center justify-center gap-1.5 px-3 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold"
-        >
+        <button onClick={handleAutoTune} disabled={disabled} title="Mede os objetos e ajusta o tamanho mínimo"
+          className="flex items-center justify-center gap-1.5 px-3 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold">
           <Sparkles size={15} className="text-amber-500" />
           <span className="text-xs uppercase tracking-wide">Auto</span>
         </button>
       </div>
 
-      {/* Resultado / confirmação */}
+      {/* Resultado */}
       {result && (
         <div className="space-y-2.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/60 p-3">
           <div className="flex items-start justify-between gap-2">
             <p className="text-xs text-neutral-700 dark:text-zinc-300">
-              <strong>{newCandidates.length}</strong>{' '}
-              {newCandidates.length === 1 ? 'objeto novo' : 'objetos novos'}
-              {splitCount > 0 && (
-                <span className="text-sky-600 dark:text-sky-400"> · {splitCount} separados</span>
-              )}
-              {result.objects.length !== newCandidates.length && (
-                <span className="text-neutral-500 dark:text-zinc-500">
-                  {' '}({result.objects.length - newCandidates.length} já marcados)
-                </span>
-              )}
+              <strong>{newCandidates.length}</strong> {newCandidates.length === 1 ? 'objeto' : 'objetos'}
+              {splitCount > 0 && <span className="text-sky-600 dark:text-sky-400"> · {splitCount} separados</span>}
             </p>
-            <button
-              onClick={() => setShowMask(v => !v)}
-              title={showMask ? 'Ocultar máscara' : 'Mostrar máscara'}
-              className="shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors"
-            >
+            <button onClick={() => setShowMask(v => !v)} title={showMask ? 'Ocultar máscara' : 'Mostrar máscara'}
+              className="shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors">
               {showMask ? <Eye size={15} /> : <EyeOff size={15} />}
             </button>
           </div>
 
           <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-            Limiar {result.threshold} · {result.totalBlobs} regiões brutas ·{' '}
-            {result.darkOnLight ? 'escuras em fundo claro' : 'claras em fundo escuro'}
+            {result.totalBlobs} regiões brutas
+            {result.rejected && ` · descartadas: ${result.rejected.area} por tamanho, ${result.rejected.background} como fundo${result.rejected.elongation ? `, ${result.rejected.elongation} por forma` : ''}`}
           </p>
 
           {result.warnings?.map((wmsg, i) => (
             <p key={i} className="flex items-start gap-1.5 text-[10px] text-amber-700 dark:text-amber-400">
-              <Info size={12} className="shrink-0 mt-0.5" />
-              {wmsg}
+              <Info size={12} className="shrink-0 mt-0.5" />{wmsg}
             </p>
           ))}
 
-          {newCandidates.length === 0 && (
-            <p className="flex items-start gap-1.5 text-[11px] text-neutral-500 dark:text-zinc-500">
-              <Info size={13} className="shrink-0 mt-0.5" />
-              Ajuste a sensibilidade ou o tamanho mínimo — ou use o botão “Auto”.
-            </p>
-          )}
-
           <div className="flex gap-2">
-            <button
-              onClick={handleConfirm}
-              disabled={newCandidates.length === 0}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-bold uppercase tracking-wide transition-colors"
-            >
+            <button onClick={handleConfirm} disabled={newCandidates.length === 0}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-[11px] font-bold uppercase tracking-wide transition-colors">
               <Check size={14} /> Adicionar
             </button>
-            <button
-              onClick={handleDiscard}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-[11px] font-bold uppercase tracking-wide transition-colors"
-            >
+            <button onClick={() => setResult(null)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-[11px] font-bold uppercase tracking-wide transition-colors">
               <X size={14} /> Descartar
             </button>
           </div>
-
-          <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
-            Verde = detectado · Azul tracejado = separado de um aglomerado.
-            Os pontos entram como <strong>viáveis</strong> e podem ser corrigidos depois.
-          </p>
         </div>
       )}
     </section>
