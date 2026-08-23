@@ -4,6 +4,7 @@ import { Counters } from '../sidebar/Counters';
 import { MetadataForm } from '../sidebar/MetadataForm';
 import { DifferentialMode } from '../sidebar/DifferentialMode';
 import { HelpTip } from '../sidebar/HelpTip';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import type { Metadata, Session } from '../../types';
 
 interface SidebarProps {
@@ -11,7 +12,7 @@ interface SidebarProps {
   importInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleImportJSON: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  
+
   viableCount: number;
   inviableCount: number;
   viablePercent: string;
@@ -26,10 +27,20 @@ interface SidebarProps {
   updateMetadata: <K extends keyof Metadata>(key: K, value: Metadata[K]) => void;
   sessions: Session[];
 
-  /** Abre o modal de captura por câmera (Fase E). Ausente = botão oculto. */
+  /** Abre a captura por câmera. Ausente = botão oculto. */
   onOpenCamera?: () => void;
-  /** Painel de detecção assistida (Fase E). Ausente = seção oculta. */
+
+  // --- Painéis opcionais, agrupados por etapa do fluxo ---
+  /** Etapa 1 — ajuste de imagem. */
+  adjustSlot?: React.ReactNode;
+  /** Etapa 2 — calibração espacial. */
+  calibrationSlot?: React.ReactNode;
+  /** Etapa 3 — detecção (IA e assistida). */
   detectionSlot?: React.ReactNode;
+  /** Resumo da calibração para exibir na seção fechada. */
+  calibrationSummary?: string;
+  /** true quando ainda não há calibração (destaca a etapa). */
+  needsCalibration?: boolean;
 }
 
 export function Sidebar({
@@ -50,32 +61,18 @@ export function Sidebar({
   updateMetadata,
   sessions,
   onOpenCamera,
-  detectionSlot
+  adjustSlot,
+  calibrationSlot,
+  detectionSlot,
+  calibrationSummary,
+  needsCalibration,
 }: SidebarProps) {
   return (
     <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex flex-col shrink-0 overflow-y-auto custom-scrollbar transition-colors duration-300">
-      <div className="flex flex-col p-5 gap-5 min-h-max">
-        {/* Section 1: Files Upload & Import */}
-        <ImageActions
-          fileInputRef={fileInputRef}
-          importInputRef={importInputRef}
-          handleFileUpload={handleFileUpload}
-          handleImportJSON={handleImportJSON}
-          onOpenCamera={onOpenCamera}
-        />
+      <div className="flex flex-col p-4 gap-4 min-h-max">
 
-        <hr className="border-neutral-100 dark:border-zinc-800" />
-
-        {/* Seção opcional: detecção assistida (Fase E) */}
-        {detectionSlot && (
-          <>
-            {detectionSlot}
-            <hr className="border-neutral-100 dark:border-zinc-800" />
-          </>
-        )}
-
-        {/* Section 2: Metrics Counters */}
-        <Counters 
+        {/* Resultado primeiro: é o produto do trabalho */}
+        <Counters
           viableCount={viableCount}
           inviableCount={inviableCount}
           viablePercent={viablePercent}
@@ -89,10 +86,45 @@ export function Sidebar({
           sessions={sessions}
         />
 
+        {/* Entrada de imagem — ação mais frequente depois de contar */}
+        <ImageActions
+          fileInputRef={fileInputRef}
+          importInputRef={importInputRef}
+          handleFileUpload={handleFileUpload}
+          handleImportJSON={handleImportJSON}
+          onOpenCamera={onOpenCamera}
+        />
+
+        {/* Etapas de preparo e análise — recolhidas por padrão */}
+        <div className="space-y-2">
+          {adjustSlot && (
+            <CollapsibleSection step={1} title="Preparar imagem">
+              {adjustSlot}
+            </CollapsibleSection>
+          )}
+
+          {calibrationSlot && (
+            <CollapsibleSection
+              step={2}
+              title="Calibrar escala"
+              summary={calibrationSummary}
+              attention={needsCalibration}
+            >
+              {calibrationSlot}
+            </CollapsibleSection>
+          )}
+
+          {detectionSlot && (
+            <CollapsibleSection step={3} title="Detectar automaticamente">
+              {detectionSlot}
+            </CollapsibleSection>
+          )}
+        </div>
+
         <hr className="border-neutral-100 dark:border-zinc-800" />
 
-        {/* Section 3: Differential Toggling */}
-        <DifferentialMode 
+        {/* Contexto da amostra */}
+        <DifferentialMode
           metadata={metadata}
           updateMetadata={updateMetadata}
           sessions={sessions}
@@ -100,15 +132,13 @@ export function Sidebar({
 
         <hr className="border-neutral-100 dark:border-zinc-800" />
 
-        {/* Section 4: Sample Metadata inputs */}
-        <MetadataForm 
+        <MetadataForm
           metadata={metadata}
           updateMetadata={updateMetadata}
         />
 
         <hr className="border-neutral-100 dark:border-zinc-800" />
 
-        {/* Section 5: Dynamic Help Card */}
         <HelpTip />
       </div>
     </aside>

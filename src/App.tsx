@@ -924,22 +924,33 @@ export default function App() {
             updateMetadata={updateMetadata}
             sessions={sessions}
             onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
+            calibrationSummary={
+              metadata.umPerPixel && metadata.umPerPixel > 0
+                ? `${metadata.umPerPixel.toFixed(2)} µm/px`
+                : 'medidas em pixels'
+            }
+            needsCalibration={!metadata.umPerPixel || metadata.umPerPixel <= 0}
+            adjustSlot={
+              <ImageAdjustPanel
+                image={image}
+                adjustments={adjustments}
+                onChange={setAdjustments}
+                enabled={adjustEnabled}
+                onToggleEnabled={() => setAdjustEnabled(v => !v)}
+              />
+            }
+            calibrationSlot={
+              <CalibrationPanel
+                umPerPixel={metadata.umPerPixel}
+                onChange={value => updateMetadata('umPerPixel', value)}
+                onStartMeasure={() => { setMeasuredPixels(undefined); setIsMeasuring(true); }}
+                measuredPixels={measuredPixels}
+                isMeasuring={isMeasuring}
+              />
+            }
             detectionSlot={
-              <div className="space-y-5">
-                  <ImageAdjustPanel
-                    image={image}
-                    adjustments={adjustments}
-                    onChange={setAdjustments}
-                    enabled={adjustEnabled}
-                    onToggleEnabled={() => setAdjustEnabled(v => !v)}
-                  />
-                  <CalibrationPanel
-                    umPerPixel={metadata.umPerPixel}
-                    onChange={value => updateMetadata('umPerPixel', value)}
-                    onStartMeasure={() => { setMeasuredPixels(undefined); setIsMeasuring(true); }}
-                    measuredPixels={measuredPixels}
-                    isMeasuring={isMeasuring}
-                  />
+              isAiPointerEnabled || isDetectionEnabled ? (
+                <div className="space-y-5">
                   {isAiPointerEnabled && (
                     <AiPointerPanel
                       image={adjustedSource}
@@ -958,7 +969,8 @@ export default function App() {
                       onPreviewChange={setDetectionPreview}
                     />
                   )}
-              </div>
+                </div>
+              ) : undefined
             }
           />
 
