@@ -15,6 +15,9 @@
 
 import type { InferenceSession as OrtSession, Tensor as OrtTensor } from 'onnxruntime-web';
 
+/** Origem do runtime ONNX. Fixada em versão para builds reproduzíveis. */
+const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0';
+
 export const YOLO_CLASSES = ['inviavel', 'viavel'] as const;
 export type YoloClassName = (typeof YOLO_CLASSES)[number];
 
@@ -74,15 +77,16 @@ export async function loadModel(modelUrl: string = DEFAULT_MODEL_URL): Promise<O
   if (sessionPromise) return sessionPromise;
 
   sessionPromise = (async () => {
-    // Import estático (o Vite precisa do literal para empacotar corretamente).
-    const ort = await import('onnxruntime-web');
+    // O runtime é carregado do CDN em vez de empacotado. Motivo: os binários
+    // WASM somam ~27 MB e ficariam no build mesmo para quem nunca usa a IA.
+    // Como este recurso é experimental e já exigia rede na primeira execução,
+    // buscá-lo sob demanda mantém o aplicativo principal leve e offline.
+    // O pacote npm continua instalado apenas para fornecer os tipos.
+    const ort = await import(/* @vite-ignore */ `${ORT_CDN}/+esm`);
     ortModule = ort;
 
-    // Os binários WASM não são empacotados pelo Vite: apontamos para o CDN
-    // na mesma versão do pacote instalado.
     try {
-      const version = ort.env.versions?.web ?? '1.27.0';
-      ort.env.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${version}/dist/`;
+      ort.env.wasm.wasmPaths = `${ORT_CDN}/dist/`;
     } catch {
       /* mantém o caminho padrão se a env não estiver acessível */
     }

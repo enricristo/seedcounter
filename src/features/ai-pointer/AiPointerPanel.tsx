@@ -232,9 +232,15 @@ export function AiPointerPanel({
 
       {isRunning && !progress && (
         <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-          O modelo é baixado na primeira execução (~55 MB) e fica em cache.
+          Baixando o modelo e o motor de inferência na primeira execução. Depois
+          ficam em cache.
         </p>
       )}
+
+      <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
+        Este recurso exige conexão na primeira execução. O restante do
+        aplicativo continua funcionando offline.
+      </p>
 
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-red-300 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 px-3 py-2">
