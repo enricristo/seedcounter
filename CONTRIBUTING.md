@@ -1,59 +1,28 @@
 # Contribuindo com o Contador de Sementes
 
-Obrigado pelo interesse em contribuir! Este guia resume o fluxo de trabalho e as boas práticas do projeto.
+Obrigado por contribuir.
 
-## Fluxo de branches
+## Branches
 
-- **`main`** — produção. Publicada automaticamente no Vercel (https://seedcounter.vercel.app). Nunca desenvolva direto aqui.
-- **`develop`** — integração/desenvolvimento. É a base para novas features.
-- **`feature/<nome>`** — uma branch por feature ou correção.
+- `main` — produção
+- `feature/*` — trabalho em andamento
+- `docs-upgrade` — ajustes de documentação e publicação auxiliar
 
-```
-feature/minha-feature  →  develop  →  main (produção)
-```
+## Fluxo
 
-## Passo a passo
+1. Parta da branch correta.
+2. Desenvolva localmente.
+3. Rode `npm run build` e a checagem de tipos disponível no projeto.
+4. Faça commits pequenos e objetivos.
+5. Abra PR para a branch de integração definida no momento.
 
-1. Parta da `develop` atualizada:
-   ```bash
-   git checkout develop
-   git pull
-   git checkout -b feature/minha-feature
-   ```
-2. Desenvolva e teste localmente:
-   ```bash
-   npm run dev                         # ou: docker compose --profile dev up
-   ```
-3. Antes de abrir o PR, verifique:
-   ```bash
-   npm run type-check                  # checagem de tipos (deve passar)
-   npm run lint                        # lint (avisos são aceitáveis)
-   npm run build                       # build de produção deve funcionar
-   ```
-4. Commit com mensagem clara (veja abaixo) e abra um **Pull Request** para `develop`.
-5. Após revisão e testes, `develop` é mesclada em `main` — e o Vercel publica.
+## Boas práticas
 
-## Convenção de commits
+- Não exponha segredos no frontend.
+- Não documente recursos experimentais como se já estivessem prontos.
+- Atualize README e docs quando o comportamento público mudar.
 
-Use prefixos [Conventional Commits](https://www.conventionalcommits.org/):
+## Commits
 
-- `feat:` nova funcionalidade
-- `fix:` correção de bug
-- `docs:` documentação
-- `chore:` manutenção/configuração
-- `refactor:` refatoração sem mudança de comportamento
+Use mensagens no estilo Conventional Commits.
 
-Exemplo: `feat: adiciona exportação no formato YOLO`
-
-## Estilo de código
-
-- O projeto usa **ESLint** e **Prettier**. Rode `npm run lint:fix` e `npm run format` antes de commitar.
-- Componentes em React + TypeScript; funcionalidades novas vão em `src/features/`.
-
-## Reportando problemas
-
-Abra uma [issue](https://github.com/enricristo/seedcounter/issues) usando um dos templates disponíveis (bug ou sugestão de funcionalidade).
-
-## Código de conduta
-
-Seja respeitoso e colaborativo. Este é um projeto acadêmico voltado à comunidade de pesquisa.

@@ -52,6 +52,10 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
+          // Não faz sentido pré-cachear arquivos enormes (modelos ONNX, imagens
+          // de origem). Sem isso o build FALHA quando algum passa de 2 MiB.
+          globIgnores: ['**/models/**', '**/*.onnx'],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
