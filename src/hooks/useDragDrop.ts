@@ -41,19 +41,16 @@ export function useDragDrop({ onFilesDropped }: UseDragDropProps) {
     }
   }, []);
 
-  const handleDrop = useCallback(
-    (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragActive(false);
+  const handleDrop = useCallback((e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
 
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const filesList = Array.from(e.dataTransfer.files);
-        onFilesDropped(filesList);
-      }
-    },
-    [onFilesDropped]
-  );
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const filesList = Array.from(e.dataTransfer.files);
+      onFilesDropped(filesList);
+    }
+  }, [onFilesDropped]);
 
   useEffect(() => {
     // Attach event listeners to window to allow dropping anywhere
@@ -72,6 +69,6 @@ export function useDragDrop({ onFilesDropped }: UseDragDropProps) {
 
   return {
     isDragActive,
-    setIsDragActive,
+    setIsDragActive
   };
 }

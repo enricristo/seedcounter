@@ -6,12 +6,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { SlidersHorizontal, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import {
-  NEUTRAL_ADJUSTMENTS,
-  ADJUSTMENT_PRESETS,
-  isNeutral,
-  computeHistogram,
-  type ImageAdjustments,
-  type Histogram,
+  NEUTRAL_ADJUSTMENTS, ADJUSTMENT_PRESETS, isNeutral, computeHistogram,
+  type ImageAdjustments, type Histogram,
 } from '../../lib/image-adjust';
 
 interface ImageAdjustPanelProps {
@@ -40,23 +36,12 @@ function HistogramView({ hist }: { hist: Histogram | null }) {
   if (!path) return null;
 
   return (
-    <svg
-      viewBox="0 0 256 40"
-      className="w-full h-10 rounded bg-neutral-100 dark:bg-zinc-900"
-      preserveAspectRatio="none"
-    >
+    <svg viewBox="0 0 256 40" className="w-full h-10 rounded bg-neutral-100 dark:bg-zinc-900" preserveAspectRatio="none">
       <path d={path} className="fill-neutral-400/60 dark:fill-zinc-600/60" />
       {/* Marcas de referência: sombras, médios, luzes */}
-      {[64, 128, 192].map((x) => (
-        <line
-          key={x}
-          x1={x}
-          y1={0}
-          x2={x}
-          y2={40}
-          strokeWidth={0.5}
-          className="stroke-neutral-300 dark:stroke-zinc-700"
-        />
+      {[64, 128, 192].map(x => (
+        <line key={x} x1={x} y1={0} x2={x} y2={40} strokeWidth={0.5}
+          className="stroke-neutral-300 dark:stroke-zinc-700" />
       ))}
     </svg>
   );
@@ -73,16 +58,7 @@ interface SliderProps {
   onChange: (v: number) => void;
 }
 
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step = 1,
-  accent = 'accent-emerald-500',
-  format,
-  onChange,
-}: SliderProps) {
+function Slider({ label, value, min, max, step = 1, accent = 'accent-emerald-500', format, onChange }: SliderProps) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
@@ -94,12 +70,8 @@ function Slider({
         </span>
       </div>
       <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))}
         className={`w-full ${accent}`}
       />
     </div>
@@ -107,20 +79,13 @@ function Slider({
 }
 
 export function ImageAdjustPanel({
-  image,
-  adjustments,
-  onChange,
-  enabled,
-  onToggleEnabled,
+  image, adjustments, onChange, enabled, onToggleEnabled,
 }: ImageAdjustPanelProps) {
   const [hist, setHist] = useState<Histogram | null>(null);
 
   // Recalcula o histograma quando a imagem muda (usa amostragem reduzida).
   useEffect(() => {
-    if (!image) {
-      setHist(null);
-      return;
-    }
+    if (!image) { setHist(null); return; }
     setHist(computeHistogram(image));
   }, [image]);
 
@@ -131,12 +96,9 @@ export function ImageAdjustPanel({
     [adjustments, onChange]
   );
 
-  const applyPreset = useCallback(
-    (values: Partial<ImageAdjustments>) => {
-      onChange({ ...NEUTRAL_ADJUSTMENTS, ...values });
-    },
-    [onChange]
-  );
+  const applyPreset = useCallback((values: Partial<ImageAdjustments>) => {
+    onChange({ ...NEUTRAL_ADJUSTMENTS, ...values });
+  }, [onChange]);
 
   const neutral = isNeutral(adjustments);
 
@@ -162,7 +124,7 @@ export function ImageAdjustPanel({
 
       {/* Predefinições */}
       <div className="flex flex-wrap gap-1">
-        {ADJUSTMENT_PRESETS.map((p) => (
+        {ADJUSTMENT_PRESETS.map(p => (
           <button
             key={p.id}
             onClick={() => applyPreset(p.values)}
@@ -176,40 +138,14 @@ export function ImageAdjustPanel({
 
       <div className={enabled ? '' : 'opacity-40 pointer-events-none'}>
         <div className="space-y-2.5">
-          <Slider
-            label="Brilho"
-            value={adjustments.brightness}
-            min={-100}
-            max={100}
-            accent="accent-cyan-500"
-            onChange={(v) => set('brightness', v)}
-          />
-          <Slider
-            label="Contraste"
-            value={adjustments.contrast}
-            min={-100}
-            max={100}
-            accent="accent-cyan-500"
-            onChange={(v) => set('contrast', v)}
-          />
-          <Slider
-            label="Gama"
-            value={adjustments.gamma}
-            min={0.2}
-            max={3}
-            step={0.05}
-            accent="accent-cyan-500"
-            format={(v) => v.toFixed(2)}
-            onChange={(v) => set('gamma', v)}
-          />
-          <Slider
-            label="Saturação"
-            value={adjustments.saturation}
-            min={-100}
-            max={100}
-            accent="accent-cyan-500"
-            onChange={(v) => set('saturation', v)}
-          />
+          <Slider label="Brilho" value={adjustments.brightness} min={-100} max={100}
+            accent="accent-cyan-500" onChange={v => set('brightness', v)} />
+          <Slider label="Contraste" value={adjustments.contrast} min={-100} max={100}
+            accent="accent-cyan-500" onChange={v => set('contrast', v)} />
+          <Slider label="Gama" value={adjustments.gamma} min={0.2} max={3} step={0.05}
+            accent="accent-cyan-500" format={v => v.toFixed(2)} onChange={v => set('gamma', v)} />
+          <Slider label="Saturação" value={adjustments.saturation} min={-100} max={100}
+            accent="accent-cyan-500" onChange={v => set('saturation', v)} />
         </div>
 
         {/* Canais RGB */}
@@ -217,30 +153,12 @@ export function ImageAdjustPanel({
           <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
             Canais
           </p>
-          <Slider
-            label="Vermelho"
-            value={adjustments.red}
-            min={-100}
-            max={100}
-            accent="accent-red-500"
-            onChange={(v) => set('red', v)}
-          />
-          <Slider
-            label="Verde"
-            value={adjustments.green}
-            min={-100}
-            max={100}
-            accent="accent-green-500"
-            onChange={(v) => set('green', v)}
-          />
-          <Slider
-            label="Azul"
-            value={adjustments.blue}
-            min={-100}
-            max={100}
-            accent="accent-blue-500"
-            onChange={(v) => set('blue', v)}
-          />
+          <Slider label="Vermelho" value={adjustments.red} min={-100} max={100}
+            accent="accent-red-500" onChange={v => set('red', v)} />
+          <Slider label="Verde" value={adjustments.green} min={-100} max={100}
+            accent="accent-green-500" onChange={v => set('green', v)} />
+          <Slider label="Azul" value={adjustments.blue} min={-100} max={100}
+            accent="accent-blue-500" onChange={v => set('blue', v)} />
         </div>
 
         {/* Isolar canal */}
@@ -249,14 +167,9 @@ export function ImageAdjustPanel({
             Exibir canal
           </p>
           <div className="grid grid-cols-4 gap-1">
-            {(
-              [
-                ['all', 'RGB'],
-                ['r', 'R'],
-                ['g', 'G'],
-                ['b', 'B'],
-              ] as const
-            ).map(([value, txt]: readonly ['all' | 'r' | 'g' | 'b', string]) => (
+            {([
+              ['all', 'RGB'], ['r', 'R'], ['g', 'G'], ['b', 'B'],
+            ] as const).map(([value, txt]: readonly ['all' | 'r' | 'g' | 'b', string]) => (
               <button
                 key={value}
                 onClick={() => set('channel', value)}
@@ -274,14 +187,11 @@ export function ImageAdjustPanel({
 
         <label className="mt-3 flex items-center gap-2 cursor-pointer">
           <input
-            type="checkbox"
-            checked={adjustments.invert}
-            onChange={(e) => set('invert', e.target.checked)}
+            type="checkbox" checked={adjustments.invert}
+            onChange={e => set('invert', e.target.checked)}
             className="accent-cyan-500"
           />
-          <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
-            Inverter (negativo)
-          </span>
+          <span className="text-[11px] text-neutral-600 dark:text-zinc-400">Inverter (negativo)</span>
         </label>
       </div>
 
@@ -295,8 +205,8 @@ export function ImageAdjustPanel({
       )}
 
       <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
-        Os ajustes são apenas de visualização e detecção — a imagem original e as medidas não são
-        alteradas.
+        Os ajustes são apenas de visualização e detecção — a imagem original e as
+        medidas não são alteradas.
       </p>
     </section>
   );

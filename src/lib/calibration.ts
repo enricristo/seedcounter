@@ -84,13 +84,20 @@ export function umPerPixelToDpi(umPerPixel: number): number {
  * Calibração por objeto de referência: uma distância conhecida medida sobre a
  * imagem. Serve para régua, marcação impressa na placa, moeda ou micrômetro.
  */
-export function referenceToUmPerPixel(pixels: number, length: number, unit: LengthUnit): number {
+export function referenceToUmPerPixel(
+  pixels: number,
+  length: number,
+  unit: LengthUnit
+): number {
   if (!pixels || pixels <= 0 || !length || length <= 0) return 0;
   return (length * UNIT_TO_MICRONS[unit]) / pixels;
 }
 
 /** Distância euclidiana entre dois pontos, em pixels. */
-export function distanceInPixels(a: { x: number; y: number }, b: { x: number; y: number }): number {
+export function distanceInPixels(
+  a: { x: number; y: number },
+  b: { x: number; y: number }
+): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 

@@ -22,16 +22,10 @@ interface CollapsibleSectionProps {
 }
 
 export function CollapsibleSection({
-  step,
-  title,
-  summary,
-  icon,
-  defaultOpen = false,
-  attention = false,
-  children,
+  step, title, summary, icon, defaultOpen = false, attention = false, children,
 }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const toggle = useCallback(() => setOpen((v) => !v), []);
+  const toggle = useCallback(() => setOpen(v => !v), []);
 
   return (
     <section className="rounded-xl border border-neutral-200 dark:border-zinc-800 overflow-hidden">
@@ -41,13 +35,11 @@ export function CollapsibleSection({
         className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-neutral-50 dark:hover:bg-zinc-900/60 transition-colors text-left"
       >
         {step !== undefined && (
-          <span
-            className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              attention
-                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
-                : 'bg-neutral-100 dark:bg-zinc-800 text-neutral-500 dark:text-zinc-400'
-            }`}
-          >
+          <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+            attention
+              ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+              : 'bg-neutral-100 dark:bg-zinc-800 text-neutral-500 dark:text-zinc-400'
+          }`}>
             {step}
           </span>
         )}

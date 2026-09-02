@@ -30,12 +30,7 @@ interface AiPointerPanelProps {
 const DEDUPE_RADIUS = 12;
 
 export function AiPointerPanel({
-  image,
-  marks,
-  onAddMarks,
-  onPreviewChange,
-  onAddSegmentations,
-  umPerPixel,
+  image, marks, onAddMarks, onPreviewChange, onAddSegmentations, umPerPixel,
 }: AiPointerPanelProps) {
   const [confidence, setConfidence] = useState(45);
   const [withMorphometry, setWithMorphometry] = useState(true);
@@ -48,20 +43,16 @@ export function AiPointerPanel({
   // Verifica uma vez se o modelo está publicado.
   useEffect(() => {
     let alive = true;
-    isModelAvailable().then((ok) => {
-      if (alive) setModelPresent(ok);
-    });
-    return () => {
-      alive = false;
-    };
+    isModelAvailable().then(ok => { if (alive) setModelPresent(ok); });
+    return () => { alive = false; };
   }, []);
 
   // Descarta detecções onde já existe marcação.
   const newDetections = useMemo(() => {
     if (!detections) return [];
     if (marks.length === 0) return detections;
-    return detections.filter(
-      (d) => !marks.some((m) => Math.hypot(m.x - d.x, m.y - d.y) < DEDUPE_RADIUS)
+    return detections.filter(d =>
+      !marks.some(m => Math.hypot(m.x - d.x, m.y - d.y) < DEDUPE_RADIUS)
     );
   }, [detections, marks]);
 
@@ -72,7 +63,7 @@ export function AiPointerPanel({
       return;
     }
     onPreviewChange({
-      objects: newDetections.map((d) => ({
+      objects: newDetections.map(d => ({
         x: d.x,
         y: d.y,
         area: d.bbox.width * d.bbox.height,
@@ -130,7 +121,7 @@ export function AiPointerPanel({
     );
 
     // Morfometria: envia os contornos para o app medir por PCA.
-    const withPolygons = newDetections.filter((d) => d.polygon && d.polygon.length >= 3);
+    const withPolygons = newDetections.filter(d => d.polygon && d.polygon.length >= 3);
     if (onAddSegmentations && withPolygons.length > 0) {
       onAddSegmentations(
         withPolygons.map((d, i) => ({
@@ -147,22 +138,17 @@ export function AiPointerPanel({
     setDetections(null);
   }, [newDetections, onAddMarks, onAddSegmentations]);
 
-  const counts = useMemo(
-    () => ({
-      viavel: newDetections.filter((d) => d.className === 'viavel').length,
-      inviavel: newDetections.filter((d) => d.className === 'inviavel').length,
-    }),
-    [newDetections]
-  );
+  const counts = useMemo(() => ({
+    viavel: newDetections.filter(d => d.className === 'viavel').length,
+    inviavel: newDetections.filter(d => d.className === 'inviavel').length,
+  }), [newDetections]);
 
   // Médias morfométricas das detecções com contorno disponível.
   const morphSummary = useMemo(() => {
-    const withPoly = newDetections.filter((d) => d.polygon && d.polygon.length >= 3);
+    const withPoly = newDetections.filter(d => d.polygon && d.polygon.length >= 3);
     if (withPoly.length === 0) return null;
 
-    let sumL = 0,
-      sumW = 0,
-      sumA = 0;
+    let sumL = 0, sumW = 0, sumA = 0;
     for (const d of withPoly) {
       const { width, height } = calculateSeedDimensions(d.polygon as [number, number][]);
       // O PCA devolve eixo maior e menor: comprimento é o maior.
@@ -207,26 +193,19 @@ export function AiPointerPanel({
           <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
             Confiança mínima
           </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-            {confidence}%
-          </span>
+          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">{confidence}%</span>
         </div>
         <input
-          type="range"
-          min={10}
-          max={90}
-          step={5}
-          value={confidence}
-          onChange={(e) => setConfidence(Number(e.target.value))}
+          type="range" min={10} max={90} step={5} value={confidence}
+          onChange={e => setConfidence(Number(e.target.value))}
           className="w-full accent-violet-500"
         />
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input
-          type="checkbox"
-          checked={withMorphometry}
-          onChange={(e) => setWithMorphometry(e.target.checked)}
+          type="checkbox" checked={withMorphometry}
+          onChange={e => setWithMorphometry(e.target.checked)}
           className="accent-violet-500"
         />
         <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
@@ -239,11 +218,9 @@ export function AiPointerPanel({
         disabled={!image || isRunning || modelPresent === false}
         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold"
       >
-        {isRunning ? (
-          <Loader2 size={16} className="animate-spin text-violet-500" />
-        ) : (
-          <Brain size={16} className="text-violet-500" />
-        )}
+        {isRunning
+          ? <Loader2 size={16} className="animate-spin text-violet-500" />
+          : <Brain size={16} className="text-violet-500" />}
         <span className="text-xs uppercase tracking-wide">
           {isRunning
             ? progress
@@ -255,13 +232,14 @@ export function AiPointerPanel({
 
       {isRunning && !progress && (
         <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-          Baixando o modelo e o motor de inferência na primeira execução. Depois ficam em cache.
+          Baixando o modelo e o motor de inferência na primeira execução. Depois
+          ficam em cache.
         </p>
       )}
 
       <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
-        Este recurso exige conexão na primeira execução. O restante do aplicativo continua
-        funcionando offline.
+        Este recurso exige conexão na primeira execução. O restante do
+        aplicativo continua funcionando offline.
       </p>
 
       {error && (
@@ -274,12 +252,10 @@ export function AiPointerPanel({
       {detections && (
         <div className="space-y-2.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/60 p-3">
           <p className="text-xs text-neutral-700 dark:text-zinc-300">
-            <strong>{newDetections.length}</strong>{' '}
-            {newDetections.length === 1 ? 'semente' : 'sementes'}
+            <strong>{newDetections.length}</strong> {newDetections.length === 1 ? 'semente' : 'sementes'}
             {newDetections.length > 0 && (
               <span className="text-neutral-500 dark:text-zinc-500">
-                {' '}
-                · {counts.viavel} viáveis, {counts.inviavel} inviáveis
+                {' '}· {counts.viavel} viáveis, {counts.inviavel} inviáveis
               </span>
             )}
           </p>
@@ -291,8 +267,7 @@ export function AiPointerPanel({
                 Morfometria ({morphSummary.count} medidas)
               </p>
               <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
-                Comprimento médio:{' '}
-                <strong>{formatLength(morphSummary.meanLength, umPerPixel)}</strong>
+                Comprimento médio: <strong>{formatLength(morphSummary.meanLength, umPerPixel)}</strong>
               </p>
               <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
                 Largura média: <strong>{formatLength(morphSummary.meanWidth, umPerPixel)}</strong>
@@ -325,8 +300,8 @@ export function AiPointerPanel({
           </div>
 
           <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
-            O modelo classifica viável/inviável automaticamente. Confira antes de exportar — a
-            decisão final é sempre sua.
+            O modelo classifica viável/inviável automaticamente. Confira antes de exportar —
+            a decisão final é sempre sua.
           </p>
         </div>
       )}

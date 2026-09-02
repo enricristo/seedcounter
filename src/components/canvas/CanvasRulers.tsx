@@ -83,36 +83,17 @@ export function CanvasRulers({
             const x = i * screenPerTick;
             return (
               <g key={i}>
-                <line
-                  x1={x}
-                  y1={size - 7}
-                  x2={x}
-                  y2={size}
-                  stroke="currentColor"
-                  className="text-neutral-400 dark:text-zinc-600"
-                  strokeWidth={1}
-                />
-                <text
-                  x={x + 3}
-                  y={size - 10}
-                  fontSize={9}
-                  className="fill-neutral-500 dark:fill-zinc-500"
-                  style={{ fontFamily: 'monospace' }}
-                >
+                <line x1={x} y1={size - 7} x2={x} y2={size} stroke="currentColor"
+                  className="text-neutral-400 dark:text-zinc-600" strokeWidth={1} />
+                <text x={x + 3} y={size - 10} fontSize={9}
+                  className="fill-neutral-500 dark:fill-zinc-500" style={{ fontFamily: 'monospace' }}>
                   {ticks.label(i)}
                 </text>
                 {/* Sub-traços */}
-                {[0.25, 0.5, 0.75].map((f) => (
-                  <line
-                    key={f}
-                    x1={x + screenPerTick * f}
-                    y1={size - 4}
-                    x2={x + screenPerTick * f}
-                    y2={size}
-                    stroke="currentColor"
-                    className="text-neutral-300 dark:text-zinc-700"
-                    strokeWidth={1}
-                  />
+                {[0.25, 0.5, 0.75].map(f => (
+                  <line key={f} x1={x + screenPerTick * f} y1={size - 4}
+                    x2={x + screenPerTick * f} y2={size} stroke="currentColor"
+                    className="text-neutral-300 dark:text-zinc-700" strokeWidth={1} />
                 ))}
               </g>
             );
@@ -130,35 +111,16 @@ export function CanvasRulers({
             const y = i * screenPerTick;
             return (
               <g key={i}>
-                <line
-                  x1={size - 7}
-                  y1={y}
-                  x2={size}
-                  y2={y}
-                  stroke="currentColor"
-                  className="text-neutral-400 dark:text-zinc-600"
-                  strokeWidth={1}
-                />
-                <text
-                  x={2}
-                  y={y + 11}
-                  fontSize={9}
-                  className="fill-neutral-500 dark:fill-zinc-500"
-                  style={{ fontFamily: 'monospace' }}
-                >
+                <line x1={size - 7} y1={y} x2={size} y2={y} stroke="currentColor"
+                  className="text-neutral-400 dark:text-zinc-600" strokeWidth={1} />
+                <text x={2} y={y + 11} fontSize={9}
+                  className="fill-neutral-500 dark:fill-zinc-500" style={{ fontFamily: 'monospace' }}>
                   {ticks.label(i)}
                 </text>
-                {[0.25, 0.5, 0.75].map((f) => (
-                  <line
-                    key={f}
-                    x1={size - 4}
-                    y1={y + screenPerTick * f}
-                    x2={size}
-                    y2={y + screenPerTick * f}
-                    stroke="currentColor"
-                    className="text-neutral-300 dark:text-zinc-700"
-                    strokeWidth={1}
-                  />
+                {[0.25, 0.5, 0.75].map(f => (
+                  <line key={f} x1={size - 4} y1={y + screenPerTick * f}
+                    x2={size} y2={y + screenPerTick * f} stroke="currentColor"
+                    className="text-neutral-300 dark:text-zinc-700" strokeWidth={1} />
                 ))}
               </g>
             );
@@ -171,9 +133,7 @@ export function CanvasRulers({
         className="absolute bg-white/95 dark:bg-zinc-950/95 border-b border-r border-neutral-200 dark:border-zinc-800 flex items-center justify-center pointer-events-none"
         style={{ top: -size, left: -size, width: size, height: size, zIndex: 16 }}
       >
-        <span className="text-[8px] font-bold text-neutral-400 dark:text-zinc-600">
-          {ticks.unit}
-        </span>
+        <span className="text-[8px] font-bold text-neutral-400 dark:text-zinc-600">{ticks.unit}</span>
       </div>
     </>
   );

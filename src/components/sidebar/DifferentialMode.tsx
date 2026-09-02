@@ -9,32 +9,29 @@ interface DifferentialModeProps {
   sessions: Session[];
 }
 
-export function DifferentialMode({ metadata, updateMetadata, sessions }: DifferentialModeProps) {
+export function DifferentialMode({
+  metadata,
+  updateMetadata,
+  sessions
+}: DifferentialModeProps) {
   const handlePullHistory = () => {
     if (!metadata.plate) {
-      alert(
-        'Por favor, preencha o ID da Placa no Contexto para buscar o histórico correspondente.'
-      );
+      alert("Por favor, preencha o ID da Placa no Contexto para buscar o histórico correspondente.");
       return;
     }
 
     // Find the latest session matching this plate ID and optionally quadrant
-    const lastSession = sessions.find(
-      (s) =>
-        s.metadata.plate === metadata.plate &&
-        (!metadata.quadrant || s.metadata.quadrant === metadata.quadrant)
+    const lastSession = sessions.find(s =>
+      s.metadata.plate === metadata.plate &&
+      (!metadata.quadrant || s.metadata.quadrant === metadata.quadrant)
     );
 
     if (lastSession) {
       const totalSeeds = lastSession.viableCount + lastSession.inviableCount;
       updateMetadata('baselineCount', totalSeeds);
-      alert(
-        `Histórico carregado! Contagem total de ${totalSeeds} sementes encontrada para a Placa ${metadata.plate}${metadata.quadrant ? `, Quadrante ${metadata.quadrant}` : ''}.`
-      );
+      alert(`Histórico carregado! Contagem total de ${totalSeeds} sementes encontrada para a Placa ${metadata.plate}${metadata.quadrant ? `, Quadrante ${metadata.quadrant}` : ''}.`);
     } else {
-      alert(
-        `Nenhum histórico de contagem localizado para a Placa ${metadata.plate}${metadata.quadrant ? `, Quadrante ${metadata.quadrant}` : ''}.`
-      );
+      alert(`Nenhum histórico de contagem localizado para a Placa ${metadata.plate}${metadata.quadrant ? `, Quadrante ${metadata.quadrant}` : ''}.`);
     }
   };
 
@@ -54,19 +51,16 @@ export function DifferentialMode({ metadata, updateMetadata, sessions }: Differe
             ${metadata.useDifferential ? 'bg-emerald-600' : 'bg-neutral-300 dark:bg-zinc-700'}
           `}
         >
-          <span
-            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-300
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-300
             ${metadata.useDifferential ? 'translate-x-4.5' : 'translate-x-1'}
-          `}
-          />
+          `} />
         </button>
       </div>
 
       {metadata.useDifferential && (
         <div className="space-y-3 pt-1">
           <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400 leading-normal font-medium">
-            Inviáveis são auto-calculadas como a diferença: <strong>Contagem Base - Viáveis</strong>
-            . Útil para contar sementes inviáveis apenas subtraindo o total conhecido.
+            Inviáveis são auto-calculadas como a diferença: <strong>Contagem Base - Viáveis</strong>. Útil para contar sementes inviáveis apenas subtraindo o total conhecido.
           </p>
 
           <div className="flex gap-2.5 items-end">

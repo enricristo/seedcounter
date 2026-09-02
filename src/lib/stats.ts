@@ -16,7 +16,11 @@
 // =============================================================================
 
 import jStat from 'jstat';
-import { mean as ssMean, standardDeviation as ssSd, quantile } from 'simple-statistics';
+import {
+  mean as ssMean,
+  standardDeviation as ssSd,
+  quantile,
+} from 'simple-statistics';
 import type {
   ConfidenceInterval,
   GerminationReading,
@@ -116,7 +120,7 @@ export function calculateT50(readings: GerminationReading[], totalSeeds: number)
   let cumulative = 0;
   const curve = readings
     .sort((a, b) => a.day - b.day)
-    .map((r) => {
+    .map(r => {
       cumulative += r.germinated;
       return { day: r.day, cum: cumulative };
     });
@@ -149,7 +153,7 @@ export function arcsinTransform(p: number): number {
 
 /** Transform an array of percentage values (0–100) for ANOVA */
 export function transformPercentages(values: number[]): number[] {
-  return values.map((v) => arcsinTransform(v / 100));
+  return values.map(v => arcsinTransform(v / 100));
 }
 
 // ---------------------------------------------------------------------------
@@ -197,7 +201,7 @@ export function shapiroWilk(values: number[]): { W: number; pValue: number; norm
 
 export function oneWayANOVA(groups: GroupStat[]): ANOVAResult {
   const k = groups.length;
-  const allValues = groups.flatMap((g) => g.values);
+  const allValues = groups.flatMap(g => g.values);
   const N = allValues.length;
   const grandMean = ssMean(allValues);
 
@@ -235,15 +239,13 @@ export function oneWayANOVA(groups: GroupStat[]): ANOVAResult {
 
 export function tukeyHSD(groups: GroupStat[], alpha = 0.05): ComparisonPair[] {
   const k = groups.length;
-  const means = groups.map((g) => ssMean(g.values));
-  const ns = groups.map((g) => g.values.length);
+  const means = groups.map(g => ssMean(g.values));
+  const ns = groups.map(g => g.values.length);
   const N = ns.reduce((a, b) => a + b, 0);
   const dfWithin = N - k;
 
-  const SSW = groups.reduce(
-    (s, g, i) => s + g.values.reduce((gs, v) => gs + (v - means[i]) ** 2, 0),
-    0
-  );
+  const SSW = groups.reduce((s, g, i) =>
+    s + g.values.reduce((gs, v) => gs + (v - means[i]) ** 2, 0), 0);
   const MSW = SSW / dfWithin;
 
   const qCrit = jStat.studentizedRange.inv(1 - alpha, k, dfWithin);
@@ -252,7 +254,7 @@ export function tukeyHSD(groups: GroupStat[], alpha = 0.05): ComparisonPair[] {
   for (let i = 0; i < k; i++) {
     for (let j = i + 1; j < k; j++) {
       // Tukey-Kramer SE for unequal sample sizes
-      const se = Math.sqrt((MSW / 2) * (1 / ns[i] + 1 / ns[j]));
+      const se = Math.sqrt(MSW / 2 * (1 / ns[i] + 1 / ns[j]));
       const hsd = qCrit * se;
       const diff = Math.abs(means[i] - means[j]);
       results.push({
@@ -273,7 +275,10 @@ export function tukeyHSD(groups: GroupStat[], alpha = 0.05): ComparisonPair[] {
 // Produces non-overlapping letter groups — no ambiguity
 // ---------------------------------------------------------------------------
 
-export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, string> {
+export function scottKnott(
+  groups: GroupStat[],
+  alpha = 0.05
+): Map<string, string> {
   const letterMap = new Map<string, string>();
   const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
   let letterIdx = 0;
@@ -283,7 +288,7 @@ export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, strin
   }
 
   function grandSS(grps: GroupStat[]): number {
-    const all = grps.flatMap((g) => g.values);
+    const all = grps.flatMap(g => g.values);
     const gm = ssMean(all);
     return all.reduce((s, v) => s + (v - gm) ** 2, 0);
   }
@@ -304,7 +309,7 @@ export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, strin
     const totalSS = grandSS(sorted);
 
     if (totalSS === 0) {
-      sorted.forEach((g) => letterMap.set(g.label, LETTERS[letterIdx] ?? '?'));
+      sorted.forEach(g => letterMap.set(g.label, LETTERS[letterIdx] ?? '?'));
       return;
     }
 
@@ -319,7 +324,7 @@ export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, strin
     }
 
     // Chi-square significance test for the split
-    const N = sorted.flatMap((g) => g.values).length;
+    const N = sorted.flatMap(g => g.values).length;
     const chiStat = N * (bestBetweenSS / totalSS);
     const pValue = 1 - jStat.chisquare.cdf(chiStat, 1);
 
@@ -330,7 +335,7 @@ export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, strin
       recurse(sorted.slice(bestSplit));
     } else {
       // No significant difference — assign same letter to all in group
-      sorted.forEach((g) => letterMap.set(g.label, LETTERS[letterIdx] ?? '?'));
+      sorted.forEach(g => letterMap.set(g.label, LETTERS[letterIdx] ?? '?'));
     }
   }
 
@@ -342,13 +347,9 @@ export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, strin
 // Kruskal-Wallis H-test (non-parametric alternative to ANOVA)
 // ---------------------------------------------------------------------------
 
-export function kruskalWallis(groups: GroupStat[]): {
-  H: number;
-  pValue: number;
-  significant: boolean;
-} {
+export function kruskalWallis(groups: GroupStat[]): { H: number; pValue: number; significant: boolean } {
   const k = groups.length;
-  const allValues = groups.flatMap((g, gi) => g.values.map((v) => ({ v, gi })));
+  const allValues = groups.flatMap((g, gi) => g.values.map(v => ({ v, gi })));
   const N = allValues.length;
 
   // Rank all values
@@ -371,9 +372,8 @@ export function kruskalWallis(groups: GroupStat[]): {
   });
 
   // H statistic (correction for ties not applied — acceptable for typical data)
-  const H =
-    (12 / (N * (N + 1))) *
-      groups.reduce((s, g, gi) => s + groupRankSums[gi] ** 2 / g.values.length, 0) -
+  const H = (12 / (N * (N + 1))) *
+    groups.reduce((s, g, gi) => s + (groupRankSums[gi] ** 2) / g.values.length, 0) -
     3 * (N + 1);
 
   const pValue = 1 - jStat.chisquare.cdf(H, k - 1);
@@ -390,7 +390,7 @@ export function dunnTest(
   correction: 'holm' | 'bonferroni' = 'holm'
 ): Array<ComparisonPair & { z: number }> {
   const k = groups.length;
-  const allValues = groups.flatMap((g, gi) => g.values.map((v) => ({ v, gi })));
+  const allValues = groups.flatMap((g, gi) => g.values.map(v => ({ v, gi })));
   const N = allValues.length;
 
   // Rank
@@ -407,7 +407,7 @@ export function dunnTest(
 
   const groupRankMeans = groups.map((g, gi) => {
     const groupRanks = sorted
-      .map((item, idx) => (item.gi === gi ? rankArr[idx] : null))
+      .map((item, idx) => item.gi === gi ? rankArr[idx] : null)
       .filter((r): r is number => r !== null);
     return ssMean(groupRanks);
   });
@@ -417,7 +417,7 @@ export function dunnTest(
   for (let a = 0; a < k; a++) {
     for (let b = a + 1; b < k; b++) {
       const se = Math.sqrt(
-        ((N * (N + 1)) / 12) * (1 / groups[a].values.length + 1 / groups[b].values.length)
+        (N * (N + 1)) / 12 * (1 / groups[a].values.length + 1 / groups[b].values.length)
       );
       const z = (groupRankMeans[a] - groupRankMeans[b]) / se;
       const pRaw = 2 * (1 - jStat.normal.cdf(Math.abs(z), 0, 1));
@@ -435,7 +435,7 @@ export function dunnTest(
   // Apply correction
   const m = pairResults.length;
   if (correction === 'bonferroni') {
-    pairResults.forEach((r) => (r.pAdj = Math.min(1, r.pAdj * m)));
+    pairResults.forEach(r => (r.pAdj = Math.min(1, r.pAdj * m)));
   } else {
     // Holm step-down
     pairResults.sort((a, b) => a.pAdj - b.pAdj);
@@ -450,7 +450,7 @@ export function dunnTest(
     }
   }
 
-  pairResults.forEach((r) => (r.significant = r.pAdj < 0.05));
+  pairResults.forEach(r => (r.significant = r.pAdj < 0.05));
   return pairResults;
 }
 
@@ -487,7 +487,7 @@ export function runStatsPipeline(
 ): StatsPipelineResult {
   const { postHoc = 'scott-knott', alpha = 0.05, useArcsin = true } = options;
 
-  if (groups.length === 0 || groups.every((g) => g.values.length === 0)) {
+  if (groups.length === 0 || groups.every(g => g.values.length === 0)) {
     return {
       groups,
       method: 'descriptive-only',
@@ -501,16 +501,16 @@ export function runStatsPipeline(
 
   // Transform data if requested
   const workingGroups: GroupStat[] = useArcsin
-    ? groups.map((g) => ({ label: g.label, values: transformPercentages(g.values) }))
+    ? groups.map(g => ({ label: g.label, values: transformPercentages(g.values) }))
     : groups;
   const transformed = useArcsin;
 
   // Normality check per group
-  const normalityResults = workingGroups.map((g) => shapiroWilk(g.values));
-  const allNormal = normalityResults.every((r) => r.normal);
+  const normalityResults = workingGroups.map(g => shapiroWilk(g.values));
+  const allNormal = normalityResults.every(r => r.normal);
 
   // Need at least 2 values per group for ANOVA
-  const hasEnoughData = workingGroups.every((g) => g.values.length >= 2);
+  const hasEnoughData = workingGroups.every(g => g.values.length >= 2);
 
   // Treatment descriptive stats (always computed on original scale)
   const treatmentStats: TreatmentStats[] = groups.map((g) => {
@@ -518,7 +518,11 @@ export function runStatsPipeline(
     const n = vals.length;
     const meanVal = ssMean(vals);
     const sd = n > 1 ? ssSd(vals) : 0;
-    const ci = wilsonCI(Math.round((meanVal / 100) * n), n, alpha);
+    const ci = wilsonCI(
+      Math.round((meanVal / 100) * n),
+      n,
+      alpha
+    );
     return {
       treatmentId: g.label,
       treatmentCode: g.label,
@@ -549,7 +553,7 @@ export function runStatsPipeline(
 
     if (!anova.significant) {
       // No significant difference — all same letter
-      const letters = new Map(groups.map((g) => [g.label, 'a']));
+      const letters = new Map(groups.map(g => [g.label, 'a']));
       return {
         groups,
         anova,
@@ -558,7 +562,7 @@ export function runStatsPipeline(
         groupLetters: letters,
         normalityResults,
         transformed,
-        treatmentStats: treatmentStats.map((t) => ({ ...t, letter: 'a' })),
+        treatmentStats: treatmentStats.map(t => ({ ...t, letter: 'a' })),
       };
     }
 
@@ -571,10 +575,7 @@ export function runStatsPipeline(
     } else {
       pairwiseComparisons = tukeyHSD(workingGroups, alpha);
       // Derive letters from Tukey results
-      groupLetters = deriveLettersFromPairwise(
-        groups.map((g) => g.label),
-        pairwiseComparisons
-      );
+      groupLetters = deriveLettersFromPairwise(groups.map(g => g.label), pairwiseComparisons);
     }
 
     return {
@@ -585,7 +586,7 @@ export function runStatsPipeline(
       groupLetters,
       normalityResults,
       transformed,
-      treatmentStats: treatmentStats.map((t) => ({
+      treatmentStats: treatmentStats.map(t => ({
         ...t,
         letter: groupLetters.get(t.treatmentId) ?? '?',
       })),
@@ -593,13 +594,12 @@ export function runStatsPipeline(
   } else {
     // Non-parametric path
     const kwResult = kruskalWallis(workingGroups);
-    const pairwiseComparisons = kwResult.significant ? dunnTest(workingGroups, 'holm') : [];
+    const pairwiseComparisons = kwResult.significant
+      ? dunnTest(workingGroups, 'holm')
+      : [];
     const groupLetters = kwResult.significant
-      ? deriveLettersFromPairwise(
-          groups.map((g) => g.label),
-          pairwiseComparisons
-        )
-      : new Map(groups.map((g) => [g.label, 'a']));
+      ? deriveLettersFromPairwise(groups.map(g => g.label), pairwiseComparisons)
+      : new Map(groups.map(g => [g.label, 'a']));
 
     return {
       groups,
@@ -609,7 +609,7 @@ export function runStatsPipeline(
       groupLetters,
       normalityResults,
       transformed,
-      treatmentStats: treatmentStats.map((t) => ({
+      treatmentStats: treatmentStats.map(t => ({
         ...t,
         letter: groupLetters.get(t.treatmentId) ?? '?',
       })),
@@ -621,7 +621,10 @@ export function runStatsPipeline(
 // Helper — Derive letters from pairwise comparison matrix
 // ---------------------------------------------------------------------------
 
-function deriveLettersFromPairwise(labels: string[], pairs: ComparisonPair[]): Map<string, string> {
+function deriveLettersFromPairwise(
+  labels: string[],
+  pairs: ComparisonPair[]
+): Map<string, string> {
   // Build adjacency: two groups are in the same letter group if NOT significantly different
   const notDifferent = new Set<string>();
   for (const p of pairs) {
@@ -668,6 +671,8 @@ export function describeGroup(values: number[]) {
     q1: quantile(values, 0.25),
     median: quantile(values, 0.5),
     q3: quantile(values, 0.75),
-    cv: values.length > 1 ? (ssSd(values) / ssMean(values)) * 100 : 0,
+    cv: values.length > 1
+      ? (ssSd(values) / ssMean(values)) * 100
+      : 0,
   };
 }

@@ -12,7 +12,12 @@ interface ExperimentModalProps {
   onSave?: () => void;
 }
 
-export function ExperimentModal({ isOpen, onClose, experiment, onSave }: ExperimentModalProps) {
+export function ExperimentModal({
+  isOpen,
+  onClose,
+  experiment,
+  onSave,
+}: ExperimentModalProps) {
   const { addExperiment, updateExperiment } = useExperiments();
 
   // Form states
@@ -73,9 +78,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
       setReplicates(4);
       setEvaluationDaysInput('0,14,30,45,60,90');
       setNotes('');
-      setTreatments([
-        { id: 't1', code: 'T1', name: 'Controle', description: 'Tratamento controle' },
-      ]);
+      setTreatments([{ id: 't1', code: 'T1', name: 'Controle', description: 'Tratamento controle' }]);
     }
   }, [experiment, isOpen]);
 
@@ -99,15 +102,13 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
       alert('O experimento deve conter pelo menos um tratamento.');
       return;
     }
-    setTreatments(treatments.filter((t) => t.id !== id));
+    setTreatments(treatments.filter(t => t.id !== id));
   };
 
-  const handleTreatmentChange = (
-    id: string,
-    field: keyof (typeof treatments)[0],
-    value: string
-  ) => {
-    setTreatments(treatments.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  const handleTreatmentChange = (id: string, field: keyof typeof treatments[0], value: string) => {
+    setTreatments(
+      treatments.map(t => (t.id === id ? { ...t, [field]: value } : t))
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,8 +120,8 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
 
     const evaluationDays = evaluationDaysInput
       .split(',')
-      .map((day) => parseInt(day.trim(), 10))
-      .filter((day) => !isNaN(day))
+      .map(day => parseInt(day.trim(), 10))
+      .filter(day => !isNaN(day))
       .sort((a, b) => a - b);
 
     if (evaluationDays.length === 0) {
@@ -130,9 +131,9 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
 
     const expId = experiment ? experiment.id : `exp_${Date.now()}`;
 
-    const completeTreatments: Treatment[] = treatments.map((t) => {
+    const completeTreatments: Treatment[] = treatments.map(t => {
       // Preserve existing plates if editing, otherwise start empty
-      const existingTreatment = experiment?.treatments.find((et) => et.id === t.id);
+      const existingTreatment = experiment?.treatments.find(et => et.id === t.id);
       return {
         ...t,
         experimentId: expId,
@@ -213,7 +214,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={e => setName(e.target.value)}
                 placeholder="Ex: Germinação de Cattleya labiata — Ensaio Luz"
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -226,7 +227,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={species}
-                onChange={(e) => setSpecies(e.target.value)}
+                onChange={e => setSpecies(e.target.value)}
                 placeholder="Ex: Cattleya labiata"
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500 italic"
@@ -243,7 +244,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={seedLot}
-                onChange={(e) => setSeedLot(e.target.value)}
+                onChange={e => setSeedLot(e.target.value)}
                 placeholder="Ex: CL-2024-03"
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -256,7 +257,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={responsible}
-                onChange={(e) => setResponsible(e.target.value)}
+                onChange={e => setResponsible(e.target.value)}
                 placeholder="Ex: Dr. Nelson Barbosa Machado Neto"
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -269,7 +270,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={institution}
-                onChange={(e) => setInstitution(e.target.value)}
+                onChange={e => setInstitution(e.target.value)}
                 placeholder="Ex: GPEOrq / Unoeste"
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -285,7 +286,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="date"
                 value={sowingDate}
-                onChange={(e) => setSowingDate(e.target.value)}
+                onChange={e => setSowingDate(e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -296,7 +297,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               </label>
               <select
                 value={cultureMedia}
-                onChange={(e) => setCultureMedia(e.target.value as CultureMedium)}
+                onChange={e => setCultureMedia(e.target.value as CultureMedium)}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {Object.entries(CULTURE_MEDIUM_LABELS).map(([val, label]) => (
@@ -313,7 +314,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={cultureMediaNotes}
-                onChange={(e) => setCultureMediaNotes(e.target.value)}
+                onChange={e => setCultureMediaNotes(e.target.value)}
                 placeholder="Ex: Sacarose 20g/L + Carvão 2g/L"
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -329,7 +330,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={sterilizationProtocol}
-                onChange={(e) => setSterilizationProtocol(e.target.value)}
+                onChange={e => setSterilizationProtocol(e.target.value)}
                 placeholder="Ex: NaOCl 1% por 10 min + lavagens"
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -341,7 +342,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="text"
                 value={preconditioningTreatment}
-                onChange={(e) => setPreconditioningTreatment(e.target.value)}
+                onChange={e => setPreconditioningTreatment(e.target.value)}
                 placeholder="Ex: Hidratação em água destilada 24h"
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -357,7 +358,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="number"
                 value={seedsPerPlate}
-                onChange={(e) => setSeedsPerPlate(Math.max(1, parseInt(e.target.value) || 0))}
+                onChange={e => setSeedsPerPlate(Math.max(1, parseInt(e.target.value) || 0))}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -368,21 +369,18 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               <input
                 type="number"
                 value={replicates}
-                onChange={(e) => setReplicates(Math.max(1, parseInt(e.target.value) || 0))}
+                onChange={e => setReplicates(Math.max(1, parseInt(e.target.value) || 0))}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             <div>
-              <label
-                className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5"
-                title="Dias após a semeadura em que ocorrem as avaliações"
-              >
+              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5" title="Dias após a semeadura em que ocorrem as avaliações">
                 Dias de Avaliação (DAP) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={evaluationDaysInput}
-                onChange={(e) => setEvaluationDaysInput(e.target.value)}
+                onChange={e => setEvaluationDaysInput(e.target.value)}
                 placeholder="Ex: 0,14,30,45,60,90"
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -418,7 +416,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                     <input
                       type="text"
                       value={t.code}
-                      onChange={(e) => handleTreatmentChange(t.id, 'code', e.target.value)}
+                      onChange={e => handleTreatmentChange(t.id, 'code', e.target.value)}
                       required
                       placeholder="Ex: T1"
                       className="w-full px-2 py-1.5 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg text-sm text-neutral-800 dark:text-zinc-100 font-bold focus:outline-none focus:ring-1 focus:ring-purple-500 text-center"
@@ -431,7 +429,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                     <input
                       type="text"
                       value={t.name}
-                      onChange={(e) => handleTreatmentChange(t.id, 'name', e.target.value)}
+                      onChange={e => handleTreatmentChange(t.id, 'name', e.target.value)}
                       required
                       placeholder="Ex: Knudson C + Sacarose 2%"
                       className="w-full px-3 py-1.5 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-500"
@@ -444,7 +442,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                     <input
                       type="text"
                       value={t.description || ''}
-                      onChange={(e) => handleTreatmentChange(t.id, 'description', e.target.value)}
+                      onChange={e => handleTreatmentChange(t.id, 'description', e.target.value)}
                       placeholder="Ex: Sem luz nas primeiras 2 semanas"
                       className="w-full px-3 py-1.5 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-purple-500"
                     />
@@ -471,7 +469,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
             <textarea
               rows={3}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
               placeholder="Descreva observações gerais de ambiente, condições de câmara de crescimento (fotoperíodo, irradiância, temperatura)..."
               className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             />

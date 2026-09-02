@@ -9,7 +9,7 @@ import {
   FileCheck2,
   Layers,
   Ruler,
-  Database,
+  Database
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ExportCard } from '../shared/ExportCard';
@@ -59,7 +59,7 @@ export function ExportModal({
   exportAnnotatedImage,
   exportPDF,
   isYoloExportEnabled = false,
-  onOpenYoloExport,
+  onOpenYoloExport
 }: ExportModalProps) {
   if (!isOpen) return null;
 
@@ -101,8 +101,7 @@ export function ExportModal({
             <div className="space-y-1">
               <h4 className="text-xs font-bold uppercase tracking-wider">Histórico Local</h4>
               <p className="text-[10.5px] opacity-90 leading-relaxed font-semibold">
-                Salva a contagem atual permanentemente no histórico offline do navegador para gerar
-                estatísticas agregadas por placa depois.
+                Salva a contagem atual permanentemente no histórico offline do navegador para gerar estatísticas agregadas por placa depois.
               </p>
               <div className="pt-2">
                 {hasImageQueue && !isLastInQueue ? (
@@ -199,10 +198,7 @@ export function ExportModal({
                   onClick={exportAnnotatedImage}
                   className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-neutral-50 dark:bg-zinc-900/50 hover:bg-neutral-100 dark:hover:bg-zinc-850 hover:shadow-sm transition-all text-neutral-700 dark:text-zinc-300 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
                 >
-                  <ImageIcon
-                    size={15}
-                    className="text-purple-500 group-hover:scale-105 transition-transform"
-                  />
+                  <ImageIcon size={15} className="text-purple-500 group-hover:scale-105 transition-transform" />
                   <span>Baixar Foto Anotada (PNG)</span>
                 </button>
               </div>
@@ -217,10 +213,7 @@ export function ExportModal({
                     }}
                     className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-amber-300 dark:border-amber-900/40 bg-amber-50/10 dark:bg-amber-950/10 hover:bg-amber-50/20 dark:hover:bg-amber-950/20 hover:shadow-sm transition-all text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
                   >
-                    <Layers
-                      size={15}
-                      className="group-hover:scale-105 transition-transform text-amber-600 dark:text-amber-400"
-                    />
+                    <Layers size={15} className="group-hover:scale-105 transition-transform text-amber-600 dark:text-amber-400" />
                     <span>Exportar Dataset YOLO (BETA)</span>
                   </button>
                 </div>

@@ -23,7 +23,7 @@ export interface YoloSegmentation {
   polygon_points: [number, number][];
   visible?: boolean;
   edited?: boolean;
-  width?: number; // PCA computed width (px)
+  width?: number;  // PCA computed width (px)
   height?: number; // PCA computed height (px)
 }
 
@@ -33,12 +33,12 @@ export interface YoloSegmentation {
 
 /** Source of the image — determines spatial calibration defaults */
 export type ImageSource =
-  | 'flatbed_600dpi' // 42.3 µm/px
-  | 'flatbed_1200dpi' // 21.2 µm/px
-  | 'flatbed_2400dpi' // 10.6 µm/px
-  | 'loupe_camera' // manual calibration required
-  | 'stereo_microscope' // manual calibration required
-  | 'manual_camera' // manual calibration required
+  | 'flatbed_600dpi'    // 42.3 µm/px
+  | 'flatbed_1200dpi'  // 21.2 µm/px
+  | 'flatbed_2400dpi'  // 10.6 µm/px
+  | 'loupe_camera'     // manual calibration required
+  | 'stereo_microscope'// manual calibration required
+  | 'manual_camera'    // manual calibration required
   | 'other';
 
 /** µm/px lookup for known scanner sources */
@@ -57,7 +57,7 @@ export interface Metadata {
   notes: string;
   baselineCount?: number;
   useDifferential?: boolean;
-  umPerPixel?: number; // Spatial calibration: micrometers per pixel
+  umPerPixel?: number;       // Spatial calibration: micrometers per pixel
   imageSource?: ImageSource; // Image acquisition source
 }
 
@@ -75,9 +75,9 @@ export interface Session {
   marks?: Mark[];
   yoloSegmentations?: YoloSegmentation[];
   imageData?: string; // Base64 encoded image
-  experimentId?: string; // Link to Experiment
-  treatmentId?: string; // Link to Treatment
-  dayIndex?: number; // DAP (Dias Após Plantio) at evaluation
+  experimentId?: string;   // Link to Experiment
+  treatmentId?: string;    // Link to Treatment
+  dayIndex?: number;       // DAP (Dias Após Plantio) at evaluation
 }
 
 // ---------------------------------------------------------------------------
@@ -131,12 +131,12 @@ export const PLATE_STATUS_LABELS: Record<PlateStatus, string> = {
 export type CultureMedium = 'KC' | 'half-MS' | 'MS' | 'WPM' | 'MM' | 'other';
 
 export const CULTURE_MEDIUM_LABELS: Record<CultureMedium, string> = {
-  KC: 'Knudson C (KC)',
+  'KC': 'Knudson C (KC)',
   'half-MS': 'Murashige & Skoog ½ força (½MS)',
-  MS: 'Murashige & Skoog completo (MS)',
-  WPM: 'Woody Plant Medium (WPM)',
-  MM: 'MM (meio modificado)',
-  other: 'Outro (especificar em notas)',
+  'MS': 'Murashige & Skoog completo (MS)',
+  'WPM': 'Woody Plant Medium (WPM)',
+  'MM': 'MM (meio modificado)',
+  'other': 'Outro (especificar em notas)',
 };
 
 /**
@@ -144,11 +144,11 @@ export const CULTURE_MEDIUM_LABELS: Record<CultureMedium, string> = {
  * Linked back to the Session (image + marks) via sessionId.
  */
 export interface PlateRun {
-  sessionId?: string; // → Session with the annotated image
-  dayIndex: number; // DAP (Dias Após Plantio)
-  evaluationDate: string; // ISO date string
-  totalSeeds: number; // Total seeds counted on this plate
-  germinatedSeeds: number; // Seeds at Stage ≥ 1
+  sessionId?: string;          // → Session with the annotated image
+  dayIndex: number;            // DAP (Dias Após Plantio)
+  evaluationDate: string;      // ISO date string
+  totalSeeds: number;          // Total seeds counted on this plate
+  germinatedSeeds: number;     // Seeds at Stage ≥ 1
   stageDistribution: Partial<Record<ProtocormStage, number>>; // counts per stage
   contamination: ContaminationType;
   status: PlateStatus;
@@ -163,8 +163,8 @@ export interface PlateRun {
 export interface Treatment {
   id: string;
   experimentId: string;
-  name: string; // Full descriptive name
-  code: string; // Short code: T1, T2, Ctrl
+  name: string;    // Full descriptive name
+  code: string;    // Short code: T1, T2, Ctrl
   description?: string;
   plates: PlateRun[]; // One per plate × timepoint combination
 }
@@ -175,23 +175,23 @@ export interface Treatment {
  */
 export interface Experiment {
   id: string;
-  name: string; // "Germinação de Cattleya labiata — Ensaio 2026"
-  species: string; // Full species name: "Cattleya labiata"
-  genus?: string; // Genus for filtering: "Cattleya"
-  seedLot: string; // Lot/accession identifier: "CL-2024-03"
-  collectionDate?: string; // ISO date of seed collection
-  responsible: string; // "Dr. Nelson Barbosa Machado Neto"
-  institution: string; // "GPEOrq / Unoeste"
+  name: string;               // "Germinação de Cattleya labiata — Ensaio 2026"
+  species: string;            // Full species name: "Cattleya labiata"
+  genus?: string;             // Genus for filtering: "Cattleya"
+  seedLot: string;            // Lot/accession identifier: "CL-2024-03"
+  collectionDate?: string;    // ISO date of seed collection
+  responsible: string;        // "Dr. Nelson Barbosa Machado Neto"
+  institution: string;        // "GPEOrq / Unoeste"
   cultureMedia: CultureMedium;
-  cultureMediaNotes?: string; // "KC + 15g/L sacarose + PPM 2mL/L"
-  sterilizationProtocol?: string; // "NaOCl 1%, 15min + Tween 80"
-  preconditioningTreatment?: string; // "Sacarose 10%, 24h, TA"
-  seedsPerPlate: number; // Target seeds per Petri dish
-  replicates: number; // Number of replicates per treatment
-  sowingDate: string; // ISO date — base for DAP calculation
-  evaluationDays: number[]; // Planned evaluation days: [0, 14, 30, 45, 60, 90]
+  cultureMediaNotes?: string;       // "KC + 15g/L sacarose + PPM 2mL/L"
+  sterilizationProtocol?: string;   // "NaOCl 1%, 15min + Tween 80"
+  preconditioningTreatment?: string;// "Sacarose 10%, 24h, TA"
+  seedsPerPlate: number;       // Target seeds per Petri dish
+  replicates: number;          // Number of replicates per treatment
+  sowingDate: string;          // ISO date — base for DAP calculation
+  evaluationDays: number[];    // Planned evaluation days: [0, 14, 30, 45, 60, 90]
   treatments: Treatment[];
-  tags?: string[]; // Free tags for filtering
+  tags?: string[];             // Free tags for filtering
   notes?: string;
   createdAt: string;
   updatedAt?: string;
@@ -202,7 +202,7 @@ export interface Experiment {
 // ---------------------------------------------------------------------------
 
 export interface GerminationReading {
-  day: number; // DAP
+  day: number;       // DAP
   germinated: number; // Seeds germinated ON THIS DAY (not cumulative)
   cumulative?: number; // Total germinated up to this day
 }
@@ -218,12 +218,12 @@ export interface TreatmentStats {
   treatmentCode: string;
   treatmentName: string;
   n: number;
-  mean: number; // Mean germination %
-  sd: number; // Standard deviation
-  ci: ConfidenceInterval; // Wilson CI
-  ivg: number; // Índice de Velocidade de Germinação (Maguire, 1962)
-  mgt?: number; // Mean Germination Time
-  letter?: string; // Scott-Knott / Tukey grouping letter
+  mean: number;          // Mean germination %
+  sd: number;            // Standard deviation
+  ci: ConfidenceInterval;// Wilson CI
+  ivg: number;           // Índice de Velocidade de Germinação (Maguire, 1962)
+  mgt?: number;          // Mean Germination Time
+  letter?: string;       // Scott-Knott / Tukey grouping letter
 }
 
 export interface ANOVAResult {

@@ -138,10 +138,7 @@ interface TilePrep {
 
 function prepareTile(
   source: HTMLImageElement | HTMLCanvasElement,
-  sx: number,
-  sy: number,
-  sw: number,
-  sh: number,
+  sx: number, sy: number, sw: number, sh: number,
   imgSize: number
 ): TilePrep | null {
   const canvas = document.createElement('canvas');
@@ -307,10 +304,7 @@ function traceContour(mask: Uint8Array, w: number, h: number): [number, number][
   // Encontra o primeiro pixel preenchido (varredura em linha).
   let startIdx = -1;
   for (let i = 0; i < mask.length; i++) {
-    if (mask[i]) {
-      startIdx = i;
-      break;
-    }
+    if (mask[i]) { startIdx = i; break; }
   }
   if (startIdx < 0) return [];
 
@@ -339,10 +333,7 @@ function traceContour(mask: Uint8Array, w: number, h: number): [number, number][
       const ny = cy + dy[d];
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
       if (mask[ny * w + nx]) {
-        cx = nx;
-        cy = ny;
-        dir = d;
-        found = true;
+        cx = nx; cy = ny; dir = d; found = true;
         break;
       }
     }
@@ -407,10 +398,7 @@ function buildPolygon(
         sum += coeffs[c] * protos[c * protoH * protoW + base];
       }
       const prob = 1 / (1 + Math.exp(-sum));
-      if (prob > 0.5) {
-        mask[y * cw + x] = 1;
-        area++;
-      }
+      if (prob > 0.5) { mask[y * cw + x] = 1; area++; }
     }
   }
   if (area === 0) return null;
@@ -506,15 +494,12 @@ export async function detectWithYolo(
     opts.onProgress?.(i + 1, tiles.length);
 
     // Cede o controle ao navegador para a interface não travar.
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise(r => setTimeout(r, 0));
   }
 
   const final = applyNMS(all, opts.iouThreshold);
   // Descarta dados intermediários pesados antes de devolver.
-  for (const d of final) {
-    delete d.maskCoeffs;
-    delete d.tileInfo;
-  }
+  for (const d of final) { delete d.maskCoeffs; delete d.tileInfo; }
   return final;
 }
 

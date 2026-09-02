@@ -20,15 +20,8 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   const [preview, setPreview] = useState<{ url: string; file: File } | null>(null);
 
   const {
-    stream,
-    devices,
-    activeDeviceId,
-    errorMessage,
-    isStarting,
-    isActive,
-    start,
-    stop,
-    capture,
+    stream, devices, activeDeviceId, errorMessage, isStarting, isActive,
+    start, stop, capture,
   } = useCamera();
 
   const supported = isCameraSupported();
@@ -39,7 +32,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
     if (isOpen && supported) start();
     if (!isOpen) {
       stop();
-      setPreview((prev) => {
+      setPreview(prev => {
         if (prev) URL.revokeObjectURL(prev.url);
         return null;
       });
@@ -76,23 +69,21 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   }, [preview]);
 
   // Fallback: input nativo (útil se getUserMedia falhar no celular).
-  const handleFallbackFile = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        onCapture(file);
-        onClose();
-      }
-      e.target.value = '';
-    },
-    [onCapture, onClose]
-  );
+  const handleFallbackFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onCapture(file);
+      onClose();
+    }
+    e.target.value = '';
+  }, [onCapture, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-3xl rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden">
+
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-zinc-800">
           <div className="flex items-center gap-2.5">
@@ -112,13 +103,11 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
 
         {/* Corpo */}
         <div className="p-5 space-y-4">
+
           {/* Erro / não suportado */}
           {(!supported || errorMessage) && (
             <div className="flex items-start gap-3 rounded-xl border border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
-              <AlertCircle
-                size={18}
-                className="text-amber-600 dark:text-amber-500 shrink-0 mt-0.5"
-              />
+              <AlertCircle size={18} className="text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
               <div className="space-y-2">
                 <p className="text-xs text-amber-800 dark:text-amber-300">
                   {errorMessage ?? 'Este navegador não suporta acesso direto à câmera.'}
@@ -141,13 +130,11 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
               </label>
               <select
                 value={activeDeviceId}
-                onChange={(e) => start(e.target.value)}
+                onChange={e => start(e.target.value)}
                 className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               >
-                {devices.map((d) => (
-                  <option key={d.deviceId} value={d.deviceId}>
-                    {d.label}
-                  </option>
+                {devices.map(d => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
                 ))}
               </select>
             </div>
@@ -156,11 +143,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
           {/* Área de vídeo / prévia */}
           <div className="relative rounded-xl overflow-hidden bg-neutral-900 aspect-video flex items-center justify-center">
             {preview ? (
-              <img
-                src={preview.url}
-                alt="Prévia da captura"
-                className="max-h-full max-w-full object-contain"
-              />
+              <img src={preview.url} alt="Prévia da captura" className="max-h-full max-w-full object-contain" />
             ) : (
               <>
                 <video

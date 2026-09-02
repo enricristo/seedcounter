@@ -20,10 +20,10 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
 
   if (!isOpen) return null;
 
-  const stable = FEATURE_REGISTRY.filter((f) => f.stable);
-  const experimental = FEATURE_REGISTRY.filter((f) => !f.stable);
+  const stable = FEATURE_REGISTRY.filter(f => f.stable);
+  const experimental = FEATURE_REGISTRY.filter(f => !f.stable);
 
-  const renderFlag = (flag: (typeof FEATURE_REGISTRY)[number]) => (
+  const renderFlag = (flag: typeof FEATURE_REGISTRY[number]) => (
     <label
       key={flag.key}
       className="flex items-start gap-3 p-3 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900/60 cursor-pointer transition-colors"
@@ -36,16 +36,12 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
       />
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-bold text-neutral-800 dark:text-zinc-100">
-            {flag.label}
-          </span>
-          <span
-            className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
-              flag.stable
-                ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
-                : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400'
-            }`}
-          >
+          <span className="text-sm font-bold text-neutral-800 dark:text-zinc-100">{flag.label}</span>
+          <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+            flag.stable
+              ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
+              : 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400'
+          }`}>
             {flag.phase}
           </span>
         </div>
@@ -57,13 +53,10 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
   );
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
         className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Cabeçalho */}
         <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -87,8 +80,8 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
 
         <div className="p-5 space-y-5">
           <p className="text-[11px] text-neutral-600 dark:text-zinc-400 leading-relaxed">
-            Ative ou desative recursos do aplicativo. As opções ficam salvas neste navegador e não
-            afetam outros usuários.
+            Ative ou desative recursos do aplicativo. As opções ficam salvas neste navegador
+            e não afetam outros usuários.
           </p>
 
           {/* Estáveis */}
@@ -111,8 +104,7 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
               </h3>
             </div>
             <p className="text-[10px] text-amber-700 dark:text-amber-400">
-              Em desenvolvimento — podem apresentar erros. Confira os resultados antes de usar em
-              pesquisa.
+              Em desenvolvimento — podem apresentar erros. Confira os resultados antes de usar em pesquisa.
             </p>
             <div className="space-y-1.5">{experimental.map(renderFlag)}</div>
           </div>
@@ -127,36 +119,18 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
           {/* Créditos */}
           <div className="pt-3 border-t border-neutral-200 dark:border-zinc-800 space-y-1">
             <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-              Desenvolvido por <strong>Enrico S. Ambrosio</strong> — Matemático, graduando em
-              Agronomia
+              Desenvolvido por <strong>Enrico S. Ambrosio</strong> — Matemático, graduando em Agronomia
             </p>
             <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-              <a
-                href="mailto:enrico.ambrosio@unesp.br"
-                className="text-emerald-600 dark:text-emerald-500 hover:underline"
-              >
+              <a href="mailto:enrico.ambrosio@unesp.br" className="text-emerald-600 dark:text-emerald-500 hover:underline">
                 enrico.ambrosio@unesp.br
               </a>
             </p>
             <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
               GPEOrq / GPSEM — Unoeste ·{' '}
-              <a
-                href="https://www.instagram.com/gpeorq"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-600 dark:text-emerald-500 hover:underline"
-              >
-                @gpeorq
-              </a>
+              <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-500 hover:underline">@gpeorq</a>
               {' · '}
-              <a
-                href="https://www.instagram.com/gpsem_2000/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-600 dark:text-emerald-500 hover:underline"
-              >
-                @gpsem_2000
-              </a>
+              <a href="https://www.instagram.com/gpsem_2000/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-500 hover:underline">@gpsem_2000</a>
             </p>
           </div>
         </div>

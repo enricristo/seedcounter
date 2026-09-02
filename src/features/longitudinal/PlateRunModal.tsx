@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Link2, Check, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
-import type {
-  Experiment,
-  PlateRun,
-  ProtocormStage,
-  ContaminationType,
-  PlateStatus,
-  Session,
-} from '../../types';
+import type { Experiment, PlateRun, ProtocormStage, ContaminationType, PlateStatus, Session } from '../../types';
 import { useExperiments } from '../../hooks/useExperiments';
 import { PROTOCORM_STAGE_LABELS, CONTAMINATION_LABELS, PLATE_STATUS_LABELS } from '../../types';
 
@@ -16,9 +9,9 @@ interface PlateRunModalProps {
   isOpen: boolean;
   onClose: () => void;
   experiment: Experiment;
-  plateRun?: PlateRun; // If provided, we are editing
-  treatmentId?: string; // If provided, preselected treatment
-  sessions: Session[]; // Available count sessions to link
+  plateRun?: PlateRun;      // If provided, we are editing
+  treatmentId?: string;     // If provided, preselected treatment
+  sessions: Session[];      // Available count sessions to link
   onSave?: () => void;
 }
 
@@ -61,10 +54,8 @@ export function PlateRunModal({
   useEffect(() => {
     if (plateRun) {
       // Find treatment that has this plateRun
-      const tx = experiment.treatments.find((t) =>
-        t.plates.some(
-          (p) => p.dayIndex === plateRun.dayIndex && p.evaluationDate === plateRun.evaluationDate
-        )
+      const tx = experiment.treatments.find(t =>
+        t.plates.some(p => p.dayIndex === plateRun.dayIndex && p.evaluationDate === plateRun.evaluationDate)
       );
       setSelectedTreatmentId(tx ? tx.id : experiment.treatments[0]?.id || '');
       setDayIndex(plateRun.dayIndex);
@@ -157,11 +148,7 @@ export function PlateRunModal({
       setObserverName(session.metadata.researcher);
     }
     if (session.metadata.notes) {
-      setNotes((prev) =>
-        prev
-          ? `${prev}\n[Sessão vinculada]: ${session.metadata.notes}`
-          : `[Sessão vinculada]: ${session.metadata.notes}`
-      );
+      setNotes(prev => (prev ? `${prev}\n[Sessão vinculada]: ${session.metadata.notes}` : `[Sessão vinculada]: ${session.metadata.notes}`));
     }
     setShowSessionSelector(false);
   };
@@ -180,11 +167,7 @@ export function PlateRunModal({
     // Verify stages sum matches total seeds
     const stageSum = (Object.values(stages) as number[]).reduce((a, b) => a + b, 0);
     if (stageSum !== totalSeeds) {
-      if (
-        !window.confirm(
-          `A soma das sementes nos estágios (${stageSum}) é diferente do total informado (${totalSeeds}). Deseja ajustar o total automaticamente?`
-        )
-      ) {
+      if (!window.confirm(`A soma das sementes nos estágios (${stageSum}) é diferente do total informado (${totalSeeds}). Deseja ajustar o total automaticamente?`)) {
         return;
       }
       setTotalSeeds(stageSum);
@@ -214,7 +197,7 @@ export function PlateRunModal({
     // Also link the session database entry back to this experiment
     if (linkedSessionId) {
       // Find the linked session and update its experimentId / treatmentId
-      const session = sessions.find((s) => s.id === linkedSessionId);
+      const session = sessions.find(s => s.id === linkedSessionId);
       if (session) {
         import('../../lib/db').then(({ db }) => {
           db.sessions.update(linkedSessionId, {
@@ -231,11 +214,11 @@ export function PlateRunModal({
   };
 
   // Find linked session if any
-  const linkedSession = sessions.find((s) => s.id === linkedSessionId);
+  const linkedSession = sessions.find(s => s.id === linkedSessionId);
 
   // Filter sessions that can be linked (not already linked, or matches current)
   const linkableSessions = sessions.filter(
-    (s) => !s.experimentId || s.experimentId === experiment.id || s.id === linkedSessionId
+    s => !s.experimentId || s.experimentId === experiment.id || s.id === linkedSessionId
   );
 
   return (
@@ -303,8 +286,7 @@ export function PlateRunModal({
                     {linkedSession.filename}
                   </p>
                   <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-medium">
-                    Data: {new Date(linkedSession.date).toLocaleString('pt-BR')} •{' '}
-                    {linkedSession.viableCount} Viáveis / {linkedSession.inviableCount} Inviáveis
+                    Data: {new Date(linkedSession.date).toLocaleString('pt-BR')} • {linkedSession.viableCount} Viáveis / {linkedSession.inviableCount} Inviáveis
                   </p>
                 </div>
                 <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wider">
@@ -313,8 +295,7 @@ export function PlateRunModal({
               </div>
             ) : (
               <p className="text-xs text-neutral-400 dark:text-zinc-500 font-medium">
-                Nenhuma imagem ou contagem do aplicativo vinculada a esta avaliação. Os dados podem
-                ser inseridos de forma totalmente manual abaixo.
+                Nenhuma imagem ou contagem do aplicativo vinculada a esta avaliação. Os dados podem ser inseridos de forma totalmente manual abaixo.
               </p>
             )}
           </div>
@@ -344,7 +325,7 @@ export function PlateRunModal({
                     Nenhuma contagem disponível para vincular.
                   </p>
                 ) : (
-                  linkableSessions.map((s) => (
+                  linkableSessions.map(s => (
                     <button
                       key={s.id}
                       type="button"
@@ -356,8 +337,7 @@ export function PlateRunModal({
                           {s.filename}
                         </span>
                         <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
-                          {new Date(s.date).toLocaleDateString('pt-BR')} •{' '}
-                          {s.metadata.treatment || 'S/ Tratamento'}
+                          {new Date(s.date).toLocaleDateString('pt-BR')} • {s.metadata.treatment || 'S/ Tratamento'}
                         </span>
                       </div>
                       <div className="font-bold text-neutral-700 dark:text-zinc-300">
@@ -378,11 +358,11 @@ export function PlateRunModal({
               </label>
               <select
                 value={selectedTreatmentId}
-                onChange={(e) => setSelectedTreatmentId(e.target.value)}
+                onChange={e => setSelectedTreatmentId(e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                {experiment.treatments.map((t) => (
+                {experiment.treatments.map(t => (
                   <option key={t.id} value={t.id}>
                     [{t.code}] {t.name}
                   </option>
@@ -396,7 +376,7 @@ export function PlateRunModal({
               <input
                 type="date"
                 value={evaluationDate}
-                onChange={(e) => handleDateChange(e.target.value)}
+                onChange={e => handleDateChange(e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -408,7 +388,7 @@ export function PlateRunModal({
               <input
                 type="number"
                 value={dayIndex}
-                onChange={(e) => setDayIndex(parseInt(e.target.value) || 0)}
+                onChange={e => setDayIndex(parseInt(e.target.value) || 0)}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500 text-center"
               />
             </div>
@@ -426,7 +406,7 @@ export function PlateRunModal({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-              {(Object.keys(stages) as string[]).map((stageKey) => {
+              {(Object.keys(stages) as string[]).map(stageKey => {
                 const stageNum = parseInt(stageKey, 10) as ProtocormStage;
                 return (
                   <div
@@ -438,10 +418,10 @@ export function PlateRunModal({
                         stageNum === 0
                           ? 'bg-neutral-200 dark:bg-zinc-800 text-neutral-600 dark:text-neutral-400'
                           : stageNum === 1
-                            ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400'
-                            : stageNum === 2 || stageNum === 3
-                              ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450'
-                              : 'bg-emerald-600 text-white shadow-sm'
+                          ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400'
+                          : stageNum === 2 || stageNum === 3
+                          ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450'
+                          : 'bg-emerald-600 text-white shadow-sm'
                       }`}
                       title={PROTOCORM_STAGE_LABELS[stageNum]}
                     >
@@ -450,9 +430,7 @@ export function PlateRunModal({
                     <input
                       type="number"
                       value={stages[stageNum]}
-                      onChange={(e) =>
-                        handleStageChange(stageNum, parseInt(e.target.value, 10) || 0)
-                      }
+                      onChange={e => handleStageChange(stageNum, parseInt(e.target.value, 10) || 0)}
                       className="w-full text-center px-1 py-1 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg text-xs text-neutral-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
@@ -460,8 +438,7 @@ export function PlateRunModal({
               })}
             </div>
             <p className="text-[10px] text-neutral-400 dark:text-zinc-500 mt-2 font-medium">
-              * E0: sementes não alteradas / inviáveis. E1: semente intumescida com embrião verde
-              (ruptura da testa). E2+: estágios de formação de protocormo globular e plântula.
+              * E0: sementes não alteradas / inviáveis. E1: semente intumescida com embrião verde (ruptura da testa). E2+: estágios de formação de protocormo globular e plântula.
             </p>
           </div>
 
@@ -473,7 +450,7 @@ export function PlateRunModal({
               </label>
               <select
                 value={contamination}
-                onChange={(e) => setContamination(e.target.value as ContaminationType)}
+                onChange={e => setContamination(e.target.value as ContaminationType)}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {Object.entries(CONTAMINATION_LABELS).map(([val, label]) => (
@@ -489,7 +466,7 @@ export function PlateRunModal({
               </label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as PlateStatus)}
+                onChange={e => setStatus(e.target.value as PlateStatus)}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {Object.entries(PLATE_STATUS_LABELS).map(([val, label]) => (
@@ -506,7 +483,7 @@ export function PlateRunModal({
               <input
                 type="text"
                 value={observerName}
-                onChange={(e) => setObserverName(e.target.value)}
+                onChange={e => setObserverName(e.target.value)}
                 placeholder="Ex: Profa. Ceci Custódio"
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -521,7 +498,7 @@ export function PlateRunModal({
             <textarea
               rows={2}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
               placeholder="Ex: Formação de colônias brancas isoladas, protocormos saudáveis..."
               className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
             />

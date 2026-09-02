@@ -73,12 +73,8 @@ function polygonArea(points: [number, number][]): number {
 
 /** Centroide de um polígono. */
 function polygonCentroid(points: [number, number][]): { x: number; y: number } {
-  let sx = 0,
-    sy = 0;
-  for (const [x, y] of points) {
-    sx += x;
-    sy += y;
-  }
+  let sx = 0, sy = 0;
+  for (const [x, y] of points) { sx += x; sy += y; }
   return { x: sx / points.length, y: sy / points.length };
 }
 
@@ -93,8 +89,8 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
 
   // Índice dos contornos visíveis, com centroide pré-calculado.
   const contours = segmentations
-    .filter((s) => s.visible !== false && s.polygon_points?.length >= 3)
-    .map((s) => ({ seg: s, c: polygonCentroid(s.polygon_points) }));
+    .filter(s => s.visible !== false && s.polygon_points?.length >= 3)
+    .map(s => ({ seg: s, c: polygonCentroid(s.polygon_points) }));
   const used = new Set<number>();
 
   return marks.map((mark, i) => {
@@ -112,10 +108,7 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
     for (const c of contours) {
       if (used.has(c.seg.id)) continue;
       const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
-      if (d < bestDist) {
-        bestDist = d;
-        best = c;
-      }
+      if (d < bestDist) { bestDist = d; best = c; }
     }
 
     if (best) {
@@ -132,10 +125,9 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       row.larguraPx = Number(largura.toFixed(2));
       row.areaPx = Number(area.toFixed(1));
       row.razaoAspecto = largura > 0 ? Number((comprimento / largura).toFixed(3)) : undefined;
-      row.circularidade =
-        perim > 0
-          ? Number(Math.min(1, (4 * Math.PI * area) / (perim * perim)).toFixed(3))
-          : undefined;
+      row.circularidade = perim > 0
+        ? Number(Math.min(1, (4 * Math.PI * area) / (perim * perim)).toFixed(3))
+        : undefined;
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
 
       // Conversão para micrômetros só quando há calibração.
@@ -215,14 +207,14 @@ export function measurementsToCSV(
       ]
     : [];
 
-  const header = [...metaCols.map((m) => m.label), ...COLUMNS.map((c) => c.label)]
-    .map((h) => csvField(h, sep))
+  const header = [...metaCols.map(m => m.label), ...COLUMNS.map(c => c.label)]
+    .map(h => csvField(h, sep))
     .join(sep);
 
-  const body = rows.map((r) =>
+  const body = rows.map(r =>
     [
-      ...metaCols.map((m) => csvField(m.value, sep)),
-      ...COLUMNS.map((c) => csvField(r[c.key], sep)),
+      ...metaCols.map(m => csvField(m.value, sep)),
+      ...COLUMNS.map(c => csvField(r[c.key], sep)),
     ].join(sep)
   );
 
@@ -329,33 +321,17 @@ VALUES (${[
     metadata.umPerPixel ?? null,
     metadata.imageSource ?? '',
     metadata.notes ?? '',
-  ]
-    .map(sqlValue)
-    .join(', ')});
+  ].map(sqlValue).join(', ')});
 `);
 
   if (rows.length > 0) {
-    const values = rows.map(
-      (r) =>
-        `  (${[
-          sampleId,
-          r.objectId,
-          r.classe,
-          r.origem,
-          r.x,
-          r.y,
-          r.comprimentoPx,
-          r.larguraPx,
-          r.areaPx,
-          r.comprimentoUm,
-          r.larguraUm,
-          r.areaUm2,
-          r.razaoAspecto,
-          r.circularidade,
-          r.confianca,
-        ]
-          .map(sqlValue)
-          .join(', ')})`
+    const values = rows.map(r =>
+      `  (${[
+        sampleId, r.objectId, r.classe, r.origem, r.x, r.y,
+        r.comprimentoPx, r.larguraPx, r.areaPx,
+        r.comprimentoUm, r.larguraUm, r.areaUm2,
+        r.razaoAspecto, r.circularidade, r.confianca,
+      ].map(sqlValue).join(', ')})`
     );
     parts.push(
       `INSERT INTO medida (amostra_id, objeto_id, classe, origem, x_px, y_px, comprimento_px, largura_px, area_px2, comprimento_um, largura_um, area_um2, razao_aspecto, circularidade, confianca)\nVALUES\n${values.join(',\n')};\n`
@@ -401,10 +377,10 @@ export interface MeasurementSummary {
 
 export function summarize(rows: SeedMeasurement[], umPerPixel?: number): MeasurementSummary {
   const total = rows.length;
-  const viaveis = rows.filter((r) => r.classe === 'viavel').length;
+  const viaveis = rows.filter(r => r.classe === 'viavel').length;
   const calibrado = !!umPerPixel && umPerPixel > 0;
 
-  const medidos = rows.filter((r) =>
+  const medidos = rows.filter(r =>
     calibrado ? r.comprimentoUm !== undefined : r.comprimentoPx !== undefined
   );
   const get = (r: SeedMeasurement, k: 'comprimento' | 'largura' | 'area') => {
@@ -414,7 +390,7 @@ export function summarize(rows: SeedMeasurement[], umPerPixel?: number): Measure
   };
 
   const mean = (vals: number[]) => vals.reduce((a, b) => a + b, 0) / vals.length;
-  const comps = medidos.map((r) => get(r, 'comprimento') ?? 0);
+  const comps = medidos.map(r => get(r, 'comprimento') ?? 0);
 
   const summary: MeasurementSummary = {
     total,
@@ -428,8 +404,8 @@ export function summarize(rows: SeedMeasurement[], umPerPixel?: number): Measure
   if (medidos.length > 0) {
     const m = mean(comps);
     summary.mediaComprimento = Number(m.toFixed(1));
-    summary.mediaLargura = Number(mean(medidos.map((r) => get(r, 'largura') ?? 0)).toFixed(1));
-    summary.mediaArea = Number(mean(medidos.map((r) => get(r, 'area') ?? 0)).toFixed(0));
+    summary.mediaLargura = Number(mean(medidos.map(r => get(r, 'largura') ?? 0)).toFixed(1));
+    summary.mediaArea = Number(mean(medidos.map(r => get(r, 'area') ?? 0)).toFixed(0));
     // Desvio-padrão amostral do comprimento.
     if (medidos.length > 1) {
       const variance = comps.reduce((s, v) => s + (v - m) ** 2, 0) / (comps.length - 1);

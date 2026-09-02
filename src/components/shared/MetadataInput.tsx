@@ -13,7 +13,7 @@ export function MetadataInput({
   value,
   onChange,
   placeholder,
-  disabled = false,
+  disabled = false
 }: MetadataInputProps) {
   return (
     <div className="flex flex-col gap-1.5 flex-1">

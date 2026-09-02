@@ -16,7 +16,7 @@ export function ZoomControls({
   zoomIn,
   zoomOut,
   zoomLevel,
-  onFitToScreen,
+  onFitToScreen
 }: ZoomControlsProps) {
   return (
     <div className="fixed right-6 bottom-12 flex flex-col gap-2.5 bg-white/90 dark:bg-[#18181B]/95 backdrop-blur-md p-1.5 rounded-xl shadow-xl border border-neutral-200 dark:border-zinc-800 z-10 select-none transition-all duration-300">
@@ -24,17 +24,12 @@ export function ZoomControls({
       <button
         onClick={togglePanningMode}
         className={`p-2 rounded-lg transition-all cursor-pointer border
-          ${
-            isPanningMode
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900/40 dark:text-emerald-400 font-bold'
-              : 'hover:bg-neutral-50 dark:hover:bg-zinc-900 border-transparent text-neutral-500 dark:text-zinc-400 hover:text-neutral-800 dark:hover:text-zinc-200'
+          ${isPanningMode
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900/40 dark:text-emerald-400 font-bold'
+            : 'hover:bg-neutral-50 dark:hover:bg-zinc-900 border-transparent text-neutral-500 dark:text-zinc-400 hover:text-neutral-800 dark:hover:text-zinc-200'
           }
         `}
-        title={
-          isPanningMode
-            ? 'Modo Mão Ativo (H - clique e arraste para navegar)'
-            : 'Ativar Modo Mão (H)'
-        }
+        title={isPanningMode ? "Modo Mão Ativo (H - clique e arraste para navegar)" : "Ativar Modo Mão (H)"}
       >
         <Hand size={17} />
       </button>

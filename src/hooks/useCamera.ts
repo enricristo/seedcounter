@@ -16,7 +16,12 @@ export interface CameraDevice {
 }
 
 export type CameraError =
-  'unsupported' | 'denied' | 'not-found' | 'in-use' | 'insecure' | 'unknown';
+  | 'unsupported'
+  | 'denied'
+  | 'not-found'
+  | 'in-use'
+  | 'insecure'
+  | 'unknown';
 
 export const CAMERA_ERROR_MESSAGES: Record<CameraError, string> = {
   unsupported: 'Este navegador não suporta acesso à câmera.',
@@ -61,7 +66,7 @@ export function useCamera() {
   // Encerra as trilhas de vídeo e libera a câmera.
   const stop = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     setStream(null);
@@ -73,7 +78,7 @@ export function useCamera() {
     try {
       const all = await navigator.mediaDevices.enumerateDevices();
       const cams = all
-        .filter((d) => d.kind === 'videoinput')
+        .filter(d => d.kind === 'videoinput')
         .map((d, i) => ({
           deviceId: d.deviceId,
           label: d.label || `Câmera ${i + 1}`,
@@ -91,9 +96,7 @@ export function useCamera() {
       setError(null);
 
       if (!isCameraSupported()) {
-        setError(
-          typeof window !== 'undefined' && !window.isSecureContext ? 'insecure' : 'unsupported'
-        );
+        setError(typeof window !== 'undefined' && !window.isSecureContext ? 'insecure' : 'unsupported');
         return false;
       }
 
@@ -150,8 +153,8 @@ export function useCamera() {
       if (!ctx) return null;
       ctx.drawImage(video, 0, 0, w, h);
 
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob((b) => resolve(b), 'image/png')
+      const blob = await new Promise<Blob | null>(resolve =>
+        canvas.toBlob(b => resolve(b), 'image/png')
       );
       if (!blob) return null;
 

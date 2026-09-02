@@ -25,8 +25,8 @@ export function WilsonCIBar({ value, ci, width = 120 }: WilsonCIBarProps) {
     pct >= 80
       ? '#10b981' // emerald
       : pct >= 50
-        ? '#f59e0b' // amber
-        : '#ef4444'; // red
+      ? '#f59e0b' // amber
+      : '#ef4444'; // red
 
   const ciWidth = upper - lower;
 
@@ -66,7 +66,10 @@ export function WilsonCIBar({ value, ci, width = 120 }: WilsonCIBarProps) {
         />
       </div>
       {/* Numeric label */}
-      <span className="text-[11px] font-bold font-mono tabular-nums" style={{ color: barColor }}>
+      <span
+        className="text-[11px] font-bold font-mono tabular-nums"
+        style={{ color: barColor }}
+      >
         {pct.toFixed(1)}%
       </span>
     </div>

@@ -18,7 +18,7 @@ export function CounterItem({
   description,
   percent,
   onClick,
-  isActive = false,
+  isActive = false
 }: CounterItemProps) {
   // Determine badge colors based on label
   const isViable = label.toLowerCase().includes('viáv') || label.toLowerCase().includes('viav');
@@ -30,27 +30,20 @@ export function CounterItem({
     <div
       onClick={onClick}
       className={`flex flex-col p-4 rounded-xl transition-all border shadow-sm group relative overflow-hidden cursor-pointer
-        ${
-          isActive
-            ? 'bg-neutral-100 dark:bg-zinc-900 border-emerald-500/50 scale-[1.02] ring-1 ring-emerald-500/20'
-            : 'bg-white dark:bg-zinc-900/50 border-neutral-100 dark:border-zinc-800/80 hover:bg-neutral-50 dark:hover:bg-zinc-900 hover:border-neutral-200 dark:hover:border-zinc-700'
+        ${isActive
+          ? 'bg-neutral-100 dark:bg-zinc-900 border-emerald-500/50 scale-[1.02] ring-1 ring-emerald-500/20'
+          : 'bg-white dark:bg-zinc-900/50 border-neutral-100 dark:border-zinc-800/80 hover:bg-neutral-50 dark:hover:bg-zinc-900 hover:border-neutral-200 dark:hover:border-zinc-700'
         }
       `}
     >
       <div className="flex items-center justify-between flex-wrap">
         <div className="flex items-center gap-3">
-          <div
-            className={`w-9 h-9 ${color} rounded-xl shadow-md flex items-center justify-center text-white`}
-          >
+          <div className={`w-9 h-9 ${color} rounded-xl shadow-md flex items-center justify-center text-white`}>
             <MousePointer2 size={15} className="group-hover:scale-110 transition-transform" />
           </div>
           <div className="flex flex-col z-10">
-            <span className="text-xs font-semibold text-neutral-800 dark:text-zinc-100">
-              {label}
-            </span>
-            <span className="text-[9px] text-neutral-400 dark:text-zinc-400 font-medium">
-              {description}
-            </span>
+            <span className="text-xs font-semibold text-neutral-800 dark:text-zinc-100">{label}</span>
+            <span className="text-[9px] text-neutral-400 dark:text-zinc-400 font-medium">{description}</span>
           </div>
         </div>
         <div className="flex flex-col items-end z-10 gap-0.5">
@@ -58,9 +51,7 @@ export function CounterItem({
             {count}
           </span>
           {percent && (
-            <span
-              className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${badgeClasses}`}
-            >
+            <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${badgeClasses}`}>
               {percent}%
             </span>
           )}

@@ -27,11 +27,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
 import { useViewNavigation } from './hooks/useViewNavigation';
 import { useTools } from './hooks/useTools';
-import {
-  useFeatureFlag,
-  useFeatureFlags,
-  FeatureFlagsDebugPanel,
-} from './context/FeatureFlagContext';
+import { useFeatureFlag, useFeatureFlags, FeatureFlagsDebugPanel } from './context/FeatureFlagContext';
 import { useExperiments } from './hooks/useExperiments';
 
 // Features
@@ -48,13 +44,7 @@ import { ImageAdjustPanel } from './features/image-adjust';
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
-import {
-  NEUTRAL_ADJUSTMENTS,
-  applyAdjustments,
-  isNeutral,
-  toCssFilter,
-  type ImageAdjustments,
-} from './lib/image-adjust';
+import { NEUTRAL_ADJUSTMENTS, applyAdjustments, isNeutral, toCssFilter, type ImageAdjustments } from './lib/image-adjust';
 import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
 
 // Types
@@ -72,15 +62,11 @@ function downloadBlob(content: string, filename: string, contentType: string) {
 }
 
 // Render marks overlay helper for the canvas context
-function renderMarksToContext(
-  ctx: CanvasRenderingContext2D,
-  marks: Mark[],
-  mode: 'dots' | 'numbers'
-) {
+function renderMarksToContext(ctx: CanvasRenderingContext2D, marks: Mark[], mode: 'dots' | 'numbers') {
   let viableCounter = 0;
   let inviableCounter = 0;
 
-  marks.forEach((mark) => {
+  marks.forEach(mark => {
     let num = 0;
     if (mark.type === 'viable') {
       viableCounter++;
@@ -148,11 +134,7 @@ export default function App() {
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
   const {
-    activeTool,
-    setActiveTool,
-    eraserRadius,
-    setEraserRadius,
-    isTemporary: isToolTemporary,
+    activeTool, setActiveTool, eraserRadius, setEraserRadius, isTemporary: isToolTemporary,
   } = useTools();
   const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
 
@@ -173,19 +155,11 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isExperimentModalOpen, setIsExperimentModalOpen] = useState(false);
-  const [selectedExperimentForEdit, setSelectedExperimentForEdit] = useState<
-    Experiment | undefined
-  >(undefined);
+  const [selectedExperimentForEdit, setSelectedExperimentForEdit] = useState<Experiment | undefined>(undefined);
   const [isPlateRunModalOpen, setIsPlateRunModalOpen] = useState(false);
-  const [selectedExperimentForRun, setSelectedExperimentForRun] = useState<Experiment | undefined>(
-    undefined
-  );
-  const [selectedTreatmentIdForRun, setSelectedTreatmentIdForRun] = useState<string | undefined>(
-    undefined
-  );
-  const [selectedPlateRunForEdit, setSelectedPlateRunForEdit] = useState<PlateRun | undefined>(
-    undefined
-  );
+  const [selectedExperimentForRun, setSelectedExperimentForRun] = useState<Experiment | undefined>(undefined);
+  const [selectedTreatmentIdForRun, setSelectedTreatmentIdForRun] = useState<string | undefined>(undefined);
+  const [selectedPlateRunForEdit, setSelectedPlateRunForEdit] = useState<PlateRun | undefined>(undefined);
 
   // Manual marking class toggle
   const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
@@ -204,7 +178,7 @@ export default function App() {
     addYoloSegmentations,
     toggleSegmentationClass,
     deleteSegmentation,
-    resetAllAnnotations,
+    resetAllAnnotations
   } = useMarks();
 
   // Metadata sample inputs
@@ -224,7 +198,7 @@ export default function App() {
     startDrag,
     handleDrag,
     stopDrag,
-    togglePanningMode,
+    togglePanningMode
   } = usePanning();
 
   // DOM Refs
@@ -245,7 +219,7 @@ export default function App() {
     handleFileUpload,
     handleNextImage,
     handlePrevImage,
-    loadImageFromFile,
+    loadImageFromFile
   } = useImageQueue({
     onImageLoaded: (img) => {
       // Reset annotations on new sample load
@@ -256,8 +230,9 @@ export default function App() {
         const container = containerRef.current;
         fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
       }
-    },
+    }
   });
+
 
   useKeyboardShortcuts({
     onUndo: undoMark,
@@ -269,12 +244,7 @@ export default function App() {
     onZoomOut: zoomOut,
     onResetZoom: () => {
       if (containerRef.current && image) {
-        fitToScreen(
-          containerRef.current.clientWidth,
-          containerRef.current.clientHeight,
-          image.width,
-          image.height
-        );
+        fitToScreen(containerRef.current.clientWidth, containerRef.current.clientHeight, image.width, image.height);
       } else {
         resetZoom();
       }
@@ -284,33 +254,27 @@ export default function App() {
     onToggleTheme: toggleTheme,
     hasImage: !!image,
     hasNextImage: imageQueue.length > 0 && currentImageIndex < imageQueue.length - 1,
-    hasPrevImage: imageQueue.length > 0 && currentImageIndex > 0,
+    hasPrevImage: imageQueue.length > 0 && currentImageIndex > 0
   });
 
   // Derived counts
-  const manualViable = marks.filter((m) => m.type === 'viable').length;
-  const yoloViable = yoloSegmentations.filter(
-    (s) => s.category === 'viable' && s.visible !== false
-  ).length;
+  const manualViable = marks.filter(m => m.type === 'viable').length;
+  const yoloViable = yoloSegmentations.filter(s => s.category === 'viable' && s.visible !== false).length;
   const viableCount = manualViable + yoloViable;
 
-  const manualInviable = marks.filter((m) => m.type === 'inviable').length;
-  const yoloInviable = yoloSegmentations.filter(
-    (s) => s.category === 'inviable' && s.visible !== false
-  ).length;
+  const manualInviable = marks.filter(m => m.type === 'inviable').length;
+  const yoloInviable = yoloSegmentations.filter(s => s.category === 'inviable' && s.visible !== false).length;
 
-  const inviableCount =
-    metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
-      ? Math.max(0, metadata.baselineCount - viableCount)
-      : manualInviable + yoloInviable;
+  const inviableCount = (metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0)
+    ? Math.max(0, metadata.baselineCount - viableCount)
+    : (manualInviable + yoloInviable);
 
-  const totalCount =
-    metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
-      ? metadata.baselineCount
-      : viableCount + inviableCount;
+  const totalCount = (metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0)
+    ? metadata.baselineCount
+    : (viableCount + inviableCount);
 
-  const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : '0';
-  const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : '0';
+  const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : "0";
+  const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : "0";
 
   // Re-draw Canvas markings
   const drawCanvas = useCallback(() => {
@@ -359,18 +323,16 @@ export default function App() {
     // A ferramenta ativa define a classe; Shift/Ctrl/botão direito invertem.
     const baseType = activeTool === 'inviable' ? 'inviable' : 'viable';
     const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
-    const type = shouldInvert ? (baseType === 'viable' ? 'inviable' : 'viable') : baseType;
+    const type = shouldInvert
+      ? (baseType === 'viable' ? 'inviable' : 'viable')
+      : baseType;
 
     addMark(x, y, type);
   };
 
   // Reset markings prompt
   const handleReset = () => {
-    if (
-      window.confirm(
-        'Deseja realmente limpar todas as marcações manuais e segmentações YOLO da imagem atual?'
-      )
-    ) {
+    if (window.confirm("Deseja realmente limpar todas as marcações manuais e segmentações YOLO da imagem atual?")) {
       resetAllAnnotations();
     }
   };
@@ -400,16 +362,16 @@ export default function App() {
       metadata: { ...metadata },
       marks,
       yoloSegmentations,
-      imageData: imageDataStr,
+      imageData: imageDataStr
     };
     addSession(newSession);
     if (!silent) {
-      alert('Sessão salva com sucesso no histórico local!');
+      alert("Sessão salva com sucesso no histórico local!");
     }
   };
 
   const handleLoadSession = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
+    const session = sessions.find(s => s.id === sessionId);
     if (!session) return;
 
     // Restore metadata and counts
@@ -428,15 +390,13 @@ export default function App() {
         navigate('counter');
       };
       img.onerror = () => {
-        alert('Erro ao carregar a imagem salva da sessão.');
+        alert("Erro ao carregar a imagem salva da sessão.");
       };
       img.src = session.imageData;
     } else {
       setIsHistoryModalOpen(false);
       navigate('counter');
-      alert(
-        `Sessão carregada, mas esta sessão antiga não possui a imagem salva no banco.\nPor favor, carregue o arquivo de imagem "${session.filename}" manualmente.`
-      );
+      alert(`Sessão carregada, mas esta sessão antiga não possui a imagem salva no banco.\nPor favor, carregue o arquivo de imagem "${session.filename}" manualmente.`);
     }
   };
 
@@ -446,105 +406,97 @@ export default function App() {
   };
 
   // JSON Import Parser supporting backups, YOLO segmentations and single session files
-  const processJSONFile = useCallback(
-    (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const text = event.target?.result as string;
-          const parsed = JSON.parse(text);
+  const processJSONFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
 
-          // 1. Check if it is a YOLO segmentation JSON file
-          if (parsed && (Array.isArray(parsed.segmentations) || parsed.segmentations)) {
-            const rawSegs = Array.isArray(parsed.segmentations) ? parsed.segmentations : [];
+        // 1. Check if it is a YOLO segmentation JSON file
+        if (parsed && (Array.isArray(parsed.segmentations) || parsed.segmentations)) {
+          const rawSegs = Array.isArray(parsed.segmentations) ? parsed.segmentations : [];
 
-            // Map and calculate PCA dimensions
-            const mappedSegs: YoloSegmentation[] = rawSegs.map((seg: any, idx: number) => {
-              const polygon_points = seg.polygon_points || seg.points || [];
-              const { width, height } = calculateSeedDimensions(polygon_points);
+          // Map and calculate PCA dimensions
+          const mappedSegs: YoloSegmentation[] = rawSegs.map((seg: any, idx: number) => {
+            const polygon_points = seg.polygon_points || seg.points || [];
+            const { width, height } = calculateSeedDimensions(polygon_points);
 
-              let category: 'viable' | 'inviable' = 'viable';
-              if (seg.category === 'inviable' || seg.class_name === 'inviavel' || seg.class === 1) {
-                category = 'inviable';
-              }
+            let category: 'viable' | 'inviable' = 'viable';
+            if (seg.category === 'inviable' || seg.class_name === 'inviavel' || seg.class === 1) {
+              category = 'inviable';
+            }
 
+            return {
+              id: seg.id ?? idx,
+              category,
+              class_name: category === 'viable' ? 'viavel' : 'inviavel',
+              confidence: seg.confidence ?? 1.0,
+              polygon_points,
+              visible: seg.visible !== false,
+              edited: seg.edited ?? false,
+              width,
+              height
+            };
+          });
+
+          addYoloSegmentations(mappedSegs);
+          alert(`YOLO segmentações importadas! Encontradas ${mappedSegs.length} segmentações.`);
+          return;
+        }
+
+        // 2. Check if it is a SeedCounter backup history array
+        if (Array.isArray(parsed)) {
+          const success = importSessions(parsed);
+          if (success) {
+            alert(`Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`);
+          } else {
+            alert("Formato de histórico inválido.");
+          }
+          return;
+        }
+
+        // 3. Check if it is a single SeedCounter session JSON
+        if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
+          if (parsed.metadata) setMetadata(parsed.metadata);
+          if (parsed.marks) setMarks(parsed.marks);
+          if (parsed.yoloSegmentations) {
+            const mapped = parsed.yoloSegmentations.map((seg: any) => {
+              const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
               return {
-                id: seg.id ?? idx,
-                category,
-                class_name: category === 'viable' ? 'viavel' : 'inviavel',
-                confidence: seg.confidence ?? 1.0,
-                polygon_points,
-                visible: seg.visible !== false,
-                edited: seg.edited ?? false,
-                width,
-                height,
+                ...seg,
+                width: seg.width ?? width,
+                height: seg.height ?? height
               };
             });
-
-            addYoloSegmentations(mappedSegs);
-            alert(`YOLO segmentações importadas! Encontradas ${mappedSegs.length} segmentações.`);
-            return;
+            addYoloSegmentations(mapped);
           }
-
-          // 2. Check if it is a SeedCounter backup history array
-          if (Array.isArray(parsed)) {
-            const success = importSessions(parsed);
-            if (success) {
-              alert(
-                `Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`
-              );
-            } else {
-              alert('Formato de histórico inválido.');
-            }
-            return;
-          }
-
-          // 3. Check if it is a single SeedCounter session JSON
-          if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
-            if (parsed.metadata) setMetadata(parsed.metadata);
-            if (parsed.marks) setMarks(parsed.marks);
-            if (parsed.yoloSegmentations) {
-              const mapped = parsed.yoloSegmentations.map((seg: any) => {
-                const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
-                return {
-                  ...seg,
-                  width: seg.width ?? width,
-                  height: seg.height ?? height,
-                };
-              });
-              addYoloSegmentations(mapped);
-            }
-            if (parsed.filename) setFilename(parsed.filename);
-            alert('Sessão importada com sucesso!');
-            return;
-          }
-
-          alert('Arquivo JSON com formato não reconhecido (não é YOLO, Backup ou Sessão).');
-        } catch (error) {
-          console.error('Erro ao importar o arquivo JSON', error);
-          alert('Erro ao ler o arquivo JSON. Certifique-se de que é um formato válido.');
+          if (parsed.filename) setFilename(parsed.filename);
+          alert("Sessão importada com sucesso!");
+          return;
         }
-      };
-      reader.readAsText(file);
-    },
-    [addYoloSegmentations, importSessions, setMetadata, setMarks, setFilename]
-  );
+
+        alert("Arquivo JSON com formato não reconhecido (não é YOLO, Backup ou Sessão).");
+      } catch (error) {
+        console.error("Erro ao importar o arquivo JSON", error);
+        alert("Erro ao ler o arquivo JSON. Certifique-se de que é um formato válido.");
+      }
+    };
+    reader.readAsText(file);
+  }, [addYoloSegmentations, importSessions, setMetadata, setMarks, setFilename]);
 
   // Drag & drop hook
-  const onFilesDropped = useCallback(
-    (files: File[]) => {
-      const images = files.filter((f) => f.type.startsWith('image/'));
-      const jsons = files.filter((f) => f.name.endsWith('.json') || f.type === 'application/json');
+  const onFilesDropped = useCallback((files: File[]) => {
+    const images = files.filter(f => f.type.startsWith('image/'));
+    const jsons = files.filter(f => f.name.endsWith('.json') || f.type === 'application/json');
 
-      if (images.length > 0) {
-        loadFiles(images);
-      }
-      if (jsons.length > 0) {
-        processJSONFile(jsons[0]);
-      }
-    },
-    [loadFiles, processJSONFile]
-  );
+    if (images.length > 0) {
+      loadFiles(images);
+    }
+    if (jsons.length > 0) {
+      processJSONFile(jsons[0]);
+    }
+  }, [loadFiles, processJSONFile]);
 
   const { isDragActive } = useDragDrop({ onFilesDropped });
 
@@ -558,22 +510,21 @@ export default function App() {
 
   // EXPORTS
   const handleExportTextReport = () => {
-    const content =
-      `Relatório de Contagem de Sementes\n` +
-      `----------------------------------\n` +
-      `Arquivo da Imagem: ${filename}\n` +
-      `Data: ${new Date().toLocaleString()}\n\n` +
-      `[ Metadados ]\n` +
-      `Usuário / Pesquisador: ${metadata.researcher || '-'}\n` +
-      `Projeto de Pesquisa: ${metadata.project || '-'}\n` +
-      `Tratamento / Experimento: ${metadata.treatment || '-'}\n` +
-      `Placa: ${metadata.plate || '-'}\n` +
-      `Quadrante: ${metadata.quadrant || '-'}\n` +
-      `Comentários: ${metadata.notes || '-'}\n\n` +
-      `[ Resultados ]\n` +
-      `Sementes Viáveis (Vermelho): ${viableCount} (${viablePercent}%)\n` +
-      `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
-      `Total: ${totalCount}\n`;
+    const content = `Relatório de Contagem de Sementes\n` +
+                    `----------------------------------\n` +
+                    `Arquivo da Imagem: ${filename}\n` +
+                    `Data: ${new Date().toLocaleString()}\n\n` +
+                    `[ Metadados ]\n` +
+                    `Usuário / Pesquisador: ${metadata.researcher || '-'}\n` +
+                    `Projeto de Pesquisa: ${metadata.project || '-'}\n` +
+                    `Tratamento / Experimento: ${metadata.treatment || '-'}\n` +
+                    `Placa: ${metadata.plate || '-'}\n` +
+                    `Quadrante: ${metadata.quadrant || '-'}\n` +
+                    `Comentários: ${metadata.notes || '-'}\n\n` +
+                    `[ Resultados ]\n` +
+                    `Sementes Viáveis (Vermelho): ${viableCount} (${viablePercent}%)\n` +
+                    `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
+                    `Total: ${totalCount}\n`;
 
     downloadBlob(content, generateExportName('txt'), 'text/plain');
   };
@@ -588,10 +539,10 @@ export default function App() {
         inviableCount,
         totalCount,
         viablePercent: Number(viablePercent),
-        inviablePercent: Number(inviablePercent),
+        inviablePercent: Number(inviablePercent)
       },
       marks,
-      yoloSegmentations,
+      yoloSegmentations
     };
     downloadBlob(JSON.stringify(data, null, 2), generateExportName('json'), 'application/json');
   };
@@ -599,15 +550,12 @@ export default function App() {
   // --- Exportação por objeto (uma linha por semente) ---------------------
   // Funciona em qualquer cenário: sem calibração sai em pixels, sem
   // segmentação sai só posição e classe. Nenhuma camada é obrigatória.
-  const buildMeasurementContext = useCallback(
-    () => ({
-      marks,
-      segmentations: yoloSegmentations,
-      metadata,
-      filename,
-    }),
-    [marks, yoloSegmentations, metadata, filename]
-  );
+  const buildMeasurementContext = useCallback(() => ({
+    marks,
+    segmentations: yoloSegmentations,
+    metadata,
+    filename,
+  }), [marks, yoloSegmentations, metadata, filename]);
 
   const handleExportMeasurementsCSV = useCallback(() => {
     const ctx = buildMeasurementContext();
@@ -626,21 +574,7 @@ export default function App() {
   }, [buildMeasurementContext, filename]);
 
   const handleExportCSV = () => {
-    const headers = [
-      'Data',
-      'Imagem',
-      'Pesquisador',
-      'Projeto',
-      'Tratamento',
-      'Placa',
-      'Quadrante',
-      'Viaveis',
-      'Inviaveis',
-      'Total',
-      '% Viavel',
-      '% Inviavel',
-      'Comentarios',
-    ];
+    const headers = ['Data', 'Imagem', 'Pesquisador', 'Projeto', 'Tratamento', 'Placa', 'Quadrante', 'Viaveis', 'Inviaveis', 'Total', '% Viavel', '% Inviavel', 'Comentarios'];
     const row = [
       new Date().toLocaleString(),
       filename,
@@ -654,11 +588,11 @@ export default function App() {
       totalCount.toString(),
       viablePercent,
       inviablePercent,
-      metadata.notes.replace(/(\r\n|\n|\r)/gm, ' '),
+      metadata.notes.replace(/(\r\n|\n|\r)/gm, " ")
     ];
 
     const csvContent = [headers, row]
-      .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
+      .map(e => e.map(item => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
     downloadBlob(csvContent, generateExportName('csv'), 'text/csv');
@@ -679,8 +613,8 @@ export default function App() {
     // Draw YOLO segmentations
     if (segmentsVisible && yoloSegmentations.length > 0) {
       yoloSegmentations
-        .filter((seg) => seg.visible !== false)
-        .forEach((seg) => {
+        .filter(seg => seg.visible !== false)
+        .forEach(seg => {
           ctx.beginPath();
           const first = seg.polygon_points[0];
           if (first) {
@@ -737,11 +671,7 @@ export default function App() {
     let statsY = padding + 80;
 
     if (hasMoreDetails) {
-      ctx.fillText(
-        `Placa: ${metadata.plate || '-'} | Q: ${metadata.quadrant || '-'}`,
-        padding + 24,
-        padding + 76
-      );
+      ctx.fillText(`Placa: ${metadata.plate || '-'} | Q: ${metadata.quadrant || '-'}`, padding + 24, padding + 76);
       statsY = padding + 104;
     }
 
@@ -772,7 +702,7 @@ export default function App() {
       yoloSegmentations,
       canvasElement: canvasRef.current,
       imageElement: image,
-      visualMode,
+      visualMode
     });
   };
 
@@ -782,26 +712,12 @@ export default function App() {
 
   const handleExportHistoryCSV = () => {
     if (sessions.length === 0) return;
-    const headers = [
-      'Data',
-      'Imagem',
-      'Pesquisador',
-      'Projeto',
-      'Tratamento',
-      'Placa',
-      'Quadrante',
-      'Viaveis',
-      'Inviaveis',
-      'Total',
-      '% Viavel',
-      '% Inviavel',
-      'Comentarios',
-    ];
+    const headers = ['Data', 'Imagem', 'Pesquisador', 'Projeto', 'Tratamento', 'Placa', 'Quadrante', 'Viaveis', 'Inviaveis', 'Total', '% Viavel', '% Inviavel', 'Comentarios'];
 
-    const rows = sessions.map((s) => {
+    const rows = sessions.map(s => {
       const total = s.viableCount + s.inviableCount;
-      const vPct = total > 0 ? ((s.viableCount / total) * 100).toFixed(1) : '0';
-      const iPct = total > 0 ? ((s.inviableCount / total) * 100).toFixed(1) : '0';
+      const vPct = total > 0 ? ((s.viableCount / total) * 100).toFixed(1) : "0";
+      const iPct = total > 0 ? ((s.inviableCount / total) * 100).toFixed(1) : "0";
       return [
         new Date(s.date).toLocaleString(),
         s.filename,
@@ -815,12 +731,12 @@ export default function App() {
         total.toString(),
         vPct,
         iPct,
-        s.metadata.notes.replace(/(\r\n|\n|\r)/gm, ' '),
+        s.metadata.notes.replace(/(\r\n|\n|\r)/gm, " ")
       ];
     });
 
     const csvContent = [headers, ...rows]
-      .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
+      .map(e => e.map(item => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
     downloadBlob(csvContent, 'historico_contagens.csv', 'text/csv');
@@ -828,11 +744,7 @@ export default function App() {
 
   const handleExportHistoryJSON = () => {
     if (sessions.length === 0) return;
-    downloadBlob(
-      JSON.stringify(sessions, null, 2),
-      `seed-counter-backup-${new Date().toISOString().split('T')[0]}.json`,
-      'application/json'
-    );
+    downloadBlob(JSON.stringify(sessions, null, 2), `seed-counter-backup-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
 
   const handleImportHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -848,14 +760,11 @@ export default function App() {
   };
 
   // Fase E — foto capturada entra no fluxo normal de imagens.
-  const handleCameraCapture = useCallback(
-    (file: File) => {
-      loadFiles([file]);
-      // Câmera exige calibração manual de escala (não há DPI de scanner).
-      updateMetadata('imageSource', 'manual_camera');
-    },
-    [loadFiles, updateMetadata]
-  );
+  const handleCameraCapture = useCallback((file: File) => {
+    loadFiles([file]);
+    // Câmera exige calibração manual de escala (não há DPI de scanner).
+    updateMetadata('imageSource', 'manual_camera');
+  }, [loadFiles, updateMetadata]);
 
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
   // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
@@ -882,7 +791,7 @@ export default function App() {
       const contentX = container.scrollLeft + offsetX;
       const contentY = container.scrollTop + offsetY;
 
-      setZoomLevel((prev) => {
+      setZoomLevel(prev => {
         const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
         const next = Math.min(5, Math.max(0.1, prev * factor));
         const ratio = next / prev;
@@ -919,49 +828,32 @@ export default function App() {
   }, []);
 
   // Fase F — clicar numa marcação inverte a classe (viável ↔ inviável).
-  const handleToggleMarkClass = useCallback(
-    (id: number) => {
-      setMarks((prev) =>
-        prev.map((m) =>
-          m.id === id ? { ...m, type: m.type === 'viable' ? 'inviable' : 'viable' } : m
-        )
-      );
-    },
-    [setMarks]
-  );
+  const handleToggleMarkClass = useCallback((id: number) => {
+    setMarks(prev => prev.map(m =>
+      m.id === id
+        ? { ...m, type: m.type === 'viable' ? 'inviable' : 'viable' }
+        : m
+    ));
+  }, [setMarks]);
 
   // Fase F — arrastar reposiciona a marcação (correção fina da detecção).
-  const handleMoveMark = useCallback(
-    (id: number, x: number, y: number) => {
-      setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, x, y } : m)));
-    },
-    [setMarks]
-  );
+  const handleMoveMark = useCallback((id: number, x: number, y: number) => {
+    setMarks(prev => prev.map(m => (m.id === id ? { ...m, x, y } : m)));
+  }, [setMarks]);
 
   // Fase F — borracha: remove todas as marcações dentro do raio.
-  const handleEraseArea = useCallback(
-    (x: number, y: number, radius: number) => {
-      setMarks((prev) => prev.filter((m) => Math.hypot(m.x - x, m.y - y) > radius));
-    },
-    [setMarks]
-  );
+  const handleEraseArea = useCallback((x: number, y: number, radius: number) => {
+    setMarks(prev => prev.filter(m => Math.hypot(m.x - x, m.y - y) > radius));
+  }, [setMarks]);
 
   // Fase E — insere os pontos confirmados da detecção assistida.
-  const handleAddDetectedMarks = useCallback(
-    (detected: Mark[]) => {
-      setMarks((prev) => [...prev, ...detected]);
-    },
-    [setMarks]
-  );
+  const handleAddDetectedMarks = useCallback((detected: Mark[]) => {
+    setMarks(prev => [...prev, ...detected]);
+  }, [setMarks]);
 
   const handleFitToScreen = () => {
     if (image && containerRef.current) {
-      fitToScreen(
-        containerRef.current.clientWidth,
-        containerRef.current.clientHeight,
-        image.width,
-        image.height
-      );
+      fitToScreen(containerRef.current.clientWidth, containerRef.current.clientHeight, image.width, image.height);
     }
   };
 
@@ -980,7 +872,7 @@ export default function App() {
     onToggleTheme: toggleTheme,
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
-    hasPrevImage: currentImageIndex > 0,
+    hasPrevImage: currentImageIndex > 0
   });
 
   return (
@@ -1044,17 +936,14 @@ export default function App() {
                 adjustments={adjustments}
                 onChange={setAdjustments}
                 enabled={adjustEnabled}
-                onToggleEnabled={() => setAdjustEnabled((v) => !v)}
+                onToggleEnabled={() => setAdjustEnabled(v => !v)}
               />
             }
             calibrationSlot={
               <CalibrationPanel
                 umPerPixel={metadata.umPerPixel}
-                onChange={(value) => updateMetadata('umPerPixel', value)}
-                onStartMeasure={() => {
-                  setMeasuredPixels(undefined);
-                  setIsMeasuring(true);
-                }}
+                onChange={value => updateMetadata('umPerPixel', value)}
+                onStartMeasure={() => { setMeasuredPixels(undefined); setIsMeasuring(true); }}
                 measuredPixels={measuredPixels}
                 isMeasuring={isMeasuring}
               />
@@ -1104,7 +993,7 @@ export default function App() {
                 onEraserRadiusChange={setEraserRadius}
                 isTemporary={isToolTemporary}
                 showRulers={showRulers}
-                onToggleRulers={() => setShowRulers((v) => !v)}
+                onToggleRulers={() => setShowRulers(v => !v)}
               />
             )}
             {image && (
@@ -1162,7 +1051,7 @@ export default function App() {
             setIsExperimentModalOpen(true);
           }}
           onAddPlateRun={(experimentId, treatmentId, existingRun) => {
-            const exp = experiments.find((e) => e.id === experimentId);
+            const exp = experiments.find(e => e.id === experimentId);
             if (exp) {
               setSelectedExperimentForRun(exp);
               setSelectedTreatmentIdForRun(treatmentId);
@@ -1183,7 +1072,11 @@ export default function App() {
 
       {/* 5. Footer Status Bar */}
       {currentView === 'counter' && (
-        <Footer filename={filename} imageWidth={image?.width} imageHeight={image?.height} />
+        <Footer
+          filename={filename}
+          imageWidth={image?.width}
+          imageHeight={image?.height}
+        />
       )}
 
       {/* 6. Drag Drop file upload overlay */}
@@ -1206,9 +1099,7 @@ export default function App() {
             exportMeasurementsCSV={handleExportMeasurementsCSV}
             exportSQL={handleExportSQL}
             measurementCount={marks.length}
-            hasMorphometry={yoloSegmentations.some(
-              (s) => s.visible !== false && s.polygon_points?.length >= 3
-            )}
+            hasMorphometry={yoloSegmentations.some(s => s.visible !== false && s.polygon_points?.length >= 3)}
             exportJSON={handleExportJSON}
             exportAnnotatedImage={handleExportAnnotatedImage}
             exportPDF={handleExportPDF}

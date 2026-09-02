@@ -8,15 +8,18 @@ export function useMarks() {
 
   // Manual Marks actions
   const addMark = useCallback((x: number, y: number, type: 'viable' | 'inviable') => {
-    setMarks((prev) => [...prev, { x, y, type, id: Date.now() + Math.random() }]);
+    setMarks(prev => [
+      ...prev,
+      { x, y, type, id: Date.now() + Math.random() }
+    ]);
   }, []);
 
   const undoMark = useCallback(() => {
-    setMarks((prev) => prev.slice(0, -1));
+    setMarks(prev => prev.slice(0, -1));
   }, []);
 
   const removeMark = useCallback((id: number) => {
-    setMarks((prev) => prev.filter((m) => m.id !== id));
+    setMarks(prev => prev.filter(m => m.id !== id));
   }, []);
 
   const resetMarks = useCallback(() => {
@@ -29,15 +32,15 @@ export function useMarks() {
   }, []);
 
   const toggleSegmentationClass = useCallback((id: number) => {
-    setYoloSegmentations((prev) =>
-      prev.map((seg) => {
+    setYoloSegmentations(prev =>
+      prev.map(seg => {
         if (seg.id === id) {
           const newCategory = seg.category === 'viable' ? 'inviable' : 'viable';
           return {
             ...seg,
             category: newCategory,
             class_name: newCategory === 'viable' ? 'viavel' : 'inviavel',
-            edited: true,
+            edited: true
           };
         }
         return seg;
@@ -46,8 +49,8 @@ export function useMarks() {
   }, []);
 
   const deleteSegmentation = useCallback((id: number) => {
-    setYoloSegmentations((prev) =>
-      prev.map((seg) => {
+    setYoloSegmentations(prev =>
+      prev.map(seg => {
         if (seg.id === id) {
           return { ...seg, visible: false, edited: true };
         }
@@ -57,7 +60,7 @@ export function useMarks() {
   }, []);
 
   const toggleSegmentsVisibility = useCallback(() => {
-    setSegmentsVisible((prev) => !prev);
+    setSegmentsVisible(prev => !prev);
   }, []);
 
   const resetYoloSegmentations = useCallback(() => {
@@ -92,6 +95,6 @@ export function useMarks() {
     resetYoloSegmentations,
 
     // Combined
-    resetAllAnnotations,
+    resetAllAnnotations
   };
 }

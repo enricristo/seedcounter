@@ -45,7 +45,7 @@ export function Toolbar({
 }: ToolbarProps) {
   return (
     <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1.5 rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur p-1.5 shadow-xl">
-      {TOOLS.map((tool) => {
+      {TOOLS.map(tool => {
         const Icon = ICONS[tool.id];
         const isActive = activeTool === tool.id;
         return (
@@ -98,7 +98,7 @@ export function Toolbar({
             max={120}
             step={5}
             value={eraserRadius}
-            onChange={(e) => onEraserRadiusChange(Number(e.target.value))}
+            onChange={e => onEraserRadiusChange(Number(e.target.value))}
             title="Tamanho da borracha ( [ e ] )"
             aria-label="Tamanho da borracha"
             className="w-10 accent-rose-500"

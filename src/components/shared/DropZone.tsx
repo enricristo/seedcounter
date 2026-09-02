@@ -18,19 +18,16 @@ export function DropZone({ isVisible }: DropZoneProps) {
       >
         <motion.div
           animate={{ y: [0, -8, 0] }}
-          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
           className="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400"
         >
           <Upload size={36} />
         </motion.div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-zinc-50">
-            Solte para Carregar
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-zinc-50">Solte para Carregar</h2>
           <p className="text-sm text-neutral-500 dark:text-zinc-400 leading-relaxed font-medium">
-            Você pode soltar uma imagem microscópica ou um arquivo JSON de segmentações YOLO
-            (`*_segmentations.json`)
+            Você pode soltar uma imagem microscópica ou um arquivo JSON de segmentações YOLO (`*_segmentations.json`)
           </p>
         </div>
 
