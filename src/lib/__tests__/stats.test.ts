@@ -76,6 +76,9 @@ describe('kruskalWallis', () => {
     expect(result).toHaveProperty('H');
     // With n=1 per group, it shouldn't be statistically significant at alpha=0.05
     expect(result.significant).toBe(false);
+  });
+});
+
 import { arcsinTransform, transformPercentages } from '../stats';
 
 describe('Data Transformation', () => {
