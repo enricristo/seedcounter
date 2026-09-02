@@ -1,0 +1,8 @@
+--- calibration.test.ts
++++ calibration.test.ts
+@@ -35,5 +35,6 @@
+   it('should handle decimal values properly', () => {
+     // 0.5 mm = 500 um, measured as 75 pixels -> 500/75 = 6.666...
+     expect(referenceToUmPerPixel(75, 0.5, 'mm')).toBeCloseTo(6.666667, 4);
++  });
+ });
