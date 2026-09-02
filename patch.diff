@@ -1,0 +1,11 @@
+--- src/lib/__tests__/stats.test.ts
++++ src/lib/__tests__/stats.test.ts
+@@ -71,6 +71,7 @@
+   it('handles invalid inputs gracefully', () => {
+     const result = wilsonCI(0, 0);
+     expect(result).toEqual({ lower: 0, upper: 0, center: 0 });
++  });
++});
+-import { kruskalWallis, type GroupStat } from '../stats';
++
++import { kruskalWallis, type GroupStat } from '../stats';

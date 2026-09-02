@@ -1,0 +1,79 @@
+name: Lint, Build & Docker Validation
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    name: TypeScript Lint & Vite Build
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Checagem de tipos: ESTA bloqueia (se houver erro de tipo, falha o CI).
+      - name: TypeScript check
+        run: npm run type-check
+
+      # Lint: informativo, NAO bloqueia o pipeline (avisos de estilo/qualidade).
+      - name: Lint (advisory)
+        run: npx eslint src --ext .ts,.tsx
+        continue-on-error: true
+
+      - name: Build production
+        run: npm run build
+        env:
+          GEMINI_API_KEY: test-key-for-ci
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  docker-dev:
+    runs-on: ubuntu-latest
+    name: Docker Dev Image Build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build Dockerfile.dev
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          load: true
+          tags: seedcounter:dev-test
+
+  docker-prod:
+    runs-on: ubuntu-latest
+    name: Docker Production Image Build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build Dockerfile (prod)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: GEMINI_API_KEY=test-key-for-ci
+          load: true
+          tags: seedcounter:prod-test

@@ -1,0 +1,27 @@
+# Dockerfile.dev — ambiente de DESENVOLVIMENTO (hot reload)
+# Roda o Vite dev server dentro do container. O codigo-fonte e montado
+# por volume no docker-compose, entao alteracoes refletem na hora.
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Instala dependencias primeiro (cache de camada): so reinstala quando o
+# package*.json muda, nao a cada alteracao de codigo.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# O restante do codigo vem via bind mount (ver docker-compose.yml).
+# Copiamos aqui tambem para o caso de rodar a imagem sem o mount.
+COPY . .
+
+EXPOSE 3000
+
+# usePolling e necessario para o file-watching funcionar dentro do container
+# (especialmente em hosts Windows/macOS via Docker Desktop).
+ENV CHOKIDAR_USEPOLLING=true
+
+# Verifica se o vite dev server ja esta respondendo.
+HEALTHCHECK --interval=5s --timeout=3s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
+CMD ["npm", "run", "dev"]
