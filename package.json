@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit",
     "lint": "tsc --noEmit && eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix && prettier --write src",
-    "format": "prettier --write src"
+    "format": "prettier --write src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -44,12 +45,13 @@
     "eslint": "^8.57.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "onnxruntime-web": "^1.23.0",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
     "vite-plugin-pwa": "^1.3.0",
-    "onnxruntime-web": "^1.23.0"
+    "vitest": "^4.1.11"
   }
 }
