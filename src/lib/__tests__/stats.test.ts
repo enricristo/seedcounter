@@ -71,6 +71,9 @@ describe('wilsonCI', () => {
   it('handles invalid inputs gracefully', () => {
     const result = wilsonCI(0, 0);
     expect(result).toEqual({ lower: 0, upper: 0, center: 0 });
+  });
+});
+
 import { kruskalWallis, type GroupStat } from '../stats';
 
 describe('kruskalWallis', () => {
