@@ -1,3 +1,42 @@
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { 
+  Upload, 
+  RotateCcw, 
+  Download, 
+  Info, 
+  Trash2, 
+  Undo2,
+  MousePointer2,
+  Target,
+  FileText,
+  Image as ImageIcon,
+  FileJson,
+  Table,
+  History,
+  X,
+  Save,
+  Circle,
+  Hash,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  FolderUp,
+  Percent
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+import type { Mark, Metadata, Session } from './types';
+
+const defaultMetadata: Metadata = {
+  researcher: '',
+  project: '',
+  treatment: '',
+  plate: '',
+  quadrant: '',
+  notes: ''
+};
+
+function renderMarksToContext(ctx: CanvasRenderingContext2D, marks: Mark[], mode: 'dots' | 'numbers') {
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 
@@ -984,6 +1023,73 @@ export default function App() {
   });
 
   return (
+    <>
+      <SpeedInsights />
+      <div className="flex flex-col h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden">
+      {/* Header */}
+      <header className="h-16 border-b border-neutral-200 bg-white flex items-center justify-between px-6 shrink-0 z-10 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-red-500 p-2 rounded-lg text-white">
+            <Target size={20} />
+          </div>
+          <div>
+            <h1 className="font-semibold text-lg tracking-tight leading-tight">Contador de Sementes</h1>
+            <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Edição Acadêmica</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsHistoryModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors mr-2"
+          >
+            <History size={18} />
+            Histórico ({sessions.length})
+          </button>
+          
+          <div className="w-[1px] h-6 bg-neutral-200 mx-2" />
+
+          <button 
+            onClick={handleUndo}
+            disabled={marks.length === 0}
+            className="p-2 hover:bg-neutral-100 rounded-full transition-colors disabled:opacity-30 tooltip text-neutral-600"
+            title="Desfazer (Ctrl+Z)"
+          >
+            <Undo2 size={20} />
+          </button>
+          <button 
+            onClick={handleReset}
+            disabled={marks.length === 0}
+            className="p-2 hover:bg-neutral-100 rounded-full transition-colors disabled:opacity-30 text-neutral-600"
+            title="Limpar Tudo"
+          >
+            <RotateCcw size={20} />
+          </button>
+          
+          <div className="w-[1px] h-6 bg-neutral-200 mx-2" />
+
+          {imageQueue.length > 1 && (
+            <div className="flex items-center gap-1 mr-2 bg-neutral-100 rounded-lg p-1">
+              <button 
+                onClick={handlePrevImage}
+                disabled={currentImageIndex === 0}
+                className="p-1 px-2 hover:bg-neutral-200 rounded text-neutral-600 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
+                title="Imagem Anterior"
+              >
+                Anterior
+              </button>
+              <div className="text-[10px] font-mono text-neutral-500 px-1">
+                {currentImageIndex + 1}/{imageQueue.length}
+              </div>
+              <button 
+                onClick={handleNextImage}
+                disabled={currentImageIndex === imageQueue.length - 1}
+                className="p-1 px-2 hover:bg-neutral-200 rounded text-neutral-600 disabled:opacity-30 disabled:hover:bg-transparent text-xs font-medium transition-colors"
+                title="Próxima Imagem"
+              >
+                Próxima
+              </button>
+            </div>
+          )}
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-neutral-50 dark:bg-[#121214] text-neutral-850 dark:text-zinc-105 transition-colors duration-300 font-sans">
       {/* 1. Header Toolbar */}
       <Header
@@ -1235,6 +1341,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
+    </div>
+    </>
+  );
+}
       <AnimatePresence>
         {isYoloExportModalOpen && isYoloExportEnabled && (
           <YoloExportModal
