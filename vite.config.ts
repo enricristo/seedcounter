@@ -9,12 +9,9 @@ export default defineConfig(({mode}) => {
   return {
     base: './',
     build: {
-      // Warn on chunks > 1.5MB (was 500KB, now increased for gradual optimization)
-      // TODO: Optimize with dynamic imports and code-splitting
       chunkSizeWarningLimit: 1500,
       rollupOptions: {
         output: {
-          // Manual chunk splitting for better caching
           manualChunks: {
             'recharts-charts': ['recharts'],
             'pdf-export': ['jspdf', 'html2canvas'],
@@ -52,8 +49,6 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
-          // Não faz sentido pré-cachear arquivos enormes (modelos ONNX, imagens
-          // de origem). Sem isso o build FALHA quando algum passa de 2 MiB.
           globIgnores: ['**/models/**', '**/*.onnx'],
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           runtimeCaching: [
@@ -64,7 +59,7 @@ export default defineConfig(({mode}) => {
                 cacheName: 'google-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  maxAgeSeconds: 60 * 60 * 24 * 365
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
@@ -84,15 +79,14 @@ export default defineConfig(({mode}) => {
       },
     },
     server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      // Inside Docker, usePolling is required for file changes to be detected
-      // (set via CHOKIDAR_USEPOLLING in docker-compose.yml).
       watch: process.env.DISABLE_HMR === 'true'
         ? null
         : { usePolling: process.env.CHOKIDAR_USEPOLLING === 'true' },
     },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+    }
   };
 });
