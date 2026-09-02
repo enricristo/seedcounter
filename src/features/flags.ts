@@ -9,12 +9,12 @@
 
 export type FeatureKey =
   | 'longitudinalView' // Phase A — Longitudinal experiment tracking
-  | 'yoloExport'       // Phase B — YOLO dataset export (experimental)
-  | 'statsView'        // Phase C — Statistical analysis panel
-  | 'aiPointer'        // Phase D — AI-assisted annotation (experimental)
-  | 'cameraCapture'    // Phase E — Camera capture (loupe/microscope/mobile)
-  | 'assistedDetection'// Phase E — Classic CV assisted detection
-  | 'debugPanel';      // Dev — Feature flags debug panel
+  | 'yoloExport' // Phase B — YOLO dataset export (experimental)
+  | 'statsView' // Phase C — Statistical analysis panel
+  | 'aiPointer' // Phase D — AI-assisted annotation (experimental)
+  | 'cameraCapture' // Phase E — Camera capture (loupe/microscope/mobile)
+  | 'assistedDetection' // Phase E — Classic CV assisted detection
+  | 'debugPanel'; // Dev — Feature flags debug panel
 
 export interface FeatureFlag {
   key: FeatureKey;
@@ -87,5 +87,5 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
 
 /** Lookup map for fast access by key */
 export const FEATURE_MAP: Record<FeatureKey, FeatureFlag> = Object.fromEntries(
-  FEATURE_REGISTRY.map(f => [f.key, f])
+  FEATURE_REGISTRY.map((f) => [f.key, f])
 ) as Record<FeatureKey, FeatureFlag>;

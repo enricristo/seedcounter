@@ -13,7 +13,8 @@
     "type-check": "tsc --noEmit",
     "lint": "tsc --noEmit && eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix && prettier --write src",
-    "format": "prettier --write src"
+    "format": "prettier --write src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

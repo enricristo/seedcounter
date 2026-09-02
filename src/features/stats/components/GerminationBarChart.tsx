@@ -117,7 +117,12 @@ export function GerminationBarChart({
         margin={{ top: 28, right: 20, left: 0, bottom: 4 }}
         barCategoryGap="30%"
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" strokeOpacity={0.5} vertical={false} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e4e4e7"
+          strokeOpacity={0.5}
+          vertical={false}
+        />
         <XAxis
           dataKey="label"
           tick={{ fontSize: 11, fill: '#71717a', fontWeight: 600 }}
@@ -132,17 +137,27 @@ export function GerminationBarChart({
           tickLine={false}
           width={40}
         />
-        <ReferenceLine y={80} stroke="#10b981" strokeDasharray="4 3" strokeOpacity={0.4} label={{ value: '80%', fill: '#10b981', fontSize: 9, position: 'insideRight' }} />
-        <ReferenceLine y={50} stroke="#f59e0b" strokeDasharray="4 3" strokeOpacity={0.4} label={{ value: '50%', fill: '#f59e0b', fontSize: 9, position: 'insideRight' }} />
+        <ReferenceLine
+          y={80}
+          stroke="#10b981"
+          strokeDasharray="4 3"
+          strokeOpacity={0.4}
+          label={{ value: '80%', fill: '#10b981', fontSize: 9, position: 'insideRight' }}
+        />
+        <ReferenceLine
+          y={50}
+          stroke="#f59e0b"
+          strokeDasharray="4 3"
+          strokeOpacity={0.4}
+          label={{ value: '50%', fill: '#f59e0b', fontSize: 9, position: 'insideRight' }}
+        />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99,102,241,0.06)' }} />
         <Bar dataKey="mean" radius={[6, 6, 0, 0]} maxBarSize={72}>
           {data.map((d, i) => (
             <Cell key={d.label} fill={d.color} fillOpacity={0.85} />
           ))}
           <ErrorBar dataKey="errorY" width={5} strokeWidth={2} stroke="#52525b" />
-          {showLetters && (
-            <LabelList dataKey="letter" content={<LetterLabel />} />
-          )}
+          {showLetters && <LabelList dataKey="letter" content={<LetterLabel />} />}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

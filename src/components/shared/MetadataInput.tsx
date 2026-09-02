@@ -8,19 +8,19 @@ interface MetadataInputProps {
   disabled?: boolean;
 }
 
-export function MetadataInput({ 
-  label, 
-  value, 
-  onChange, 
+export function MetadataInput({
+  label,
+  value,
+  onChange,
   placeholder,
-  disabled = false
+  disabled = false,
 }: MetadataInputProps) {
   return (
     <div className="flex flex-col gap-1.5 flex-1">
       <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-400 ml-1 tracking-wide uppercase">
         {label}
       </label>
-      <input 
+      <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}

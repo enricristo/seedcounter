@@ -15,5 +15,5 @@ createRoot(document.getElementById('root')!).render(
     <FeatureFlagProvider>
       <App />
     </FeatureFlagProvider>
-  </StrictMode>,
+  </StrictMode>
 );
