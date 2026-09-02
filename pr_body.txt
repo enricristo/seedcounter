@@ -1,0 +1,12 @@
+🧪 [testing improvement: add tests for dunnTest]
+
+🎯 **What:** The `dunnTest` function in `src/lib/stats.ts` was missing test coverage. This function is an important part of the statistical pipeline, performing post-hoc analysis after a Kruskal-Wallis test with both Holm and Bonferroni p-value corrections. It calculates z-scores, mean differences, and adjusted p-values.
+
+📊 **Coverage:** The new tests in `src/lib/__tests__/stats.test.ts` cover:
+- Pairwise comparisons correctly calculating using the Holm step-down correction.
+- Pairwise comparisons correctly calculating using the Bonferroni correction.
+- Edge cases where groups are identical (should result in zero z-score and no significance).
+- Proper handling of tied ranks across groups.
+- Enforced monotonicity for Holm adjusted p-values ensuring they are in the range of 0 to 1.
+
+✨ **Result:** The `dunnTest` function is now well tested and will be safer to refactor or enhance in the future. The project also has `vitest` configured, making it easier to add tests for other pure functions in the future.
