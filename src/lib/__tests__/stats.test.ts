@@ -98,6 +98,9 @@ describe('Data Transformation', () => {
     it('clamps values below 0', () => {
       expect(arcsinTransform(-0.1)).toBe(0);
     });
+  });
+});
+
 import { calculateMGT } from '../stats';
 import type { GerminationReading } from '../../types';
 
