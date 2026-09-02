@@ -3,7 +3,10 @@
  * This ensures the seed is measured as if it were always lying horizontally (flat).
  * Matches the PCA calculation logic in orchid-seed-analyzer.py.
  */
-export function calculateSeedDimensions(polygonPoints: [number, number][]): { width: number; height: number } {
+export function calculateSeedDimensions(polygonPoints: [number, number][]): {
+  width: number;
+  height: number;
+} {
   if (!polygonPoints || polygonPoints.length < 3) {
     return { width: 0, height: 0 };
   }
@@ -55,7 +58,7 @@ export function calculateSeedDimensions(polygonPoints: [number, number][]): { wi
 
     // Characteristic equation: lambda^2 - T*lambda + D = 0
     // Root formula: lambda = T/2 +/- sqrt(T^2/4 - D)
-    const term = T * T / 4 - D;
+    const term = (T * T) / 4 - D;
     const sqrtTerm = Math.sqrt(Math.max(0, term));
     const lambda1 = T / 2 + sqrtTerm;
     const lambda2 = T / 2 - sqrtTerm;
@@ -116,7 +119,7 @@ export function calculateSeedDimensions(polygonPoints: [number, number][]): { wi
 
     return {
       width: parseFloat(width.toFixed(2)),
-      height: parseFloat(height.toFixed(2))
+      height: parseFloat(height.toFixed(2)),
     };
   } catch (error) {
     // Fallback to axis-aligned bounding box (AABB) in case of mathematical instability
@@ -140,7 +143,7 @@ export function calculateSeedDimensions(polygonPoints: [number, number][]): { wi
 
     return {
       width: parseFloat(width.toFixed(2)),
-      height: parseFloat(height.toFixed(2))
+      height: parseFloat(height.toFixed(2)),
     };
   }
 }
