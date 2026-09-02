@@ -1,3 +1,7 @@
+# Modelos pesados mantidos apenas localmente (GitHub rejeita > 100 MiB).
+# Prefixe com "_" o que não deve ser versionado, ex.: _heavy-modelo.onnx
+public/models/_*
+
 node_modules/
 build/
 dist/
