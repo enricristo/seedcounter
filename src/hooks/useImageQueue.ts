@@ -10,36 +10,45 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
   const [imageQueue, setImageQueue] = useState<File[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const loadImageFromFile = useCallback((file: File) => {
-    setFilename(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        if (onImageLoaded) {
-          onImageLoaded(img, file);
-        }
+  const loadImageFromFile = useCallback(
+    (file: File) => {
+      setFilename(file.name);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          setImage(img);
+          if (onImageLoaded) {
+            onImageLoaded(img, file);
+          }
+        };
+        img.src = event.target?.result as string;
       };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  }, [onImageLoaded]);
+      reader.readAsDataURL(file);
+    },
+    [onImageLoaded]
+  );
 
-  const loadFiles = useCallback((files: File[]) => {
-    const validFiles = files.filter(f => f.type.startsWith('image/'));
-    if (validFiles.length > 0) {
-      setImageQueue(validFiles);
-      setCurrentImageIndex(0);
-      loadImageFromFile(validFiles[0]);
-    }
-  }, [loadImageFromFile]);
+  const loadFiles = useCallback(
+    (files: File[]) => {
+      const validFiles = files.filter((f) => f.type.startsWith('image/'));
+      if (validFiles.length > 0) {
+        setImageQueue(validFiles);
+        setCurrentImageIndex(0);
+        loadImageFromFile(validFiles[0]);
+      }
+    },
+    [loadImageFromFile]
+  );
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    loadFiles(files);
-    e.target.value = ''; // Reset input element
-  }, [loadFiles]);
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      loadFiles(files);
+      e.target.value = ''; // Reset input element
+    },
+    [loadFiles]
+  );
 
   const handleNextImage = useCallback(() => {
     if (currentImageIndex < imageQueue.length - 1) {
@@ -77,13 +86,13 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
     setImageQueue,
     currentImageIndex,
     setCurrentImageIndex,
-    
+
     // Actions
     loadFiles,
     handleFileUpload,
     handleNextImage,
     handlePrevImage,
     loadImageFromFile,
-    resetQueue
+    resetQueue,
   };
 }

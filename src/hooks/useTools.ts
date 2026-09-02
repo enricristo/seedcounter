@@ -16,10 +16,25 @@ export interface ToolDefinition {
 }
 
 export const TOOLS: ToolDefinition[] = [
-  { id: 'viable',   label: 'Marcar viável',   shortcut: 'v', hint: 'Clique para marcar sementes viáveis' },
-  { id: 'inviable', label: 'Marcar inviável', shortcut: 'i', hint: 'Clique para marcar sementes inviáveis' },
-  { id: 'eraser',   label: 'Borracha',        shortcut: 'e', hint: 'Clique ou arraste para apagar marcações' },
-  { id: 'pan',      label: 'Mover imagem',    shortcut: 'h', hint: 'Arraste para navegar pela imagem' },
+  {
+    id: 'viable',
+    label: 'Marcar viável',
+    shortcut: 'v',
+    hint: 'Clique para marcar sementes viáveis',
+  },
+  {
+    id: 'inviable',
+    label: 'Marcar inviável',
+    shortcut: 'i',
+    hint: 'Clique para marcar sementes inviáveis',
+  },
+  {
+    id: 'eraser',
+    label: 'Borracha',
+    shortcut: 'e',
+    hint: 'Clique ou arraste para apagar marcações',
+  },
+  { id: 'pan', label: 'Mover imagem', shortcut: 'h', hint: 'Arraste para navegar pela imagem' },
 ];
 
 export function useTools() {
@@ -51,13 +66,13 @@ export function useTools() {
       // X inverte entre viável e inviável (como trocar cores no Photoshop).
       if (e.key.toLowerCase() === 'x') {
         e.preventDefault();
-        setActiveTool(prev =>
+        setActiveTool((prev) =>
           prev === 'viable' ? 'inviable' : prev === 'inviable' ? 'viable' : prev
         );
         return;
       }
 
-      const match = TOOLS.find(t => t.shortcut === e.key.toLowerCase());
+      const match = TOOLS.find((t) => t.shortcut === e.key.toLowerCase());
       if (match) {
         e.preventDefault();
         setActiveTool(match.id);
@@ -65,8 +80,8 @@ export function useTools() {
       }
 
       // Colchetes ajustam o tamanho da borracha, como em editores gráficos.
-      if (e.key === '[') setEraserRadius(r => Math.max(5, r - 5));
-      if (e.key === ']') setEraserRadius(r => Math.min(120, r + 5));
+      if (e.key === '[') setEraserRadius((r) => Math.max(5, r - 5));
+      if (e.key === ']') setEraserRadius((r) => Math.min(120, r + 5));
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
@@ -87,8 +102,8 @@ export function useTools() {
   }, [tempTool]);
 
   const cycleTool = useCallback(() => {
-    setActiveTool(prev => {
-      const i = TOOLS.findIndex(t => t.id === prev);
+    setActiveTool((prev) => {
+      const i = TOOLS.findIndex((t) => t.id === prev);
       return TOOLS[(i + 1) % TOOLS.length].id;
     });
   }, []);

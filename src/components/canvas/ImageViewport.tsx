@@ -22,7 +22,7 @@ export function ImageViewport({
   startDrag,
   handleDrag,
   stopDrag,
-  children
+  children,
 }: ViewportProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     startDrag(e, containerRef.current);
@@ -33,13 +33,10 @@ export function ImageViewport({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`flex-1 bg-neutral-50 dark:bg-[#121214] relative overflow-auto select-none transition-colors duration-300
-        ${isPanningMode 
-          ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') 
-          : ''
-        }
+        ${isPanningMode ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}
       `}
       onContextMenu={(e) => e.preventDefault()}
       onMouseDown={handleMouseDown}
@@ -48,11 +45,7 @@ export function ImageViewport({
       onMouseLeave={stopDrag}
     >
       <div className="w-fit h-fit min-w-full min-h-full flex items-center justify-center p-8 selection:bg-none">
-        {!image ? (
-          <EmptyState onBrowseFiles={onBrowseFiles} />
-        ) : (
-          children
-        )}
+        {!image ? <EmptyState onBrowseFiles={onBrowseFiles} /> : children}
       </div>
     </div>
   );

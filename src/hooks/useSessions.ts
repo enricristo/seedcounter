@@ -23,7 +23,7 @@ export function useSessions() {
           }
         }
       } catch (e) {
-        console.error("Failed to migrate sessions from localStorage", e);
+        console.error('Failed to migrate sessions from localStorage', e);
       }
     };
     migrate();
@@ -38,7 +38,7 @@ export function useSessions() {
   }, []);
 
   const clearSessions = useCallback(async () => {
-    if (window.confirm("Deseja realmente limpar todo o histórico de contagens?")) {
+    if (window.confirm('Deseja realmente limpar todo o histórico de contagens?')) {
       await db.sessions.clear();
     }
   }, []);
@@ -49,7 +49,7 @@ export function useSessions() {
         await db.sessions.bulkPut(imported);
         return true;
       } catch (error) {
-        console.error("Failed to import sessions:", error);
+        console.error('Failed to import sessions:', error);
         return false;
       }
     }
@@ -61,7 +61,6 @@ export function useSessions() {
     addSession,
     deleteSession,
     clearSessions,
-    importSessions
+    importSessions,
   };
 }
-
