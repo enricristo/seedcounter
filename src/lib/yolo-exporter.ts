@@ -353,47 +353,51 @@ export async function generateYOLODataset(
     { subset: 'val', sessions: val },
   ];
 
-  for (const { subset, sessions: subsetSessions } of splits) {
-    for (const session of subsetSessions) {
-      const stem = sessionStem(session);
-      const ext = getImageExtension(session.imageData!);
+  await Promise.all(
+    splits.map(async ({ subset, sessions: subsetSessions }) => {
+      await Promise.all(
+        subsetSessions.map(async (session) => {
+          const stem = sessionStem(session);
+          const ext = getImageExtension(session.imageData!);
 
-      let imgW: number;
-      let imgH: number;
-      try {
-        [imgW, imgH] = await getImageDimensions(session.imageData!);
-      } catch {
-        skippedSessions.push(
-          `  - ${session.filename} (${session.date}): falha ao decodificar imagem`
-        );
-        continue;
-      }
+          let imgW: number;
+          let imgH: number;
+          try {
+            [imgW, imgH] = await getImageDimensions(session.imageData!);
+          } catch {
+            skippedSessions.push(
+              `  - ${session.filename} (${session.date}): falha ao decodificar imagem`
+            );
+            return;
+          }
 
-      // Write image
-      const imageBytes = base64ToUint8Array(session.imageData!);
-      zip.file(`dataset/images/${subset}/${stem}.${ext}`, imageBytes);
+          // Write image
+          const imageBytes = base64ToUint8Array(session.imageData!);
+          zip.file(`dataset/images/${subset}/${stem}.${ext}`, imageBytes);
 
-      // Build & write label
-      const labelLines = await buildLabelLines(session, imgW, imgH, opts);
-      zip.file(
-        `dataset/labels/${subset}/${stem}.txt`,
-        labelLines.join('\n')
+          // Build & write label
+          const labelLines = await buildLabelLines(session, imgW, imgH, opts);
+          zip.file(
+            `dataset/labels/${subset}/${stem}.txt`,
+            labelLines.join('\n')
+          );
+
+          // Collect calibration notes
+          const umPx = getUmPerPixel(session);
+          if (umPx) {
+            const radiusPx = opts.estimatedSeedDiameterUm / (2 * umPx);
+            calibrationNotes.push(
+              `  ${stem}: ${umPx} µm/px → radius ≈ ${radiusPx.toFixed(1)}px (source: ${session.metadata.imageSource ?? 'manual'})`
+            );
+          } else {
+            calibrationNotes.push(
+              `  ${stem}: calibração desconhecida → fallback ${opts.fallbackRadiusPx}px radius`
+            );
+          }
+        })
       );
-
-      // Collect calibration notes
-      const umPx = getUmPerPixel(session);
-      if (umPx) {
-        const radiusPx = opts.estimatedSeedDiameterUm / (2 * umPx);
-        calibrationNotes.push(
-          `  ${stem}: ${umPx} µm/px → radius ≈ ${radiusPx.toFixed(1)}px (source: ${session.metadata.imageSource ?? 'manual'})`
-        );
-      } else {
-        calibrationNotes.push(
-          `  ${stem}: calibração desconhecida → fallback ${opts.fallbackRadiusPx}px radius`
-        );
-      }
-    }
-  }
+    })
+  );
 
   // dataset.yaml
   const classes = opts.includeInviable
