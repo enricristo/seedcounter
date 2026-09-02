@@ -52,36 +52,59 @@ export const NEUTRAL_ADJUSTMENTS: ImageAdjustments = {
 /** true quando nenhum ajuste está ativo (permite pular o processamento). */
 export function isNeutral(a: ImageAdjustments): boolean {
   return (
-    a.brightness === 0 && a.contrast === 0 && a.gamma === 1 &&
-    a.red === 0 && a.green === 0 && a.blue === 0 &&
-    a.saturation === 0 && !a.invert && a.channel === 'all'
+    a.brightness === 0 &&
+    a.contrast === 0 &&
+    a.gamma === 1 &&
+    a.red === 0 &&
+    a.green === 0 &&
+    a.blue === 0 &&
+    a.saturation === 0 &&
+    !a.invert &&
+    a.channel === 'all'
   );
 }
 
 /** Predefinições úteis no laboratório. */
-export const ADJUSTMENT_PRESETS: { id: string; label: string; hint: string; values: Partial<ImageAdjustments> }[] = [
+export const ADJUSTMENT_PRESETS: {
+  id: string;
+  label: string;
+  hint: string;
+  values: Partial<ImageAdjustments>;
+}[] = [
   {
-    id: 'neutral', label: 'Original', hint: 'Sem ajustes',
+    id: 'neutral',
+    label: 'Original',
+    hint: 'Sem ajustes',
     values: NEUTRAL_ADJUSTMENTS,
   },
   {
-    id: 'contrast', label: 'Realçar sementes', hint: 'Mais contraste e leve escurecimento',
+    id: 'contrast',
+    label: 'Realçar sementes',
+    hint: 'Mais contraste e leve escurecimento',
     values: { contrast: 35, brightness: -8, gamma: 0.9 },
   },
   {
-    id: 'green', label: 'Canal verde', hint: 'Costuma separar melhor semente e papel',
+    id: 'green',
+    label: 'Canal verde',
+    hint: 'Costuma separar melhor semente e papel',
     values: { channel: 'g', contrast: 25 },
   },
   {
-    id: 'blue', label: 'Canal azul', hint: 'Útil quando há coloração avermelhada (tetrazólio)',
+    id: 'blue',
+    label: 'Canal azul',
+    hint: 'Útil quando há coloração avermelhada (tetrazólio)',
     values: { channel: 'b', contrast: 25 },
   },
   {
-    id: 'shadows', label: 'Abrir sombras', hint: 'Recupera detalhe em regiões escuras',
+    id: 'shadows',
+    label: 'Abrir sombras',
+    hint: 'Recupera detalhe em regiões escuras',
     values: { gamma: 1.8, contrast: 10 },
   },
   {
-    id: 'tetrazolium', label: 'Realçar vermelho', hint: 'Destaca tecido corado em tetrazólio',
+    id: 'tetrazolium',
+    label: 'Realçar vermelho',
+    hint: 'Destaca tecido corado em tetrazólio',
     values: { red: 25, green: -15, blue: -15, saturation: 40, contrast: 20 },
   },
 ];
@@ -89,7 +112,12 @@ export const ADJUSTMENT_PRESETS: { id: string; label: string; hint: string; valu
 // ---------------------------------------------------------------------------
 // Tabelas de consulta (LUT) — processa 1× por canal em vez de por pixel
 // ---------------------------------------------------------------------------
-function buildLUT(brightness: number, contrast: number, gamma: number, channelShift: number): Uint8Array {
+function buildLUT(
+  brightness: number,
+  contrast: number,
+  gamma: number,
+  channelShift: number
+): Uint8Array {
   const lut = new Uint8Array(256);
   // Fator de contraste padrão (mesma fórmula usada em editores de imagem).
   const c = (259 * (contrast + 255)) / (255 * (259 - contrast));
@@ -157,7 +185,9 @@ export function applyAdjustments(
     }
 
     if (adj.invert) {
-      r = 255 - r; g = 255 - g; b = 255 - b;
+      r = 255 - r;
+      g = 255 - g;
+      b = 255 - b;
     }
 
     d[i] = r < 0 ? 0 : r > 255 ? 255 : r;
@@ -210,17 +240,22 @@ export function computeHistogram(
   const h = Math.max(1, Math.round(sh * scale));
 
   const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(source, 0, 0, w, h);
   const d = ctx.getImageData(0, 0, w, h).data;
 
-  const r = new Uint32Array(256), g = new Uint32Array(256);
-  const b = new Uint32Array(256), lum = new Uint32Array(256);
+  const r = new Uint32Array(256),
+    g = new Uint32Array(256);
+  const b = new Uint32Array(256),
+    lum = new Uint32Array(256);
 
   for (let i = 0; i < d.length; i += 4) {
-    r[d[i]]++; g[d[i + 1]]++; b[d[i + 2]]++;
+    r[d[i]]++;
+    g[d[i + 1]]++;
+    b[d[i + 2]]++;
     lum[(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0]++;
   }
 

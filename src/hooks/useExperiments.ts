@@ -8,10 +8,8 @@ import { db } from '../lib/db';
 // ---------------------------------------------------------------------------
 
 export function useExperiments() {
-  const experiments = useLiveQuery(
-    () => db.experiments.orderBy('createdAt').reverse().toArray(),
-    []
-  ) ?? [];
+  const experiments =
+    useLiveQuery(() => db.experiments.orderBy('createdAt').reverse().toArray(), []) ?? [];
 
   // ---------------------------------------------------------------------------
   // Create / Update
@@ -55,28 +53,27 @@ export function useExperiments() {
     });
   }, []);
 
-  const updateTreatment = useCallback(async (
-    experimentId: string,
-    treatmentId: string,
-    updates: Partial<Treatment>
-  ) => {
-    const exp = await db.experiments.get(experimentId);
-    if (!exp) return;
-    await db.experiments.put({
-      ...exp,
-      treatments: exp.treatments.map(t =>
-        t.id === treatmentId ? { ...t, ...updates, id: treatmentId, experimentId } : t
-      ),
-      updatedAt: new Date().toISOString(),
-    });
-  }, []);
+  const updateTreatment = useCallback(
+    async (experimentId: string, treatmentId: string, updates: Partial<Treatment>) => {
+      const exp = await db.experiments.get(experimentId);
+      if (!exp) return;
+      await db.experiments.put({
+        ...exp,
+        treatments: exp.treatments.map((t) =>
+          t.id === treatmentId ? { ...t, ...updates, id: treatmentId, experimentId } : t
+        ),
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    []
+  );
 
   const deleteTreatment = useCallback(async (experimentId: string, treatmentId: string) => {
     const exp = await db.experiments.get(experimentId);
     if (!exp) return;
     await db.experiments.put({
       ...exp,
-      treatments: exp.treatments.filter(t => t.id !== treatmentId),
+      treatments: exp.treatments.filter((t) => t.id !== treatmentId),
       updatedAt: new Date().toISOString(),
     });
   }, []);
@@ -85,47 +82,45 @@ export function useExperiments() {
   // PlateRun management (add an evaluation day to a treatment)
   // ---------------------------------------------------------------------------
 
-  const addPlateRun = useCallback(async (
-    experimentId: string,
-    treatmentId: string,
-    plateRun: PlateRun
-  ) => {
-    const exp = await db.experiments.get(experimentId);
-    if (!exp) return;
-    await db.experiments.put({
-      ...exp,
-      treatments: exp.treatments.map(t =>
-        t.id === treatmentId
-          ? { ...t, plates: [...t.plates, plateRun] }
-          : t
-      ),
-      updatedAt: new Date().toISOString(),
-    });
-  }, []);
+  const addPlateRun = useCallback(
+    async (experimentId: string, treatmentId: string, plateRun: PlateRun) => {
+      const exp = await db.experiments.get(experimentId);
+      if (!exp) return;
+      await db.experiments.put({
+        ...exp,
+        treatments: exp.treatments.map((t) =>
+          t.id === treatmentId ? { ...t, plates: [...t.plates, plateRun] } : t
+        ),
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    []
+  );
 
-  const updatePlateRun = useCallback(async (
-    experimentId: string,
-    treatmentId: string,
-    dayIndex: number,
-    updates: Partial<PlateRun>
-  ) => {
-    const exp = await db.experiments.get(experimentId);
-    if (!exp) return;
-    await db.experiments.put({
-      ...exp,
-      treatments: exp.treatments.map(t =>
-        t.id === treatmentId
-          ? {
-              ...t,
-              plates: t.plates.map(p =>
-                p.dayIndex === dayIndex ? { ...p, ...updates } : p
-              ),
-            }
-          : t
-      ),
-      updatedAt: new Date().toISOString(),
-    });
-  }, []);
+  const updatePlateRun = useCallback(
+    async (
+      experimentId: string,
+      treatmentId: string,
+      dayIndex: number,
+      updates: Partial<PlateRun>
+    ) => {
+      const exp = await db.experiments.get(experimentId);
+      if (!exp) return;
+      await db.experiments.put({
+        ...exp,
+        treatments: exp.treatments.map((t) =>
+          t.id === treatmentId
+            ? {
+                ...t,
+                plates: t.plates.map((p) => (p.dayIndex === dayIndex ? { ...p, ...updates } : p)),
+              }
+            : t
+        ),
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    []
+  );
 
   // ---------------------------------------------------------------------------
   // Import / Export

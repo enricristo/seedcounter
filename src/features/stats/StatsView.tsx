@@ -13,7 +13,14 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import type { Session, Experiment, TreatmentStats } from '../../types';
-import { runStatsPipeline, GroupStat, calculateIVG, calculateMGT, calculateT50, wilsonCI } from '../../lib/stats';
+import {
+  runStatsPipeline,
+  GroupStat,
+  calculateIVG,
+  calculateMGT,
+  calculateT50,
+  wilsonCI,
+} from '../../lib/stats';
 import { GerminationBarChart } from './components/GerminationBarChart';
 import { GerminationCurveChart } from './components/GerminationCurveChart';
 import { StatsResultCard } from './components/StatsResultCard';
@@ -26,7 +33,9 @@ interface StatsViewProps {
 }
 
 export function StatsView({ sessions, experiments = [], onViewSession }: StatsViewProps) {
-  const [activeTab, setActiveTab] = useState<'sessions' | 'treatments' | 'vigor' | 'contamination' | 'export'>('sessions');
+  const [activeTab, setActiveTab] = useState<
+    'sessions' | 'treatments' | 'vigor' | 'contamination' | 'export'
+  >('sessions');
   const [postHoc, setPostHoc] = useState<'scott-knott' | 'tukey'>('scott-knott');
   const [useArcsin, setUseArcsin] = useState(true);
   const [sortField, setSortField] = useState<'date' | 'plate' | 'treatment' | 'viable'>('date');
@@ -36,7 +45,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
   // Group sessions by treatment
   const treatmentGroups = useMemo(() => {
     const groups: Record<string, number[]> = {};
-    sessions.forEach(s => {
+    sessions.forEach((s) => {
       const treatment = s.metadata.treatment?.trim() || 'Controle';
       const total = s.viableCount + s.inviableCount;
       if (total > 0) {
@@ -68,7 +77,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     let bacterial = 0;
     let mixed = 0;
 
-    sessions.forEach(s => {
+    sessions.forEach((s) => {
       // Look inside session metadata or linked experiment runs
       // Check if session itself has a dayIndex and experimentId
       // Standard default is none if not set
@@ -82,9 +91,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     let expMixed = 0;
     let hasExpData = false;
 
-    experiments.forEach(e => {
-      e.treatments.forEach(t => {
-        t.plates.forEach(p => {
+    experiments.forEach((e) => {
+      e.treatments.forEach((t) => {
+        t.plates.forEach((p) => {
           hasExpData = true;
           if (p.contamination === 'fungal') expFungal++;
           else if (p.contamination === 'bacterial') expBacterial++;
@@ -95,7 +104,13 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     });
 
     if (hasExpData) {
-      return { none: expNone, fungal: expFungal, bacterial: expBacterial, mixed: expMixed, hasData: true };
+      return {
+        none: expNone,
+        fungal: expFungal,
+        bacterial: expBacterial,
+        mixed: expMixed,
+        hasData: true,
+      };
     }
 
     return { none, fungal, bacterial, mixed, hasData: false };
@@ -109,16 +124,18 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     // Use first active experiment
     const exp = experiments[0];
     const days = exp.evaluationDays;
-    const codes = exp.treatments.map(t => t.code);
+    const codes = exp.treatments.map((t) => t.code);
 
     // Build CurvePoints
-    const points = days.map(day => {
+    const points = days.map((day) => {
       const pt: any = { day };
-      exp.treatments.forEach(t => {
+      exp.treatments.forEach((t) => {
         // Find plates evaluated at or before this day and average cumulative %
-        const runsOnDay = t.plates.filter(p => p.dayIndex === day);
+        const runsOnDay = t.plates.filter((p) => p.dayIndex === day);
         if (runsOnDay.length > 0) {
-          const avgRate = runsOnDay.reduce((sum, p) => sum + (p.germinatedSeeds / p.totalSeeds) * 100, 0) / runsOnDay.length;
+          const avgRate =
+            runsOnDay.reduce((sum, p) => sum + (p.germinatedSeeds / p.totalSeeds) * 100, 0) /
+            runsOnDay.length;
           pt[t.code] = avgRate;
         } else {
           // Carry forward or set null
@@ -136,12 +153,12 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     if (experiments.length === 0) return [];
     const exp = experiments[0];
 
-    return exp.treatments.map(t => {
+    return exp.treatments.map((t) => {
       // Group readings by dayIndex
       const readingsMap: Record<number, { day: number; germinated: number; total: number }> = {};
-      
+
       // Calculate non-cumulative germination on each day
-      t.plates.forEach(p => {
+      t.plates.forEach((p) => {
         if (!readingsMap[p.dayIndex]) {
           readingsMap[p.dayIndex] = { day: p.dayIndex, germinated: 0, total: 0 };
         }
@@ -161,8 +178,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
           };
         });
 
-      const totalSeeds = t.plates.reduce((sum, p) => sum + p.totalSeeds, 0) / Math.max(1, t.plates.length); // Average seeds per replicate
-      
+      const totalSeeds =
+        t.plates.reduce((sum, p) => sum + p.totalSeeds, 0) / Math.max(1, t.plates.length); // Average seeds per replicate
+
       // Calculations from stats engine
       const ivg = calculateIVG(readings);
       const mgt = calculateMGT(readings);
@@ -209,9 +227,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     if (statsResult.treatmentStats.length === 0) return;
     const header = 'Tratamento\tMédia (%)\tDesvio Padrão\tLetra (5%)\n';
     const rows = statsResult.treatmentStats
-      .map(s => `${s.treatmentId}\t${s.mean.toFixed(1)}%\t${s.sd.toFixed(1)}\t${s.letter || 'a'}`)
+      .map((s) => `${s.treatmentId}\t${s.mean.toFixed(1)}%\t${s.sd.toFixed(1)}\t${s.letter || 'a'}`)
       .join('\n');
-    
+
     navigator.clipboard.writeText(header + rows);
     setCopiedLetters(true);
     setTimeout(() => setCopiedLetters(false), 2000);
@@ -220,18 +238,24 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
   // Export Stats as CSV
   const handleExportStatsCSV = () => {
     if (statsResult.treatmentStats.length === 0) return;
-    
+
     const csvContent = [
-      ['Tratamento', 'Repeticoes (N)', 'Germinacao Media (%)', 'Desvio Padrao', 'Letra Scott-Knott'],
-      ...statsResult.treatmentStats.map(s => [
+      [
+        'Tratamento',
+        'Repeticoes (N)',
+        'Germinacao Media (%)',
+        'Desvio Padrao',
+        'Letra Scott-Knott',
+      ],
+      ...statsResult.treatmentStats.map((s) => [
         s.treatmentId,
         s.n,
         s.mean.toFixed(2),
         s.sd.toFixed(2),
-        s.letter || 'a'
-      ])
+        s.letter || 'a',
+      ]),
     ]
-      .map(row => row.map(val => `"${val}"`).join(','))
+      .map((row) => row.map((val) => `"${val}"`).join(','))
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -248,10 +272,19 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
   // Export Session Summary as CSV
   const handleExportSessionsCSV = () => {
     if (sessions.length === 0) return;
-    
+
     const csvContent = [
-      ['Data', 'Arquivo', 'Placa', 'Tratamento', 'Especie', 'Sementes Viaveis', 'Sementes Inviaveis', 'Germinacao (%)'],
-      ...sessions.map(s => {
+      [
+        'Data',
+        'Arquivo',
+        'Placa',
+        'Tratamento',
+        'Especie',
+        'Sementes Viaveis',
+        'Sementes Inviaveis',
+        'Germinacao (%)',
+      ],
+      ...sessions.map((s) => {
         const total = s.viableCount + s.inviableCount;
         const rate = total > 0 ? (s.viableCount / total) * 100 : 0;
         return [
@@ -262,11 +295,11 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
           s.metadata.project || '',
           s.viableCount,
           s.inviableCount,
-          rate.toFixed(2)
+          rate.toFixed(2),
         ];
-      })
+      }),
     ]
-      .map(row => row.map(val => `"${val}"`).join(','))
+      .map((row) => row.map((val) => `"${val}"`).join(','))
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -290,12 +323,12 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
           Nenhum dado estatístico disponível
         </h3>
         <p className="text-xs text-neutral-450 dark:text-zinc-500 leading-relaxed font-semibold">
-          Realize contagens de sementes e salve-as no histórico local para ativar o motor estatístico e comparar tratamentos.
+          Realize contagens de sementes e salve-as no histórico local para ativar o motor
+          estatístico e comparar tratamentos.
         </p>
       </div>
     );
   }
-
 
   // Pie chart data
   const pieData = [
@@ -303,7 +336,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     { name: 'Contaminação Fúngica', value: contaminationStats.fungal, color: '#f59e0b' },
     { name: 'Contaminação Bacteriana', value: contaminationStats.bacterial, color: '#3b82f6' },
     { name: 'Contaminação Mista', value: contaminationStats.mixed, color: '#ef4444' },
-  ].filter(d => d.value > 0);
+  ].filter((d) => d.value > 0);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#09090B] text-neutral-800 dark:text-zinc-100 transition-all duration-300">
@@ -372,7 +405,8 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   Sessões de Contagem Salvas
                 </h3>
                 <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-medium">
-                  {sessions.length} avaliações registradas no total. Clique em 'Ver foto' para analisar as marcações.
+                  {sessions.length} avaliações registradas no total. Clique em 'Ver foto' para
+                  analisar as marcações.
                 </p>
               </div>
               <button
@@ -388,36 +422,61 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-neutral-100/50 dark:bg-zinc-900/50 text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-wider border-b border-neutral-200 dark:border-zinc-800">
-                    <th className="px-4 py-3 cursor-pointer" onClick={() => { setSortField('date'); setSortAsc(!sortAsc); }}>
+                    <th
+                      className="px-4 py-3 cursor-pointer"
+                      onClick={() => {
+                        setSortField('date');
+                        setSortAsc(!sortAsc);
+                      }}
+                    >
                       Data {sortField === 'date' && (sortAsc ? '▲' : '▼')}
                     </th>
-                    <th className="px-4 py-3 cursor-pointer" onClick={() => { setSortField('plate'); setSortAsc(!sortAsc); }}>
+                    <th
+                      className="px-4 py-3 cursor-pointer"
+                      onClick={() => {
+                        setSortField('plate');
+                        setSortAsc(!sortAsc);
+                      }}
+                    >
                       Placa {sortField === 'plate' && (sortAsc ? '▲' : '▼')}
                     </th>
-                    <th className="px-4 py-3 cursor-pointer" onClick={() => { setSortField('treatment'); setSortAsc(!sortAsc); }}>
+                    <th
+                      className="px-4 py-3 cursor-pointer"
+                      onClick={() => {
+                        setSortField('treatment');
+                        setSortAsc(!sortAsc);
+                      }}
+                    >
                       Tratamento {sortField === 'treatment' && (sortAsc ? '▲' : '▼')}
                     </th>
                     <th className="px-4 py-3">Espécie / Lote</th>
                     <th className="px-4 py-3 text-center">Total Sementes</th>
-                    <th className="px-4 py-3 text-center cursor-pointer" onClick={() => { setSortField('viable'); setSortAsc(!sortAsc); }}>
+                    <th
+                      className="px-4 py-3 text-center cursor-pointer"
+                      onClick={() => {
+                        setSortField('viable');
+                        setSortAsc(!sortAsc);
+                      }}
+                    >
                       Viáveis (%) {sortField === 'viable' && (sortAsc ? '▲' : '▼')}
                     </th>
                     <th className="px-4 py-3 text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-zinc-850 text-xs font-medium text-neutral-700 dark:text-zinc-300">
-                  {sortedSessions.map(s => {
+                  {sortedSessions.map((s) => {
                     const total = s.viableCount + s.inviableCount;
                     const rate = total > 0 ? (s.viableCount / total) * 100 : 0;
-                    
+
                     return (
-                      <tr key={s.id} className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/20 transition-colors">
+                      <tr
+                        key={s.id}
+                        className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/20 transition-colors"
+                      >
                         <td className="px-4 py-3 font-mono text-[10px]">
                           {new Date(s.date).toLocaleDateString('pt-BR')}
                         </td>
-                        <td className="px-4 py-3 font-bold">
-                          {s.metadata.plate || 'S/ N'}
-                        </td>
+                        <td className="px-4 py-3 font-bold">{s.metadata.plate || 'S/ N'}</td>
                         <td className="px-4 py-3">
                           <span className="px-2 py-0.5 bg-neutral-200 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 rounded-md font-semibold text-[10px]">
                             {s.metadata.treatment || 'Controle'}
@@ -429,11 +488,15 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                         <td className="px-4 py-3 text-center font-bold">{total}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <span className={`font-bold w-12 text-right ${
-                              rate >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
-                              rate >= 50 ? 'text-yellow-600 dark:text-yellow-400' :
-                              'text-red-500'
-                            }`}>
+                            <span
+                              className={`font-bold w-12 text-right ${
+                                rate >= 80
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : rate >= 50
+                                    ? 'text-yellow-600 dark:text-yellow-400'
+                                    : 'text-red-500'
+                              }`}
+                            >
                               {rate.toFixed(1)}%
                             </span>
                             <div className="w-16">
@@ -482,7 +545,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   </label>
                   <select
                     value={postHoc}
-                    onChange={e => setPostHoc(e.target.value as 'scott-knott' | 'tukey')}
+                    onChange={(e) => setPostHoc(e.target.value as 'scott-knott' | 'tukey')}
                     className="px-2 py-1 bg-neutral-100 dark:bg-zinc-850 text-neutral-700 dark:text-zinc-350 border border-neutral-200 dark:border-zinc-800 rounded-lg text-[10.5px] font-bold focus:outline-none"
                   >
                     <option value="scott-knott">Scott-Knott (Recomendado)</option>
@@ -494,7 +557,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   <input
                     type="checkbox"
                     checked={useArcsin}
-                    onChange={e => setUseArcsin(e.target.checked)}
+                    onChange={(e) => setUseArcsin(e.target.checked)}
                     className="accent-purple-600"
                   />
                   <span>Transformar arcsin√x</span>
@@ -510,7 +573,11 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                     Germinação Média com Letras de Diferença Significativa
                   </h4>
-                  <HelpCircle size={14} className="text-neutral-400" title="Barras mostram a média com intervalo de confiança de Wilson. Letras diferentes indicam diferença estatística significativa (p < 0.05)." />
+                  <HelpCircle
+                    size={14}
+                    className="text-neutral-400"
+                    title="Barras mostram a média com intervalo de confiança de Wilson. Letras diferentes indicam diferença estatística significativa (p < 0.05)."
+                  />
                 </div>
                 {statsResult.treatmentStats.length > 0 ? (
                   <GerminationBarChart stats={statsResult.treatmentStats} />
@@ -585,8 +652,11 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 dark:divide-zinc-850 text-xs font-medium text-neutral-750 dark:text-zinc-300">
-                    {statsResult.treatmentStats.map(s => (
-                      <tr key={s.treatmentId} className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/10">
+                    {statsResult.treatmentStats.map((s) => (
+                      <tr
+                        key={s.treatmentId}
+                        className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/10"
+                      >
                         <td className="px-4 py-2.5 font-bold">{s.treatmentId}</td>
                         <td className="px-4 py-2.5 text-center">{s.n}</td>
                         <td className="px-4 py-2.5 text-center font-bold text-purple-600 dark:text-purple-400">
@@ -602,7 +672,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 </table>
               </div>
               <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-semibold italic mt-2">
-                * Médias seguidas pela mesma letra minúscula na coluna não diferem estatisticamente entre si pelo teste de {postHoc === 'scott-knott' ? 'Scott-Knott' : 'Tukey'} a 5% de probabilidade.
+                * Médias seguidas pela mesma letra minúscula na coluna não diferem estatisticamente
+                entre si pelo teste de {postHoc === 'scott-knott' ? 'Scott-Knott' : 'Tukey'} a 5% de
+                probabilidade.
               </p>
             </div>
           </div>
@@ -616,7 +688,8 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 Análise Temporal e Índices de Vigor
               </h3>
               <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-semibold">
-                Análise cinética da germinação. Requer lançamento de avaliações longitudinais vinculadas a experimentos.
+                Análise cinética da germinação. Requer lançamento de avaliações longitudinais
+                vinculadas a experimentos.
               </p>
             </div>
 
@@ -632,7 +705,10 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                       Evolução acumulada da germinação (%) em relação aos Dias Após Semeadura (DAP).
                     </p>
                   </div>
-                  <GerminationCurveChart data={curveData.points} treatmentCodes={curveData.treatmentCodes} />
+                  <GerminationCurveChart
+                    data={curveData.points}
+                    treatmentCodes={curveData.treatmentCodes}
+                  />
                 </div>
 
                 {/* Vigor Index Table Card */}
@@ -641,22 +717,39 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                       Índices de Velocidade de Germinação (Vigor)
                     </h4>
-                    
+
                     <div className="border border-neutral-200 dark:border-zinc-850 rounded-2xl overflow-hidden">
                       <table className="w-full text-left border-collapse text-[11px]">
                         <thead>
                           <tr className="bg-neutral-100/50 dark:bg-zinc-900/50 font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-wider border-b border-neutral-200 dark:border-zinc-800">
                             <th className="px-3 py-2">Trat.</th>
-                            <th className="px-3 py-2 text-center" title="Índice de Velocidade de Germinação (Maguire, 1962)">IVG</th>
-                            <th className="px-3 py-2 text-center" title="Tempo Médio de Germinação">TMG</th>
-                            <th className="px-3 py-2 text-center" title="Tempo para 50% de germinação acumulada">t50</th>
+                            <th
+                              className="px-3 py-2 text-center"
+                              title="Índice de Velocidade de Germinação (Maguire, 1962)"
+                            >
+                              IVG
+                            </th>
+                            <th className="px-3 py-2 text-center" title="Tempo Médio de Germinação">
+                              TMG
+                            </th>
+                            <th
+                              className="px-3 py-2 text-center"
+                              title="Tempo para 50% de germinação acumulada"
+                            >
+                              t50
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-zinc-850 font-semibold text-neutral-750 dark:text-zinc-300">
-                          {vigorStats.map(v => (
-                            <tr key={v.code} className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/10">
+                          {vigorStats.map((v) => (
+                            <tr
+                              key={v.code}
+                              className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/10"
+                            >
                               <td className="px-3 py-2 font-bold">{v.code}</td>
-                              <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-450 font-bold">{v.ivg}</td>
+                              <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-450 font-bold">
+                                {v.ivg}
+                              </td>
                               <td className="px-3 py-2 text-center font-mono">{v.mgt}</td>
                               <td className="px-3 py-2 text-center font-mono">{v.t50}</td>
                             </tr>
@@ -671,11 +764,12 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                       O que significam?
                     </span>
                     <p className="text-[9px] text-neutral-400 dark:text-zinc-500 leading-normal font-semibold">
-                      * <strong>IVG:</strong> Valores maiores indicam germinação mais rápida/vigorosa.
-                      <br />
-                      * <strong>TMG:</strong> Tempo médio que uma semente demora para emitir o protocormo verde.
-                      <br />
-                      * <strong>t50:</strong> Dias estimados para a placa atingir 50% da sua germinação acumulada total.
+                      * <strong>IVG:</strong> Valores maiores indicam germinação mais
+                      rápida/vigorosa.
+                      <br />* <strong>TMG:</strong> Tempo médio que uma semente demora para emitir o
+                      protocormo verde.
+                      <br />* <strong>t50:</strong> Dias estimados para a placa atingir 50% da sua
+                      germinação acumulada total.
                     </p>
                   </div>
                 </div>
@@ -687,7 +781,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   Sem dados longitudinais
                 </h4>
                 <p className="text-[11px] text-neutral-400 dark:text-zinc-500 leading-relaxed font-semibold">
-                  Para calcular IVG, TMG e gerar a curva de germinação (DAP), crie um experimento e registre múltiplos lançamentos de placas vinculados às avaliações longitudinais da Fase A.
+                  Para calcular IVG, TMG e gerar a curva de germinação (DAP), crie um experimento e
+                  registre múltiplos lançamentos de placas vinculados às avaliações longitudinais da
+                  Fase A.
                 </p>
               </div>
             )}
@@ -706,7 +802,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
               </p>
             </div>
 
-            {contaminationStats.fungal > 0 || contaminationStats.bacterial > 0 || contaminationStats.mixed > 0 ? (
+            {contaminationStats.fungal > 0 ||
+            contaminationStats.bacterial > 0 ||
+            contaminationStats.mixed > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
                 {/* Distribution chart */}
                 <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between h-80">
@@ -730,7 +828,12 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => [`${value} placa(s)`, 'Quantidade']} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 600 }} />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: '10px', fontWeight: 600 }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -742,19 +845,25 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                       Resumo Epidemiológico das Placas
                     </h4>
-                    
+
                     <div className="space-y-3 font-semibold text-xs text-neutral-750 dark:text-zinc-300">
                       <div className="flex justify-between items-center py-2 border-b border-neutral-100 dark:border-zinc-850">
                         <span>Placas Sem Contaminação (Limpas)</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-450">{contaminationStats.none}</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-450">
+                          {contaminationStats.none}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-neutral-100 dark:border-zinc-850">
                         <span>Placas com Fungo Filamentoso</span>
-                        <span className="font-bold text-amber-500">{contaminationStats.fungal}</span>
+                        <span className="font-bold text-amber-500">
+                          {contaminationStats.fungal}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-neutral-100 dark:border-zinc-850">
                         <span>Placas com Contaminação Bacteriana</span>
-                        <span className="font-bold text-blue-500">{contaminationStats.bacterial}</span>
+                        <span className="font-bold text-blue-500">
+                          {contaminationStats.bacterial}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span>Placas com Contaminação Mista</span>
@@ -770,7 +879,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                         Alerta Fitossanitário
                       </span>
                       <p className="text-[9px] text-amber-700 dark:text-amber-500 mt-1 font-semibold leading-relaxed">
-                        Taxas elevadas de contaminação fúngica apontam para falha na autoclave do meio ou estocagem. Contaminações bacterianas costumam se correlacionar com desinfestação insatisfatória das sementes (hipoclorito) antes do plantio.
+                        Taxas elevadas de contaminação fúngica apontam para falha na autoclave do
+                        meio ou estocagem. Contaminações bacterianas costumam se correlacionar com
+                        desinfestação insatisfatória das sementes (hipoclorito) antes do plantio.
                       </p>
                     </div>
                   </div>
@@ -783,7 +894,8 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   Nenhuma contaminação registrada
                 </h4>
                 <p className="text-[11px] text-neutral-400 dark:text-zinc-500 leading-relaxed font-semibold">
-                  Parabéns! Todas as placas registradas nos experimentos longitudinais estão categorizadas como limpas (Sem Contaminação).
+                  Parabéns! Todas as placas registradas nos experimentos longitudinais estão
+                  categorizadas como limpas (Sem Contaminação).
                 </p>
               </div>
             )}
@@ -798,7 +910,8 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 Exportação de Tabelas e Relatórios Científicos
               </h3>
               <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-medium">
-                Faça o download dos dados em formatos compatíveis com planilhas (Excel) ou softwares estatísticos (Sisvar, R, SPSS).
+                Faça o download dos dados em formatos compatíveis com planilhas (Excel) ou softwares
+                estatísticos (Sisvar, R, SPSS).
               </p>
             </div>
 
@@ -810,7 +923,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     Resumo Estatístico dos Tratamentos
                   </h4>
                   <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-semibold leading-relaxed">
-                    Arquivo CSV contendo a média, desvio padrão, número de repetições (N), limites do intervalo de confiança e a letra resultante do teste de Scott-Knott/Tukey para cada tratamento.
+                    Arquivo CSV contendo a média, desvio padrão, número de repetições (N), limites
+                    do intervalo de confiança e a letra resultante do teste de Scott-Knott/Tukey
+                    para cada tratamento.
                   </p>
                 </div>
                 <button
@@ -829,7 +944,9 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     Tabela Detalhada de Contagens (Sessões)
                   </h4>
                   <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-semibold leading-relaxed">
-                    Arquivo CSV detalhado contendo cada avaliação realizada nas placas, identificação, data, valores brutos de sementes viáveis/inviáveis e a respectiva porcentagem final.
+                    Arquivo CSV detalhado contendo cada avaliação realizada nas placas,
+                    identificação, data, valores brutos de sementes viáveis/inviáveis e a respectiva
+                    porcentagem final.
                   </p>
                 </div>
                 <button
