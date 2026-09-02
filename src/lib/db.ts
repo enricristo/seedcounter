@@ -12,13 +12,13 @@ export class SeedCounterDB extends Dexie {
     // v1 — original schema
     this.version(1).stores({
       sessions: 'id, plateId, timestamp, project',
-      metadataStore: 'id'
+      metadataStore: 'id',
     });
 
     // v2 — indexed by date (fixed history bug)
     this.version(2).stores({
       sessions: 'id, date',
-      metadataStore: 'id'
+      metadataStore: 'id',
     });
 
     // v3 — add experiments table for longitudinal tracking
@@ -26,7 +26,7 @@ export class SeedCounterDB extends Dexie {
     this.version(3).stores({
       sessions: 'id, date, experimentId, treatmentId',
       metadataStore: 'id',
-      experiments: 'id, createdAt, species, responsible'
+      experiments: 'id, createdAt, species, responsible',
     });
   }
 }

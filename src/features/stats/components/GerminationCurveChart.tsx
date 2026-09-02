@@ -46,10 +46,7 @@ export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurve
   return (
     <div className="w-full h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={sortedData}
-          margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
-        >
+        <LineChart data={sortedData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" className="dark:stroke-zinc-800" />
           <XAxis
             dataKey="day"

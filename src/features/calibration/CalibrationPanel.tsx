@@ -6,10 +6,18 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Ruler, Check, AlertTriangle, Crosshair, Info } from 'lucide-react';
 import {
-  computeUmPerPixel, umPerPixelToDpi, validateScale,
-  DPI_PRESETS, REFERENCE_PRESETS, METHOD_LABELS, UNIT_LABELS,
-  DEFAULT_LAB_DPI, DEFAULT_LAB_SCANNER,
-  type CalibrationMethod, type CalibrationData, type LengthUnit,
+  computeUmPerPixel,
+  umPerPixelToDpi,
+  validateScale,
+  DPI_PRESETS,
+  REFERENCE_PRESETS,
+  METHOD_LABELS,
+  UNIT_LABELS,
+  DEFAULT_LAB_DPI,
+  DEFAULT_LAB_SCANNER,
+  type CalibrationMethod,
+  type CalibrationData,
+  type LengthUnit,
 } from '../../lib/calibration';
 
 interface CalibrationPanelProps {
@@ -41,15 +49,18 @@ export function CalibrationPanel({
   const [refLabel, setRefLabel] = useState('');
   const [manualValue, setManualValue] = useState(umPerPixel ?? 0);
 
-  const data: CalibrationData = useMemo(() => ({
-    method,
-    dpi,
-    referencePixels: measuredPixels,
-    referenceLength: refLength,
-    referenceUnit: refUnit,
-    referenceLabel: refLabel,
-    umPerPixel: manualValue,
-  }), [method, dpi, measuredPixels, refLength, refUnit, refLabel, manualValue]);
+  const data: CalibrationData = useMemo(
+    () => ({
+      method,
+      dpi,
+      referencePixels: measuredPixels,
+      referenceLength: refLength,
+      referenceUnit: refUnit,
+      referenceLabel: refLabel,
+      umPerPixel: manualValue,
+    }),
+    [method, dpi, measuredPixels, refLength, refUnit, refLabel, manualValue]
+  );
 
   const computed = useMemo(() => computeUmPerPixel(data), [data]);
   const warning = useMemo(() => validateScale(computed), [computed]);
@@ -82,7 +93,8 @@ export function CalibrationPanel({
               {umPerPixel.toFixed(3)} <span className="text-[11px] font-normal">µm/px</span>
             </p>
             <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-              ≈ {Math.round(umPerPixelToDpi(umPerPixel))} DPI · 1 mm ≈ {Math.round(1000 / umPerPixel)} px
+              ≈ {Math.round(umPerPixelToDpi(umPerPixel))} DPI · 1 mm ≈{' '}
+              {Math.round(1000 / umPerPixel)} px
             </p>
           </>
         ) : (
@@ -100,11 +112,13 @@ export function CalibrationPanel({
         </label>
         <select
           value={method}
-          onChange={e => setMethod(e.target.value as CalibrationMethod)}
+          onChange={(e) => setMethod(e.target.value as CalibrationMethod)}
           className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
         >
-          {METHODS.map(m => (
-            <option key={m} value={m}>{METHOD_LABELS[m]}</option>
+          {METHODS.map((m) => (
+            <option key={m} value={m}>
+              {METHOD_LABELS[m]}
+            </option>
           ))}
         </select>
       </div>
@@ -113,15 +127,19 @@ export function CalibrationPanel({
       {method === 'dpi' && (
         <div className="space-y-2">
           <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-            Use a resolução configurada no scanner ao digitalizar a placa.
-            Padrão do laboratório: <strong>{DEFAULT_LAB_SCANNER}</strong> a {DEFAULT_LAB_DPI} DPI.
+            Use a resolução configurada no scanner ao digitalizar a placa. Padrão do laboratório:{' '}
+            <strong>{DEFAULT_LAB_SCANNER}</strong> a {DEFAULT_LAB_DPI} DPI.
           </p>
           <div className="flex flex-wrap gap-1">
-            {DPI_PRESETS.map(p => (
+            {DPI_PRESETS.map((p) => (
               <button
                 key={p}
                 onClick={() => setDpi(p)}
-                title={p === DEFAULT_LAB_DPI ? `Padrão do laboratório (${DEFAULT_LAB_SCANNER})` : undefined}
+                title={
+                  p === DEFAULT_LAB_DPI
+                    ? `Padrão do laboratório (${DEFAULT_LAB_SCANNER})`
+                    : undefined
+                }
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                   dpi === p
                     ? 'bg-sky-500 border-sky-500 text-white'
@@ -130,13 +148,16 @@ export function CalibrationPanel({
                       : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
                 }`}
               >
-                {p}{p === DEFAULT_LAB_DPI ? ' ★' : ''}
+                {p}
+                {p === DEFAULT_LAB_DPI ? ' ★' : ''}
               </button>
             ))}
           </div>
           <input
-            type="number" min={1} value={dpi}
-            onChange={e => setDpi(Number(e.target.value))}
+            type="number"
+            min={1}
+            value={dpi}
+            onChange={(e) => setDpi(Number(e.target.value))}
             placeholder="DPI"
             className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
           />
@@ -177,33 +198,42 @@ export function CalibrationPanel({
 
           {/* Predefinições de referência */}
           <select
-            onChange={e => {
+            onChange={(e) => {
               const p = REFERENCE_PRESETS[Number(e.target.value)];
               if (p) applyPreset(p.length, p.unit, p.label);
             }}
             defaultValue=""
             className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-[11px] dark:text-zinc-100 focus:outline-none"
           >
-            <option value="" disabled>Referências comuns…</option>
+            <option value="" disabled>
+              Referências comuns…
+            </option>
             {REFERENCE_PRESETS.map((p, i) => (
-              <option key={p.label} value={i}>{p.label}</option>
+              <option key={p.label} value={i}>
+                {p.label}
+              </option>
             ))}
           </select>
 
           <div className="flex gap-1.5">
             <input
-              type="number" min={0} step="any" value={refLength}
-              onChange={e => setRefLength(Number(e.target.value))}
+              type="number"
+              min={0}
+              step="any"
+              value={refLength}
+              onChange={(e) => setRefLength(Number(e.target.value))}
               placeholder="Comprimento real"
               className="flex-1 bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
             />
             <select
               value={refUnit}
-              onChange={e => setRefUnit(e.target.value as LengthUnit)}
+              onChange={(e) => setRefUnit(e.target.value as LengthUnit)}
               className="bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-2 py-2 text-sm dark:text-zinc-100 focus:outline-none"
             >
-              {(Object.keys(UNIT_LABELS) as LengthUnit[]).map(u => (
-                <option key={u} value={u}>{UNIT_LABELS[u]}</option>
+              {(Object.keys(UNIT_LABELS) as LengthUnit[]).map((u) => (
+                <option key={u} value={u}>
+                  {UNIT_LABELS[u]}
+                </option>
               ))}
             </select>
           </div>
@@ -217,8 +247,11 @@ export function CalibrationPanel({
             Informe diretamente a escala, se você já a conhece.
           </p>
           <input
-            type="number" min={0} step="any" value={manualValue}
-            onChange={e => setManualValue(Number(e.target.value))}
+            type="number"
+            min={0}
+            step="any"
+            value={manualValue}
+            onChange={(e) => setManualValue(Number(e.target.value))}
             placeholder="µm por pixel"
             className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
           />

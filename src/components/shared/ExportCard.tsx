@@ -8,15 +8,9 @@ interface ExportCardProps {
   disabled?: boolean;
 }
 
-export function ExportCard({ 
-  icon, 
-  title, 
-  desc, 
-  onClick,
-  disabled = false
-}: ExportCardProps) {
+export function ExportCard({ icon, title, desc, onClick, disabled = false }: ExportCardProps) {
   return (
-    <button 
+    <button
       onClick={onClick}
       disabled={disabled}
       className="flex flex-col items-start text-left p-4 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 hover:shadow-md transition-all bg-white dark:bg-[#18181B] group active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
@@ -25,7 +19,9 @@ export function ExportCard({
         {icon}
       </div>
       <h4 className="font-semibold text-sm text-neutral-800 dark:text-zinc-100 mb-1">{title}</h4>
-      <p className="text-[10px] text-neutral-400 dark:text-zinc-400 leading-relaxed font-medium">{desc}</p>
+      <p className="text-[10px] text-neutral-400 dark:text-zinc-400 leading-relaxed font-medium">
+        {desc}
+      </p>
     </button>
   );
 }
