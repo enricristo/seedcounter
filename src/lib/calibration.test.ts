@@ -82,5 +82,10 @@ describe('Calibration Conversions', () => {
       expect(referenceToUmPerPixel(100, 0, 'mm')).toBe(0);
       expect(referenceToUmPerPixel(100, -10, 'mm')).toBe(0);
     });
+
+    it('should handle decimal values properly', () => {
+      // 0.5 mm = 500 um, measured as 75 pixels -> 500/75 = 6.666...
+      expect(referenceToUmPerPixel(75, 0.5, 'mm')).toBeCloseTo(6.666667, 4);
+    });
   });
 });
