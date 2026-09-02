@@ -191,31 +191,22 @@ async function buildLabelLines(
   opts: Required<YOLOExportOptions>
 ): Promise<string[]> {
   const lines: string[] = [];
-  const hasPolygons =
-    session.yoloSegmentations && session.yoloSegmentations.length > 0;
+  const hasPolygons = session.yoloSegmentations && session.yoloSegmentations.length > 0;
 
   if (hasPolygons && session.yoloSegmentations) {
     for (const seg of session.yoloSegmentations) {
       if (seg.category === 'inviable' && !opts.includeInviable) continue;
       const classId = seg.category === 'viable' ? CLASS_VIABLE : CLASS_INVIABLE;
       if (seg.polygon_points.length >= 3) {
-        lines.push(
-          polygonToYOLOLine(seg.polygon_points, classId, imgW, imgH)
-        );
+        lines.push(polygonToYOLOLine(seg.polygon_points, classId, imgW, imgH));
       }
     }
   } else if (session.marks && session.marks.length > 0) {
-    const radiusPx = estimateRadiusPx(
-      session,
-      opts.estimatedSeedDiameterUm,
-      opts.fallbackRadiusPx
-    );
+    const radiusPx = estimateRadiusPx(session, opts.estimatedSeedDiameterUm, opts.fallbackRadiusPx);
     for (const mark of session.marks) {
       if (mark.type === 'inviable' && !opts.includeInviable) continue;
       const classId = mark.type === 'viable' ? CLASS_VIABLE : CLASS_INVIABLE;
-      lines.push(
-        markToYOLOLine(mark.x, mark.y, radiusPx, classId, imgW, imgH)
-      );
+      lines.push(markToYOLOLine(mark.x, mark.y, radiusPx, classId, imgW, imgH));
     }
   }
 
@@ -244,8 +235,7 @@ export function getExportSummary(sessions: Session[]): YOLOExportSummary {
   for (const session of sessions) {
     if (session.imageData) sessionsWithImages++;
 
-    const hasPolygons =
-      session.yoloSegmentations && session.yoloSegmentations.length > 0;
+    const hasPolygons = session.yoloSegmentations && session.yoloSegmentations.length > 0;
 
     if (hasPolygons && session.yoloSegmentations) {
       sessionsWithPolygons++;
@@ -327,20 +317,15 @@ export async function generateYOLODataset(
   const calibrationNotes: string[] = [];
 
   // Sessions that have image data
-  const exportable = sessions.filter(s => {
+  const exportable = sessions.filter((s) => {
     if (!s.imageData) {
-      skippedSessions.push(
-        `  - ${s.filename} (${s.date}): sem imageData (base64 ausente)`
-      );
+      skippedSessions.push(`  - ${s.filename} (${s.date}): sem imageData (base64 ausente)`);
       return false;
     }
     const hasAnnotations =
-      (s.yoloSegmentations && s.yoloSegmentations.length > 0) ||
-      (s.marks && s.marks.length > 0);
+      (s.yoloSegmentations && s.yoloSegmentations.length > 0) || (s.marks && s.marks.length > 0);
     if (!hasAnnotations) {
-      skippedSessions.push(
-        `  - ${s.filename} (${s.date}): sem anotações`
-      );
+      skippedSessions.push(`  - ${s.filename} (${s.date}): sem anotações`);
       return false;
     }
     return true;
@@ -353,51 +338,44 @@ export async function generateYOLODataset(
     { subset: 'val', sessions: val },
   ];
 
-  await Promise.all(
-    splits.map(async ({ subset, sessions: subsetSessions }) => {
-      await Promise.all(
-        subsetSessions.map(async (session) => {
-          const stem = sessionStem(session);
-          const ext = getImageExtension(session.imageData!);
+  for (const { subset, sessions: subsetSessions } of splits) {
+    for (const session of subsetSessions) {
+      const stem = sessionStem(session);
+      const ext = getImageExtension(session.imageData!);
 
-          let imgW: number;
-          let imgH: number;
-          try {
-            [imgW, imgH] = await getImageDimensions(session.imageData!);
-          } catch {
-            skippedSessions.push(
-              `  - ${session.filename} (${session.date}): falha ao decodificar imagem`
-            );
-            return;
-          }
+      let imgW: number;
+      let imgH: number;
+      try {
+        [imgW, imgH] = await getImageDimensions(session.imageData!);
+      } catch {
+        skippedSessions.push(
+          `  - ${session.filename} (${session.date}): falha ao decodificar imagem`
+        );
+        continue;
+      }
 
-          // Write image
-          const imageBytes = base64ToUint8Array(session.imageData!);
-          zip.file(`dataset/images/${subset}/${stem}.${ext}`, imageBytes);
+      // Write image
+      const imageBytes = base64ToUint8Array(session.imageData!);
+      zip.file(`dataset/images/${subset}/${stem}.${ext}`, imageBytes);
 
-          // Build & write label
-          const labelLines = await buildLabelLines(session, imgW, imgH, opts);
-          zip.file(
-            `dataset/labels/${subset}/${stem}.txt`,
-            labelLines.join('\n')
-          );
+      // Build & write label
+      const labelLines = await buildLabelLines(session, imgW, imgH, opts);
+      zip.file(`dataset/labels/${subset}/${stem}.txt`, labelLines.join('\n'));
 
-          // Collect calibration notes
-          const umPx = getUmPerPixel(session);
-          if (umPx) {
-            const radiusPx = opts.estimatedSeedDiameterUm / (2 * umPx);
-            calibrationNotes.push(
-              `  ${stem}: ${umPx} µm/px → radius ≈ ${radiusPx.toFixed(1)}px (source: ${session.metadata.imageSource ?? 'manual'})`
-            );
-          } else {
-            calibrationNotes.push(
-              `  ${stem}: calibração desconhecida → fallback ${opts.fallbackRadiusPx}px radius`
-            );
-          }
-        })
-      );
-    })
-  );
+      // Collect calibration notes
+      const umPx = getUmPerPixel(session);
+      if (umPx) {
+        const radiusPx = opts.estimatedSeedDiameterUm / (2 * umPx);
+        calibrationNotes.push(
+          `  ${stem}: ${umPx} µm/px → radius ≈ ${radiusPx.toFixed(1)}px (source: ${session.metadata.imageSource ?? 'manual'})`
+        );
+      } else {
+        calibrationNotes.push(
+          `  ${stem}: calibração desconhecida → fallback ${opts.fallbackRadiusPx}px radius`
+        );
+      }
+    }
+  }
 
   // dataset.yaml
   const classes = opts.includeInviable

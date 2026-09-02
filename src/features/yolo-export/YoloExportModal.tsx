@@ -23,15 +23,15 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
   // Initialize with all sessions selected
   React.useEffect(() => {
     if (isOpen) {
-      setSelectedSessionIds(sessions.filter(s => s.imageData).map(s => s.id));
+      setSelectedSessionIds(sessions.filter((s) => s.imageData).map((s) => s.id));
     }
   }, [isOpen, sessions]);
 
   // Session stats/filters
-  const sessionsWithImages = useMemo(() => sessions.filter(s => s.imageData), [sessions]);
+  const sessionsWithImages = useMemo(() => sessions.filter((s) => s.imageData), [sessions]);
 
   const filteredSessions = useMemo(() => {
-    return sessionsWithImages.filter(s => {
+    return sessionsWithImages.filter((s) => {
       const hasPolygons = s.yoloSegmentations && s.yoloSegmentations.length > 0;
       const hasMarks = s.marks && s.marks.length > 0;
       if (filterType === 'polygon') return hasPolygons;
@@ -45,19 +45,19 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
     if (selectedSessionIds.length === filteredSessions.length) {
       setSelectedSessionIds([]);
     } else {
-      setSelectedSessionIds(filteredSessions.map(s => s.id));
+      setSelectedSessionIds(filteredSessions.map((s) => s.id));
     }
   };
 
   const handleToggleSession = (id: string) => {
-    setSelectedSessionIds(prev =>
-      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+    setSelectedSessionIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
   };
 
   // Selected sessions array
   const selectedSessions = useMemo(() => {
-    return sessions.filter(s => selectedSessionIds.includes(s.id));
+    return sessions.filter((s) => selectedSessionIds.includes(s.id));
   }, [sessions, selectedSessionIds]);
 
   // Summary of export
@@ -145,7 +145,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                 <span className="text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
                   Selecione as Imagens ({selectedSessionIds.length} de {filteredSessions.length})
                 </span>
-                
+
                 {/* Filters */}
                 <div className="flex items-center bg-neutral-100 dark:bg-zinc-900 rounded-lg p-0.5 text-[10px] font-bold uppercase">
                   <button
@@ -190,7 +190,10 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={selectedSessionIds.length === filteredSessions.length && filteredSessions.length > 0}
+                      checked={
+                        selectedSessionIds.length === filteredSessions.length &&
+                        filteredSessions.length > 0
+                      }
                       onChange={handleToggleSelectAll}
                       className="accent-purple-600"
                     />
@@ -209,11 +212,11 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                       Nenhuma contagem corresponde ao filtro selecionado.
                     </p>
                   ) : (
-                    filteredSessions.map(s => {
+                    filteredSessions.map((s) => {
                       const annotationCount =
-                        (s.yoloSegmentations?.length || 0) || (s.marks?.length || 0);
+                        s.yoloSegmentations?.length || 0 || s.marks?.length || 0;
                       const isPolygon = s.yoloSegmentations && s.yoloSegmentations.length > 0;
-                      
+
                       return (
                         <label
                           key={s.id}
@@ -231,7 +234,8 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                                 {s.filename}
                               </span>
                               <span className="text-[9px] text-neutral-400 dark:text-zinc-500 font-medium">
-                                {new Date(s.date).toLocaleDateString('pt-BR')} • {s.metadata.treatment || 'Sem Tratamento'}
+                                {new Date(s.date).toLocaleDateString('pt-BR')} •{' '}
+                                {s.metadata.treatment || 'Sem Tratamento'}
                               </span>
                             </div>
                           </div>
@@ -274,7 +278,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                     max="95"
                     step="5"
                     value={trainValSplit}
-                    onChange={e => setTrainValSplit(parseInt(e.target.value))}
+                    onChange={(e) => setTrainValSplit(parseInt(e.target.value))}
                     className="w-full accent-purple-600"
                   />
                   <p className="text-[9px] text-neutral-400 dark:text-zinc-500 mt-1 font-semibold leading-relaxed">
@@ -298,11 +302,12 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                     max="2000"
                     step="50"
                     value={estimatedSeedDiameterUm}
-                    onChange={e => setEstimatedSeedDiameterUm(parseInt(e.target.value))}
+                    onChange={(e) => setEstimatedSeedDiameterUm(parseInt(e.target.value))}
                     className="w-full accent-purple-600"
                   />
                   <p className="text-[9px] text-neutral-400 dark:text-zinc-500 mt-1 font-semibold leading-relaxed">
-                    Estima o tamanho da caixa delimitadora usando a calibração física da imagem (ex: 500µm para orquídeas).
+                    Estima o tamanho da caixa delimitadora usando a calibração física da imagem (ex:
+                    500µm para orquídeas).
                   </p>
                 </div>
 
@@ -322,11 +327,12 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                     max="100"
                     step="5"
                     value={fallbackRadiusPx}
-                    onChange={e => setFallbackRadiusPx(parseInt(e.target.value))}
+                    onChange={(e) => setFallbackRadiusPx(parseInt(e.target.value))}
                     className="w-full accent-purple-600"
                   />
                   <p className="text-[9px] text-neutral-400 dark:text-zinc-500 mt-1 font-semibold leading-relaxed">
-                    Tamanho do raio em pixels se a imagem não tiver calibração de escala configurada.
+                    Tamanho do raio em pixels se a imagem não tiver calibração de escala
+                    configurada.
                   </p>
                 </div>
 
@@ -336,7 +342,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                     <input
                       type="checkbox"
                       checked={includeInviable}
-                      onChange={e => setIncludeInviable(e.target.checked)}
+                      onChange={(e) => setIncludeInviable(e.target.checked)}
                       className="accent-purple-600"
                     />
                     <span className="text-xs font-bold text-neutral-600 dark:text-zinc-400">
@@ -344,7 +350,8 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                     </span>
                   </label>
                   <p className="text-[9px] text-neutral-400 dark:text-zinc-500 mt-1.5 font-semibold pl-5 leading-relaxed">
-                    Se desativado, o dataset conterá apenas uma única classe (viável). Sementes inviáveis serão ignoradas.
+                    Se desativado, o dataset conterá apenas uma única classe (viável). Sementes
+                    inviáveis serão ignoradas.
                   </p>
                 </div>
               </div>
@@ -361,35 +368,61 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
 
               <div className="space-y-3.5 bg-white dark:bg-[#18181B] border border-neutral-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Total de Imagens:</span>
-                  <span className="font-bold text-neutral-800 dark:text-zinc-200">{summary.sessionsWithImages}</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                    Total de Imagens:
+                  </span>
+                  <span className="font-bold text-neutral-800 dark:text-zinc-200">
+                    {summary.sessionsWithImages}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Sessões com Polígonos:</span>
-                  <span className="font-bold text-neutral-800 dark:text-zinc-200">{summary.sessionsWithPolygons}</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                    Sessões com Polígonos:
+                  </span>
+                  <span className="font-bold text-neutral-800 dark:text-zinc-200">
+                    {summary.sessionsWithPolygons}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Sessões com Pontos:</span>
-                  <span className="font-bold text-neutral-800 dark:text-zinc-200">{summary.sessionsWithMarksOnly}</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                    Sessões com Pontos:
+                  </span>
+                  <span className="font-bold text-neutral-800 dark:text-zinc-200">
+                    {summary.sessionsWithMarksOnly}
+                  </span>
                 </div>
                 <div className="h-px bg-neutral-100 dark:bg-zinc-800" />
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Total Anotações:</span>
-                  <span className="font-bold text-purple-600 dark:text-purple-400">{summary.totalAnnotations}</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                    Total Anotações:
+                  </span>
+                  <span className="font-bold text-purple-600 dark:text-purple-400">
+                    {summary.totalAnnotations}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] pl-2">
-                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Sementes Viáveis (Cls 0):</span>
-                  <span className="font-semibold text-neutral-800 dark:text-zinc-300">{summary.totalViable}</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                    Sementes Viáveis (Cls 0):
+                  </span>
+                  <span className="font-semibold text-neutral-800 dark:text-zinc-300">
+                    {summary.totalViable}
+                  </span>
                 </div>
                 {includeInviable && (
                   <div className="flex justify-between items-center text-[10px] pl-2">
-                    <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Sementes Inviáveis (Cls 1):</span>
-                    <span className="font-semibold text-neutral-800 dark:text-zinc-300">{summary.totalInviable}</span>
+                    <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                      Sementes Inviáveis (Cls 1):
+                    </span>
+                    <span className="font-semibold text-neutral-800 dark:text-zinc-300">
+                      {summary.totalInviable}
+                    </span>
                   </div>
                 )}
                 <div className="h-px bg-neutral-100 dark:bg-zinc-800" />
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">Tamanho das BBoxes (estimado):</span>
+                  <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
+                    Tamanho das BBoxes (estimado):
+                  </span>
                   <span className="font-mono text-neutral-800 dark:text-zinc-300">
                     {summary.estimatedBboxSizes.minPx} - {summary.estimatedBboxSizes.maxPx} px
                   </span>
@@ -427,9 +460,24 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
               >
                 {isExporting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     Gerando Dataset...
                   </>
@@ -440,7 +488,8 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                 )}
               </button>
               <p className="text-[9px] text-neutral-400 dark:text-zinc-500 text-center font-medium mt-2 leading-relaxed">
-                Este processo compactará e formatará os rótulos de forma totalmente local no seu navegador.
+                Este processo compactará e formatará os rótulos de forma totalmente local no seu
+                navegador.
               </p>
             </div>
           </div>

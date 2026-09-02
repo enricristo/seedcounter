@@ -15,7 +15,7 @@ export function ImageActions({
   importInputRef,
   handleFileUpload,
   handleImportJSON,
-  onOpenCamera
+  onOpenCamera,
 }: ImageActionsProps) {
   return (
     <section className="space-y-2.5">
@@ -26,20 +26,23 @@ export function ImageActions({
       </div>
       <div className="space-y-2">
         {/* Load Image Button */}
-        <button 
+        <button
           onClick={() => fileInputRef.current?.click()}
           className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
         >
-          <Upload size={17} className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors" />
+          <Upload
+            size={17}
+            className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors"
+          />
           <span className="text-xs uppercase tracking-wide">Carregar Amostras</span>
         </button>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handleFileUpload} 
-          accept="image/*" 
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept="image/*"
           multiple
-          className="hidden" 
+          className="hidden"
         />
 
         {/* Camera Capture Button (Fase E) */}
@@ -48,25 +51,31 @@ export function ImageActions({
             onClick={onOpenCamera}
             className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
           >
-            <Camera size={17} className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors" />
+            <Camera
+              size={17}
+              className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors"
+            />
             <span className="text-xs uppercase tracking-wide">Capturar da Câmera</span>
           </button>
         )}
 
         {/* Import Session Button */}
-        <button 
+        <button
           onClick={() => importInputRef.current?.click()}
           className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
         >
-          <FolderUp size={17} className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors" />
+          <FolderUp
+            size={17}
+            className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors"
+          />
           <span className="text-xs uppercase tracking-wide">Importar Sessão (JSON)</span>
         </button>
-        <input 
-          type="file" 
-          ref={importInputRef} 
-          onChange={handleImportJSON} 
-          accept="application/json,.json" 
-          className="hidden" 
+        <input
+          type="file"
+          ref={importInputRef}
+          onChange={handleImportJSON}
+          accept="application/json,.json"
+          className="hidden"
         />
       </div>
     </section>

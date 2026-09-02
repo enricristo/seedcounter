@@ -54,8 +54,12 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
         {/* Test info */}
         <div className="space-y-3">
           <div>
-            <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">Método</p>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100">{METHOD_LABELS[method]}</p>
+            <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">
+              Método
+            </p>
+            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
+              {METHOD_LABELS[method]}
+            </p>
           </div>
 
           {transformed && (
@@ -70,7 +74,11 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
             <div className="grid grid-cols-3 gap-2">
               <Stat label="F" value={anova.fStat.toFixed(3)} />
               <Stat label="GL" value={`${anova.dfBetween}, ${anova.dfWithin}`} />
-              <Stat label="p-valor" value={pValueLabel(anova.pValue)} highlight={anova.significant} />
+              <Stat
+                label="p-valor"
+                value={pValueLabel(anova.pValue)}
+                highlight={anova.significant}
+              />
             </div>
           )}
 
@@ -79,13 +87,18 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
             <div className="grid grid-cols-3 gap-2">
               <Stat label="H" value={kruskalWallisResult.H.toFixed(3)} />
               <Stat label="GL" value={String(groups.length - 1)} />
-              <Stat label="p-valor" value={pValueLabel(kruskalWallisResult.pValue)} highlight={kruskalWallisResult.significant} />
+              <Stat
+                label="p-valor"
+                value={pValueLabel(kruskalWallisResult.pValue)}
+                highlight={kruskalWallisResult.significant}
+              />
             </div>
           )}
 
           {method === 'descriptive-only' && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Dados insuficientes para comparação estatística (mínimo 2 grupos com ≥ 2 réplicas cada).
+              Dados insuficientes para comparação estatística (mínimo 2 grupos com ≥ 2 réplicas
+              cada).
             </p>
           )}
         </div>
@@ -127,7 +140,7 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
               <p className="text-xs text-zinc-400 dark:text-zinc-500">—</p>
             )}
           </div>
-          {!isParametric && normalityResults.some(r => !r.normal) && (
+          {!isParametric && normalityResults.some((r) => !r.normal) && (
             <p className="mt-2 text-[10px] text-orange-600 dark:text-orange-400 flex items-center gap-1">
               <AlertTriangle size={10} />
               Pressuposto de normalidade violado → Kruskal-Wallis utilizado
@@ -142,7 +155,9 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="bg-zinc-50 dark:bg-zinc-800/70 rounded-xl px-3 py-2 text-center">
-      <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">{label}</p>
+      <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">
+        {label}
+      </p>
       <p
         className={`text-sm font-bold font-mono ${
           highlight ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-800 dark:text-zinc-100'

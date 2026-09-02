@@ -1,16 +1,16 @@
 import React from 'react';
-import { 
-  Sun, 
-  Moon, 
-  History, 
-  Undo2, 
-  RotateCcw, 
-  Save, 
+import {
+  Sun,
+  Moon,
+  History,
+  Undo2,
+  RotateCcw,
+  Save,
   Download,
   Calendar,
   BarChart4,
   Activity,
-  Sparkles
+  Sparkles,
 } from 'lucide-react';
 import type { AppView } from '../../types';
 
@@ -31,7 +31,7 @@ interface HeaderProps {
   onSaveSession: () => void;
   onExport: () => void;
   hasImage: boolean;
-  
+
   // Navigation & Feature Flags
   currentView: AppView;
   onViewChange: (view: AppView) => void;
@@ -58,12 +58,12 @@ export function Header({
   onSaveSession,
   onExport,
   hasImage,
-  
+
   currentView,
   onViewChange,
   isLongitudinalEnabled = true,
   isStatsEnabled = true,
-  onOpenFeatures
+  onOpenFeatures,
 }: HeaderProps) {
   return (
     <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-all duration-300">
@@ -82,7 +82,9 @@ export function Header({
                 src="/logo-gpeorq.png"
                 alt="Logo GPEOrq"
                 className="h-9 w-9 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </a>
             <a
@@ -96,7 +98,9 @@ export function Header({
                 src="/logo-gpsem.png"
                 alt="Logo GPSEM"
                 className="h-9 w-9 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </a>
           </div>
@@ -106,10 +110,24 @@ export function Header({
             </h1>
             <p className="text-[9px] text-emerald-600 dark:text-emerald-450 uppercase tracking-widest font-bold">
               Edição Acadêmica •{' '}
-              <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:underline">GPEOrq</a>
+              <a
+                href="https://www.instagram.com/gpeorq"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                GPEOrq
+              </a>
               {' / '}
-              <a href="https://www.instagram.com/gpsem_2000/" target="_blank" rel="noopener noreferrer" className="hover:underline">GPSEM</a>
-              {' '}• Unoeste
+              <a
+                href="https://www.instagram.com/gpsem_2000/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                GPSEM
+              </a>{' '}
+              • Unoeste
             </p>
           </div>
         </div>
@@ -161,7 +179,7 @@ export function Header({
       {/* Control Actions */}
       <div className="flex items-center gap-2">
         {/* Theme Toggle */}
-        <button 
+        <button
           onClick={toggleTheme}
           className="p-2 border border-neutral-200 hover:border-neutral-300 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 text-neutral-500 hover:text-neutral-900 dark:text-zinc-400 dark:hover:text-zinc-50 rounded-lg transition-all"
           title="Alternar Tema (D)"
@@ -179,10 +197,10 @@ export function Header({
             <Sparkles size={17} />
           </button>
         )}
-        
+
         {/* History Modal Trigger */}
         {currentView === 'counter' && (
-          <button 
+          <button
             onClick={openHistory}
             className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-neutral-600 dark:text-zinc-300 hover:text-neutral-900 dark:hover:text-zinc-50 hover:bg-neutral-50 dark:hover:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg transition-all"
           >
@@ -193,12 +211,14 @@ export function Header({
             </span>
           </button>
         )}
-        
-        {currentView === 'counter' && <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />}
+
+        {currentView === 'counter' && (
+          <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />
+        )}
 
         {/* Undo Mark */}
         {currentView === 'counter' && (
-          <button 
+          <button
             onClick={onUndo}
             disabled={undoDisabled}
             className="p-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none text-neutral-600 dark:text-zinc-300 hover:text-neutral-950 dark:hover:text-white"
@@ -210,7 +230,7 @@ export function Header({
 
         {/* Reset All Marks */}
         {currentView === 'counter' && (
-          <button 
+          <button
             onClick={onReset}
             disabled={resetDisabled}
             className="p-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none text-neutral-600 dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400"
@@ -219,13 +239,15 @@ export function Header({
             <RotateCcw size={17} />
           </button>
         )}
-        
-        {currentView === 'counter' && <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />}
+
+        {currentView === 'counter' && (
+          <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />
+        )}
 
         {/* Multi-Image Queue Controls */}
         {currentView === 'counter' && hasImageQueue && (
           <div className="flex items-center gap-1 bg-neutral-50 dark:bg-zinc-900/50 border border-neutral-200 dark:border-zinc-800 rounded-lg p-1 mr-1">
-            <button 
+            <button
               onClick={onPrevImage}
               disabled={currentImageIndex === 0}
               className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-850 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
@@ -236,7 +258,7 @@ export function Header({
             <div className="text-[10px] font-bold font-mono text-neutral-500 dark:text-zinc-400 px-2">
               {currentImageIndex + 1}/{imageQueueLength}
             </div>
-            <button 
+            <button
               onClick={onNextImage}
               disabled={currentImageIndex === imageQueueLength - 1}
               className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-850 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
@@ -249,7 +271,7 @@ export function Header({
 
         {/* Save Session */}
         {currentView === 'counter' && (
-          <button 
+          <button
             onClick={onSaveSession}
             disabled={!hasImage}
             className="flex items-center gap-2 bg-neutral-50 hover:bg-neutral-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-neutral-200 dark:border-zinc-800 px-3 py-2 rounded-lg text-neutral-700 dark:text-zinc-200 transition-all disabled:opacity-30 disabled:pointer-events-none font-semibold text-xs uppercase tracking-wide"
@@ -261,7 +283,7 @@ export function Header({
 
         {/* Export Modal Trigger */}
         {currentView === 'counter' && (
-          <button 
+          <button
             onClick={onExport}
             disabled={!hasImage}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-30 disabled:pointer-events-none font-bold text-xs uppercase tracking-wider"

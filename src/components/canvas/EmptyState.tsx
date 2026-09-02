@@ -8,7 +8,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ onBrowseFiles }: EmptyStateProps) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -22,10 +22,11 @@ export function EmptyState({ onBrowseFiles }: EmptyStateProps) {
           Selecione uma Imagem
         </h2>
         <p className="text-xs text-neutral-500 dark:text-zinc-400 leading-relaxed font-semibold">
-          Carregue a foto microscópica da amostra para iniciar a contagem. Você também pode arrastar e soltar imagens diretamente aqui!
+          Carregue a foto microscópica da amostra para iniciar a contagem. Você também pode arrastar
+          e soltar imagens diretamente aqui!
         </p>
       </div>
-      <button 
+      <button
         onClick={onBrowseFiles}
         className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-bold text-xs uppercase tracking-wider active:scale-95 cursor-pointer"
       >
