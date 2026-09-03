@@ -14,6 +14,8 @@ export type FeatureKey =
   | 'aiPointer' // Phase D — AI-assisted annotation (experimental)
   | 'cameraCapture' // Phase E — Camera capture (loupe/microscope/mobile)
   | 'assistedDetection' // Phase E — Classic CV assisted detection
+  | 'splitScan' // Fase G — Divisão de digitalização em pedaços
+  | 'circularRoi' // Fase G — Recorte circular do campo da ocular
   | 'debugPanel'; // Dev — Feature flags debug panel
 
 export interface FeatureFlag {
@@ -82,6 +84,29 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
     stable: false,
     phase: 'Fase E',
     description: 'Contagem automática por visão computacional clássica (sem modelo treinado)',
+  },
+  {
+    // Estável: não mede nada. Recorta a digitalização e joga os pedaços na
+    // fila — o mesmo trabalho que hoje é feito fora do app, arquivo por
+    // arquivo. No pior caso produz um recorte torto, não um número errado.
+    key: 'splitScan',
+    label: 'Dividir Digitalização',
+    defaultEnabled: true,
+    stable: true,
+    phase: 'Fase G',
+    description: 'Fatia a folha do scanner em N pedaços e envia todos para a fila de contagem',
+  },
+  {
+    // Estável pelo mesmo critério, com uma ressalva registrada: o recorte
+    // DESCARTA o que fica fora do círculo. É irreversível dentro da sessão,
+    // então o diálogo diz isso antes de confirmar.
+    key: 'circularRoi',
+    label: 'Recorte Circular (ROI)',
+    defaultEnabled: true,
+    stable: true,
+    phase: 'Fase G',
+    description:
+      'Delimita o campo circular da ocular e recorta — corta o entorno escuro e restringe a detecção',
   },
   {
     key: 'debugPanel',

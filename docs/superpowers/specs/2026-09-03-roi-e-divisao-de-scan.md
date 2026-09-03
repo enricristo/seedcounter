@@ -1,7 +1,7 @@
 # ROI e divisão de scan — requisitos capturados
 
 - **Data:** 2026-09-03
-- **Status:** requisitos capturados, **ainda não desenhados**. Não implementar antes de passar por brainstorming.
+- **Status:** ✅ **implementado** em 2026-09-03. Ver "Decisões tomadas" ao final.
 - **Origem:** pedido do usuário em uso real, durante o ciclo de design Bancada Óptica.
 
 > Este documento existe para que os requisitos não se percam entre ciclos. Ele **não** é uma spec aprovada: não define arquitetura, componentes nem plano. As duas funcionalidades são **funcionais**, portanto fora do escopo "zero mudanças funcionais" do ciclo de design em andamento.
@@ -63,3 +63,35 @@ Compartilham o conceito de **região de interesse**: uma para "recortar para con
 ## Ordem sugerida
 
 O divisor de scan primeiro: é menor (a fila já existe), resolve um atrito diário com o scanner, e não depende de decisão sobre máscara versus recorte.
+
+---
+
+## Decisões tomadas (2026-09-03)
+
+Depois de examinar as imagens reais do laboratório.
+
+**Divisão — com retângulo ajustável.** A folha quase nunca é útil de ponta a ponta: sobra borda do vidro, etiqueta, área vazia. Três modos: quantidade de pedaços (o app escolhe a grade mais próxima do quadrado), colunas × linhas, ou lado fixo em pixels. O lado fixo existe por causa do dataset — manter 946 px entre digitalizações deixa os recortes comparáveis para treino, que é o lado do acervo existente.
+
+**ROI — recorta e descarta.** O que fica fora do círculo some. As duas fotos de exemplo têm sementes fora do anel desenhado à mão, e a decisão foi que elas não pertencem à amostra. Ganho medido: a foto de 1880×4096 vira ~1880×1880, mais da metade dos pixels a menos para o YOLO percorrer.
+
+**O círculo é proposto automaticamente.** O campo da ocular é um disco claro sobre entorno escuro, o que é detectável. O limiar é o ponto médio entre os percentis 5 e 95 da luminância, não um valor fixo: nas duas amostras reais o entorno vai de preto puro a azul-acinzentado, e um limiar fixo falharia numa delas.
+
+**A calibração não muda.** Recorte é translação, não escala — µm/px sobrevive intacto aos dois.
+
+## O que as imagens revelaram
+
+| Fonte | Dimensão | Observação |
+|---|---|---|
+| `Cortada_digitalizar0004.jpg` | 6754×2339 | folha de scanner, várias sub-amostras |
+| `DFhandPSOL1.tif` | 7992×3672 | acervo do doutorado, 88 MB sem compressão |
+| `DFhandPSOL1 - Copia.jpg` | 946×946 | já é um ladrilho recortado do acima |
+| `IMG-20260825-WA0079.jpg` | 1880×4096 | foto de celular pela ocular, ~65% preto |
+| `IMG-20260825-WA0082.jpg` | 1880×4096 | idem, entorno azul-acinzentado |
+
+**Achado à parte: o TIFF falhava em silêncio.** `image/tiff` passa no filtro `type.startsWith('image/')` do carregador, mas navegador nenhum decodifica TIFF — o `img.onload` nunca disparava e a tela ficava sem imagem e sem erro. Corrigido com guarda explícita e mensagem pedindo conversão para JPG ou PNG. Decodificar TIFF no navegador ficou **fora de escopo por decisão**: os arquivos do acervo têm 88 MB sem compressão, e converter fora do app é trivial.
+
+## Não implementado
+
+- Preencher `quadrant` automaticamente a partir da posição do pedaço na grade. O nome do arquivo já carrega (`_L1C03`), então a informação não se perde.
+- ROI retangular ou poligonal. Só círculo, que é o formato do campo da ocular.
+- Restringir a inferência do YOLO à ROI sem recortar. Como o recorte descarta, a restrição vem de graça.

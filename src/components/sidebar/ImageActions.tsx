@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, FolderUp, Camera } from 'lucide-react';
+import { Upload, FolderUp, Camera, Grid3x3, Crosshair } from 'lucide-react';
 
 interface ImageActionsProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -8,6 +8,10 @@ interface ImageActionsProps {
   handleImportJSON: (e: React.ChangeEvent<HTMLInputElement>) => void;
   /** Abre a captura por câmera (Fase E). Ausente = botão oculto. */
   onOpenCamera?: () => void;
+  /** Divide a digitalização em pedaços (Fase G). Ausente = botão oculto. */
+  onOpenSplit?: () => void;
+  /** Delimita o campo circular e recorta (Fase G). Ausente = botão oculto. */
+  onOpenRoi?: () => void;
 }
 
 export function ImageActions({
@@ -16,7 +20,11 @@ export function ImageActions({
   handleFileUpload,
   handleImportJSON,
   onOpenCamera,
+  onOpenSplit,
+  onOpenRoi,
 }: ImageActionsProps) {
+  const botao =
+    'rounded-panel border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:border-accent group flex w-full items-center gap-3 border px-4 py-3 font-bold transition-all';
   return (
     <section className="space-y-2.5">
       <div className="flex items-center justify-between mb-1">
@@ -41,6 +49,35 @@ export function ImageActions({
           multiple
           className="hidden"
         />
+
+        {/* Preparo da imagem (Fase G) — só faz sentido com imagem carregada,
+            então o App só passa os callbacks nesse caso. */}
+        {(onOpenSplit || onOpenRoi) && (
+          <div className="border-line space-y-2 border-t pt-2.5">
+            {onOpenSplit && (
+              <button onClick={onOpenSplit} className={botao} title="Fatiar a folha do scanner">
+                <Grid3x3
+                  size={16}
+                  strokeWidth={2}
+                  className="text-ink-3 group-hover:text-accent transition-colors"
+                  aria-hidden="true"
+                />
+                <span className="text-xs tracking-wide uppercase">Dividir digitalização</span>
+              </button>
+            )}
+            {onOpenRoi && (
+              <button onClick={onOpenRoi} className={botao} title="Recortar no campo da ocular">
+                <Crosshair
+                  size={16}
+                  strokeWidth={2}
+                  className="text-ink-3 group-hover:text-accent transition-colors"
+                  aria-hidden="true"
+                />
+                <span className="text-xs tracking-wide uppercase">Delimitar campo (ROI)</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Camera Capture Button (Fase E) */}
         {onOpenCamera && (

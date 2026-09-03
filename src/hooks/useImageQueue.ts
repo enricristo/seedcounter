@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { ehTiff } from '../lib/image-crop';
 
 interface UseImageQueueProps {
   onImageLoaded?: (img: HTMLImageElement, file: File) => void;
@@ -9,10 +10,24 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
   const [filename, setFilename] = useState<string>('');
   const [imageQueue, setImageQueue] = useState<File[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  /** Última falha de carregamento, para a interface poder dizer o que houve. */
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadImageFromFile = useCallback(
     (file: File) => {
+      // TIFF passa no filtro image/* mas nenhum navegador o decodifica: sem
+      // esta guarda, o img.onload nunca dispara e a tela fica em silêncio,
+      // sem imagem e sem erro.
+      if (ehTiff(file)) {
+        setLoadError(
+          `"${file.name}" está em TIFF, que o navegador não abre. Converta para JPG ou PNG antes de carregar.`
+        );
+        return;
+      }
+
       setFilename(file.name);
+      setLoadError(null);
+
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -22,7 +37,14 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
             onImageLoaded(img, file);
           }
         };
+        // Qualquer arquivo corrompido ou em formato não suportado cai aqui.
+        img.onerror = () => {
+          setLoadError(`Não foi possível abrir "${file.name}". O arquivo pode estar corrompido.`);
+        };
         img.src = event.target?.result as string;
+      };
+      reader.onerror = () => {
+        setLoadError(`Falha ao ler "${file.name}".`);
       };
       reader.readAsDataURL(file);
     },
@@ -72,6 +94,7 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
 
   const resetQueue = useCallback(() => {
     setImage(null);
+    setLoadError(null);
     setFilename('');
     setImageQueue([]);
     setCurrentImageIndex(0);
@@ -86,6 +109,8 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
     setImageQueue,
     currentImageIndex,
     setCurrentImageIndex,
+    loadError,
+    setLoadError,
 
     // Actions
     loadFiles,
