@@ -8,8 +8,11 @@ import { Brain, Check, X, Loader2, AlertCircle, Download } from 'lucide-react';
 import {
   detectWithYolo,
   isModelAvailable,
+  resolveBestModel,
   DEFAULT_MODEL_URL,
+  FULL_PRECISION_MODEL_URL,
   type YoloDetection,
+  type ModelQuality,
 } from '../../lib/yolo-onnx';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
 import { formatLength, formatArea } from '../../lib/calibration';
@@ -44,13 +47,18 @@ export function AiPointerPanel({
   const [detections, setDetections] = useState<YoloDetection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modelPresent, setModelPresent] = useState<boolean | null>(null);
+  const [quality, setQuality] = useState<ModelQuality | null>(null);
 
-  // Verifica uma vez se o modelo está publicado.
+  // Verifica uma vez qual modelo esta instalação tem. O fp32 local vence quando existe.
   useEffect(() => {
     let alive = true;
-    isModelAvailable().then((ok) => {
-      if (alive) setModelPresent(ok);
-    });
+    (async () => {
+      const resolved = await resolveBestModel();
+      const ok = resolved.quality === 'full' || (await isModelAvailable(DEFAULT_MODEL_URL));
+      if (!alive) return;
+      setModelPresent(ok);
+      setQuality(ok ? resolved.quality : null);
+    })();
     return () => {
       alive = false;
     };
@@ -188,7 +196,32 @@ export function AiPointerPanel({
         <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400">
           YOLOv8
         </span>
+        {quality === 'full' && (
+          <span
+            title={`Pesos originais do TCC em precisão total (${FULL_PRECISION_MODEL_URL}). Classificação viável/inviável confiável.`}
+            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400"
+          >
+            fp32
+          </span>
+        )}
+        {quality === 'quantized' && (
+          <span
+            title="Modelo quantizado (int8). A contagem é confiável; a divisão viável/inviável é menos precisa que no fp32."
+            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400"
+          >
+            int8
+          </span>
+        )}
       </div>
+
+      {/* A quantização foi medida degradando a classificação — vale avisar. */}
+      {quality === 'quantized' && (
+        <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
+          Modelo quantizado. A contagem é confiável, mas a divisão viável/inviável perde
+          precisão. Para pesquisa, use a instalação do laboratório, que carrega os pesos em
+          precisão total.
+        </p>
+      )}
 
       {/* Modelo ausente */}
       {modelPresent === false && (

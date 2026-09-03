@@ -26,6 +26,11 @@ jobs:
       - name: TypeScript check
         run: npm run type-check
 
+      # Testes: BLOQUEIAM. Sao a rede de seguranca da estatistica e da calibracao,
+      # que produzem numeros usados em pesquisa.
+      - name: Unit tests
+        run: npm test
+
       # Lint: informativo, NAO bloqueia o pipeline (avisos de estilo/qualidade).
       - name: Lint (advisory)
         run: npx eslint src --ext .ts,.tsx
