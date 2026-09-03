@@ -4,7 +4,7 @@ import {
   Moon,
   History,
   Undo2,
-  RotateCcw,
+  Eraser,
   Save,
   Download,
   Calendar,
@@ -233,10 +233,11 @@ export function Header({
           <button
             onClick={onReset}
             disabled={resetDisabled}
-            className="p-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none text-neutral-600 dark:text-zinc-300 hover:text-red-500 dark:hover:text-red-400"
-            title="Limpar Marcações"
+            className="p-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none text-ink-2 hover:text-danger"
+            title="Limpar a placa atual — pede confirmação"
+            aria-label="Limpar a placa atual"
           >
-            <RotateCcw size={17} />
+            <Eraser size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         )}
 

@@ -1,9 +1,23 @@
+// =============================================================================
+// SeedCounter — CounterItem
+// Um totalizador de classe. A contagem é a leitura primária da tela: número em
+// Plex Mono com numerais tabulares, para que os dígitos não dancem enquanto o
+// técnico marca.
+//
+// A porcentagem aparece UMA vez. A versão anterior a mostrava duas — numa
+// pílula colorida e num número gigante a 6% de opacidade atrás do conteúdo —,
+// e o fantasma passava por trás do rótulo e da descrição. A proporção entre as
+// duas classes é mostrada por uma barra segmentada em Counters, que é onde ela
+// significa alguma coisa: relação entre dois valores é um elemento só.
+// =============================================================================
+
 import React from 'react';
 import { MousePointer2 } from 'lucide-react';
 
 interface CounterItemProps {
   label: string;
   count: number;
+  /** Classe utilitária de fundo do chip da classe (ex.: 'bg-red-500'). */
   color: string;
   description: string;
   percent?: string;
@@ -20,57 +34,38 @@ export function CounterItem({
   onClick,
   isActive = false,
 }: CounterItemProps) {
-  // Determine badge colors based on label
-  const isViable = label.toLowerCase().includes('viáv') || label.toLowerCase().includes('viav');
-  const badgeClasses = isViable
-    ? 'bg-red-50 dark:bg-red-950/40 text-danger border-red-100 dark:border-red-900/30'
-    : 'bg-amber-50 dark:bg-amber-950/40 text-warn border-amber-100 dark:border-amber-900/30';
-
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className={`flex flex-col p-4 rounded-xl transition-all border shadow-sm group relative overflow-hidden cursor-pointer
-        ${
-          isActive
-            ? 'bg-neutral-100 dark:bg-zinc-900 border-emerald-500/50 scale-[1.02] ring-1 ring-emerald-500/20'
-            : 'bg-white dark:bg-zinc-900/50 border-neutral-100 dark:border-zinc-800/80 hover:bg-neutral-50 dark:hover:bg-zinc-900 hover:border-neutral-200 dark:hover:border-zinc-700'
-        }
-      `}
+      aria-pressed={isActive}
+      className={`rounded-panel group flex w-full items-center gap-3 border p-3 text-left transition-all ${
+        isActive
+          ? 'border-accent bg-accent-tint'
+          : 'border-line bg-surface-1 hover:border-ink-3 hover:bg-surface-2'
+      }`}
     >
-      <div className="flex items-center justify-between flex-wrap">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-9 h-9 ${color} rounded-xl shadow-md flex items-center justify-center text-white`}
-          >
-            <MousePointer2 size={15} className="group-hover:scale-110 transition-transform" />
-          </div>
-          <div className="flex flex-col z-10">
-            <span className="text-xs font-semibold text-neutral-800 dark:text-zinc-100">
-              {label}
-            </span>
-            <span className="text-[9px] text-neutral-400 dark:text-zinc-400 font-medium">
-              {description}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-col items-end z-10 gap-0.5">
-          <span className="text-xl font-bold font-mono tracking-tighter text-neutral-900 dark:text-zinc-50">
-            {count}
+      <span
+        className={`rounded-control flex h-8 w-8 shrink-0 items-center justify-center text-white ${color}`}
+      >
+        <MousePointer2 size={14} strokeWidth={2.25} aria-hidden="true" />
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="text-ink-1 block text-xs leading-tight font-bold">{label}</span>
+        <span className="text-ink-3 block text-[10px] leading-tight">{description}</span>
+      </span>
+
+      <span className="shrink-0 text-right">
+        <span className="text-ink-1 block font-mono text-xl leading-none font-semibold tracking-tight tabular-nums">
+          {count}
+        </span>
+        {percent && (
+          <span className="text-ink-3 mt-1 block font-mono text-[10px] tabular-nums">
+            {percent}%
           </span>
-          {percent && (
-            <span
-              className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border ${badgeClasses}`}
-            >
-              {percent}%
-            </span>
-          )}
-        </div>
-      </div>
-      {percent && (
-        <div className="absolute top-0 right-0 h-full flex items-center justify-end pr-3 opacity-[0.06] dark:opacity-[0.10] group-hover:opacity-[0.14] transition-opacity pointer-events-none select-none">
-          <span className="text-5xl font-black font-mono tracking-tighter -mr-2">{percent}%</span>
-        </div>
-      )}
-    </div>
+        )}
+      </span>
+    </button>
   );
 }

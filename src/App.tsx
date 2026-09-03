@@ -14,6 +14,7 @@ import { DropZone } from './components/shared/DropZone';
 // Modals
 import { ExportModal } from './components/modals/ExportModal';
 import { HistoryModal } from './components/modals/HistoryModal';
+import { ConfirmDialog } from './components/modals/ConfirmDialog';
 
 // Hooks
 import { useTheme } from './hooks/useTheme';
@@ -172,6 +173,7 @@ export default function App() {
   // Modal Open states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isExperimentModalOpen, setIsExperimentModalOpen] = useState(false);
   const [selectedExperimentForEdit, setSelectedExperimentForEdit] = useState<
     Experiment | undefined
@@ -364,15 +366,21 @@ export default function App() {
     addMark(x, y, type);
   };
 
-  // Reset markings prompt
-  const handleReset = () => {
-    if (
-      window.confirm(
-        'Deseja realmente limpar todas as marcações manuais e segmentações YOLO da imagem atual?'
-      )
-    ) {
-      resetAllAnnotations();
-    }
+  // Limpa a placa atual: contagem, calibração e identificação da placa.
+  // Preserva o histórico, os experimentos e a identificação do trabalho
+  // (pesquisador, projeto, tratamento), que o usuário não deve redigitar a
+  // cada placa. A confirmação vive no ConfirmDialog, que lista o alcance.
+  const handleResetCurrentPlate = () => {
+    resetAllAnnotations();
+    setMetadata((prev) => ({
+      ...prev,
+      plate: '',
+      quadrant: '',
+      notes: '',
+      baselineCount: 0,
+      useDifferential: false,
+      umPerPixel: undefined,
+    }));
   };
 
   // Save local history session
@@ -984,8 +992,7 @@ export default function App() {
   });
 
   return (
-    <>
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-neutral-50 dark:bg-[#121214] text-neutral-850 dark:text-zinc-105 transition-colors duration-300 font-sans">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-surface-0 text-ink-1 transition-colors duration-300 font-sans">
       {/* 1. Header Toolbar */}
       <Header
         isDarkMode={isDarkMode}
@@ -994,8 +1001,16 @@ export default function App() {
         openHistory={() => setIsHistoryModalOpen(true)}
         onUndo={undoMark}
         undoDisabled={marks.length === 0}
-        onReset={handleReset}
-        resetDisabled={marks.length === 0 && yoloSegmentations.length === 0}
+        onReset={() => setIsResetConfirmOpen(true)}
+        resetDisabled={
+          marks.length === 0 &&
+          yoloSegmentations.length === 0 &&
+          !metadata.umPerPixel &&
+          !metadata.plate &&
+          !metadata.quadrant &&
+          !metadata.notes &&
+          !metadata.baselineCount
+        }
         hasImageQueue={imageQueue.length > 0}
         currentImageIndex={currentImageIndex}
         imageQueueLength={imageQueue.length}
@@ -1288,12 +1303,39 @@ export default function App() {
         />
       )}
 
+      {/* Confirmação de limpeza — ação destrutiva, foco inicial em Cancelar */}
+      <AnimatePresence>
+        {isResetConfirmOpen && (
+          <ConfirmDialog
+            isOpen={isResetConfirmOpen}
+            onClose={() => setIsResetConfirmOpen(false)}
+            onConfirm={handleResetCurrentPlate}
+            title="Limpar a placa atual?"
+            message="Esta ação não pode ser desfeita. O histórico de sessões salvas não é afetado."
+            confirmLabel="Limpar placa"
+            clears={[
+              'Marcações manuais',
+              'Segmentações do YOLO',
+              'Calibração (µm/px)',
+              'Base do cálculo diferencial',
+              'Placa, quadrante e notas',
+            ]}
+            keeps={[
+              'Histórico de sessões',
+              'Experimentos e placas',
+              'Pesquisador e projeto',
+              'Tratamento',
+              'Imagem carregada',
+            ]}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />
     </div>
-    </>
   );
 }

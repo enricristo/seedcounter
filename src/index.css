@@ -31,6 +31,12 @@
   --font-sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  /* Raio — tres valores, nao os sete que conviviam (sm/md/lg/xl/2xl/3xl/full).
+     Instrumento tem canto justo; raio macio e linguagem de app de consumo.
+     rounded-full continua para pilhas de contagem. */
+  --radius-control: 2px;
+  --radius-panel: 6px;
+
   /* Grafite — o neutro do sistema, matiz ≈200°, com viés frio deliberado.
      Substitui as duas famílias de cinza que hoje convivem sem regra:
      neutral (quente) e zinc (frio). */

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SeedCounter">
+  <title>SeedCounter — Retículo</title>
+  <rect width="64" height="64" rx="12" fill="#101719"/>
+  <circle cx="32" cy="32" r="19" fill="none" stroke="#e1e8ea" stroke-width="2.6"/>
+  <path d="M32 13.8v4.7M32 50.2v-4.7M13.8 32h4.7M50.2 32h-4.7" stroke="#e1e8ea" stroke-width="2.6" stroke-linecap="round"/>
+  <ellipse cx="30" cy="34" rx="8" ry="4.8" transform="rotate(-30 30 34)" fill="#3fb4c4"/>
+</svg>
