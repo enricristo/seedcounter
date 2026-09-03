@@ -87,9 +87,6 @@ describe('calculateCVG', () => {
   });
 });
 
-import { calculateT50 } from './stats';
-import type { GerminationReading } from '../types';
-
 describe('calculateT50', () => {
   it('returns null if totalSeeds is 0', () => {
     expect(calculateT50([], 0)).toBeNull();
@@ -142,12 +139,6 @@ describe('calculateT50', () => {
       { day: 3, germinated: 1 }
     ];
 
-    // According to the current logic:
-    // i=1: curve[1].cum (7) >= target (5)
-    // slope = (3 - 2) / (7 - 6) = 1
-    // t50 = 2 + 1 * (5 - 6) = 1
-    // This is mathematically how it interpolates right now.
-    // Testing what the code actually outputs.
     expect(calculateT50(readings, 10)).toBe(1);
   });
 
@@ -169,8 +160,6 @@ describe('calculateT50', () => {
   });
 
   it('returns null if there is only one reading and it reaches target', () => {
-    // The loop is `for (let i = 1; i < curve.length; i++)`
-    // If there is only one reading, curve.length is 1, so the loop doesn't run.
     const readings: GerminationReading[] = [
       { day: 1, germinated: 6 }
     ];
