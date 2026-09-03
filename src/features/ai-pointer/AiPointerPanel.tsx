@@ -20,7 +20,13 @@ import type { Mark, YoloSegmentation } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
 
 interface AiPointerPanelProps {
-  image: HTMLImageElement | null;
+  /**
+   * A fonte da deteccao. Aceita canvas porque o painel de ajuste de imagem
+   * entrega um HTMLCanvasElement, e detectWithYolo ja aceita os dois
+   * (src/lib/yolo-onnx.ts:493). O tipo estreito anterior descrevia mal o que
+   * o componente sempre soube receber.
+   */
+  image: HTMLImageElement | HTMLCanvasElement | null;
   marks: Mark[];
   onAddMarks: (marks: Mark[]) => void;
   onPreviewChange: (preview: DetectionPreview | null) => void;
@@ -217,9 +223,8 @@ export function AiPointerPanel({
       {/* A quantização foi medida degradando a classificação — vale avisar. */}
       {quality === 'quantized' && (
         <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
-          Modelo quantizado. A contagem é confiável, mas a divisão viável/inviável perde
-          precisão. Para pesquisa, use a instalação do laboratório, que carrega os pesos em
-          precisão total.
+          Modelo quantizado. A contagem é confiável, mas a divisão viável/inviável perde precisão.
+          Para pesquisa, use a instalação do laboratório, que carrega os pesos em precisão total.
         </p>
       )}
 

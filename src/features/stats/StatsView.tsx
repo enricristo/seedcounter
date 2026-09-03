@@ -573,11 +573,15 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                     Germinação Média com Letras de Diferença Significativa
                   </h4>
-                  <HelpCircle
-                    size={14}
+                  {/* O title precisa ficar no wrapper: lucide-react repassa as
+                      props para o <svg>, e title nao e atributo valido ali —
+                      a dica nunca chegou a aparecer. */}
+                  <span
                     className="text-neutral-400"
                     title="Barras mostram a média com intervalo de confiança de Wilson. Letras diferentes indicam diferença estatística significativa (p < 0.05)."
-                  />
+                  >
+                    <HelpCircle size={14} aria-hidden="true" />
+                  </span>
                 </div>
                 {statsResult.treatmentStats.length > 0 ? (
                   <GerminationBarChart stats={statsResult.treatmentStats} />
