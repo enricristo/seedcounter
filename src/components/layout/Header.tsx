@@ -9,8 +9,8 @@ import {
   Download,
   Calendar,
   BarChart4,
-  Activity,
-  Sparkles,
+  Target,
+  FlaskConical,
 } from 'lucide-react';
 import type { AppView } from '../../types';
 
@@ -41,6 +41,56 @@ interface HeaderProps {
   onOpenFeatures?: () => void;
 }
 
+/**
+ * A marca Retículo, inline para acompanhar o tema.
+ * O arquivo public/mark.svg tem cores fixas porque favicon não herda tema;
+ * aqui o retículo vem do token de acento e a semente da tinta principal.
+ */
+function MarcaReticulo({ size = 26 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      role="img"
+      aria-label="SeedCounter"
+      className="shrink-0"
+    >
+      <circle
+        cx="32"
+        cy="32"
+        r="19"
+        stroke="var(--color-accent)"
+        strokeWidth="3"
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        d="M32 13.8v4.7M32 50.2v-4.7M13.8 32h4.7M50.2 32h-4.7"
+        stroke="var(--color-accent)"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <ellipse
+        cx="30"
+        cy="34"
+        rx="8"
+        ry="4.8"
+        transform="rotate(-30 30 34)"
+        fill="var(--color-ink-1)"
+      />
+    </svg>
+  );
+}
+
+/** Botão de ícone da barra: 16px com traço 2, o passo padrão de controle. */
+const botaoIcone =
+  'rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-2 border p-2 transition-all disabled:pointer-events-none disabled:opacity-30';
+
+/** Botão da fila de imagens: rótulo curto em caixa alta. */
+const botaoFila =
+  'rounded-control border-line bg-surface-1 text-ink-2 hover:bg-surface-2 hover:text-ink-1 border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all disabled:pointer-events-none disabled:opacity-30';
+
 export function Header({
   isDarkMode,
   toggleTheme,
@@ -65,50 +115,26 @@ export function Header({
   isStatsEnabled = true,
   onOpenFeatures,
 }: HeaderProps) {
+  const aba = (ativa: boolean) =>
+    `rounded-control flex cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-all ${
+      ativa
+        ? 'bg-surface-1 text-ink-1 shadow-[inset_0_-2px_0_var(--color-accent)]'
+        : 'text-ink-3 hover:text-ink-1'
+    }`;
+
   return (
-    <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-surface-1 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-all duration-300">
-      {/* Brand Logo & Info */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <a
-              href="https://www.instagram.com/gpeorq"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="GPEOrq — Grupo de Pesquisa em Orquídeas"
-              className="bg-white p-1 rounded-lg border border-neutral-100 dark:border-zinc-800 shadow-sm flex items-center justify-center hover:border-emerald-300 transition-colors"
-            >
-              <img
-                src="/logo-gpeorq.png"
-                alt="Logo GPEOrq"
-                className="h-9 w-9 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </a>
-            <a
-              href="https://www.instagram.com/gpsem_2000/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="GPSEM — Grupo de Estudos e Pesquisas em Sementes"
-              className="bg-white p-1 rounded-lg border border-neutral-100 dark:border-zinc-800 shadow-sm flex items-center justify-center hover:border-emerald-300 transition-colors"
-            >
-              <img
-                src="/logo-gpsem.png"
-                alt="Logo GPSEM"
-                className="h-9 w-9 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </a>
-          </div>
+    // Separação por fio de 1px, não por sombra: sombra fica reservada ao que
+    // de fato flutua (modais e o controle de zoom).
+    <header className="border-line bg-surface-1 z-10 flex h-16 shrink-0 items-center justify-between border-b px-6">
+      <div className="flex items-center gap-5">
+        {/* Identidade do produto primeiro, credenciais institucionais depois. */}
+        <div className="flex items-center gap-2.5">
+          <MarcaReticulo />
           <div>
-            <h1 className="font-bold text-base tracking-tight leading-tight text-neutral-800 dark:text-zinc-50">
+            <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight">
               Contador de Sementes
             </h1>
-            <p className="text-[9px] text-accent uppercase tracking-widest font-bold">
+            <p className="text-accent text-[9px] font-bold tracking-widest uppercase">
               Edição Acadêmica •{' '}
               <a
                 href="https://www.instagram.com/gpeorq"
@@ -132,108 +158,134 @@ export function Header({
           </div>
         </div>
 
-        {/* View Navigation Tabs */}
-        <nav className="hidden md:flex items-center bg-neutral-100 dark:bg-zinc-900 rounded-xl p-0.5 text-xs font-bold uppercase tracking-wider">
+        <div className="bg-line hidden h-8 w-px lg:block" />
+
+        {/* Marcas dos grupos de pesquisa. São de terceiros: exibidas como
+            recebidas, sem recorte nem recolorização. */}
+        <div className="hidden items-center gap-1.5 lg:flex">
+          <a
+            href="https://www.instagram.com/gpeorq"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="GPEOrq — Grupo de Pesquisa em Orquídeas"
+            className="rounded-control border-line hover:border-accent flex items-center justify-center border bg-white p-1 transition-colors"
+          >
+            <img
+              src="/logo-gpeorq.png"
+              alt="Logo GPEOrq"
+              className="h-7 w-7 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </a>
+          <a
+            href="https://www.instagram.com/gpsem_2000/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="GPSEM — Grupo de Estudos e Pesquisas em Sementes"
+            className="rounded-control border-line hover:border-accent flex items-center justify-center border bg-white p-1 transition-colors"
+          >
+            <img
+              src="/logo-gpsem.png"
+              alt="Logo GPSEM"
+              className="h-7 w-7 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </a>
+        </div>
+
+        {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
+            embaixo, não por cor de texto: cor sozinha não carrega estado. */}
+        <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">
           <button
             onClick={() => onViewChange('counter')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              currentView === 'counter'
-                ? 'bg-white dark:bg-zinc-800 text-purple-600 dark:text-purple-400 shadow-sm'
-                : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-zinc-200'
-            }`}
+            className={aba(currentView === 'counter')}
           >
-            <Activity size={13} />
+            <Target size={14} strokeWidth={2.25} aria-hidden="true" />
             <span>Contagem</span>
           </button>
 
           {isLongitudinalEnabled && (
             <button
               onClick={() => onViewChange('longitudinal')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                currentView === 'longitudinal'
-                  ? 'bg-white dark:bg-zinc-800 text-purple-600 dark:text-purple-400 shadow-sm'
-                  : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-zinc-200'
-              }`}
+              className={aba(currentView === 'longitudinal')}
             >
-              <Calendar size={13} />
+              <Calendar size={14} strokeWidth={2.25} aria-hidden="true" />
               <span>Longitudinal</span>
             </button>
           )}
 
           {isStatsEnabled && (
-            <button
-              onClick={() => onViewChange('stats')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                currentView === 'stats'
-                  ? 'bg-white dark:bg-zinc-800 text-purple-600 dark:text-purple-400 shadow-sm'
-                  : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-zinc-200'
-              }`}
-            >
-              <BarChart4 size={13} />
+            <button onClick={() => onViewChange('stats')} className={aba(currentView === 'stats')}>
+              <BarChart4 size={14} strokeWidth={2.25} aria-hidden="true" />
               <span>Estatísticas</span>
             </button>
           )}
         </nav>
       </div>
 
-      {/* Control Actions */}
       <div className="flex items-center gap-2">
-        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 border border-neutral-200 hover:border-neutral-300 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 text-neutral-500 hover:text-neutral-900 dark:text-zinc-400 dark:hover:text-zinc-50 rounded-lg transition-all"
-          title="Alternar Tema (D)"
+          className={botaoIcone}
+          title="Alternar tema (D)"
+          aria-label="Alternar tema"
         >
-          {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
+          {isDarkMode ? (
+            <Sun size={16} strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <Moon size={16} strokeWidth={2} aria-hidden="true" />
+          )}
         </button>
 
-        {/* Painel de funcionalidades (visível para quem usa a versão de teste) */}
         {onOpenFeatures && (
           <button
             onClick={onOpenFeatures}
-            className="p-2 border border-neutral-200 hover:border-emerald-300 dark:border-zinc-800 dark:hover:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-neutral-500 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-400 rounded-lg transition-all"
+            className={`${botaoIcone} hover:border-accent hover:text-accent`}
             title="Funcionalidades e recursos experimentais"
+            aria-label="Funcionalidades e recursos experimentais"
           >
-            <Sparkles size={17} />
+            {/* FlaskConical no lugar de Sparkles: o painel é de laboratório,
+                não de IA — e Sparkles virou taquigrafia de IA na indústria. */}
+            <FlaskConical size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         )}
 
-        {/* History Modal Trigger */}
         {currentView === 'counter' && (
           <button
             onClick={openHistory}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-neutral-600 dark:text-zinc-300 hover:text-neutral-900 dark:hover:text-zinc-50 hover:bg-neutral-50 dark:hover:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg transition-all"
+            className="rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all"
           >
-            <History size={17} />
+            <History size={16} strokeWidth={2} aria-hidden="true" />
             <span>Histórico</span>
-            <span className="bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-400 text-xs px-2 py-0.5 rounded-full font-bold">
+            <span className="bg-surface-2 text-ink-2 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
               {sessionsCount}
             </span>
           </button>
         )}
 
-        {currentView === 'counter' && (
-          <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />
-        )}
+        {currentView === 'counter' && <div className="bg-line mx-1 h-6 w-px" />}
 
-        {/* Undo Mark */}
         {currentView === 'counter' && (
           <button
             onClick={onUndo}
             disabled={undoDisabled}
-            className="p-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none text-neutral-600 dark:text-zinc-300 hover:text-neutral-950 dark:hover:text-white"
-            title="Desfazer Último Ponto (Ctrl+Z)"
+            className={botaoIcone}
+            title="Desfazer último ponto (Ctrl+Z)"
+            aria-label="Desfazer último ponto"
           >
-            <Undo2 size={17} />
+            <Undo2 size={16} strokeWidth={2} aria-hidden="true" />
           </button>
         )}
 
-        {/* Reset All Marks */}
         {currentView === 'counter' && (
           <button
             onClick={onReset}
             disabled={resetDisabled}
-            className="p-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg transition-all disabled:opacity-30 disabled:pointer-events-none text-ink-2 hover:text-danger"
+            className={`${botaoIcone} hover:text-danger hover:border-danger`}
             title="Limpar a placa atual — pede confirmação"
             aria-label="Limpar a placa atual"
           >
@@ -241,55 +293,51 @@ export function Header({
           </button>
         )}
 
-        {currentView === 'counter' && (
-          <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />
-        )}
+        {currentView === 'counter' && <div className="bg-line mx-1 h-6 w-px" />}
 
-        {/* Multi-Image Queue Controls */}
         {currentView === 'counter' && hasImageQueue && (
-          <div className="flex items-center gap-1 bg-neutral-50 dark:bg-zinc-900/50 border border-neutral-200 dark:border-zinc-800 rounded-lg p-1 mr-1">
+          <div className="border-line bg-surface-2 rounded-control mr-1 flex items-center gap-1 border p-1">
             <button
               onClick={onPrevImage}
               disabled={currentImageIndex === 0}
-              className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-surface-2 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
-              title="Voltar Imagem (Backspace)"
+              className={botaoFila}
+              title="Voltar imagem (Backspace)"
             >
               Anterior
             </button>
-            <div className="text-[10px] font-bold font-mono text-neutral-500 dark:text-zinc-400 px-2">
+            <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
               {currentImageIndex + 1}/{imageQueueLength}
             </div>
             <button
               onClick={onNextImage}
               disabled={currentImageIndex === imageQueueLength - 1}
-              className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-surface-2 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
-              title="Próxima Imagem (Espaço)"
+              className={botaoFila}
+              title="Próxima imagem (Espaço)"
             >
               Próxima
             </button>
           </div>
         )}
 
-        {/* Save Session */}
         {currentView === 'counter' && (
           <button
             onClick={onSaveSession}
             disabled={!hasImage}
-            className="flex items-center gap-2 bg-neutral-50 hover:bg-neutral-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-neutral-200 dark:border-zinc-800 px-3 py-2 rounded-lg text-neutral-700 dark:text-zinc-200 transition-all disabled:opacity-30 disabled:pointer-events-none font-semibold text-xs uppercase tracking-wide"
+            className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
           >
-            <Save size={14} />
-            <span>Salvar Local</span>
+            <Save size={16} strokeWidth={2} aria-hidden="true" />
+            <span>Salvar local</span>
           </button>
         )}
 
-        {/* Export Modal Trigger */}
+        {/* Única ação primária da barra, e o único uso de fundo de acento. */}
         {currentView === 'counter' && (
           <button
             onClick={onExport}
             disabled={!hasImage}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-30 disabled:pointer-events-none font-bold text-xs uppercase tracking-wider"
+            className="rounded-control bg-accent text-accent-on hover:bg-accent-strong flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-wider uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
           >
-            <Download size={14} />
+            <Download size={16} strokeWidth={2} aria-hidden="true" />
             <span>Exportar</span>
           </button>
         )}

@@ -3,12 +3,11 @@ import {
   X,
   Save,
   FileText,
-  Table,
+  FileSpreadsheet,
   FileJson,
   Image as ImageIcon,
   FileCheck2,
   Layers,
-  Ruler,
   Database,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -94,8 +93,8 @@ export function ExportModal({
         {/* Modal Content */}
         <div className="p-6 space-y-6">
           {/* Save locally Banner */}
-          <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-950/30 text-accent p-4.5 rounded-2xl flex items-start gap-3.5 shadow-sm">
-            <div className="bg-emerald-100 dark:bg-emerald-950/40 p-2 rounded-xl text-accent shrink-0 mt-0.5 shadow-inner">
+          <div className="bg-accent-tint border-accent/30 text-ink-1 rounded-panel flex items-start gap-3.5 border p-4.5">
+            <div className="bg-surface-1 rounded-control text-accent mt-0.5 shrink-0 p-2">
               <Save size={18} />
             </div>
             <div className="space-y-1">
@@ -111,7 +110,7 @@ export function ExportModal({
                       onSaveAndNext();
                       onClose();
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+                    className="bg-accent hover:bg-accent-strong text-accent-on rounded-control cursor-pointer px-4 py-2 text-[10px] font-bold tracking-wider uppercase transition-all"
                   >
                     Salvar e Avançar Fila ({currentImageIndex + 1}/{imageQueueLength})
                   </button>
@@ -121,7 +120,7 @@ export function ExportModal({
                       onSaveCurrentSession(false);
                       onClose();
                     }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+                    className="bg-accent hover:bg-accent-strong text-accent-on rounded-control cursor-pointer px-4 py-2 text-[10px] font-bold tracking-wider uppercase transition-all"
                   >
                     Salvar no Histórico Local
                   </button>
@@ -139,7 +138,7 @@ export function ExportModal({
             <div className="grid grid-cols-2 gap-3">
               {/* PDF Report */}
               <ExportCard
-                icon={<FileCheck2 size={20} className="text-accent" />}
+                icon={<FileCheck2 size={20} strokeWidth={1.75} className="text-ink-2" />}
                 title="Relatório PDF (A4)"
                 desc="Metadados, totais e foto anotada em formato PDF premium."
                 onClick={exportPDF}
@@ -147,7 +146,7 @@ export function ExportModal({
 
               {/* Text Report */}
               <ExportCard
-                icon={<FileText size={20} className="text-blue-500" />}
+                icon={<FileText size={20} strokeWidth={1.75} className="text-ink-2" />}
                 title="Relatório TXT"
                 desc="Resumo estruturado em arquivo de texto legível."
                 onClick={exportTextReport}
@@ -155,7 +154,7 @@ export function ExportModal({
 
               {/* Spreadsheet CSV */}
               <ExportCard
-                icon={<Table size={20} className="text-teal-500" />}
+                icon={<FileSpreadsheet size={20} strokeWidth={1.75} className="text-ink-2" />}
                 title="Tabela (CSV)"
                 desc="Ideal para carregar no Excel, Google Sheets ou R."
                 onClick={exportCSV}
@@ -164,7 +163,7 @@ export function ExportModal({
               {/* Por objeto — uma linha por semente */}
               {exportMeasurementsCSV && (
                 <ExportCard
-                  icon={<Ruler size={20} className="text-violet-500" />}
+                  icon={<FileSpreadsheet size={20} strokeWidth={1.75} className="text-ink-2" />}
                   title="Por Semente (CSV)"
                   desc={
                     hasMorphometry
@@ -178,7 +177,7 @@ export function ExportModal({
               {/* Banco de dados */}
               {exportSQL && (
                 <ExportCard
-                  icon={<Database size={20} className="text-indigo-500" />}
+                  icon={<Database size={20} strokeWidth={1.75} className="text-ink-2" />}
                   title="Banco de Dados (SQL)"
                   desc="Esquema e inserções para acumular amostras em SQLite/PostgreSQL."
                   onClick={exportSQL}
@@ -187,7 +186,7 @@ export function ExportModal({
 
               {/* Raw JSON */}
               <ExportCard
-                icon={<FileJson size={20} className="text-amber-500" />}
+                icon={<FileJson size={20} strokeWidth={1.75} className="text-ink-2" />}
                 title="Dados Brutos (JSON)"
                 desc="Contém coordenadas X/Y de todos os pontos marcados."
                 onClick={exportJSON}
@@ -201,7 +200,7 @@ export function ExportModal({
                 >
                   <ImageIcon
                     size={15}
-                    className="text-purple-500 group-hover:scale-105 transition-transform"
+                    className="text-ink-2 transition-transform group-hover:scale-105"
                   />
                   <span>Baixar Foto Anotada (PNG)</span>
                 </button>
