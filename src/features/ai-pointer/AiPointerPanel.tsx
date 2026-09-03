@@ -15,7 +15,7 @@ import {
   type ModelQuality,
 } from '../../lib/yolo-onnx';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
-import { formatLength, formatArea } from '../../lib/calibration';
+import { formatLengthDual, formatAreaDual } from '../../lib/calibration';
 import type { Mark, YoloSegmentation } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
 
@@ -326,13 +326,14 @@ export function AiPointerPanel({
               </p>
               <p className="text-[11px] text-ink-2">
                 Comprimento médio:{' '}
-                <strong>{formatLength(morphSummary.meanLength, umPerPixel)}</strong>
+                <strong>{formatLengthDual(morphSummary.meanLength, umPerPixel)}</strong>
               </p>
               <p className="text-[11px] text-ink-2">
-                Largura média: <strong>{formatLength(morphSummary.meanWidth, umPerPixel)}</strong>
+                Largura média:{' '}
+                <strong>{formatLengthDual(morphSummary.meanWidth, umPerPixel)}</strong>
               </p>
               <p className="text-[11px] text-ink-2">
-                Área média: <strong>{formatArea(morphSummary.meanArea, umPerPixel)}</strong>
+                Área média: <strong>{formatAreaDual(morphSummary.meanArea, umPerPixel)}</strong>
               </p>
               {!umPerPixel && (
                 <p className="text-[10px] text-amber-700 dark:text-amber-400">

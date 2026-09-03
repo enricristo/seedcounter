@@ -3,6 +3,7 @@ import type { Mark, YoloSegmentation } from '../../types';
 import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
 import { CanvasRulers } from './CanvasRulers';
+import { formatLengthDual } from '../../lib/calibration';
 
 /** Prévia da detecção assistida (Fase E) — candidatos ainda não confirmados. */
 export interface DetectionPreview {
@@ -503,14 +504,14 @@ export function MarkingCanvas({
             <div>Confiança: {(hoveredSeg.confidence * 100).toFixed(1)}%</div>
             {hoveredSeg.width && hoveredSeg.height && (
               <>
-                <div>
-                  Comprimento: {hoveredSeg.width} px{' '}
-                  {umPerPixel ? `(${(hoveredSeg.width * umPerPixel).toFixed(1)} µm)` : ''}
-                </div>
-                <div>
-                  Largura: {hoveredSeg.height} px{' '}
-                  {umPerPixel ? `(${(hoveredSeg.height * umPerPixel).toFixed(1)} µm)` : ''}
-                </div>
+                {/* Pixel e milímetro juntos: o pixel é o que a imagem tem, o
+                    milímetro é a unidade em que a semente é descrita e
+                    publicada. Mostrar só um obriga a converter de cabeça. */}
+                <div>Comprimento: {formatLengthDual(hoveredSeg.width, umPerPixel)}</div>
+                <div>Largura: {formatLengthDual(hoveredSeg.height, umPerPixel)}</div>
+                {hoveredSeg.height > 0 && (
+                  <div>Razão C/L: {(hoveredSeg.width / hoveredSeg.height).toFixed(2)}</div>
+                )}
               </>
             )}
             <div className="text-[8px] text-neutral-400 pt-1 border-t border-neutral-700/30 mt-1 uppercase">

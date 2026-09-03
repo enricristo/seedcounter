@@ -126,6 +126,28 @@ export function formatLength(pixels: number, umPerPixel?: number): string {
   return `${(um / 1_000).toFixed(1)} mm`;
 }
 
+/**
+ * Medida com as DUAS unidades: pixel e milímetro.
+ *
+ * O pixel é o que a imagem tem; o milímetro é o que o lote é descrito e
+ * publicado (semente de Cattleya tem ~1,17 x 0,34 mm). Mostrar só um obriga o
+ * pesquisador a converter de cabeça na hora de anotar o caderno.
+ */
+export function formatLengthDual(pixels: number, umPerPixel?: number): string {
+  const px = `${Math.round(pixels)} px`;
+  if (!umPerPixel || umPerPixel <= 0) return px;
+  // Três casas: a 7,06 µm/px um pixel vale 0,007 mm, então duas casas
+  // esconderiam variação que a imagem realmente resolve.
+  return `${px} · ${((pixels * umPerPixel) / 1000).toFixed(3)} mm`;
+}
+
+/** Área nas duas unidades. */
+export function formatAreaDual(pixelArea: number, umPerPixel?: number): string {
+  const px = `${Math.round(pixelArea)} px²`;
+  if (!umPerPixel || umPerPixel <= 0) return px;
+  return `${px} · ${((pixelArea * umPerPixel * umPerPixel) / 1e6).toFixed(4)} mm²`;
+}
+
 /** Formata uma área em pixels² usando a escala. */
 export function formatArea(pixelArea: number, umPerPixel?: number): string {
   if (!umPerPixel || umPerPixel <= 0) return `${Math.round(pixelArea)} px²`;

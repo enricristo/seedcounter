@@ -32,6 +32,15 @@ export interface SeedMeasurement {
   comprimentoUm?: number;
   larguraUm?: number;
   areaUm2?: number;
+  /**
+   * As mesmas medidas em milímetros. Redundante por decisão: µm é a unidade
+   * natural do pixel, mas mm é a unidade em que o lote é descrito e publicado
+   * (semente de Cattleya tem ~1,17 × 0,34 mm). Deixar a conversão para a
+   * planilha convida a erro de fator 1000 em trabalho de campo.
+   */
+  comprimentoMm?: number;
+  larguraMm?: number;
+  areaMm2?: number;
   /** Razão de aspecto (comprimento / largura). */
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
@@ -47,6 +56,37 @@ export interface MeasurementContext {
   filename?: string;
   /** Distância máxima (px) para casar uma marcação com um contorno. */
   matchRadius?: number;
+}
+
+/**
+ * A marcação está dentro do contorno? Lançamento de raio.
+ *
+ * Esta é a associação CORRETA entre marca e segmentação. A versão anterior
+ * usava distância ao centroide com raio fixo de 25 px, o que falha por dois
+ * motivos: uma semente de orquídea a 3600 DPI tem ~165 px de comprimento,
+ * então clicar na ponta já fica a mais de 25 px do centro; e o mesmo raio fixo
+ * atende imagens de 946 px e de 7992 px, onde 25 px significam coisas
+ * completamente diferentes.
+ */
+export function pointInPolygon(px: number, py: number, poly: [number, number][]): boolean {
+  let dentro = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    const cruza = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (cruza) dentro = !dentro;
+  }
+  return dentro;
+}
+
+/** Maior distância do centroide a um vértice — o "raio" próprio do contorno. */
+function raioDoContorno(poly: [number, number][], c: { x: number; y: number }): number {
+  let maior = 0;
+  for (const [x, y] of poly) {
+    const d = Math.hypot(x - c.x, y - c.y);
+    if (d > maior) maior = d;
+  }
+  return maior;
 }
 
 /** Perímetro de um polígono fechado, em pixels. */
@@ -106,15 +146,36 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       y: Math.round(mark.y),
     };
 
-    // Procura o contorno mais próximo ainda não usado.
+    // Duas etapas, nesta ordem.
+    //
+    // 1. O contorno que CONTÉM a marcação. É exato e independe de escala: o
+    //    técnico clica em cima da semente, não no centro geométrico dela.
+    // 2. Se nenhum contém — a marcação caiu na borda, ou o contorno é côncavo
+    //    e ela ficou numa reentrância —, o mais próximo cujo raio próprio
+    //    alcança a marcação. O raio vem do contorno, não de uma constante:
+    //    matchRadius fixo em 25 px era menor que meia semente a 3600 DPI.
     let best: (typeof contours)[number] | null = null;
-    let bestDist = matchRadius;
+
     for (const c of contours) {
       if (used.has(c.seg.id)) continue;
-      const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
-      if (d < bestDist) {
-        bestDist = d;
+      if (pointInPolygon(mark.x, mark.y, c.seg.polygon_points)) {
         best = c;
+        break;
+      }
+    }
+
+    if (!best) {
+      let melhorDist = Infinity;
+      for (const c of contours) {
+        if (used.has(c.seg.id)) continue;
+        const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
+        // Tolerância: o próprio tamanho do contorno, com uma folga de 20%.
+        // matchRadius continua servindo de piso, para contornos minúsculos.
+        const limite = Math.max(matchRadius, raioDoContorno(c.seg.polygon_points, c.c) * 1.2);
+        if (d < limite && d < melhorDist) {
+          melhorDist = d;
+          best = c;
+        }
       }
     }
 
@@ -140,9 +201,19 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
 
       // Conversão para micrômetros só quando há calibração.
       if (umPerPixel && umPerPixel > 0) {
-        row.comprimentoUm = Number((comprimento * umPerPixel).toFixed(1));
-        row.larguraUm = Number((largura * umPerPixel).toFixed(1));
-        row.areaUm2 = Number((area * umPerPixel * umPerPixel).toFixed(0));
+        const compUm = comprimento * umPerPixel;
+        const largUm = largura * umPerPixel;
+        const areaUm2 = area * umPerPixel * umPerPixel;
+
+        row.comprimentoUm = Number(compUm.toFixed(1));
+        row.larguraUm = Number(largUm.toFixed(1));
+        row.areaUm2 = Number(areaUm2.toFixed(0));
+
+        // Três casas em mm preservam a resolução: a 7,06 µm/px, um pixel vale
+        // 0,007 mm — arredondar antes disso jogaria fora precisão real.
+        row.comprimentoMm = Number((compUm / 1000).toFixed(3));
+        row.larguraMm = Number((largUm / 1000).toFixed(3));
+        row.areaMm2 = Number((areaUm2 / 1e6).toFixed(4));
       }
     }
 
@@ -166,6 +237,9 @@ const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'comprimentoUm', label: 'comprimento_um' },
   { key: 'larguraUm', label: 'largura_um' },
   { key: 'areaUm2', label: 'area_um2' },
+  { key: 'comprimentoMm', label: 'comprimento_mm' },
+  { key: 'larguraMm', label: 'largura_mm' },
+  { key: 'areaMm2', label: 'area_mm2' },
   { key: 'razaoAspecto', label: 'razao_aspecto' },
   { key: 'circularidade', label: 'circularidade' },
   { key: 'confianca', label: 'confianca' },
@@ -272,6 +346,9 @@ CREATE TABLE IF NOT EXISTS medida (
   comprimento_um  REAL,
   largura_um      REAL,
   area_um2        REAL,
+  comprimento_mm  REAL,          -- mesma medida em mm: unidade do relatorio
+  largura_mm      REAL,
+  area_mm2        REAL,
   razao_aspecto   REAL,
   circularidade   REAL,
   confianca       REAL,
@@ -350,6 +427,9 @@ VALUES (${[
           r.comprimentoUm,
           r.larguraUm,
           r.areaUm2,
+          r.comprimentoMm,
+          r.larguraMm,
+          r.areaMm2,
           r.razaoAspecto,
           r.circularidade,
           r.confianca,
@@ -358,7 +438,7 @@ VALUES (${[
           .join(', ')})`
     );
     parts.push(
-      `INSERT INTO medida (amostra_id, objeto_id, classe, origem, x_px, y_px, comprimento_px, largura_px, area_px2, comprimento_um, largura_um, area_um2, razao_aspecto, circularidade, confianca)\nVALUES\n${values.join(',\n')};\n`
+      `INSERT INTO medida (amostra_id, objeto_id, classe, origem, x_px, y_px, comprimento_px, largura_px, area_px2, comprimento_um, largura_um, area_um2, comprimento_mm, largura_mm, area_mm2, razao_aspecto, circularidade, confianca)\nVALUES\n${values.join(',\n')};\n`
     );
   }
 
