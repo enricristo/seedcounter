@@ -2,13 +2,19 @@
 
 - **Data:** 2026-09-03
 - **Status:** requisitos capturados, **ainda não desenhados**. Não implementar antes de passar por brainstorming.
-- **Origem:** pedido do usuário em uso real + dossiê de apresentação do TCC (`orchid-seed-analyzer/pdf_apresentacao.pdf`, XXIII Congresso Brasileiro de Sementes — Motta, Pazoti, Machado Neto & Ambrosio).
+- **Origem:** pedido de Enrico S. Ambrosio, em uso real do SeedCounter.
 
-> Duas ideias que o usuário pediu para tratar "com calma". Este documento existe para que não se percam e para que o desenho parta dos números que já existem, não do zero.
+## Procedência dos números citados
 
-## O que o protótipo já provou
+Os valores abaixo vêm do dossiê `orchid-seed-analyzer/pdf_apresentacao.pdf` — apresentação do **TCC de Paulo Motta** (XXIII Congresso Brasileiro de Sementes; Motta, Pazoti, Machado Neto & Ambrosio), projeto no qual Enrico participou **conceitualmente**. Aquele trabalho foi descontinuado; a continuação acontece aqui, no SeedCounter.
 
-Números do dossiê, medidos em `Cattleya` spp. Servem de linha de base: qualquer coisa que o SeedCounter fizer no navegador precisa ser comparada contra isto.
+Registrar isso importa por duas razões: atribuição acadêmica, e porque os números são de **outro protótipo, em Python com PyQt6** — não medem o SeedCounter. Servem de linha de base a superar ou reproduzir, não de resultado herdado.
+
+> Duas ideias que Enrico pediu para tratar "com calma". Este documento existe para que não se percam e para que o desenho parta do que já foi medido, não do zero.
+
+## Linha de base do protótipo em Python
+
+Medida em `Cattleya` spp. Qualquer coisa que o SeedCounter fizer no navegador precisa ser comparada contra isto.
 
 | Valor | O que é |
 |---|---|
@@ -63,7 +69,7 @@ Já existe mais do que parece:
 
 O usuário descreveu: marcar uma região onde está a semente, o app identifica, e a partir das aceitações e recusas vai formando regras.
 
-**O protótipo já tem a metade humana disto**, e o dossiê a nomeia:
+**O protótipo em Python já tem a metade humana disto**, e o dossiê a nomeia:
 
 > **Human-in-the-loop** — "A IA propõe, o especialista audita: duplo-clique troca a classe, DEL exclui. Cada edição fica registrada (`edited`) no JSON."
 
