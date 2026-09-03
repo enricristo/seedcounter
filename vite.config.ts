@@ -32,21 +32,34 @@ export default defineConfig(({mode}) => {
           name: 'Contador de Sementes GPEOrq',
           short_name: 'SeedCounter',
           description: 'Análise de viabilidade de sementes offline - GPEOrq',
-          theme_color: '#10b981',
-          background_color: '#18181b',
+          // Grafite-950 do sistema Bancada Optica, alinhado ao --surface-0 escuro.
+          theme_color: '#101719',
+          background_color: '#101719',
           display: 'standalone',
           orientation: 'portrait',
+          // Antes, os tres campos mentiam: apontavam para logo.png, que era um
+          // JPEG 525x525 renomeado, declarado como PNG em 192 e 512. Chrome
+          // recusa icone assim para o prompt de instalacao. O maskable ainda
+          // vinha sem zona de seguranca.
           icons: [
             {
-              src: 'logo.png',
+              src: 'icon-192.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any'
             },
             {
-              src: 'logo.png',
+              src: 'icon-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              // Fundo sangrado: a mascara do sistema recorta os cantos.
+              src: 'icon-maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ]
         },
