@@ -86,10 +86,6 @@ describe('calculateCVG', () => {
     expect(calculateCVG(readings)).toBeCloseTo(33.3333, 4);
   });
 });
-
-import { calculateT50 } from './stats';
-import type { GerminationReading } from '../types';
-
 describe('calculateT50', () => {
   it('returns null if totalSeeds is 0', () => {
     expect(calculateT50([], 0)).toBeNull();
