@@ -21,8 +21,42 @@ const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0';
 export const YOLO_CLASSES = ['inviavel', 'viavel'] as const;
 export type YoloClassName = (typeof YOLO_CLASSES)[number];
 
-/** Caminho padrão do modelo (colocar o arquivo em public/models/). */
+/**
+ * Modelo publicado: quantizado int8, 28 MB, cabe no repositório e carrega rápido.
+ * A quantização degrada a *classificação* viável/inviável de forma mensurável
+ * (fp32 24/5 contra int8 7/9 na amostra 3_Lab1) — a contagem sobrevive, o rótulo não.
+ */
 export const DEFAULT_MODEL_URL = 'models/seeds-yolov8m-seg.onnx';
+
+/**
+ * Modelo de precisão total: os mesmos pesos do `best.pt` do TCC exportados em
+ * fp32. 105 MB — acima do limite do GitHub, por isso fica só na máquina do
+ * laboratório (`.gitignore` cobre `public/models/_*`). Use quando o número for
+ * para pesquisa.
+ */
+export const FULL_PRECISION_MODEL_URL = 'models/_heavy-seeds-yolov8m-seg.onnx';
+
+export type ModelQuality = 'full' | 'quantized';
+
+export interface ResolvedModel {
+  url: string;
+  quality: ModelQuality;
+}
+
+/**
+ * Escolhe o melhor modelo disponível nesta instalação.
+ *
+ * Uma requisição HEAD custa milissegundos e não baixa os 105 MB. Se o arquivo
+ * pesado estiver presente (instalação local do laboratório), ele vence; caso
+ * contrário cai no quantizado, que é o que está publicado na Vercel. Assim o
+ * mesmo código roda nos dois lugares sem configuração.
+ */
+export async function resolveBestModel(): Promise<ResolvedModel> {
+  if (await isModelAvailable(FULL_PRECISION_MODEL_URL)) {
+    return { url: FULL_PRECISION_MODEL_URL, quality: 'full' };
+  }
+  return { url: DEFAULT_MODEL_URL, quality: 'quantized' };
+}
 
 export interface YoloDetection {
   /** Centro em coordenadas da imagem ORIGINAL. */
@@ -72,11 +106,29 @@ let sessionPromise: Promise<OrtSession> | null = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ortModule: any = null;
 
-/** Baixa e prepara o modelo. Usa WebGPU quando disponível, senão WASM. */
-export async function loadModel(modelUrl: string = DEFAULT_MODEL_URL): Promise<OrtSession> {
+/** Qualidade do modelo efetivamente carregado. Só é definida depois do load. */
+let loadedQuality: ModelQuality | null = null;
+export function getLoadedModelQuality(): ModelQuality | null {
+  return loadedQuality;
+}
+
+/**
+ * Baixa e prepara o modelo. Usa WebGPU quando disponível, senão WASM.
+ *
+ * Sem `modelUrl`, escolhe sozinho: prefere o fp32 local se ele estiver presente.
+ */
+export async function loadModel(modelUrl?: string): Promise<OrtSession> {
   if (sessionPromise) return sessionPromise;
 
   sessionPromise = (async () => {
+    let url = modelUrl;
+    if (!url) {
+      const resolved = await resolveBestModel();
+      url = resolved.url;
+      loadedQuality = resolved.quality;
+    } else {
+      loadedQuality = url === FULL_PRECISION_MODEL_URL ? 'full' : 'quantized';
+    }
     // O runtime é carregado do CDN em vez de empacotado. Motivo: os binários
     // WASM somam ~27 MB e ficariam no build mesmo para quem nunca usa a IA.
     // Como este recurso é experimental e já exigia rede na primeira execução,
@@ -101,7 +153,7 @@ export async function loadModel(modelUrl: string = DEFAULT_MODEL_URL): Promise<O
       /* ambiente sem suporte a threads — segue single-thread */
     }
 
-    return ort.InferenceSession.create(modelUrl, {
+    return ort.InferenceSession.create(url, {
       executionProviders: providers,
       graphOptimizationLevel: 'all',
     });

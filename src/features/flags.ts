@@ -44,20 +44,28 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
     description: 'ANOVA, Scott-Knott, Tukey, IVG/Maguire — painéis publicáveis',
   },
   {
+    // Promovido a estável: não produz medida de pesquisa, apenas empacota as
+    // anotações que o usuário já fez. O risco de erro é o de um zip malformado,
+    // não o de um número errado num artigo.
     key: 'yoloExport',
     label: 'Exportar Dataset YOLO',
-    defaultEnabled: false,
-    stable: false,
+    defaultEnabled: true,
+    stable: true,
     phase: 'Fase B',
-    description: 'Exporta anotações manuais como dataset YOLOv8 (.zip)',
+    description: 'Exporta anotações manuais como dataset YOLOv8 (.zip), pronto para treino',
   },
   {
+    // Continua experimental de propósito. Dois motivos medidos: a morfometria
+    // ainda não foi validada contra medição manual, e em produção o modelo
+    // servido é o int8, cuja quantização degrada a classificação
+    // viável/inviável (fp32 24/5 contra int8 7/9 na amostra 3_Lab1).
     key: 'aiPointer',
     label: 'AI Pointer (Beta)',
     defaultEnabled: false,
     stable: false,
     phase: 'Fase D',
-    description: 'Detecção semi-automática via ONNX YOLOv8 no navegador',
+    description:
+      'Detecção semi-automática via YOLOv8 no navegador. Contagem confiável; a divisão viável/inviável e as medidas ainda não foram validadas contra método manual.',
   },
   {
     key: 'cameraCapture',

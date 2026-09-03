@@ -1,6 +1,9 @@
 # Modelos pesados mantidos apenas localmente (GitHub rejeita > 100 MiB).
 # Prefixe com "_" o que não deve ser versionado, ex.: _heavy-modelo.onnx
 public/models/_*
+# Pesos PyTorch — usados no treino/exportação, nunca pelo navegador.
+public/models/model_weights/
+*.pt
 
 node_modules/
 build/
