@@ -18,9 +18,7 @@ export function EmptyState({ onBrowseFiles }: EmptyStateProps) {
         <ImageIcon size={38} className="text-neutral-400 dark:text-zinc-500" />
       </div>
       <div className="space-y-2">
-        <h2 className="text-xl font-bold tracking-tight text-neutral-800 dark:text-zinc-105">
-          Selecione uma Imagem
-        </h2>
+        <h2 className="text-xl font-bold tracking-tight text-ink-1">Selecione uma Imagem</h2>
         <p className="text-xs text-neutral-500 dark:text-zinc-400 leading-relaxed font-semibold">
           Carregue a foto microscópica da amostra para iniciar a contagem. Você também pode arrastar
           e soltar imagens diretamente aqui!

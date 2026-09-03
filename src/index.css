@@ -72,9 +72,12 @@
   --color-surface-2: #edf2f4;
   --color-line: #cbd6d9;
   --color-line-soft: #e1e8ea;
+  /* Contraste medido sobre --surface-1 (#ffffff): 16,5:1 / 7,4:1 / 4,9:1.
+     ink-3 e graphite-500, nao 400: os rotulos que o usam tem 8 a 10px, e
+     graphite-400 da 3,1:1 — reprova no AA (4,5:1) para texto pequeno. */
   --color-ink-1: #182023;
   --color-ink-2: #4a585c;
-  --color-ink-3: #86959a;
+  --color-ink-3: #637378;
 
   /* Retículo — o único acento de cromo. Substitui emerald (usado no CTA) e
      purple (usado na navegação), que hoje convivem sem regra que os separe. */
@@ -119,9 +122,12 @@
   --color-surface-2: #242e31;
   --color-line: #364245;
   --color-line-soft: #242e31;
+  /* Contraste medido sobre --surface-1 (#182023): 14,7:1 / 8,5:1 / 5,3:1.
+     A troca em relacao ao tema claro e simetrica: ink-3 sobe um degrau aqui
+     (graphite-400) pelo mesmo motivo que desce la. */
   --color-ink-1: #edf2f4;
   --color-ink-2: #adbcc0;
-  --color-ink-3: #637378;
+  --color-ink-3: #86959a;
 
   --color-accent: #3fb4c4;
   --color-accent-strong: #6fd0dc;
