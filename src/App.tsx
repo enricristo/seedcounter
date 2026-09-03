@@ -1019,7 +1019,17 @@ export default function App() {
             fileInputRef={fileInputRef}
             importInputRef={importInputRef}
             handleFileUpload={handleFileUpload}
-            handleImportJSON={processJSONFile}
+            handleImportJSON={(e) => {
+              // ImageActions liga esta prop ao onChange de um <input type="file">,
+              // entao ela recebe o evento — nao o File. Passar processJSONFile
+              // direto fazia reader.readAsText(evento) lancar TypeError, e o
+              // botao "Importar" da barra lateral nunca funcionou.
+              const file = e.target.files?.[0];
+              if (file) processJSONFile(file);
+              // Zera o valor para permitir reimportar o mesmo arquivo: sem isto
+              // o onChange nao dispara na segunda vez.
+              e.target.value = '';
+            }}
             viableCount={viableCount}
             inviableCount={inviableCount}
             viablePercent={viablePercent}
