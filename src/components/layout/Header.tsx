@@ -125,16 +125,16 @@ export function Header({
   return (
     // Separação por fio de 1px, não por sombra: sombra fica reservada ao que
     // de fato flutua (modais e o controle de zoom).
-    <header className="border-line bg-surface-1 z-10 flex h-16 shrink-0 items-center justify-between border-b px-6">
-      <div className="flex items-center gap-5">
+    <header className="border-line bg-surface-1 z-10 flex h-16 shrink-0 items-center justify-between gap-4 overflow-hidden border-b px-4 xl:px-6">
+      <div className="flex min-w-0 items-center gap-4 xl:gap-5">
         {/* Identidade do produto primeiro, credenciais institucionais depois. */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-2.5">
           <MarcaReticulo />
           <div>
-            <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight">
+            <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
               Contador de Sementes
             </h1>
-            <p className="text-accent text-[9px] font-bold tracking-widest uppercase">
+            <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
               Edição Acadêmica •{' '}
               <a
                 href="https://www.instagram.com/gpeorq"

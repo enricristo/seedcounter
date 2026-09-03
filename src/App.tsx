@@ -250,6 +250,21 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
+  // Anotações por imagem da fila.
+  //
+  // A chave é nome + tamanho, não o índice: se a fila for recarregada ou
+  // reordenada, o índice muda e o do lado passa a receber a contagem errada,
+  // que é pior do que perdê-la.
+  const chaveDaImagem = useCallback((file: File) => `${file.name}:${file.size}`, []);
+  const anotacoesPorImagem = useRef<
+    Map<string, { marks: Mark[]; yoloSegmentations: YoloSegmentation[] }>
+  >(new Map());
+  const chaveAtual = useRef<string | null>(null);
+
+  // Espelhos do estado, para leitura dentro de callbacks assíncronos.
+  const marcasRef = useRef<Mark[]>([]);
+  const segmentacoesRef = useRef<YoloSegmentation[]>([]);
+
   // Multi-image Queue state
   const {
     image,
@@ -257,7 +272,9 @@ export default function App() {
     filename,
     setFilename,
     imageQueue,
+    setImageQueue,
     currentImageIndex,
+    setCurrentImageIndex,
     loadError,
     loadFiles,
     handleFileUpload,
@@ -265,17 +282,47 @@ export default function App() {
     handlePrevImage,
     loadImageFromFile,
   } = useImageQueue({
-    onImageLoaded: (img) => {
-      // Reset annotations on new sample load
-      resetAllAnnotations();
+    onImageLoaded: (img, file) => {
+      // As anotações da imagem que estava aberta são guardadas ANTES de a nova
+      // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
+      // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
+      // de uma folha inteira.
+      //
+      // A leitura vem de refs, não do estado: a função é chamada de dentro de
+      // um callback assíncrono do FileReader, onde o valor capturado pelo
+      // fecho pode estar velho.
+      if (chaveAtual.current) {
+        anotacoesPorImagem.current.set(chaveAtual.current, {
+          marks: marcasRef.current,
+          yoloSegmentations: segmentacoesRef.current,
+        });
+      }
 
-      // Calculate fit screen zoom automatically
+      const chave = chaveDaImagem(file);
+      chaveAtual.current = chave;
+
+      const guardado = anotacoesPorImagem.current.get(chave);
+      if (guardado) {
+        setMarks(guardado.marks);
+        setYoloSegmentations(guardado.yoloSegmentations);
+      } else {
+        resetAllAnnotations();
+      }
+
       if (containerRef.current) {
         const container = containerRef.current;
         fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
       }
     },
   });
+
+  useEffect(() => {
+    marcasRef.current = marks;
+  }, [marks]);
+
+  useEffect(() => {
+    segmentacoesRef.current = yoloSegmentations;
+  }, [yoloSegmentations]);
 
   useKeyboardShortcuts({
     onUndo: undoMark,
@@ -436,7 +483,14 @@ export default function App() {
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) return;
 
-    // Restore metadata and counts
+    // A sessão restaurada é um contexto próprio: não faz parte da fila de
+    // imagens carregada antes. Limpar a fila esconde "Anterior/Próxima", que
+    // até aqui continuava apontando para os arquivos antigos e trocava a
+    // imagem por baixo da sessão recém-aberta.
+    setImageQueue([]);
+    setCurrentImageIndex(0);
+    chaveAtual.current = null;
+
     setMetadata(session.metadata);
     setFilename(session.filename);
     setMarks(session.marks || []);
@@ -990,6 +1044,14 @@ export default function App() {
   };
 
   // Keyboard shortcuts binding
+  useEffect(() => {
+    marcasRef.current = marks;
+  }, [marks]);
+
+  useEffect(() => {
+    segmentacoesRef.current = yoloSegmentations;
+  }, [yoloSegmentations]);
+
   useKeyboardShortcuts({
     onUndo: undoMark,
     onSetVisualMode: setVisualMode,
