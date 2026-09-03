@@ -56,12 +56,44 @@ de coordenacao entre os agentes e plano do PR de fundacao.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Passo 3: Registrar a linha de base**
+- [ ] **Passo 3: Instalar exatamente o lock**
 
 ```bash
-npm run lint && npm test
+npm ci
 ```
-Esperado: lint limpo, 61 testes passando. **Se falhar aqui, pare** — a base está quebrada e nada abaixo é verificável.
+
+Usar `npm ci`, **nunca `npm install`**: as dependências estão em faixas `^`, e `npm install` reescreve `package-lock.json` e sobe 245 pacotes, mudando o resultado do type-check por baixo do pé. `npm ci` instala o lock versionado — é o que o CI faz.
+
+- [ ] **Passo 4: Registrar a linha de base**
+
+```bash
+npm run lint ; npm test
+```
+
+**Linha de base medida em 2026-09-03, em `origin/main` = `a79b25c`, com `npm ci`:**
+
+- `npm test` — **61 testes passando** ✅
+- `npm run lint` — **3 erros TS2322 pré-existentes** ❌
+
+```
+src/App.tsx(1022,13)                  handleImportJSON={processJSONFile}
+    Sidebar declara (e: ChangeEvent<HTMLInputElement>) => void
+    App passa   (file: File) => void
+src/App.tsx(1068,23)                  <AiPointerPanel image={adjustedSource} />
+    AiPointerPanel declara HTMLImageElement
+    adjustedSource é HTMLCanvasElement | HTMLImageElement
+src/features/stats/StatsView.tsx(579)  <HelpCircle title="..." />
+    lucide-react não aceita a prop title
+```
+
+Os dois primeiros são fiação de props — território de lógica, fora da fronteira P4 deste ciclo. O terceiro é de ícone e pertence a este sistema (§5.4), mas entra num PR próprio para não misturar desbloqueio de CI com trabalho de design.
+
+**Critério de aceitação ajustado enquanto esses 3 existirem:** o número de erros de `tsc` **não pode aumentar**. Registre a contagem antes e depois:
+
+```bash
+npm run type-check 2>&1 | grep -c "error TS"
+```
+Esperado antes e depois de cada tarefa: `3` (ou `0`, se o PR de desbloqueio já tiver entrado).
 
 ---
 
