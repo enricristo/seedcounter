@@ -105,7 +105,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-white dark:bg-[#18181B] flex flex-col rounded-3xl shadow-2xl w-full max-w-4xl h-full max-h-[85vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
+        className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-4xl h-full max-h-[85vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
       >
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4.5 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
@@ -206,7 +206,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                   </span>
                 </div>
 
-                <div className="max-h-48 overflow-y-auto divide-y divide-neutral-200 dark:divide-zinc-850">
+                <div className="max-h-48 overflow-y-auto divide-y divide-line">
                   {filteredSessions.length === 0 ? (
                     <p className="text-xs text-neutral-400 dark:text-zinc-600 text-center py-6 font-semibold">
                       Nenhuma contagem corresponde ao filtro selecionado.
@@ -263,7 +263,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Train/Val Split */}
-                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-neutral-200 dark:border-zinc-850 p-4 rounded-2xl">
+                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-line p-4 rounded-2xl">
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-bold text-neutral-600 dark:text-zinc-400">
                       Divisão Treino / Validação
@@ -287,7 +287,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                 </div>
 
                 {/* Diameter Estimation */}
-                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-neutral-200 dark:border-zinc-850 p-4 rounded-2xl">
+                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-line p-4 rounded-2xl">
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-bold text-neutral-600 dark:text-zinc-400">
                       Diâmetro das Sementes (µm)
@@ -312,7 +312,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                 </div>
 
                 {/* Fallback Radius */}
-                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-neutral-200 dark:border-zinc-850 p-4 rounded-2xl">
+                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-line p-4 rounded-2xl">
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-bold text-neutral-600 dark:text-zinc-400">
                       Raio Fallback (pixels)
@@ -337,7 +337,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                 </div>
 
                 {/* Class options */}
-                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-neutral-200 dark:border-zinc-850 p-4 rounded-2xl flex flex-col justify-center">
+                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-line p-4 rounded-2xl flex flex-col justify-center">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -366,7 +366,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                 <Eye size={14} /> Resumo do Dataset
               </h3>
 
-              <div className="space-y-3.5 bg-white dark:bg-[#18181B] border border-neutral-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
+              <div className="space-y-3.5 bg-surface-1 border border-neutral-200 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-neutral-400 dark:text-zinc-500 font-semibold">
                     Total de Imagens:

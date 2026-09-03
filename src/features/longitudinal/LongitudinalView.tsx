@@ -226,7 +226,7 @@ function GerminationTable({
             <th className="px-3 py-3 text-center">IVG</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100 dark:divide-zinc-850">
+        <tbody className="divide-y divide-line-soft">
           {filteredTreatments.map((treatment, ti) => {
             const ivg = calcIVG(treatment);
             return (
@@ -234,7 +234,7 @@ function GerminationTable({
                 key={treatment.id}
                 className="hover:bg-neutral-50/50 dark:hover:bg-zinc-900/50 transition-colors"
               >
-                <td className="px-4 py-2.5 sticky left-0 bg-white dark:bg-[#18181B] z-10">
+                <td className="px-4 py-2.5 sticky left-0 bg-surface-1 z-10">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -648,7 +648,7 @@ export function LongitudinalView({
 
       {/* ── Experiment info banner ────────────────────────────────────────── */}
       {selectedExperiment && (
-        <div className="px-6 py-3 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] shrink-0">
+        <div className="px-6 py-3 border-b border-neutral-200 dark:border-zinc-800 bg-surface-1 shrink-0">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
             <div className="flex items-center gap-1.5">
               <Microscope size={13} className="text-emerald-500" />
@@ -686,7 +686,7 @@ export function LongitudinalView({
       )}
 
       {/* ── Tab selector ─────────────────────────────────────────────────── */}
-      <div className="flex border-b border-neutral-200 dark:border-zinc-800 shrink-0 bg-white dark:bg-[#18181B]">
+      <div className="flex border-b border-neutral-200 dark:border-zinc-800 shrink-0 bg-surface-1">
         {(
           [
             { key: 'chart', label: 'Curva de Germinação', icon: '📈' },
@@ -711,7 +711,7 @@ export function LongitudinalView({
       </div>
 
       {/* ── Content area ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto p-6 bg-white dark:bg-[#18181B]">
+      <div className="flex-1 overflow-auto p-6 bg-surface-1">
         {!selectedExperiment ? (
           <div className="flex items-center justify-center h-full text-neutral-400 dark:text-zinc-600 text-sm">
             Selecione um experimento acima.

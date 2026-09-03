@@ -44,7 +44,7 @@ export function ZoomControls({
       {/* Zoom In */}
       <button
         onClick={zoomIn}
-        className="p-2 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg text-neutral-500 hover:text-neutral-800 dark:text-zinc-450 dark:hover:text-zinc-250 transition-colors cursor-pointer"
+        className="p-2 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg text-ink-2 hover:text-ink-1 transition-colors cursor-pointer"
         title="Aumentar Zoom (+)"
       >
         <ZoomIn size={17} />
@@ -53,7 +53,7 @@ export function ZoomControls({
       {/* Zoom Percentage (Click to Fit Screen) */}
       <button
         onClick={onFitToScreen}
-        className="text-[9px] font-mono font-bold hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg py-1.5 transition-colors text-neutral-500 dark:text-zinc-450 cursor-pointer"
+        className="text-[9px] font-mono font-bold hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg py-1.5 transition-colors text-ink-2 cursor-pointer"
         title="Ajustar à Tela (0)"
       >
         {Math.round(zoomLevel * 100)}%
@@ -62,7 +62,7 @@ export function ZoomControls({
       {/* Zoom Out */}
       <button
         onClick={zoomOut}
-        className="p-2 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg text-neutral-500 hover:text-neutral-800 dark:text-zinc-450 dark:hover:text-zinc-250 transition-colors cursor-pointer"
+        className="p-2 hover:bg-neutral-50 dark:hover:bg-zinc-900 rounded-lg text-ink-2 hover:text-ink-1 transition-colors cursor-pointer"
         title="Diminuir Zoom (-)"
       >
         <ZoomOut size={17} />

@@ -71,7 +71,7 @@ export function ExportModal({
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        className="bg-white dark:bg-[#18181B] rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-colors duration-300"
+        className="bg-surface-1 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-colors duration-300"
       >
         {/* Header */}
         <div className="flex justify-between items-center p-5 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50">
@@ -85,7 +85,7 @@ export function ExportModal({
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 p-1.5 hover:bg-neutral-100 dark:hover:bg-zinc-850 rounded-full transition-colors cursor-pointer"
+            className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 p-1.5 hover:bg-surface-2 rounded-full transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -94,8 +94,8 @@ export function ExportModal({
         {/* Modal Content */}
         <div className="p-6 space-y-6">
           {/* Save locally Banner */}
-          <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-950/30 text-emerald-800 dark:text-emerald-450 p-4.5 rounded-2xl flex items-start gap-3.5 shadow-sm">
-            <div className="bg-emerald-100 dark:bg-emerald-950/40 p-2 rounded-xl text-emerald-600 dark:text-emerald-450 shrink-0 mt-0.5 shadow-inner">
+          <div className="bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-950/30 text-accent p-4.5 rounded-2xl flex items-start gap-3.5 shadow-sm">
+            <div className="bg-emerald-100 dark:bg-emerald-950/40 p-2 rounded-xl text-accent shrink-0 mt-0.5 shadow-inner">
               <Save size={18} />
             </div>
             <div className="space-y-1">
@@ -139,7 +139,7 @@ export function ExportModal({
             <div className="grid grid-cols-2 gap-3">
               {/* PDF Report */}
               <ExportCard
-                icon={<FileCheck2 size={20} className="text-emerald-600 dark:text-emerald-450" />}
+                icon={<FileCheck2 size={20} className="text-accent" />}
                 title="Relatório PDF (A4)"
                 desc="Metadados, totais e foto anotada em formato PDF premium."
                 onClick={exportPDF}
@@ -197,7 +197,7 @@ export function ExportModal({
               <div className="col-span-2">
                 <button
                   onClick={exportAnnotatedImage}
-                  className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-neutral-50 dark:bg-zinc-900/50 hover:bg-neutral-100 dark:hover:bg-zinc-850 hover:shadow-sm transition-all text-neutral-700 dark:text-zinc-300 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
+                  className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-neutral-50 dark:bg-zinc-900/50 hover:bg-surface-2 hover:shadow-sm transition-all text-neutral-700 dark:text-zinc-300 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
                 >
                   <ImageIcon
                     size={15}

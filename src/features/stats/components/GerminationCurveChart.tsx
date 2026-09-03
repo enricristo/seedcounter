@@ -32,7 +32,7 @@ const COLORS = [
 export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurveChartProps) {
   if (!data || data.length === 0 || treatmentCodes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 bg-neutral-50 dark:bg-zinc-900/30 border border-dashed border-neutral-250 dark:border-zinc-800 rounded-2xl">
+      <div className="flex items-center justify-center h-64 bg-neutral-50 dark:bg-zinc-900/30 border border-dashed border-line rounded-2xl">
         <p className="text-xs text-neutral-400 dark:text-zinc-500 font-semibold">
           Dados insuficientes para gerar a curva de germinação.
         </p>

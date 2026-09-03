@@ -43,7 +43,7 @@ export function DifferentialMode({ metadata, updateMetadata, sessions }: Differe
       {/* Toggle Box */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Percent size={15} className="text-emerald-600 dark:text-emerald-450" />
+          <Percent size={15} className="text-accent" />
           <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
             Cálculo Diferencial
           </span>

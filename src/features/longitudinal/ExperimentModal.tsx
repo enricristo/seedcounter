@@ -177,7 +177,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-white dark:bg-[#18181B] flex flex-col rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
+        className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
       >
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
@@ -409,7 +409,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
               {treatments.map((t, idx) => (
                 <div
                   key={t.id}
-                  className="flex flex-col sm:flex-row gap-3 p-4 bg-neutral-50 dark:bg-zinc-900/50 border border-neutral-200 dark:border-zinc-850 rounded-2xl relative"
+                  className="flex flex-col sm:flex-row gap-3 p-4 bg-neutral-50 dark:bg-zinc-900/50 border border-line rounded-2xl relative"
                 >
                   <div className="w-full sm:w-20">
                     <label className="block text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase mb-1">

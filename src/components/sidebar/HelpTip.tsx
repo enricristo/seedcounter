@@ -21,7 +21,7 @@ export function HelpTip() {
           className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer
             ${
               tab === 'mouse'
-                ? 'bg-white dark:bg-zinc-850 text-blue-700 dark:text-blue-450 shadow-sm'
+                ? 'bg-surface-1 text-accent shadow-sm'
                 : 'text-neutral-500 dark:text-zinc-400 hover:text-neutral-700 dark:hover:text-zinc-200'
             }
           `}
@@ -34,7 +34,7 @@ export function HelpTip() {
           className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer
             ${
               tab === 'keyboard'
-                ? 'bg-white dark:bg-zinc-850 text-blue-700 dark:text-blue-450 shadow-sm'
+                ? 'bg-surface-1 text-accent shadow-sm'
                 : 'text-neutral-500 dark:text-zinc-400 hover:text-neutral-700 dark:hover:text-zinc-200'
             }
           `}
