@@ -7,10 +7,7 @@ interface MetadataFormProps {
   updateMetadata: <K extends keyof Metadata>(key: K, value: Metadata[K]) => void;
 }
 
-export function MetadataForm({
-  metadata,
-  updateMetadata
-}: MetadataFormProps) {
+export function MetadataForm({ metadata, updateMetadata }: MetadataFormProps) {
   return (
     <section className="space-y-4">
       <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">

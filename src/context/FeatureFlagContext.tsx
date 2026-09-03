@@ -23,9 +23,7 @@ interface FeatureFlagContextValue {
 const STORAGE_KEY = 'sc:featureFlags';
 
 function getDefaultFlags(): FlagState {
-  return Object.fromEntries(
-    FEATURE_REGISTRY.map(f => [f.key, f.defaultEnabled])
-  ) as FlagState;
+  return Object.fromEntries(FEATURE_REGISTRY.map((f) => [f.key, f.defaultEnabled])) as FlagState;
 }
 
 function loadFlags(): FlagState {
@@ -81,24 +79,33 @@ export function FeatureFlagProvider({ children }: { children: React.ReactNode })
   const [flags, setFlags] = useState<FlagState>(loadFlags);
 
   const updateFlags = useCallback((updater: (prev: FlagState) => FlagState) => {
-    setFlags(prev => {
+    setFlags((prev) => {
       const next = updater(prev);
       saveFlags(next);
       return next;
     });
   }, []);
 
-  const toggle = useCallback((key: FeatureKey) => {
-    updateFlags(prev => ({ ...prev, [key]: !prev[key] }));
-  }, [updateFlags]);
+  const toggle = useCallback(
+    (key: FeatureKey) => {
+      updateFlags((prev) => ({ ...prev, [key]: !prev[key] }));
+    },
+    [updateFlags]
+  );
 
-  const enable = useCallback((key: FeatureKey) => {
-    updateFlags(prev => ({ ...prev, [key]: true }));
-  }, [updateFlags]);
+  const enable = useCallback(
+    (key: FeatureKey) => {
+      updateFlags((prev) => ({ ...prev, [key]: true }));
+    },
+    [updateFlags]
+  );
 
-  const disable = useCallback((key: FeatureKey) => {
-    updateFlags(prev => ({ ...prev, [key]: false }));
-  }, [updateFlags]);
+  const disable = useCallback(
+    (key: FeatureKey) => {
+      updateFlags((prev) => ({ ...prev, [key]: false }));
+    },
+    [updateFlags]
+  );
 
   const reset = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -112,11 +119,7 @@ export function FeatureFlagProvider({ children }: { children: React.ReactNode })
     [flags, isEnabled, toggle, enable, disable, reset]
   );
 
-  return (
-    <FeatureFlagContext.Provider value={value}>
-      {children}
-    </FeatureFlagContext.Provider>
-  );
+  return <FeatureFlagContext.Provider value={value}>{children}</FeatureFlagContext.Provider>;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,18 +167,33 @@ export function FeatureFlagsDebugPanel() {
         boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <span style={{ fontWeight: 700, color: '#a78bfa', letterSpacing: '0.05em' }}>⚡ FEATURE FLAGS</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '0.75rem',
+        }}
+      >
+        <span style={{ fontWeight: 700, color: '#a78bfa', letterSpacing: '0.05em' }}>
+          ⚡ FEATURE FLAGS
+        </span>
         <button
           onClick={reset}
-          style={{ fontSize: '0.65rem', color: '#f87171', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{
+            fontSize: '0.65rem',
+            color: '#f87171',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
           title="Resetar para padrões"
         >
           RESET
         </button>
       </div>
 
-      {FEATURE_REGISTRY.map(flag => (
+      {FEATURE_REGISTRY.map((flag) => (
         <label
           key={flag.key}
           style={{
@@ -195,10 +213,8 @@ export function FeatureFlagsDebugPanel() {
             style={{ accentColor: '#818cf8' }}
           />
           <span>
-            <span style={{ color: flag.stable ? '#4ade80' : '#fbbf24' }}>
-              [{flag.phase}]
-            </span>
-            {' '}{flag.label}
+            <span style={{ color: flag.stable ? '#4ade80' : '#fbbf24' }}>[{flag.phase}]</span>{' '}
+            {flag.label}
           </span>
         </label>
       ))}

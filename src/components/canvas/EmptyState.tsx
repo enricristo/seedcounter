@@ -22,7 +22,8 @@ export function EmptyState({ onBrowseFiles }: EmptyStateProps) {
           Selecione uma Imagem
         </h2>
         <p className="text-xs text-neutral-500 dark:text-zinc-400 leading-relaxed font-semibold">
-          Carregue a foto microscópica da amostra para iniciar a contagem. Você também pode arrastar e soltar imagens diretamente aqui!
+          Carregue a foto microscópica da amostra para iniciar a contagem. Você também pode arrastar
+          e soltar imagens diretamente aqui!
         </p>
       </div>
       <button

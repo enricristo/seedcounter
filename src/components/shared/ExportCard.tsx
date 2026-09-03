@@ -8,13 +8,7 @@ interface ExportCardProps {
   disabled?: boolean;
 }
 
-export function ExportCard({
-  icon,
-  title,
-  desc,
-  onClick,
-  disabled = false
-}: ExportCardProps) {
+export function ExportCard({ icon, title, desc, onClick, disabled = false }: ExportCardProps) {
   return (
     <button
       onClick={onClick}
@@ -25,7 +19,9 @@ export function ExportCard({
         {icon}
       </div>
       <h4 className="font-semibold text-sm text-neutral-800 dark:text-zinc-100 mb-1">{title}</h4>
-      <p className="text-[10px] text-neutral-400 dark:text-zinc-400 leading-relaxed font-medium">{desc}</p>
+      <p className="text-[10px] text-neutral-400 dark:text-zinc-400 leading-relaxed font-medium">
+        {desc}
+      </p>
     </button>
   );
 }

@@ -130,16 +130,25 @@ function GerminationTooltip({
         DAP {label} dias
       </div>
       {payload.map((entry, i) => {
-        const treatment = experiment.treatments.find(t => t.code === entry.name || t.name === entry.name);
+        const treatment = experiment.treatments.find(
+          (t) => t.code === entry.name || t.name === entry.name
+        );
         const ivg = treatment ? calcIVG(treatment) : 0;
         return (
           <div key={i} className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+            <div
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: entry.color }}
+            />
             <div className="flex-1">
-              <div className="text-xs font-bold text-neutral-800 dark:text-zinc-100">{entry.name}</div>
+              <div className="text-xs font-bold text-neutral-800 dark:text-zinc-100">
+                {entry.name}
+              </div>
               <div className="text-[10px] text-neutral-500 dark:text-zinc-400">
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">{entry.value}%</span>
-                {' '}· IVG: <span className="font-mono">{ivg}</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                  {entry.value}%
+                </span>{' '}
+                · IVG: <span className="font-mono">{ivg}</span>
               </div>
             </div>
           </div>
@@ -162,8 +171,8 @@ function GerminationTable({
 }) {
   const allDays = useMemo(() => {
     const days = new Set<number>();
-    experiment.evaluationDays.forEach(d => days.add(d));
-    experiment.treatments.forEach(t => t.plates.forEach(p => days.add(p.dayIndex)));
+    experiment.evaluationDays.forEach((d) => days.add(d));
+    experiment.treatments.forEach((t) => t.plates.forEach((p) => days.add(p.dayIndex)));
     return [...days].sort((a, b) => a - b);
   }, [experiment]);
 
@@ -176,15 +185,23 @@ function GerminationTable({
   }
 
   const filteredTreatments = selectedTreatmentId
-    ? experiment.treatments.filter(t => t.id === selectedTreatmentId)
+    ? experiment.treatments.filter((t) => t.id === selectedTreatmentId)
     : experiment.treatments;
+
+  // Precompute plate lookups by treatment ID and dayIndex to avoid O(N) finds in nested loops
+  const plateByDayPerTreatment = new Map();
+  filteredTreatments.forEach((t) => {
+    const tMap = new Map();
+    t.plates.forEach((p) => tMap.set(p.dayIndex, p));
+    plateByDayPerTreatment.set(t.id, tMap);
+  });
 
   // Find the highest germination % per column (day)
   const maxByDay: Record<number, number> = {};
-  allDays.forEach(day => {
+  allDays.forEach((day) => {
     let max = 0;
-    filteredTreatments.forEach(t => {
-      const run = t.plates.find(p => p.dayIndex === day);
+    filteredTreatments.forEach((t) => {
+      const run = plateByDayPerTreatment.get(t.id)?.get(day);
       if (run) {
         const pct = calcGerminationPct(run);
         if (pct > max) max = pct;
@@ -198,9 +215,13 @@ function GerminationTable({
       <table className="w-full text-left text-xs whitespace-nowrap">
         <thead className="bg-neutral-50 dark:bg-zinc-900 border-b border-neutral-200 dark:border-zinc-800 text-neutral-400 dark:text-zinc-500 uppercase text-[9px] font-bold tracking-widest">
           <tr>
-            <th className="px-4 py-3 sticky left-0 bg-neutral-50 dark:bg-zinc-900 z-10">Tratamento</th>
-            {allDays.map(day => (
-              <th key={day} className="px-3 py-3 text-center">DAP {day}</th>
+            <th className="px-4 py-3 sticky left-0 bg-neutral-50 dark:bg-zinc-900 z-10">
+              Tratamento
+            </th>
+            {allDays.map((day) => (
+              <th key={day} className="px-3 py-3 text-center">
+                DAP {day}
+              </th>
             ))}
             <th className="px-3 py-3 text-center">IVG</th>
           </tr>
@@ -209,7 +230,10 @@ function GerminationTable({
           {filteredTreatments.map((treatment, ti) => {
             const ivg = calcIVG(treatment);
             return (
-              <tr key={treatment.id} className="hover:bg-neutral-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+              <tr
+                key={treatment.id}
+                className="hover:bg-neutral-50/50 dark:hover:bg-zinc-900/50 transition-colors"
+              >
                 <td className="px-4 py-2.5 sticky left-0 bg-white dark:bg-[#18181B] z-10">
                   <div className="flex items-center gap-2">
                     <div
@@ -217,15 +241,17 @@ function GerminationTable({
                       style={{ backgroundColor: TREATMENT_COLORS[ti % TREATMENT_COLORS.length] }}
                     />
                     <div>
-                      <div className="font-bold text-neutral-800 dark:text-zinc-100">{treatment.code}</div>
+                      <div className="font-bold text-neutral-800 dark:text-zinc-100">
+                        {treatment.code}
+                      </div>
                       <div className="text-[10px] text-neutral-400 dark:text-zinc-500 truncate max-w-[160px]">
                         {treatment.name}
                       </div>
                     </div>
                   </div>
                 </td>
-                {allDays.map(day => {
-                  const run = treatment.plates.find(p => p.dayIndex === day);
+                {allDays.map((day) => {
+                  const run = plateByDayPerTreatment.get(treatment.id)?.get(day);
                   const pct = run ? calcGerminationPct(run) : null;
                   const isHighest = pct !== null && pct > 0 && pct === maxByDay[day];
                   return (
@@ -372,7 +398,7 @@ export function LongitudinalView({
   const [activeTab, setActiveTab] = useState<'chart' | 'stages' | 'table' | 'runs'>('chart');
 
   const selectedExperiment = useMemo(
-    () => experiments.find(e => e.id === selectedExperimentId) ?? null,
+    () => experiments.find((e) => e.id === selectedExperimentId) ?? null,
     [experiments, selectedExperimentId]
   );
 
@@ -387,7 +413,9 @@ export function LongitudinalView({
   React.useEffect(() => {
     if (selectedExperiment) {
       const allDaps = new Set<number>();
-      selectedExperiment.treatments.forEach(t => t.plates.forEach(p => allDaps.add(p.dayIndex)));
+      selectedExperiment.treatments.forEach((t) =>
+        t.plates.forEach((p) => allDaps.add(p.dayIndex))
+      );
       const sorted = [...allDaps].sort((a, b) => b - a);
       setSelectedDap(sorted[0] ?? null);
       setSelectedTreatmentId(null);
@@ -398,15 +426,26 @@ export function LongitudinalView({
   const germinationCurveData = useMemo(() => {
     if (!selectedExperiment) return [];
     const allDays = new Set<number>();
-    selectedExperiment.evaluationDays.forEach(d => allDays.add(d));
-    selectedExperiment.treatments.forEach(t => t.plates.forEach(p => allDays.add(p.dayIndex)));
+    selectedExperiment.evaluationDays.forEach((d) => allDays.add(d));
+
+    // Precompute map for O(1) lookups: treatment.code -> (dayIndex -> run)
+    const platesByTreatmentAndDay = new Map();
+    selectedExperiment.treatments.forEach((t) => {
+      const tMap = new Map();
+      t.plates.forEach((p) => {
+        allDays.add(p.dayIndex);
+        tMap.set(p.dayIndex, p);
+      });
+      platesByTreatmentAndDay.set(t.code, tMap);
+    });
+
     const days = [...allDays].sort((a, b) => a - b);
 
-    return days.map(day => {
+    return days.map((day) => {
       const point: Record<string, number | string> = { dap: day };
-      selectedExperiment.treatments.forEach(t => {
-        const run = t.plates.find(p => p.dayIndex === day);
-        point[t.code] = run ? calcGerminationPct(run) : 0;
+      platesByTreatmentAndDay.forEach((tMap, tCode) => {
+        const run = tMap.get(day);
+        point[tCode] = run ? calcGerminationPct(run) : 0;
       });
       return point;
     });
@@ -417,11 +456,18 @@ export function LongitudinalView({
     if (!selectedExperiment || selectedDap === null) return [];
 
     const treatmentsToShow = selectedTreatmentId
-      ? selectedExperiment.treatments.filter(t => t.id === selectedTreatmentId)
+      ? selectedExperiment.treatments.filter((t) => t.id === selectedTreatmentId)
       : selectedExperiment.treatments;
 
-    return treatmentsToShow.map(t => {
-      const run = t.plates.find(p => p.dayIndex === selectedDap);
+    // Build map for quick lookup
+    const plateByTreatment = new Map<string, PlateRun | undefined>(
+      treatmentsToShow.map((t) => {
+        return [t.id, t.plates.find((p) => p.dayIndex === selectedDap)];
+      })
+    );
+
+    return treatmentsToShow.map((t) => {
+      const run = plateByTreatment.get(t.id);
       const total = run?.totalSeeds || 1;
       const point: Record<string, number | string> = { treatment: t.code };
       for (let stage = 0; stage <= 6; stage++) {
@@ -432,7 +478,8 @@ export function LongitudinalView({
     });
   }, [selectedExperiment, selectedDap, selectedTreatmentId]);
 
-  const hasData = selectedExperiment && selectedExperiment.treatments.some(t => t.plates.length > 0);
+  const hasData =
+    selectedExperiment && selectedExperiment.treatments.some((t) => t.plates.length > 0);
 
   // ────────────────────────────────────────────────────────────────────────
   // Empty state
@@ -448,7 +495,8 @@ export function LongitudinalView({
             Nenhum Experimento Registrado
           </h2>
           <p className="text-sm text-neutral-500 dark:text-zinc-400 max-w-sm">
-            Crie o primeiro experimento longitudinal para rastrear a germinação de sementes ao longo do tempo.
+            Crie o primeiro experimento longitudinal para rastrear a germinação de sementes ao longo
+            do tempo.
           </p>
         </div>
         <button
@@ -477,14 +525,19 @@ export function LongitudinalView({
           <div className="relative">
             <select
               value={selectedExperimentId ?? ''}
-              onChange={e => setSelectedExperimentId(e.target.value || null)}
+              onChange={(e) => setSelectedExperimentId(e.target.value || null)}
               className="appearance-none bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-800 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
             >
-              {experiments.map(e => (
-                <option key={e.id} value={e.id}>{e.name}</option>
+              {experiments.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
               ))}
             </select>
-            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown
+              size={12}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+            />
           </div>
         </div>
 
@@ -497,15 +550,20 @@ export function LongitudinalView({
             <div className="relative">
               <select
                 value={selectedTreatmentId ?? ''}
-                onChange={e => setSelectedTreatmentId(e.target.value || null)}
+                onChange={(e) => setSelectedTreatmentId(e.target.value || null)}
                 className="appearance-none bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-800 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
               >
                 <option value="">Todos</option>
-                {selectedExperiment.treatments.map(t => (
-                  <option key={t.id} value={t.id}>{t.code} — {t.name}</option>
+                {selectedExperiment.treatments.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.code} — {t.name}
+                  </option>
                 ))}
               </select>
-              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+              <ChevronDown
+                size={12}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+              />
             </div>
           </div>
         )}
@@ -519,18 +577,28 @@ export function LongitudinalView({
             <div className="relative">
               <select
                 value={selectedDap ?? ''}
-                onChange={e => setSelectedDap(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => setSelectedDap(e.target.value ? Number(e.target.value) : null)}
                 className="appearance-none bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-800 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
               >
-                {selectedExperiment && (() => {
-                  const allDaps = new Set<number>();
-                  selectedExperiment.treatments.forEach(t => t.plates.forEach(p => allDaps.add(p.dayIndex)));
-                  return [...allDaps].sort((a, b) => a - b).map(d => (
-                    <option key={d} value={d}>DAP {d}</option>
-                  ));
-                })()}
+                {selectedExperiment &&
+                  (() => {
+                    const allDaps = new Set<number>();
+                    selectedExperiment.treatments.forEach((t) =>
+                      t.plates.forEach((p) => allDaps.add(p.dayIndex))
+                    );
+                    return [...allDaps]
+                      .sort((a, b) => a - b)
+                      .map((d) => (
+                        <option key={d} value={d}>
+                          DAP {d}
+                        </option>
+                      ));
+                  })()}
               </select>
-              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+              <ChevronDown
+                size={12}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+              />
             </div>
           </div>
         )}
@@ -541,7 +609,12 @@ export function LongitudinalView({
         {selectedExperiment && (
           <>
             <button
-              onClick={() => onAddPlateRun(selectedExperiment.id, selectedTreatmentId ?? selectedExperiment.treatments[0]?.id ?? '')}
+              onClick={() =>
+                onAddPlateRun(
+                  selectedExperiment.id,
+                  selectedTreatmentId ?? selectedExperiment.treatments[0]?.id ?? ''
+                )
+              }
               disabled={selectedExperiment.treatments.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
             >
@@ -586,7 +659,10 @@ export function LongitudinalView({
             <div className="flex items-center gap-1.5">
               <CalendarDays size={13} className="text-neutral-400 dark:text-zinc-500" />
               <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
-                Semeadura: <span className="font-semibold">{new Date(selectedExperiment.sowingDate).toLocaleDateString('pt-BR')}</span>
+                Semeadura:{' '}
+                <span className="font-semibold">
+                  {new Date(selectedExperiment.sowingDate).toLocaleDateString('pt-BR')}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -598,7 +674,8 @@ export function LongitudinalView({
             <div className="flex items-center gap-1.5">
               <ClipboardList size={13} className="text-neutral-400 dark:text-zinc-500" />
               <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
-                {selectedExperiment.treatments.length} tratamento(s) · Lote: <span className="font-mono font-semibold">{selectedExperiment.seedLot}</span>
+                {selectedExperiment.treatments.length} tratamento(s) · Lote:{' '}
+                <span className="font-mono font-semibold">{selectedExperiment.seedLot}</span>
               </span>
             </div>
             <span className="text-[11px] text-neutral-400 dark:text-zinc-500">
@@ -610,12 +687,14 @@ export function LongitudinalView({
 
       {/* ── Tab selector ─────────────────────────────────────────────────── */}
       <div className="flex border-b border-neutral-200 dark:border-zinc-800 shrink-0 bg-white dark:bg-[#18181B]">
-        {([
-          { key: 'chart', label: 'Curva de Germinação', icon: '📈' },
-          { key: 'stages', label: 'Distribuição de Estágios', icon: '🔬' },
-          { key: 'table', label: 'Tabela de Dados', icon: '📊' },
-          { key: 'runs', label: 'Avaliações por Placa', icon: '🧫' },
-        ] as const).map(tab => (
+        {(
+          [
+            { key: 'chart', label: 'Curva de Germinação', icon: '📈' },
+            { key: 'stages', label: 'Distribuição de Estágios', icon: '🔬' },
+            { key: 'table', label: 'Tabela de Dados', icon: '📊' },
+            { key: 'runs', label: 'Avaliações por Placa', icon: '🧫' },
+          ] as const
+        ).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -643,13 +722,21 @@ export function LongitudinalView({
               <FlaskConical size={24} className="text-neutral-300 dark:text-zinc-600" />
             </div>
             <div>
-              <p className="font-bold text-neutral-600 dark:text-zinc-300 text-sm">Nenhum dado de avaliação</p>
+              <p className="font-bold text-neutral-600 dark:text-zinc-300 text-sm">
+                Nenhum dado de avaliação
+              </p>
               <p className="text-xs text-neutral-400 dark:text-zinc-500 mt-1 max-w-sm">
-                Adicione avaliações de placa clicando em "+ Avaliação" acima para começar a rastrear a germinação.
+                Adicione avaliações de placa clicando em "+ Avaliação" acima para começar a rastrear
+                a germinação.
               </p>
             </div>
             <button
-              onClick={() => onAddPlateRun(selectedExperiment.id, selectedTreatmentId ?? selectedExperiment.treatments[0]?.id ?? '')}
+              onClick={() =>
+                onAddPlateRun(
+                  selectedExperiment.id,
+                  selectedTreatmentId ?? selectedExperiment.treatments[0]?.id ?? ''
+                )
+              }
               disabled={selectedExperiment.treatments.length === 0}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none shadow-sm"
             >
@@ -667,30 +754,39 @@ export function LongitudinalView({
                     % Germinação Acumulada por Tratamento
                   </h3>
                   <ResponsiveContainer width="100%" height={320}>
-                    <ComposedChart data={germinationCurveData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
+                    <ComposedChart
+                      data={germinationCurveData}
+                      margin={{ top: 8, right: 24, bottom: 8, left: 0 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(150,150,150,0.15)" />
                       <XAxis
                         dataKey="dap"
-                        tickFormatter={v => `DAP ${v}`}
+                        tickFormatter={(v) => `DAP ${v}`}
                         tick={{ fontSize: 10, fill: 'currentColor' }}
-                        label={{ value: 'Dias após plantio (DAP)', position: 'insideBottom', offset: -4, fontSize: 10 }}
+                        label={{
+                          value: 'Dias após plantio (DAP)',
+                          position: 'insideBottom',
+                          offset: -4,
+                          fontSize: 10,
+                        }}
                       />
                       <YAxis
                         domain={[0, 100]}
-                        tickFormatter={v => `${v}%`}
+                        tickFormatter={(v) => `${v}%`}
                         tick={{ fontSize: 10, fill: 'currentColor' }}
                         width={48}
                       />
-                      <Tooltip
-                        content={
-                          <GerminationTooltip experiment={selectedExperiment} />
-                        }
-                      />
+                      <Tooltip content={<GerminationTooltip experiment={selectedExperiment} />} />
                       <Legend
-                        wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                        wrapperStyle={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}
                       />
                       {(selectedTreatmentId
-                        ? selectedExperiment.treatments.filter(t => t.id === selectedTreatmentId)
+                        ? selectedExperiment.treatments.filter((t) => t.id === selectedTreatmentId)
                         : selectedExperiment.treatments
                       ).map((treatment, i) => (
                         <Line
@@ -727,10 +823,14 @@ export function LongitudinalView({
                   ) : (
                     <ResponsiveContainer width="100%" height={320}>
                       <BarChart data={stageData} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(150,150,150,0.15)" vertical={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="rgba(150,150,150,0.15)"
+                          vertical={false}
+                        />
                         <XAxis dataKey="treatment" tick={{ fontSize: 10 }} />
                         <YAxis
-                          tickFormatter={v => `${v}%`}
+                          tickFormatter={(v) => `${v}%`}
                           tick={{ fontSize: 10 }}
                           width={48}
                           domain={[0, 100]}
@@ -745,7 +845,7 @@ export function LongitudinalView({
                           }}
                         />
                         <Legend wrapperStyle={{ fontSize: '10px' }} />
-                        {([0, 1, 2, 3, 4, 5, 6] as ProtocormStage[]).map(stage => (
+                        {([0, 1, 2, 3, 4, 5, 6] as ProtocormStage[]).map((stage) => (
                           <Bar
                             key={stage}
                             dataKey={`Est.${stage}`}
@@ -760,9 +860,12 @@ export function LongitudinalView({
 
                   {/* Stage legend */}
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {([0, 1, 2, 3, 4, 5, 6] as ProtocormStage[]).map(stage => (
+                    {([0, 1, 2, 3, 4, 5, 6] as ProtocormStage[]).map((stage) => (
                       <div key={stage} className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: STAGE_COLORS[stage] }} />
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: STAGE_COLORS[stage] }}
+                        />
                         <span className="text-[10px] text-neutral-600 dark:text-zinc-400">
                           {PROTOCORM_STAGE_LABELS[stage]}
                         </span>
@@ -794,7 +897,7 @@ export function LongitudinalView({
             {activeTab === 'runs' && (
               <div className="space-y-6">
                 {(selectedTreatmentId
-                  ? selectedExperiment.treatments.filter(t => t.id === selectedTreatmentId)
+                  ? selectedExperiment.treatments.filter((t) => t.id === selectedTreatmentId)
                   : selectedExperiment.treatments
                 ).map((treatment, ti) => (
                   <div key={treatment.id} className="space-y-2">

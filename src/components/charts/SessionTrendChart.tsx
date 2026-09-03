@@ -6,7 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
 import type { Session } from '../../types';
 
@@ -34,7 +34,7 @@ export function SessionTrendChart({ sessions }: TrendChartProps) {
       viability: rate,
       viable: s.viableCount,
       total: total,
-      plate: s.metadata.plate || 'N/A'
+      plate: s.metadata.plate || 'N/A',
     };
   });
 
@@ -43,14 +43,11 @@ export function SessionTrendChart({ sessions }: TrendChartProps) {
   return (
     <div className="w-full h-[220px]">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={data}
-          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-        >
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorViability" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
@@ -76,7 +73,7 @@ export function SessionTrendChart({ sessions }: TrendChartProps) {
               borderRadius: '8px',
               fontSize: '11px',
               color: '#fff',
-              fontFamily: 'sans-serif'
+              fontFamily: 'sans-serif',
             }}
             formatter={(value) => [`${value}%`, 'Taxa de Viabilidade']}
             labelFormatter={(label, payload) => {

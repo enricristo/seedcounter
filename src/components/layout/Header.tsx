@@ -10,7 +10,7 @@ import {
   Calendar,
   BarChart4,
   Activity,
-  Sparkles
+  Sparkles,
 } from 'lucide-react';
 import type { AppView } from '../../types';
 
@@ -63,7 +63,7 @@ export function Header({
   onViewChange,
   isLongitudinalEnabled = true,
   isStatsEnabled = true,
-  onOpenFeatures
+  onOpenFeatures,
 }: HeaderProps) {
   return (
     <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-all duration-300">
@@ -82,7 +82,9 @@ export function Header({
                 src="/logo-gpeorq.png"
                 alt="Logo GPEOrq"
                 className="h-9 w-9 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </a>
             <a
@@ -96,7 +98,9 @@ export function Header({
                 src="/logo-gpsem.png"
                 alt="Logo GPSEM"
                 className="h-9 w-9 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </a>
           </div>
@@ -106,10 +110,24 @@ export function Header({
             </h1>
             <p className="text-[9px] text-emerald-600 dark:text-emerald-450 uppercase tracking-widest font-bold">
               Edição Acadêmica •{' '}
-              <a href="https://www.instagram.com/gpeorq" target="_blank" rel="noopener noreferrer" className="hover:underline">GPEOrq</a>
+              <a
+                href="https://www.instagram.com/gpeorq"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                GPEOrq
+              </a>
               {' / '}
-              <a href="https://www.instagram.com/gpsem_2000/" target="_blank" rel="noopener noreferrer" className="hover:underline">GPSEM</a>
-              {' '}• Unoeste
+              <a
+                href="https://www.instagram.com/gpsem_2000/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                GPSEM
+              </a>{' '}
+              • Unoeste
             </p>
           </div>
         </div>
@@ -194,7 +212,9 @@ export function Header({
           </button>
         )}
 
-        {currentView === 'counter' && <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />}
+        {currentView === 'counter' && (
+          <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />
+        )}
 
         {/* Undo Mark */}
         {currentView === 'counter' && (
@@ -220,7 +240,9 @@ export function Header({
           </button>
         )}
 
-        {currentView === 'counter' && <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />}
+        {currentView === 'counter' && (
+          <div className="w-[1px] h-6 bg-neutral-200 dark:bg-zinc-800 mx-1" />
+        )}
 
         {/* Multi-Image Queue Controls */}
         {currentView === 'counter' && hasImageQueue && (

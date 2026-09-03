@@ -71,7 +71,7 @@ export function MarkingCanvas({
   canvasFilter,
   showRulers,
   isMeasuring,
-  onMeasured
+  onMeasured,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -160,7 +160,7 @@ export function MarkingCanvas({
     // Position tooltip slightly above the cursor
     setTooltipPos({
       x: e.clientX - rect.left + 15,
-      y: e.clientY - rect.top - 45
+      y: e.clientY - rect.top - 45,
     });
     setHoveredSeg(seg);
   };
@@ -187,7 +187,7 @@ export function MarkingCanvas({
       className="relative bg-white dark:bg-[#18181B] shadow-2xl rounded-sm transition-all"
       style={{
         width: `${image.width * zoomLevel}px`,
-        height: `${image.height * zoomLevel}px`
+        height: `${image.height * zoomLevel}px`,
       }}
     >
       {/* Underlying Canvas for image and manual marks */}
@@ -226,13 +226,23 @@ export function MarkingCanvas({
           onMouseLeave={() => setCursorPos(null)}
         >
           {/* Fundo semitransparente para destacar o modo de medição */}
-          <rect x={0} y={0} width={image.width} height={image.height} fill="rgba(14,165,233,0.06)" />
+          <rect
+            x={0}
+            y={0}
+            width={image.width}
+            height={image.height}
+            fill="rgba(14,165,233,0.06)"
+          />
 
           {/* Linha em construção (do primeiro ponto até o cursor) */}
           {rulerStart && !rulerEnd && cursorPos && (
             <line
-              x1={rulerStart.x} y1={rulerStart.y} x2={cursorPos.x} y2={cursorPos.y}
-              stroke="#0ea5e9" strokeWidth={Math.max(2, image.width / 400)}
+              x1={rulerStart.x}
+              y1={rulerStart.y}
+              x2={cursorPos.x}
+              y2={cursorPos.y}
+              stroke="#0ea5e9"
+              strokeWidth={Math.max(2, image.width / 400)}
               strokeDasharray={`${image.width / 100},${image.width / 150}`}
             />
           )}
@@ -240,8 +250,12 @@ export function MarkingCanvas({
           {/* Linha final medida */}
           {rulerStart && rulerEnd && (
             <line
-              x1={rulerStart.x} y1={rulerStart.y} x2={rulerEnd.x} y2={rulerEnd.y}
-              stroke="#0ea5e9" strokeWidth={Math.max(2, image.width / 400)}
+              x1={rulerStart.x}
+              y1={rulerStart.y}
+              x2={rulerEnd.x}
+              y2={rulerEnd.y}
+              stroke="#0ea5e9"
+              strokeWidth={Math.max(2, image.width / 400)}
             />
           )}
 
@@ -250,8 +264,15 @@ export function MarkingCanvas({
             p ? (
               <g key={i}>
                 <circle cx={p.x} cy={p.y} r={Math.max(4, image.width / 220)} fill="#0ea5e9" />
-                <circle cx={p.x} cy={p.y} r={Math.max(8, image.width / 110)} fill="none"
-                  stroke="#0ea5e9" strokeWidth={Math.max(1, image.width / 800)} opacity={0.5} />
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={Math.max(8, image.width / 110)}
+                  fill="none"
+                  stroke="#0ea5e9"
+                  strokeWidth={Math.max(1, image.width / 800)}
+                  opacity={0.5}
+                />
               </g>
             ) : null
           )}
@@ -273,11 +294,19 @@ export function MarkingCanvas({
           }}
           onMouseMove={handleLayerMouseMove}
           onMouseDown={handleLayerMouseDown}
-          onMouseUp={() => { stopErasing(); endDragMark(); }}
-          onMouseLeave={() => { stopErasing(); endDragMark(); setCursorPos(null); setHoveredMarkId(null); }}
+          onMouseUp={() => {
+            stopErasing();
+            endDragMark();
+          }}
+          onMouseLeave={() => {
+            stopErasing();
+            endDragMark();
+            setCursorPos(null);
+            setHoveredMarkId(null);
+          }}
         >
           {/* Alvos de interação sobre cada marcação */}
-          {marks.map(mark => {
+          {marks.map((mark) => {
             const isHovered = hoveredMarkId === mark.id;
             const r = Math.max(6, image.width / 130);
             // Cor do realce indica a ação: vermelho apaga, branco inverte.
@@ -288,7 +317,13 @@ export function MarkingCanvas({
                 cx={mark.x}
                 cy={mark.y}
                 r={r}
-                fill={isHovered ? (isEraser ? 'rgba(244,63,94,0.35)' : 'rgba(255,255,255,0.22)') : 'transparent'}
+                fill={
+                  isHovered
+                    ? isEraser
+                      ? 'rgba(244,63,94,0.35)'
+                      : 'rgba(255,255,255,0.22)'
+                    : 'transparent'
+                }
                 stroke={isHovered ? highlight : 'none'}
                 strokeWidth={Math.max(1.5, image.width / 500)}
                 style={{
@@ -297,13 +332,13 @@ export function MarkingCanvas({
                 }}
                 onMouseEnter={() => setHoveredMarkId(mark.id)}
                 onMouseLeave={() => setHoveredMarkId(null)}
-                onMouseDown={e => {
+                onMouseDown={(e) => {
                   // Arrastar reposiciona a marcação (só com a ferramenta de marcação).
                   if (isEraser || e.button !== 0 || e.shiftKey || e.altKey) return;
                   e.stopPropagation();
                   setDragMark({ id: mark.id, moved: false });
                 }}
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation();
                   // Se houve arraste, não interpreta como clique (evita inverter sem querer).
                   if (dragMark?.moved) return;
@@ -383,24 +418,26 @@ export function MarkingCanvas({
           style={{
             width: '100%',
             height: '100%',
-            zIndex: 5
+            zIndex: 5,
           }}
         >
           {yoloSegmentations
-            .filter(seg => seg.visible !== false)
-            .map(seg => {
+            .filter((seg) => seg.visible !== false)
+            .map((seg) => {
               // Convert polygon points array into string representation "x1,y1 x2,y2 ..."
-              const pointsStr = seg.polygon_points
-                .map(([x, y]) => `${x},${y}`)
-                .join(' ');
+              const pointsStr = seg.polygon_points.map(([x, y]) => `${x},${y}`).join(' ');
 
               const isViable = seg.category === 'viable';
               const isHovered = hoveredSeg?.id === seg.id;
 
               // Colors matching design aesthetics (emerald/red for viable, amber for inviable)
               const fillColor = isViable
-                ? (isHovered ? 'rgba(239, 68, 68, 0.45)' : 'rgba(239, 68, 68, 0.25)') // Viable = Red
-                : (isHovered ? 'rgba(251, 191, 36, 0.45)' : 'rgba(251, 191, 36, 0.25)'); // Inviable = Yellow
+                ? isHovered
+                  ? 'rgba(239, 68, 68, 0.45)'
+                  : 'rgba(239, 68, 68, 0.25)' // Viable = Red
+                : isHovered
+                  ? 'rgba(251, 191, 36, 0.45)'
+                  : 'rgba(251, 191, 36, 0.25)'; // Inviable = Yellow
 
               const strokeColor = isViable ? '#ef4444' : '#fbbf24';
 
@@ -422,7 +459,7 @@ export function MarkingCanvas({
                   onMouseMove={(e) => handlePolygonMouseMove(e, seg)}
                   onMouseLeave={handlePolygonMouseLeave}
                   style={{
-                    filter: isHovered ? 'drop-shadow(0px 0px 4px rgba(255,255,255,0.4))' : 'none'
+                    filter: isHovered ? 'drop-shadow(0px 0px 4px rgba(255,255,255,0.4))' : 'none',
                   }}
                 />
               );
@@ -436,19 +473,32 @@ export function MarkingCanvas({
           className="absolute z-30 bg-neutral-900/90 dark:bg-black/95 text-white p-2.5 rounded-lg text-[10px] font-mono shadow-xl pointer-events-none border border-neutral-700 dark:border-zinc-800"
           style={{
             left: `${tooltipPos.x}px`,
-            top: `${tooltipPos.y}px`
+            top: `${tooltipPos.y}px`,
           }}
         >
           <div className="font-bold border-b border-neutral-700/50 pb-1 mb-1 text-neutral-300">
             Semente YOLO #{hoveredSeg.id}
           </div>
           <div className="space-y-0.5">
-            <div>Class: <strong className={hoveredSeg.category === 'viable' ? 'text-red-400' : 'text-amber-400'}>{hoveredSeg.category === 'viable' ? 'Viável' : 'Inviável'}</strong></div>
+            <div>
+              Class:{' '}
+              <strong
+                className={hoveredSeg.category === 'viable' ? 'text-red-400' : 'text-amber-400'}
+              >
+                {hoveredSeg.category === 'viable' ? 'Viável' : 'Inviável'}
+              </strong>
+            </div>
             <div>Confiança: {(hoveredSeg.confidence * 100).toFixed(1)}%</div>
             {hoveredSeg.width && hoveredSeg.height && (
               <>
-                <div>Comprimento: {hoveredSeg.width} px {umPerPixel ? `(${(hoveredSeg.width * umPerPixel).toFixed(1)} µm)` : ''}</div>
-                <div>Largura: {hoveredSeg.height} px {umPerPixel ? `(${(hoveredSeg.height * umPerPixel).toFixed(1)} µm)` : ''}</div>
+                <div>
+                  Comprimento: {hoveredSeg.width} px{' '}
+                  {umPerPixel ? `(${(hoveredSeg.width * umPerPixel).toFixed(1)} µm)` : ''}
+                </div>
+                <div>
+                  Largura: {hoveredSeg.height} px{' '}
+                  {umPerPixel ? `(${(hoveredSeg.height * umPerPixel).toFixed(1)} µm)` : ''}
+                </div>
               </>
             )}
             <div className="text-[8px] text-neutral-400 pt-1 border-t border-neutral-700/30 mt-1 uppercase">

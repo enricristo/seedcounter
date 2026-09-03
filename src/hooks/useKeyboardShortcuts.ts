@@ -31,20 +31,20 @@ export function useKeyboardShortcuts({
   onToggleTheme,
   hasImage,
   hasNextImage,
-  hasPrevImage
+  hasPrevImage,
 }: KeyboardShortcutsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // If user is focused on an input or textarea, skip single-key shortcuts
       const activeEl = document.activeElement;
-      const isTyping = activeEl && (
-        activeEl.tagName === 'INPUT' ||
-        activeEl.tagName === 'TEXTAREA' ||
-        activeEl.getAttribute('contenteditable') === 'true'
-      );
+      const isTyping =
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.getAttribute('contenteditable') === 'true');
 
       // Ctrl/Meta shortcuts are always allowed or checked carefully
-      if ((e.ctrlKey || e.metaKey)) {
+      if (e.ctrlKey || e.metaKey) {
         if (e.key.toLowerCase() === 'z') {
           e.preventDefault();
           onUndo();
@@ -132,6 +132,6 @@ export function useKeyboardShortcuts({
     onToggleTheme,
     hasImage,
     hasNextImage,
-    hasPrevImage
+    hasPrevImage,
   ]);
 }
