@@ -69,8 +69,8 @@ export function Counters({
           label="Sementes Viáveis"
           count={viableCount}
           percent={viablePercent}
-          color="bg-red-500"
-          description="Embrião visível / vermelho"
+          color="bg-[var(--color-ov-viable)] text-[#101719]"
+          description="Embrião visível — disco ciano"
           isActive={activeClassification === 'viable'}
           onClick={() => setActiveClassification?.('viable')}
         />
@@ -79,8 +79,8 @@ export function Counters({
           label="Sementes Inviáveis"
           count={inviableCount}
           percent={inviablePercent}
-          color="bg-amber-400"
-          description="Vazia ou danificada / amarelo"
+          color="bg-[var(--color-ov-inviable)] text-[#101719]"
+          description="Vazia ou danificada — anel magenta"
           isActive={activeClassification === 'inviable'}
           onClick={() => setActiveClassification?.('inviable')}
         />
@@ -92,9 +92,12 @@ export function Counters({
           role="img"
           aria-label={`Proporção da amostra: ${viablePercent}% viáveis, ${inviablePercent}% inviáveis`}
         >
-          <div className="h-full bg-red-500 transition-all" style={{ width: `${barViable}%` }} />
           <div
-            className="h-full bg-amber-400 transition-all"
+            className="h-full bg-[var(--color-ov-viable)] transition-all"
+            style={{ width: `${barViable}%` }}
+          />
+          <div
+            className="h-full bg-[var(--color-ov-inviable)] transition-all"
             style={{ width: `${barInviable}%` }}
           />
         </div>
@@ -182,11 +185,11 @@ export function Counters({
               aria-label={`Proporção acumulada da placa: ${plateBarViable.toFixed(1)}% viáveis, ${plateBarInviable.toFixed(1)}% inviáveis`}
             >
               <div
-                className="h-full bg-red-500 transition-all"
+                className="h-full bg-[var(--color-ov-viable)] transition-all"
                 style={{ width: `${plateBarViable}%` }}
               />
               <div
-                className="h-full bg-amber-400 transition-all"
+                className="h-full bg-[var(--color-ov-inviable)] transition-all"
                 style={{ width: `${plateBarInviable}%` }}
               />
             </div>

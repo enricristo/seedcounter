@@ -61,6 +61,9 @@ import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
 // Types
 import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './types';
 
+// Linguagem do especime — fonte unica das cores e formas das marcas.
+import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
+
 // Helper function to download locally generated data
 function downloadBlob(content: string, filename: string, contentType: string) {
   const blob = new Blob([content], { type: contentType });
@@ -91,26 +94,32 @@ function renderMarksToContext(
       num = inviableCounter;
     }
 
-    const fillStyle = mark.type === 'viable' ? '#ef4444' : '#fbbf24';
-
     if (mode === 'dots') {
-      ctx.beginPath();
-      ctx.arc(mark.x, mark.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = fillStyle;
-      ctx.fill();
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
+      desenharMarca(ctx, mark.type, mark.x, mark.y, 4.5);
     } else {
+      // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
+      // vazada. A redundancia vira um anel externo escuro so no inviavel.
+      const cor = corDoEspecime(mark.type);
       ctx.beginPath();
       ctx.arc(mark.x, mark.y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = fillStyle;
+      ctx.fillStyle = cor;
       ctx.fill();
-      ctx.strokeStyle = 'white';
+      ctx.strokeStyle = ESPECIME.halo;
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      ctx.fillStyle = mark.type === 'inviable' ? '#92400e' : 'white';
+      if (mark.type === 'inviable') {
+        ctx.beginPath();
+        ctx.arc(mark.x, mark.y, 10.5, 0, Math.PI * 2);
+        ctx.strokeStyle = cor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // Tinta escura sobre ciano e magenta, que sao claros: texto branco
+      // sumiria.
+      ctx.fillStyle = '#101719';
       ctx.font = 'bold 9px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -699,10 +708,10 @@ export default function App() {
             ctx.closePath();
 
             const isViable = seg.category === 'viable';
-            ctx.fillStyle = isViable ? 'rgba(239, 68, 68, 0.25)' : 'rgba(251, 191, 36, 0.25)';
+            ctx.fillStyle = isViable ? ESPECIME_FILL.viable : ESPECIME_FILL.inviable;
             ctx.fill();
 
-            ctx.strokeStyle = isViable ? '#ef4444' : '#fbbf24';
+            ctx.strokeStyle = corDoEspecime(isViable ? 'viable' : 'inviable');
             ctx.lineWidth = 2;
             ctx.stroke();
           }
@@ -754,10 +763,10 @@ export default function App() {
     }
 
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillStyle = '#ef4444';
+    ctx.fillStyle = ESPECIME.viable;
     ctx.fillText(`Viáveis: ${viableCount}`, padding + 24, statsY);
 
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = ESPECIME.inviable;
     ctx.fillText(`Inviáveis: ${inviableCount}`, padding + 160, statsY);
 
     const dataUrl = offscreenCanvas.toDataURL('image/png');
