@@ -1,6 +1,11 @@
 // =============================================================================
 // SeedCounter — Toolbar
-// Barra de ferramentas flutuante (estilo editor gráfico) sobre a imagem.
+// Barra de ferramentas flutuante sobre a imagem.
+//
+// As cores aqui obedecem a separação de linguagens do sistema: as ferramentas
+// de CLASSE (viável / inviável) espelham a cor da marca no canvas, porque são
+// a legenda dela; as ferramentas de INSTRUMENTO (borracha, mão, réguas) usam
+// cromo — a borracha em semântica destrutiva, as outras em acento.
 // =============================================================================
 
 import React from 'react';
@@ -14,12 +19,13 @@ const ICONS: Record<ToolId, React.ElementType> = {
   pan: Hand,
 };
 
-// Cores alinhadas à convenção do app: viável = vermelho, inviável = amarelo.
 const ACTIVE_STYLES: Record<ToolId, string> = {
+  // Legenda da marca no canvas — muda junto com ela no PR 3.
   viable: 'bg-red-500 border-red-500 text-white',
   inviable: 'bg-amber-500 border-amber-500 text-white',
-  eraser: 'bg-rose-600 border-rose-600 text-white',
-  pan: 'bg-sky-500 border-sky-500 text-white',
+  // Instrumento, não espécime.
+  eraser: 'bg-danger border-danger text-white',
+  pan: 'bg-accent border-accent text-accent-on',
 };
 
 interface ToolbarProps {
@@ -34,6 +40,8 @@ interface ToolbarProps {
   onToggleRulers?: () => void;
 }
 
+const INATIVO = 'border-transparent text-ink-2 hover:bg-surface-2 hover:text-ink-1';
+
 export function Toolbar({
   activeTool,
   onSelect,
@@ -44,7 +52,7 @@ export function Toolbar({
   onToggleRulers,
 }: ToolbarProps) {
   return (
-    <div className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1.5 rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur p-1.5 shadow-xl">
+    <div className="border-line bg-surface-1/95 rounded-panel absolute top-1/2 left-3 z-20 flex -translate-y-1/2 flex-col gap-1.5 border p-1.5 shadow-xl backdrop-blur">
       {TOOLS.map((tool) => {
         const Icon = ICONS[tool.id];
         const isActive = activeTool === tool.id;
@@ -55,43 +63,37 @@ export function Toolbar({
             title={`${tool.label} (${tool.shortcut.toUpperCase()}) — ${tool.hint}`}
             aria-label={tool.label}
             aria-pressed={isActive}
-            className={`relative w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
-              isActive
-                ? ACTIVE_STYLES[tool.id]
-                : 'border-transparent text-neutral-500 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+            className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
+              isActive ? ACTIVE_STYLES[tool.id] : INATIVO
             }`}
           >
-            <Icon size={18} />
-            <span className="absolute bottom-0.5 right-1 text-[8px] font-bold opacity-60 uppercase">
+            <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+            <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
               {tool.shortcut}
             </span>
             {isActive && isTemporary && tool.id === 'eraser' && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-white ring-2 ring-rose-500" />
+              <span className="ring-danger absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white ring-2" />
             )}
           </button>
         );
       })}
 
-      {/* Réguas nas bordas */}
       {onToggleRulers && (
         <button
           onClick={onToggleRulers}
-          title="Mostrar/ocultar réguas nas bordas"
+          title="Mostrar ou ocultar as réguas nas bordas"
           aria-label="Alternar réguas"
           aria-pressed={!!showRulers}
-          className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
-            showRulers
-              ? 'bg-neutral-800 dark:bg-zinc-100 border-neutral-800 dark:border-zinc-100 text-white dark:text-zinc-900'
-              : 'border-transparent text-neutral-500 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+          className={`rounded-control flex h-10 w-10 items-center justify-center border transition-all ${
+            showRulers ? 'bg-accent border-accent text-accent-on' : INATIVO
           }`}
         >
-          <Ruler size={18} />
+          <Ruler size={20} strokeWidth={1.75} aria-hidden="true" />
         </button>
       )}
 
-      {/* Tamanho da borracha (só aparece quando ela está ativa) */}
       {activeTool === 'eraser' && (
-        <div className="pt-1.5 mt-0.5 border-t border-neutral-200 dark:border-zinc-800 space-y-1">
+        <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
           <input
             type="range"
             min={5}
@@ -101,12 +103,10 @@ export function Toolbar({
             onChange={(e) => onEraserRadiusChange(Number(e.target.value))}
             title="Tamanho da borracha ( [ e ] )"
             aria-label="Tamanho da borracha"
-            className="w-10 accent-rose-500"
+            className="accent-danger w-10"
             style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
           />
-          <p className="text-[9px] text-center font-mono text-neutral-500 dark:text-zinc-500">
-            {eraserRadius}
-          </p>
+          <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">{eraserRadius}</p>
         </div>
       )}
     </div>
