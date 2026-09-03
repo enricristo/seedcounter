@@ -23,10 +23,10 @@ export function WilsonCIBar({ value, ci, width = 120 }: WilsonCIBarProps) {
   // Color encoding
   const barColor =
     pct >= 80
-      ? '#10b981' // emerald
+      ? 'var(--color-ok)' // emerald
       : pct >= 50
-        ? '#f59e0b' // amber
-        : '#ef4444'; // red
+        ? 'var(--color-warn)' // amber
+        : 'var(--color-danger)'; // red
 
   const ciWidth = upper - lower;
 
