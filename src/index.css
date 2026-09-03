@@ -7,14 +7,147 @@
    apenas à preferência do sistema operacional. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* =============================================================================
+   Bancada Óptica — camada de tokens
+   Spec: docs/superpowers/specs/2026-09-03-bancada-optica-design.md
+
+   Toda cor do produto pertence a UMA de três linguagens, e nenhuma atravessa
+   a fronteira:
+
+     cromo     grafite + retículo + semântica — navegação, botões, foco.
+               Nunca aparece sobre a imagem da amostra.
+     espécime  ciano e magenta — marcas desenhadas sobre a lâmina.
+               Nunca aparece no cromo nem nos gráficos.
+     dados     as 8 séries — tratamentos em gráficos e tabelas.
+               Nunca vira cor de botão.
+
+   No Tailwind v4 este bloco @theme É a configuração: cada --color-* vira ao
+   mesmo tempo uma variável CSS e uma classe utilitária, e as utilitárias
+   compilam para var(--color-x). Por isso o tema escuro redefine o TOKEN em
+   vez de duplicar utilitárias — quem usa os papéis não precisa de dark:.
+   ========================================================================== */
+
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Grafite — o neutro do sistema, matiz ≈200°, com viés frio deliberado.
+     Substitui as duas famílias de cinza que hoje convivem sem regra:
+     neutral (quente) e zinc (frio). */
+  --color-graphite-25: #f6f9fa;
+  --color-graphite-50: #edf2f4;
+  --color-graphite-100: #e1e8ea;
+  --color-graphite-200: #cbd6d9;
+  --color-graphite-300: #adbcc0;
+  --color-graphite-400: #86959a;
+  --color-graphite-500: #637378;
+  --color-graphite-600: #4a585c;
+  --color-graphite-700: #364245;
+  --color-graphite-800: #242e31;
+  --color-graphite-900: #182023;
+  --color-graphite-950: #101719;
+
+  /* Palco — lightness FIXA nos dois temas, e é de propósito.
+     Contraste simultâneo: um entorno que muda de claridade altera a tonalidade
+     percebida da amostra, e a comparação entre sessões deixa de ser válida.
+     É o mesmo motivo pelo qual editores de imagem usam cinza médio neutro.
+     NÃO sobrescrever no bloco .dark. */
+  --color-stage: #6f7a7d;
+
+  /* Espécime — marcas sobre a lâmina. Ciano e magenta praticamente não ocorrem
+     em material biológico: semente, tegumento, ágar e embrião corado por
+     tetrazólio ocupam a faixa âmbar–carmim. Marcar carmim sobre embrião
+     carmim é o pior caso de visibilidade possível.
+     A forma é codificação redundante: viável é disco preenchido, inviável é
+     anel vazado — a distinção sobrevive ao daltonismo e à impressão em cinza.
+     Iguais nos dois temas: a fotografia da amostra não muda de tema. */
+  --color-ov-viable: #00e5ff;
+  --color-ov-inviable: #ff3dc8;
+  --color-ov-tool: #ffffff;
+
+  /* Papéis — valores do tema claro. O bloco .dark abaixo redefine estes cinco
+     grupos e mais nada. */
+  --color-surface-0: #f6f9fa;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #edf2f4;
+  --color-line: #cbd6d9;
+  --color-line-soft: #e1e8ea;
+  --color-ink-1: #182023;
+  --color-ink-2: #4a585c;
+  --color-ink-3: #86959a;
+
+  /* Retículo — o único acento de cromo. Substitui emerald (usado no CTA) e
+     purple (usado na navegação), que hoje convivem sem regra que os separe. */
+  --color-accent: #0c6e7a;
+  --color-accent-strong: #095560;
+  --color-accent-tint: #e0f0f2;
+  --color-accent-on: #ffffff;
+
+  /* Semântica de cromo — reservada. Nunca reutilizar como cor de série, e
+     sempre acompanhada de ícone e rótulo: nunca cor sozinha. */
+  --color-danger: #c0392e;
+  --color-warn: #b5730c;
+  --color-ok: #17864a;
+
+  /* Séries de dados — ordem fixa, atribuída em sequência, NUNCA ciclada.
+     A ordem é o mecanismo de segurança para daltonismo, não decoração.
+     Validada por script nos dois temas: pior par adjacente ΔE 11,7 (claro) e
+     10,0 (escuro), contra alvo de 8; piso de visão normal 18,7 e 15,9, contra
+     piso de 15.
+     Teto: dispersão, bolha e mapa suportam 3 séries (qualquer par pode
+     encostar); linha, barra e área suportam as 8. Acima disso, agrupar em
+     "Outros" ou facetar — gerar uma 9ª cor quebra a garantia.
+     Alívio: teal, latão e rosa ficam abaixo de 3:1 sobre a superfície clara,
+     então onde forem usadas o gráfico precisa de rótulo direto ou tabela. */
+  --color-series-1: #2a6fd6;
+  --color-series-2: #e0651f;
+  --color-series-3: #12a583;
+  --color-series-4: #e0a020;
+  --color-series-5: #dd7fa6;
+  --color-series-6: #157f2e;
+  --color-series-7: #4f3fae;
+  --color-series-8: #d9433f;
+}
+
+/* Tema escuro. Redefinir o token faz TODA utilitária que o usa trocar de valor
+   sozinha — inclusive dentro de SVG, porque var() funciona em atributo de
+   apresentação. É o que permite os gráficos Recharts acompanharem o tema sem
+   JavaScript e sem re-render. */
+.dark {
+  --color-surface-0: #101719;
+  --color-surface-1: #182023;
+  --color-surface-2: #242e31;
+  --color-line: #364245;
+  --color-line-soft: #242e31;
+  --color-ink-1: #edf2f4;
+  --color-ink-2: #adbcc0;
+  --color-ink-3: #637378;
+
+  --color-accent: #3fb4c4;
+  --color-accent-strong: #6fd0dc;
+  --color-accent-tint: #0b2c31;
+  --color-accent-on: #08252a;
+
+  --color-danger: #e2685c;
+  --color-warn: #e0a84a;
+  --color-ok: #2fa05f;
+
+  /* Mesmos oito matizes, degrau escolhido para a faixa do fundo escuro
+     (OKLCH L 0,48–0,67 e ≥3:1 sobre a superfície) — não é uma inversão
+     automática dos valores claros. */
+  --color-series-1: #4a86e8;
+  --color-series-2: #d15a1c;
+  --color-series-3: #149b7b;
+  --color-series-4: #c28615;
+  --color-series-5: #d0708f;
+  --color-series-6: #2f9440;
+  --color-series-7: #8478df;
+  --color-series-8: #e06661;
 }
 
 @layer base {
   body {
-    @apply bg-neutral-50 text-neutral-900;
+    @apply bg-surface-0 text-ink-1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -26,16 +159,20 @@
   }
 }
 
-/* Custom Scrollbar */
+/* Barra de rolagem */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-neutral-100;
+  @apply bg-surface-2;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-neutral-300 rounded-full border-2 border-neutral-100 hover:bg-neutral-400 transition-colors;
+  @apply bg-line border-surface-2 rounded-full border-2 transition-colors;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-ink-3;
 }
