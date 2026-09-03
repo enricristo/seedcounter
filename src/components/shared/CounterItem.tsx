@@ -23,7 +23,7 @@ export function CounterItem({
   // Determine badge colors based on label
   const isViable = label.toLowerCase().includes('viáv') || label.toLowerCase().includes('viav');
   const badgeClasses = isViable
-    ? 'bg-red-50 dark:bg-red-950/40 text-red-650 dark:text-red-400 border-red-100 dark:border-red-900/30'
+    ? 'bg-red-50 dark:bg-red-950/40 text-danger border-red-100 dark:border-red-900/30'
     : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-405 border-amber-100 dark:border-amber-900/30';
 
   return (

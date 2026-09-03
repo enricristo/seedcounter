@@ -322,7 +322,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
         <h3 className="text-sm font-bold text-neutral-800 dark:text-zinc-100 uppercase tracking-wider mb-2">
           Nenhum dado estatístico disponível
         </h3>
-        <p className="text-xs text-neutral-450 dark:text-zinc-500 leading-relaxed font-semibold">
+        <p className="text-xs text-ink-3 leading-relaxed font-semibold">
           Realize contagens de sementes e salve-as no histórico local para ativar o motor
           estatístico e comparar tratamentos.
         </p>
@@ -341,7 +341,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-[#09090B] text-neutral-800 dark:text-zinc-100 transition-all duration-300">
       {/* Navigation tabs */}
-      <div className="flex border-b border-neutral-250 dark:border-zinc-850 bg-neutral-50/50 dark:bg-zinc-950/20 px-6 shrink-0 overflow-x-auto gap-2">
+      <div className="flex border-b border-line bg-neutral-50/50 dark:bg-zinc-950/20 px-6 shrink-0 overflow-x-auto gap-2">
         <button
           onClick={() => setActiveTab('sessions')}
           className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
@@ -411,14 +411,14 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
               </div>
               <button
                 onClick={handleExportSessionsCSV}
-                className="flex items-center gap-1.5 px-3 py-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-neutral-700 dark:text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 bg-surface-2 hover:bg-line text-neutral-700 dark:text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
               >
                 <Download size={12} /> CSV das Contagens
               </button>
             </div>
 
             {/* Table */}
-            <div className="border border-neutral-200 dark:border-zinc-850 rounded-2xl overflow-hidden shadow-sm bg-neutral-50/50 dark:bg-zinc-900/10">
+            <div className="border border-line rounded-2xl overflow-hidden shadow-sm bg-neutral-50/50 dark:bg-zinc-900/10">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-neutral-100/50 dark:bg-zinc-900/50 text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-wider border-b border-neutral-200 dark:border-zinc-800">
@@ -463,7 +463,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     <th className="px-4 py-3 text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-200 dark:divide-zinc-850 text-xs font-medium text-neutral-700 dark:text-zinc-300">
+                <tbody className="divide-y divide-line text-xs font-medium text-neutral-700 dark:text-zinc-300">
                   {sortedSessions.map((s) => {
                     const total = s.viableCount + s.inviableCount;
                     const rate = total > 0 ? (s.viableCount / total) * 100 : 0;
@@ -540,20 +540,18 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
               {/* Toggles */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <label className="text-[10px] font-bold text-neutral-450 dark:text-zinc-500 uppercase">
-                    Pós-Hoc:
-                  </label>
+                  <label className="text-[10px] font-bold text-ink-3 uppercase">Pós-Hoc:</label>
                   <select
                     value={postHoc}
                     onChange={(e) => setPostHoc(e.target.value as 'scott-knott' | 'tukey')}
-                    className="px-2 py-1 bg-neutral-100 dark:bg-zinc-850 text-neutral-700 dark:text-zinc-350 border border-neutral-200 dark:border-zinc-800 rounded-lg text-[10.5px] font-bold focus:outline-none"
+                    className="px-2 py-1 bg-surface-2 text-ink-2 border border-neutral-200 dark:border-zinc-800 rounded-lg text-[10.5px] font-bold focus:outline-none"
                   >
                     <option value="scott-knott">Scott-Knott (Recomendado)</option>
                     <option value="tukey">Tukey-Kramer HSD</option>
                   </select>
                 </div>
 
-                <label className="flex items-center gap-1.5 cursor-pointer text-[10.5px] font-bold text-neutral-600 dark:text-zinc-350 bg-neutral-100 dark:bg-zinc-850 px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-zinc-800">
+                <label className="flex items-center gap-1.5 cursor-pointer text-[10.5px] font-bold text-ink-2 bg-surface-2 px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-zinc-800">
                   <input
                     type="checkbox"
                     checked={useArcsin}
@@ -568,7 +566,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
             {/* Results Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Chart Card */}
-              <div className="lg:col-span-2 bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4">
+              <div className="lg:col-span-2 bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4">
                 <div className="flex justify-between items-center">
                   <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                     Germinação Média com Letras de Diferença Significativa
@@ -597,7 +595,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 <StatsResultCard result={statsResult} />
 
                 {/* Shapiro-Wilk details */}
-                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-neutral-200 dark:border-zinc-850 p-4 rounded-2xl space-y-3">
+                <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-line p-4 rounded-2xl space-y-3">
                   <h4 className="text-[10px] font-bold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
                     Pressuposto de Normalidade (Shapiro-Wilk)
                   </h4>
@@ -621,7 +619,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
             </div>
 
             {/* Scott-Knott / Tukey Table */}
-            <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4">
+            <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                   Tabela de Agrupamento de Médias
@@ -644,7 +642,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 </div>
               </div>
 
-              <div className="border border-neutral-200 dark:border-zinc-850 rounded-2xl overflow-hidden">
+              <div className="border border-line rounded-2xl overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-neutral-100/50 dark:bg-zinc-900/50 text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-wider border-b border-neutral-200 dark:border-zinc-800">
@@ -655,7 +653,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                       <th className="px-4 py-2.5 text-center">Agrupamento (Letra)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-200 dark:divide-zinc-850 text-xs font-medium text-neutral-750 dark:text-zinc-300">
+                  <tbody className="divide-y divide-line text-xs font-medium text-ink-2">
                     {statsResult.treatmentStats.map((s) => (
                       <tr
                         key={s.treatmentId}
@@ -700,7 +698,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
             {vigorStats.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn">
                 {/* Curve Chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4">
+                <div className="lg:col-span-2 bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4">
                   <div>
                     <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                       Curva Cumulativa de Germinação (Cinética)
@@ -716,13 +714,13 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 </div>
 
                 {/* Vigor Index Table Card */}
-                <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                       Índices de Velocidade de Germinação (Vigor)
                     </h4>
 
-                    <div className="border border-neutral-200 dark:border-zinc-850 rounded-2xl overflow-hidden">
+                    <div className="border border-line rounded-2xl overflow-hidden">
                       <table className="w-full text-left border-collapse text-[11px]">
                         <thead>
                           <tr className="bg-neutral-100/50 dark:bg-zinc-900/50 font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-wider border-b border-neutral-200 dark:border-zinc-800">
@@ -744,14 +742,14 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-200 dark:divide-zinc-850 font-semibold text-neutral-750 dark:text-zinc-300">
+                        <tbody className="divide-y divide-line font-semibold text-ink-2">
                           {vigorStats.map((v) => (
                             <tr
                               key={v.code}
                               className="hover:bg-neutral-100/30 dark:hover:bg-zinc-900/10"
                             >
                               <td className="px-3 py-2 font-bold">{v.code}</td>
-                              <td className="px-3 py-2 text-center text-emerald-600 dark:text-emerald-450 font-bold">
+                              <td className="px-3 py-2 text-center text-accent font-bold">
                                 {v.ivg}
                               </td>
                               <td className="px-3 py-2 text-center font-mono">{v.mgt}</td>
@@ -763,7 +761,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     </div>
                   </div>
 
-                  <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-neutral-200 dark:border-zinc-850 p-3.5 rounded-2xl space-y-1">
+                  <div className="bg-neutral-50 dark:bg-zinc-900/30 border border-line p-3.5 rounded-2xl space-y-1">
                     <span className="text-[10px] font-bold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
                       O que significam?
                     </span>
@@ -811,7 +809,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
             contaminationStats.mixed > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
                 {/* Distribution chart */}
-                <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between h-80">
+                <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm flex flex-col justify-between h-80">
                   <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide mb-2">
                     Proporção por Agente Contaminante
                   </h4>
@@ -844,26 +842,24 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 </div>
 
                 {/* Phytosanitary advice */}
-                <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between">
+                <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm flex flex-col justify-between">
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-neutral-700 dark:text-zinc-300 uppercase tracking-wide">
                       Resumo Epidemiológico das Placas
                     </h4>
 
-                    <div className="space-y-3 font-semibold text-xs text-neutral-750 dark:text-zinc-300">
-                      <div className="flex justify-between items-center py-2 border-b border-neutral-100 dark:border-zinc-850">
+                    <div className="space-y-3 font-semibold text-xs text-ink-2">
+                      <div className="flex justify-between items-center py-2 border-b border-line-soft">
                         <span>Placas Sem Contaminação (Limpas)</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-450">
-                          {contaminationStats.none}
-                        </span>
+                        <span className="font-bold text-accent">{contaminationStats.none}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-neutral-100 dark:border-zinc-850">
+                      <div className="flex justify-between items-center py-2 border-b border-line-soft">
                         <span>Placas com Fungo Filamentoso</span>
                         <span className="font-bold text-amber-500">
                           {contaminationStats.fungal}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center py-2 border-b border-neutral-100 dark:border-zinc-850">
+                      <div className="flex justify-between items-center py-2 border-b border-line-soft">
                         <span>Placas com Contaminação Bacteriana</span>
                         <span className="font-bold text-blue-500">
                           {contaminationStats.bacterial}
@@ -921,7 +917,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Card 1 */}
-              <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
+              <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-neutral-800 dark:text-zinc-200 uppercase tracking-wider">
                     Resumo Estatístico dos Tratamentos
@@ -942,7 +938,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
               </div>
 
               {/* Card 2 */}
-              <div className="bg-white dark:bg-[#18181B] border border-neutral-250 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
+              <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-neutral-800 dark:text-zinc-200 uppercase tracking-wider">
                     Tabela Detalhada de Contagens (Sessões)
@@ -955,7 +951,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 </div>
                 <button
                   onClick={handleExportSessionsCSV}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-neutral-100 hover:bg-neutral-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-neutral-700 dark:text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-surface-2 hover:bg-line text-neutral-700 dark:text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                 >
                   <Download size={14} /> Exportar Tabela de Sessões (.csv)
                 </button>

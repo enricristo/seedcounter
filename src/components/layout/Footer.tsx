@@ -14,7 +14,7 @@ export function Footer({
   version = 'v3.0.0-beta',
 }: FooterProps) {
   return (
-    <footer className="h-12 border-t border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] px-6 flex items-center justify-between shrink-0 transition-colors duration-300">
+    <footer className="h-12 border-t border-neutral-200 dark:border-zinc-800 bg-surface-1 px-6 flex items-center justify-between shrink-0 transition-colors duration-300">
       {/* Active System Indicator */}
       <div className="flex items-center gap-4 text-[10px] text-neutral-500 dark:text-zinc-500 font-bold tracking-wide uppercase">
         <div className="flex items-center gap-1.5">

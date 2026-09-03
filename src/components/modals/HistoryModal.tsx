@@ -64,12 +64,12 @@ export function HistoryModal({
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-white dark:bg-[#18181B] flex flex-col rounded-3xl shadow-2xl w-full max-w-6.5xl h-full max-h-[85vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
+        className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-6.5xl h-full max-h-[85vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
       >
         {/* Header bar */}
         <div className="flex flex-wrap justify-between items-center px-6 py-4.5 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl text-emerald-600 dark:text-emerald-450 shadow-inner">
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl text-accent shadow-inner">
               <History size={20} />
             </div>
             <div>
@@ -133,10 +133,10 @@ export function HistoryModal({
         </div>
 
         {/* Body content */}
-        <div className="flex-1 overflow-hidden bg-white dark:bg-[#18181B] transition-colors duration-300">
+        <div className="flex-1 overflow-hidden bg-surface-1 transition-colors duration-300">
           {sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-16 text-center h-full gap-4">
-              <History size={52} className="text-neutral-200 dark:text-zinc-750" />
+              <History size={52} className="text-line" />
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-neutral-600 dark:text-zinc-300">
                   Nenhum Registro Salvo
@@ -152,7 +152,7 @@ export function HistoryModal({
               {/* Table side (Scrollable) */}
               <div className="flex-1 overflow-auto border-r border-neutral-200 dark:border-zinc-800">
                 <table className="w-full text-left text-sm whitespace-nowrap table-fixed">
-                  <thead className="bg-neutral-50 dark:bg-zinc-900 sticky top-0 z-10 border-b border-neutral-200 dark:border-zinc-800 text-neutral-400 dark:text-zinc-550 uppercase text-[9px] font-bold tracking-widest">
+                  <thead className="bg-neutral-50 dark:bg-zinc-900 sticky top-0 z-10 border-b border-neutral-200 dark:border-zinc-800 text-ink-3 uppercase text-[9px] font-bold tracking-widest">
                     <tr>
                       <th className="px-6 py-4 w-1/5">Data</th>
                       <th className="px-6 py-4 w-1/4">Amostra</th>
@@ -170,7 +170,7 @@ export function HistoryModal({
                       <th className="px-6 py-4 w-[60px]"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-100 dark:divide-zinc-850 text-neutral-700 dark:text-zinc-200">
+                  <tbody className="divide-y divide-line-soft text-neutral-700 dark:text-zinc-200">
                     {sessions.map((s) => {
                       const totalCount = s.viableCount + s.inviableCount;
                       return (
@@ -179,10 +179,10 @@ export function HistoryModal({
                           className="hover:bg-neutral-50/50 dark:hover:bg-zinc-900/50 transition-colors"
                         >
                           <td className="px-6 py-3 truncate">
-                            <div className="text-xs font-semibold text-neutral-850 dark:text-zinc-300">
+                            <div className="text-xs font-semibold text-ink-1">
                               {new Date(s.date).toLocaleDateString('pt-BR')}
                             </div>
-                            <div className="text-[10px] text-neutral-400 dark:text-zinc-550 font-mono font-medium">
+                            <div className="text-[10px] text-ink-3 font-mono font-medium">
                               {new Date(s.date).toLocaleTimeString('pt-BR')}
                             </div>
                           </td>
@@ -193,16 +193,16 @@ export function HistoryModal({
                             {s.filename}
                           </td>
                           <td className="px-6 py-3 truncate">
-                            <div className="font-bold text-xs text-neutral-800 dark:text-zinc-150 truncate">
+                            <div className="font-bold text-xs text-ink-1 truncate">
                               {s.metadata.researcher || '-'}
                             </div>
-                            <div className="text-[10px] text-neutral-450 dark:text-zinc-450 truncate">
+                            <div className="text-[10px] text-ink-3 truncate">
                               {s.metadata.project || '-'}
                             </div>
                           </td>
                           <td className="px-6 py-3 truncate">
                             <div className="font-bold text-xs">{s.metadata.plate || '-'}</div>
-                            <div className="text-[10px] text-neutral-450 dark:text-zinc-450">
+                            <div className="text-[10px] text-ink-3">
                               {s.metadata.quadrant ? `Q${s.metadata.quadrant}` : '-'} •{' '}
                               {s.metadata.treatment || '-'}
                             </div>
@@ -272,7 +272,7 @@ export function HistoryModal({
                 </div>
 
                 {/* Render Selected Chart */}
-                <div className="bg-white dark:bg-[#18181B] rounded-2xl border border-neutral-200 dark:border-zinc-800 p-4 shadow-sm mb-5 min-h-[250px] flex items-center justify-center">
+                <div className="bg-surface-1 rounded-2xl border border-neutral-200 dark:border-zinc-800 p-4 shadow-sm mb-5 min-h-[250px] flex items-center justify-center">
                   {activeChartTab === 'bar' ? (
                     <PlateViabilityChart sessions={sessions} />
                   ) : (
@@ -281,7 +281,7 @@ export function HistoryModal({
                 </div>
 
                 {/* Plate stats list */}
-                <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-550 uppercase tracking-widest mb-3 shrink-0">
+                <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-3 shrink-0">
                   Resumo Agregado
                 </h3>
                 <div className="space-y-3 shrink-0">
@@ -291,12 +291,10 @@ export function HistoryModal({
                     return (
                       <div
                         key={plate}
-                        className="bg-white dark:bg-[#18181B] border border-neutral-200 dark:border-zinc-800 p-3.5 rounded-2xl shadow-sm"
+                        className="bg-surface-1 border border-neutral-200 dark:border-zinc-800 p-3.5 rounded-2xl shadow-sm"
                       >
                         <div className="flex justify-between items-baseline mb-1.5">
-                          <h4 className="font-bold text-xs text-neutral-800 dark:text-zinc-150 uppercase">
-                            {plate}
-                          </h4>
+                          <h4 className="font-bold text-xs text-ink-1 uppercase">{plate}</h4>
                           <span className="font-mono font-bold text-xs text-neutral-500 dark:text-zinc-400">
                             Total: {stats.t}
                           </span>

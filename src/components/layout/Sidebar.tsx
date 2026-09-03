@@ -68,7 +68,7 @@ export function Sidebar({
   needsCalibration,
 }: SidebarProps) {
   return (
-    <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex flex-col shrink-0 overflow-y-auto custom-scrollbar transition-colors duration-300">
+    <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-surface-1 flex flex-col shrink-0 overflow-y-auto custom-scrollbar transition-colors duration-300">
       <div className="flex flex-col p-4 gap-4 min-h-max">
         {/* Resultado primeiro: é o produto do trabalho */}
         <Counters

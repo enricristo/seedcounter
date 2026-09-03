@@ -244,12 +244,12 @@ export function PlateRunModal({
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-white dark:bg-[#18181B] flex flex-col rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
+        className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
       >
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl text-emerald-600 dark:text-emerald-450 shadow-inner">
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl text-accent shadow-inner">
               <Link2 size={20} />
             </div>
             <div>
@@ -349,7 +349,7 @@ export function PlateRunModal({
                       key={s.id}
                       type="button"
                       onClick={() => handleLinkSession(s)}
-                      className="w-full text-left p-2.5 bg-white dark:bg-zinc-800 border border-neutral-200 dark:border-zinc-750 hover:border-purple-400 hover:ring-1 hover:ring-purple-400 rounded-xl text-xs flex justify-between items-center transition-all"
+                      className="w-full text-left p-2.5 bg-white dark:bg-zinc-800 border border-line hover:border-purple-400 hover:ring-1 hover:ring-purple-400 rounded-xl text-xs flex justify-between items-center transition-all"
                     >
                       <div>
                         <span className="font-semibold text-neutral-800 dark:text-zinc-200 block truncate max-w-xs sm:max-w-md">
@@ -431,7 +431,7 @@ export function PlateRunModal({
                 return (
                   <div
                     key={stageKey}
-                    className="p-3 bg-neutral-50 dark:bg-zinc-900/50 border border-neutral-200 dark:border-zinc-850 rounded-2xl flex flex-col items-center"
+                    className="p-3 bg-neutral-50 dark:bg-zinc-900/50 border border-line rounded-2xl flex flex-col items-center"
                   >
                     <span
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold mb-2 ${
@@ -440,7 +440,7 @@ export function PlateRunModal({
                           : stageNum === 1
                             ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400'
                             : stageNum === 2 || stageNum === 3
-                              ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/20 text-accent'
                               : 'bg-emerald-600 text-white shadow-sm'
                       }`}
                       title={PROTOCORM_STAGE_LABELS[stageNum]}

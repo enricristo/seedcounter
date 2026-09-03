@@ -15,15 +15,21 @@ import {
 import type { TreatmentStats } from '../../../types';
 
 // Publication-quality palette
+/**
+ * Series de dados na ordem fixa do sistema Bancada Optica. A ordem e o
+ * mecanismo de seguranca para daltonismo, nao decoracao: foi validada por
+ * script nos dois temas (pior par adjacente delta-E 11,7 claro / 10,0 escuro).
+ * Nunca reordenar, nunca ciclar.
+ */
 export const CHART_PALETTE = [
-  '#10b981', // emerald
-  '#8b5cf6', // violet
-  '#f59e0b', // amber
-  '#f43f5e', // rose
-  '#0ea5e9', // sky
-  '#f97316', // orange
-  '#06b6d4', // cyan
-  '#a855f7', // purple
+  'var(--color-series-1)',
+  'var(--color-series-2)',
+  'var(--color-series-3)',
+  'var(--color-series-4)',
+  'var(--color-series-5)',
+  'var(--color-series-6)',
+  'var(--color-series-7)',
+  'var(--color-series-8)',
 ];
 
 interface GerminationBarChartProps {
@@ -51,7 +57,7 @@ function LetterLabel(props: any) {
     <text
       x={x + width / 2}
       y={y - 6}
-      fill="#6366f1"
+      fill="var(--color-ink-1)"
       textAnchor="middle"
       fontSize={13}
       fontWeight={700}
@@ -106,7 +112,7 @@ export function GerminationBarChart({
       lower: lowerPct,
       upper: upperPct,
       letter: s.letter ?? '',
-      color: CHART_PALETTE[i % CHART_PALETTE.length],
+      color: CHART_PALETTE[i] ?? 'var(--color-ink-3)',
     };
   });
 
@@ -119,44 +125,44 @@ export function GerminationBarChart({
       >
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="#e4e4e7"
+          stroke="var(--color-line-soft)"
           strokeOpacity={0.5}
           vertical={false}
         />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: '#71717a', fontWeight: 600 }}
+          tick={{ fontSize: 11, fill: 'var(--color-ink-3)', fontWeight: 600 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
           domain={[0, 100]}
           tickFormatter={(v) => `${v}%`}
-          tick={{ fontSize: 10, fill: '#a1a1aa' }}
+          tick={{ fontSize: 10, fill: 'var(--color-ink-3)' }}
           axisLine={false}
           tickLine={false}
           width={40}
         />
         <ReferenceLine
           y={80}
-          stroke="#10b981"
+          stroke="var(--color-ok)"
           strokeDasharray="4 3"
           strokeOpacity={0.4}
-          label={{ value: '80%', fill: '#10b981', fontSize: 9, position: 'insideRight' }}
+          label={{ value: '80%', fill: 'var(--color-ok)', fontSize: 9, position: 'insideRight' }}
         />
         <ReferenceLine
           y={50}
-          stroke="#f59e0b"
+          stroke="var(--color-warn)"
           strokeDasharray="4 3"
           strokeOpacity={0.4}
-          label={{ value: '50%', fill: '#f59e0b', fontSize: 9, position: 'insideRight' }}
+          label={{ value: '50%', fill: 'var(--color-warn)', fontSize: 9, position: 'insideRight' }}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99,102,241,0.06)' }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-line-soft)' }} />
         <Bar dataKey="mean" radius={[6, 6, 0, 0]} maxBarSize={72}>
           {data.map((d, i) => (
             <Cell key={d.label} fill={d.color} fillOpacity={0.85} />
           ))}
-          <ErrorBar dataKey="errorY" width={5} strokeWidth={2} stroke="#52525b" />
+          <ErrorBar dataKey="errorY" width={5} strokeWidth={2} stroke="var(--color-ink-2)" />
           {showLetters && <LabelList dataKey="letter" content={<LetterLabel />} />}
         </Bar>
       </BarChart>

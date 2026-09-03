@@ -66,7 +66,7 @@ export function Header({
   onOpenFeatures,
 }: HeaderProps) {
   return (
-    <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-white dark:bg-[#18181B] flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-all duration-300">
+    <header className="h-16 border-b border-neutral-200 dark:border-zinc-800 bg-surface-1 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm transition-all duration-300">
       {/* Brand Logo & Info */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export function Header({
             <h1 className="font-bold text-base tracking-tight leading-tight text-neutral-800 dark:text-zinc-50">
               Contador de Sementes
             </h1>
-            <p className="text-[9px] text-emerald-600 dark:text-emerald-450 uppercase tracking-widest font-bold">
+            <p className="text-[9px] text-accent uppercase tracking-widest font-bold">
               Edição Acadêmica •{' '}
               <a
                 href="https://www.instagram.com/gpeorq"
@@ -250,7 +250,7 @@ export function Header({
             <button
               onClick={onPrevImage}
               disabled={currentImageIndex === 0}
-              className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-850 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
+              className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-surface-2 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
               title="Voltar Imagem (Backspace)"
             >
               Anterior
@@ -261,7 +261,7 @@ export function Header({
             <button
               onClick={onNextImage}
               disabled={currentImageIndex === imageQueueLength - 1}
-              className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-50 dark:hover:bg-zinc-850 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
+              className="p-1 px-2.5 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 hover:bg-surface-2 rounded text-neutral-600 dark:text-zinc-300 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-bold uppercase tracking-wider transition-all"
               title="Próxima Imagem (Espaço)"
             >
               Próxima

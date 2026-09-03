@@ -12,9 +12,9 @@ export function EmptyState({ onBrowseFiles }: EmptyStateProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="max-w-md w-full bg-white dark:bg-[#18181B] p-12 rounded-3xl shadow-xl shadow-neutral-400/5 dark:shadow-black/50 border border-neutral-200 dark:border-zinc-800 text-center flex flex-col items-center gap-6 m-auto transition-all"
+      className="max-w-md w-full bg-surface-1 p-12 rounded-3xl shadow-xl shadow-neutral-400/5 dark:shadow-black/50 border border-neutral-200 dark:border-zinc-800 text-center flex flex-col items-center gap-6 m-auto transition-all"
     >
-      <div className="w-20 h-20 bg-neutral-50 dark:bg-zinc-900 rounded-2xl flex items-center justify-center text-neutral-300 dark:text-zinc-650 border border-neutral-100 dark:border-zinc-800 shadow-inner">
+      <div className="w-20 h-20 bg-neutral-50 dark:bg-zinc-900 rounded-2xl flex items-center justify-center text-ink-3 border border-neutral-100 dark:border-zinc-800 shadow-inner">
         <ImageIcon size={38} className="text-neutral-400 dark:text-zinc-500" />
       </div>
       <div className="space-y-2">

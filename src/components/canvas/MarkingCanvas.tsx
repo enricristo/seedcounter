@@ -184,7 +184,7 @@ export function MarkingCanvas({
 
   return (
     <div
-      className="relative bg-white dark:bg-[#18181B] shadow-2xl rounded-sm transition-all"
+      className="relative bg-surface-1 shadow-2xl rounded-sm transition-all"
       style={{
         width: `${image.width * zoomLevel}px`,
         height: `${image.height * zoomLevel}px`,

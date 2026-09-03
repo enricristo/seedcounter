@@ -45,25 +45,30 @@ export function PlateViabilityChart({ sessions }: PlateChartProps) {
     <div className="w-full h-[220px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line-soft)" />
           <XAxis
             dataKey="name"
-            stroke="#9ca3af"
+            stroke="var(--color-ink-3)"
             fontSize={10}
             tickLine={false}
             fontFamily="monospace"
           />
-          <YAxis stroke="#9ca3af" fontSize={10} tickLine={false} fontFamily="monospace" />
+          <YAxis
+            stroke="var(--color-ink-3)"
+            fontSize={10}
+            tickLine={false}
+            fontFamily="monospace"
+          />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1f2937',
-              borderColor: '#374151',
+              backgroundColor: 'var(--color-surface-1)',
+              borderColor: 'var(--color-line)',
               borderRadius: '8px',
               fontSize: '11px',
-              color: '#fff',
+              color: 'var(--color-ink-1)',
               fontFamily: 'sans-serif',
             }}
-            itemStyle={{ color: '#fff' }}
+            itemStyle={{ color: 'var(--color-ink-1)' }}
           />
           <Legend
             verticalAlign="top"
@@ -75,12 +80,18 @@ export function PlateViabilityChart({ sessions }: PlateChartProps) {
               </span>
             )}
           />
-          <Bar dataKey="viable" name="viable" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
+          <Bar
+            dataKey="viable"
+            name="viable"
+            stackId="a"
+            fill="var(--color-series-1)"
+            radius={[0, 0, 0, 0]}
+          />
           <Bar
             dataKey="inviable"
             name="inviable"
             stackId="a"
-            fill="#fbbf24"
+            fill="var(--color-series-2)"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>

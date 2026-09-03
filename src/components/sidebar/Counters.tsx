@@ -84,7 +84,7 @@ export function Counters({
 
         {/* Combined Total */}
         <div className="pt-3 mt-1 border-t border-neutral-100 dark:border-zinc-800 flex justify-between items-baseline px-1">
-          <span className="text-xs font-semibold text-neutral-500 dark:text-zinc-450 uppercase tracking-wide">
+          <span className="text-xs font-semibold text-ink-2 uppercase tracking-wide">
             Total Computado
           </span>
           <span className="text-2xl font-black font-mono text-neutral-800 dark:text-zinc-50">
@@ -126,8 +126,8 @@ export function Counters({
         {activePlate && (
           <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-950/30 p-3.5 rounded-xl space-y-2 mt-4 transition-all">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-350 uppercase tracking-wide flex items-center gap-1.5">
-                <Award size={13} className="text-emerald-600 dark:text-emerald-450 shrink-0" />
+              <span className="text-[10px] font-bold text-accent uppercase tracking-wide flex items-center gap-1.5">
+                <Award size={13} className="text-accent shrink-0" />
                 Métricas Placa:{' '}
                 <strong className="font-mono text-emerald-700 dark:text-emerald-200">
                   {activePlate}
@@ -140,7 +140,7 @@ export function Counters({
 
             <div className="grid grid-cols-3 gap-2 py-1">
               <div className="flex flex-col text-center">
-                <span className="text-[8px] font-extrabold text-neutral-450 dark:text-zinc-500 uppercase tracking-wider">
+                <span className="text-[8px] font-extrabold text-ink-3 uppercase tracking-wider">
                   Viáveis
                 </span>
                 <span className="text-xs font-black font-mono text-red-500">{combinedViable}</span>
@@ -149,7 +149,7 @@ export function Counters({
                 </span>
               </div>
               <div className="flex flex-col text-center border-x border-neutral-200/50 dark:border-zinc-800/80">
-                <span className="text-[8px] font-extrabold text-neutral-450 dark:text-zinc-500 uppercase tracking-wider">
+                <span className="text-[8px] font-extrabold text-ink-3 uppercase tracking-wider">
                   Inviáveis
                 </span>
                 <span className="text-xs font-black font-mono text-amber-500">
@@ -163,12 +163,10 @@ export function Counters({
                 </span>
               </div>
               <div className="flex flex-col text-center">
-                <span className="text-[8px] font-extrabold text-neutral-450 dark:text-zinc-500 uppercase tracking-wider">
+                <span className="text-[8px] font-extrabold text-ink-3 uppercase tracking-wider">
                   Total
                 </span>
-                <span className="text-xs font-black font-mono text-neutral-800 dark:text-zinc-150">
-                  {combinedTotal}
-                </span>
+                <span className="text-xs font-black font-mono text-ink-1">{combinedTotal}</span>
                 <span className="text-[8.5px] text-neutral-400 dark:text-zinc-500 font-bold uppercase tracking-widest text-[8px]">
                   Placa
                 </span>

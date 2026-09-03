@@ -68,7 +68,7 @@ export function MetadataForm({ metadata, updateMetadata }: MetadataFormProps) {
           <textarea
             value={metadata.notes || ''}
             onChange={(e) => updateMetadata('notes', e.target.value)}
-            className="w-full bg-neutral-100 dark:bg-zinc-900/80 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y min-h-[70px] placeholder:text-neutral-400 dark:placeholder:text-zinc-650 dark:text-zinc-100"
+            className="w-full bg-neutral-100 dark:bg-zinc-900/80 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y min-h-[70px] placeholder:text-ink-3 dark:text-zinc-100"
             placeholder="Comentários adicionais sobre a germinação, anomalias, etc."
           />
         </div>
