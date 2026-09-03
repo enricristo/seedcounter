@@ -30,7 +30,7 @@ export function Counters({
   plateId,
   sessions = [],
 }: CountersProps) {
-  // Live Plate aggregation
+  // Agregação por placa: soma as sessões já salvas com a contagem em curso.
   const activePlate = plateId?.trim();
   const plateSessions = activePlate
     ? sessions.filter((s) => s.metadata.plate?.trim().toLowerCase() === activePlate.toLowerCase())
@@ -39,28 +39,32 @@ export function Counters({
   const histViable = plateSessions.reduce((sum, s) => sum + s.viableCount, 0);
   const histInviable = plateSessions.reduce((sum, s) => sum + s.inviableCount, 0);
 
-  // Combine historical sessions + current active counting
   const combinedViable = histViable + viableCount;
   const combinedInviable = histInviable + inviableCount;
   const combinedTotal = combinedViable + combinedInviable;
-  const combinedViablePercent =
-    combinedTotal > 0 ? ((combinedViable / combinedTotal) * 100).toFixed(1) : '0';
-  const combinedInviablePercent =
-    combinedTotal > 0
-      ? ((combinedInviable / combinedTotal) * 105).toFixed(1) // Keep it normalized
-      : '0';
 
-  // Recalculate inviable percentage cleanly for visual bar
-  const pctViableBar = combinedTotal > 0 ? (combinedViable / combinedTotal) * 100 : 0;
-  const pctInviableBar = combinedTotal > 0 ? (combinedInviable / combinedTotal) * 100 : 0;
+  const pct = (parte: number, total: number) => (total > 0 ? (parte / total) * 100 : 0);
+
+  // Proporção da contagem em curso, para a barra segmentada.
+  const barViable = pct(viableCount, totalCount);
+  const barInviable = pct(inviableCount, totalCount);
+
+  // Proporção acumulada da placa.
+  const plateBarViable = pct(combinedViable, combinedTotal);
+  const plateBarInviable = pct(combinedInviable, combinedTotal);
+
+  const botaoModo = (ativo: boolean) =>
+    `rounded-control flex flex-1 cursor-pointer items-center justify-center gap-2 border px-3 py-2 text-[10px] font-bold tracking-wider uppercase transition-all ${
+      ativo
+        ? 'bg-accent border-accent text-accent-on'
+        : 'bg-surface-1 border-line text-ink-2 hover:border-ink-3 hover:bg-surface-2'
+    }`;
 
   return (
     <section className="space-y-4">
-      <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
-        Totalizadores
-      </h3>
+      <h3 className="text-ink-3 text-[10px] font-bold tracking-widest uppercase">Totalizadores</h3>
+
       <div className="space-y-3">
-        {/* Viable Seeds Card */}
         <CounterItem
           label="Sementes Viáveis"
           count={viableCount}
@@ -71,7 +75,6 @@ export function Counters({
           onClick={() => setActiveClassification?.('viable')}
         />
 
-        {/* Inviable Seeds Card */}
         <CounterItem
           label="Sementes Inviáveis"
           count={inviableCount}
@@ -82,106 +85,109 @@ export function Counters({
           onClick={() => setActiveClassification?.('inviable')}
         />
 
-        {/* Combined Total */}
-        <div className="pt-3 mt-1 border-t border-neutral-100 dark:border-zinc-800 flex justify-between items-baseline px-1">
-          <span className="text-xs font-semibold text-ink-2 uppercase tracking-wide">
-            Total Computado
+        {/* Proporção entre as duas classes. É UM elemento porque é UMA relação:
+            dois números soltos obrigam o técnico a comparar de cabeça. */}
+        <div
+          className="bg-surface-2 flex h-1.5 w-full gap-px overflow-hidden rounded-full"
+          role="img"
+          aria-label={`Proporção da amostra: ${viablePercent}% viáveis, ${inviablePercent}% inviáveis`}
+        >
+          <div className="h-full bg-red-500 transition-all" style={{ width: `${barViable}%` }} />
+          <div
+            className="h-full bg-amber-400 transition-all"
+            style={{ width: `${barInviable}%` }}
+          />
+        </div>
+
+        <div className="border-line flex items-baseline justify-between border-t px-1 pt-3">
+          <span className="text-ink-3 text-[10px] font-bold tracking-widest uppercase">
+            Total computado
           </span>
-          <span className="text-2xl font-black font-mono text-neutral-800 dark:text-zinc-50">
+          <span className="text-ink-1 font-mono text-2xl font-semibold tracking-tight tabular-nums">
             {totalCount}
           </span>
         </div>
 
-        {/* Rendering Visual Mode Toggle */}
-        <div className="pt-2 flex gap-2">
+        <div className="flex gap-2 pt-1">
           <button
             onClick={() => setVisualMode('dots')}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border cursor-pointer
-              ${
-                visualMode === 'dots'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-neutral-50 dark:bg-zinc-900 border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800'
-              }
-            `}
+            className={botaoModo(visualMode === 'dots')}
           >
-            <Circle size={13} />
+            <Circle size={14} strokeWidth={2.25} aria-hidden="true" />
             <span>Pontos (1)</span>
           </button>
           <button
             onClick={() => setVisualMode('numbers')}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border cursor-pointer
-              ${
-                visualMode === 'numbers'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-neutral-50 dark:bg-zinc-900 border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800'
-              }
-            `}
+            className={botaoModo(visualMode === 'numbers')}
           >
-            <Hash size={13} />
+            <Hash size={14} strokeWidth={2.25} aria-hidden="true" />
             <span>Índices (2)</span>
           </button>
         </div>
 
-        {/* Live Plate ID Statistics Widget */}
+        {/* Métricas acumuladas da placa — só aparece quando há placa nomeada. */}
         {activePlate && (
-          <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-950/30 p-3.5 rounded-xl space-y-2 mt-4 transition-all">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-accent uppercase tracking-wide flex items-center gap-1.5">
-                <Award size={13} className="text-accent shrink-0" />
-                Métricas Placa:{' '}
-                <strong className="font-mono text-emerald-700 dark:text-emerald-200">
-                  {activePlate}
-                </strong>
+          <div className="border-line bg-surface-2 rounded-panel mt-4 space-y-2 border p-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-accent flex min-w-0 items-center gap-1.5 text-[10px] font-bold tracking-wide uppercase">
+                <Award size={14} strokeWidth={2.25} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">
+                  Métricas placa: <strong className="font-mono">{activePlate}</strong>
+                </span>
               </span>
-              <span className="text-[9px] font-bold text-neutral-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 px-1.5 py-0.5 rounded-md shadow-sm shrink-0">
-                {plateSessions.length + 1} Amostra{plateSessions.length + 1 === 1 ? '' : 's'}
+              <span className="text-ink-2 border-line bg-surface-1 rounded-control shrink-0 border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums">
+                {plateSessions.length + 1} amostra{plateSessions.length + 1 === 1 ? '' : 's'}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 py-1">
               <div className="flex flex-col text-center">
-                <span className="text-[8px] font-extrabold text-ink-3 uppercase tracking-wider">
+                <span className="text-ink-3 text-[8px] font-bold tracking-wider uppercase">
                   Viáveis
                 </span>
-                <span className="text-xs font-black font-mono text-red-500">{combinedViable}</span>
-                <span className="text-[8.5px] text-neutral-400 dark:text-zinc-500 font-bold font-mono">
-                  {combinedTotal > 0 ? ((combinedViable / combinedTotal) * 100).toFixed(1) : '0.0'}%
+                <span className="font-mono text-xs font-semibold tabular-nums">
+                  {combinedViable}
+                </span>
+                <span className="text-ink-3 font-mono text-[8.5px] tabular-nums">
+                  {plateBarViable.toFixed(1)}%
                 </span>
               </div>
-              <div className="flex flex-col text-center border-x border-neutral-200/50 dark:border-zinc-800/80">
-                <span className="text-[8px] font-extrabold text-ink-3 uppercase tracking-wider">
+              <div className="border-line flex flex-col border-x text-center">
+                <span className="text-ink-3 text-[8px] font-bold tracking-wider uppercase">
                   Inviáveis
                 </span>
-                <span className="text-xs font-black font-mono text-amber-500">
+                <span className="font-mono text-xs font-semibold tabular-nums">
                   {combinedInviable}
                 </span>
-                <span className="text-[8.5px] text-neutral-400 dark:text-zinc-500 font-bold font-mono">
-                  {combinedTotal > 0
-                    ? ((combinedInviable / combinedTotal) * 100).toFixed(1)
-                    : '0.0'}
-                  %
+                <span className="text-ink-3 font-mono text-[8.5px] tabular-nums">
+                  {plateBarInviable.toFixed(1)}%
                 </span>
               </div>
               <div className="flex flex-col text-center">
-                <span className="text-[8px] font-extrabold text-ink-3 uppercase tracking-wider">
+                <span className="text-ink-3 text-[8px] font-bold tracking-wider uppercase">
                   Total
                 </span>
-                <span className="text-xs font-black font-mono text-ink-1">{combinedTotal}</span>
-                <span className="text-[8.5px] text-neutral-400 dark:text-zinc-500 font-bold uppercase tracking-widest text-[8px]">
+                <span className="text-ink-1 font-mono text-xs font-semibold tabular-nums">
+                  {combinedTotal}
+                </span>
+                <span className="text-ink-3 text-[8px] font-bold tracking-widest uppercase">
                   Placa
                 </span>
               </div>
             </div>
 
-            {/* Combined Viability bar */}
-            <div className="flex bg-neutral-100 dark:bg-zinc-900 rounded-full h-1.5 w-full overflow-hidden mt-1 shadow-inner">
+            <div
+              className="bg-surface-1 border-line flex h-1.5 w-full gap-px overflow-hidden rounded-full border"
+              role="img"
+              aria-label={`Proporção acumulada da placa: ${plateBarViable.toFixed(1)}% viáveis, ${plateBarInviable.toFixed(1)}% inviáveis`}
+            >
               <div
-                className="bg-red-500 h-full transition-all duration-300"
-                style={{ width: `${pctViableBar}%` }}
+                className="h-full bg-red-500 transition-all"
+                style={{ width: `${plateBarViable}%` }}
               />
               <div
-                className="bg-amber-400 h-full transition-all duration-300"
-                style={{ width: `${pctInviableBar}%` }}
+                className="h-full bg-amber-400 transition-all"
+                style={{ width: `${plateBarInviable}%` }}
               />
             </div>
           </div>
