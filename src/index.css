@@ -1,5 +1,12 @@
 @import 'tailwindcss';
 
+/* Liga a variante dark: à classe .dark no elemento raiz.
+   Sem isto o Tailwind v4 usa @media (prefers-color-scheme) por padrão, e o
+   alternador de tema em useTheme.ts — que alterna a classe .dark no <html> —
+   não tem efeito visual nenhum: as 1.144 classes dark: do projeto respondem
+   apenas à preferência do sistema operacional. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
