@@ -35,7 +35,12 @@ export function ImageViewport({
   return (
     <div
       ref={containerRef}
-      className={`flex-1 bg-neutral-50 dark:bg-[#121214] relative overflow-auto select-none transition-colors duration-300
+      // O palco so existe quando ha especime sobre ele. Com imagem carregada o
+      // entorno vai para --color-stage, que tem lightness FIXA nos dois temas:
+      // contraste simultaneo faz um entorno que muda de claridade alterar a
+      // tonalidade percebida da amostra, e a comparacao entre sessoes deixa de
+      // valer. Sem imagem, o fundo volta a ser cromo comum.
+      className={`relative flex-1 overflow-auto select-none ${image ? 'bg-stage' : 'bg-surface-0'}
         ${isPanningMode ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}
       `}
       onContextMenu={(e) => e.preventDefault()}

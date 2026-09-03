@@ -20,9 +20,10 @@ const ICONS: Record<ToolId, React.ElementType> = {
 };
 
 const ACTIVE_STYLES: Record<ToolId, string> = {
-  // Legenda da marca no canvas — muda junto com ela no PR 3.
-  viable: 'bg-red-500 border-red-500 text-white',
-  inviable: 'bg-amber-500 border-amber-500 text-white',
+  // Legenda da marca no canvas: mesma cor E mesma forma. Disco cheio para
+  // viavel, anel vazado para inviavel — a forma repete o que a cor diz.
+  viable: 'bg-[var(--color-ov-viable)] border-[var(--color-ov-viable)] text-[#101719]',
+  inviable: 'border-2 border-[var(--color-ov-inviable)] text-[var(--color-ov-inviable)]',
   // Instrumento, não espécime.
   eraser: 'bg-danger border-danger text-white',
   pan: 'bg-accent border-accent text-accent-on',

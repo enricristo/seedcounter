@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Mark, YoloSegmentation } from '../../types';
+import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
 import { CanvasRulers } from './CanvasRulers';
 
@@ -241,7 +242,8 @@ export function MarkingCanvas({
               y1={rulerStart.y}
               x2={cursorPos.x}
               y2={cursorPos.y}
-              stroke="#0ea5e9"
+              stroke={ESPECIME.tool}
+              className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
               strokeWidth={Math.max(2, image.width / 400)}
               strokeDasharray={`${image.width / 100},${image.width / 150}`}
             />
@@ -254,7 +256,8 @@ export function MarkingCanvas({
               y1={rulerStart.y}
               x2={rulerEnd.x}
               y2={rulerEnd.y}
-              stroke="#0ea5e9"
+              stroke={ESPECIME.tool}
+              className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
               strokeWidth={Math.max(2, image.width / 400)}
             />
           )}
@@ -263,13 +266,20 @@ export function MarkingCanvas({
           {[rulerStart, rulerEnd].map((p, i) =>
             p ? (
               <g key={i}>
-                <circle cx={p.x} cy={p.y} r={Math.max(4, image.width / 220)} fill="#0ea5e9" />
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={Math.max(4, image.width / 220)}
+                  fill={ESPECIME.tool}
+                  className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
+                />
                 <circle
                   cx={p.x}
                   cy={p.y}
                   r={Math.max(8, image.width / 110)}
                   fill="none"
-                  stroke="#0ea5e9"
+                  stroke={ESPECIME.tool}
+                  className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
                   strokeWidth={Math.max(1, image.width / 800)}
                   opacity={0.5}
                 />
@@ -310,7 +320,7 @@ export function MarkingCanvas({
             const isHovered = hoveredMarkId === mark.id;
             const r = Math.max(6, image.width / 130);
             // Cor do realce indica a ação: vermelho apaga, branco inverte.
-            const highlight = isEraser ? '#f43f5e' : '#ffffff';
+            const highlight = isEraser ? 'var(--color-danger)' : ESPECIME.tool;
             return (
               <circle
                 key={`hit-${mark.id}`}
@@ -320,7 +330,7 @@ export function MarkingCanvas({
                 fill={
                   isHovered
                     ? isEraser
-                      ? 'rgba(244,63,94,0.35)'
+                      ? 'rgba(192,57,46,0.35)'
                       : 'rgba(255,255,255,0.22)'
                     : 'transparent'
                 }
@@ -361,7 +371,7 @@ export function MarkingCanvas({
               cy={cursorPos.y}
               r={eraserRadius}
               fill="rgba(244,63,94,0.12)"
-              stroke="#f43f5e"
+              stroke="var(--color-danger)"
               strokeWidth={Math.max(1.5, image.width / 600)}
               strokeDasharray={`${image.width / 120},${image.width / 200}`}
               pointerEvents="none"
@@ -402,7 +412,7 @@ export function MarkingCanvas({
               cy={o.y}
               r={Math.max(3, o.radius)}
               fill="rgba(16, 185, 129, 0.20)"
-              stroke={o.split ? '#38bdf8' : '#10b981'}
+              stroke={corDoEspecime(o.split ? 'inviable' : 'viable')}
               strokeWidth={Math.max(1, image.width / 900)}
               strokeDasharray={o.split ? `${image.width / 200},${image.width / 300}` : undefined}
             />
@@ -430,16 +440,18 @@ export function MarkingCanvas({
               const isViable = seg.category === 'viable';
               const isHovered = hoveredSeg?.id === seg.id;
 
-              // Colors matching design aesthetics (emerald/red for viable, amber for inviable)
+              // Linguagem do especime: ciano e magenta praticamente nao ocorrem
+              // em material biologico, entao o contorno sobrevive a qualquer
+              // lamina — inclusive corada por tetrazolio, que e carmim.
               const fillColor = isViable
                 ? isHovered
-                  ? 'rgba(239, 68, 68, 0.45)'
-                  : 'rgba(239, 68, 68, 0.25)' // Viable = Red
+                  ? ESPECIME_FILL.viableHover
+                  : ESPECIME_FILL.viable
                 : isHovered
-                  ? 'rgba(251, 191, 36, 0.45)'
-                  : 'rgba(251, 191, 36, 0.25)'; // Inviable = Yellow
+                  ? ESPECIME_FILL.inviableHover
+                  : ESPECIME_FILL.inviable;
 
-              const strokeColor = isViable ? '#ef4444' : '#fbbf24';
+              const strokeColor = corDoEspecime(isViable ? 'viable' : 'inviable');
 
               return (
                 <polygon
