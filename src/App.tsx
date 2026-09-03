@@ -984,8 +984,7 @@ export default function App() {
   });
 
   return (
-    <>
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-neutral-50 dark:bg-[#121214] text-neutral-850 dark:text-zinc-105 transition-colors duration-300 font-sans">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-surface-0 text-ink-1 transition-colors duration-300 font-sans">
       {/* 1. Header Toolbar */}
       <Header
         isDarkMode={isDarkMode}
@@ -1294,6 +1293,5 @@ export default function App() {
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />
     </div>
-    </>
   );
 }
