@@ -74,19 +74,19 @@ function CustomTooltip({ active, payload, label }: any) {
   const d = payload[0]?.payload as ChartDatum;
   if (!d) return null;
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl px-4 py-3 text-xs">
-      <p className="font-bold text-zinc-800 dark:text-zinc-100 mb-1">{d.label}</p>
-      <p className="text-zinc-600 dark:text-zinc-300">
+    <div className="bg-surface-1 border border-line rounded-xl shadow-xl px-4 py-3 text-xs">
+      <p className="font-bold text-ink-1 mb-1">{d.label}</p>
+      <p className="text-ink-2">
         Média:{' '}
         <span className="font-mono font-bold" style={{ color: d.color }}>
           {d.mean.toFixed(1)}%
         </span>
       </p>
-      <p className="text-zinc-500 dark:text-zinc-400">
+      <p className="text-ink-3">
         IC 95%: {d.lower.toFixed(1)}% – {d.upper.toFixed(1)}%
       </p>
       {d.letter && (
-        <p className="text-indigo-500 dark:text-indigo-400 font-bold mt-1">
+        <p className="text-accent font-bold mt-1">
           Grupo: <span className="font-mono">{d.letter}</span>
         </p>
       )}

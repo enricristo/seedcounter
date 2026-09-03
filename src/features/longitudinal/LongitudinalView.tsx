@@ -125,8 +125,8 @@ function GerminationTooltip({
   if (!active || !payload?.length || !experiment) return null;
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 rounded-xl shadow-xl p-3 min-w-[200px]">
-      <div className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-2">
+    <div className="bg-surface-1 border border-line rounded-xl shadow-xl p-3 min-w-[200px]">
+      <div className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-2">
         DAP {label} dias
       </div>
       {payload.map((entry, i) => {
@@ -141,14 +141,10 @@ function GerminationTooltip({
               style={{ backgroundColor: entry.color }}
             />
             <div className="flex-1">
-              <div className="text-xs font-bold text-neutral-800 dark:text-zinc-100">
-                {entry.name}
-              </div>
-              <div className="text-[10px] text-neutral-500 dark:text-zinc-400">
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                  {entry.value}%
-                </span>{' '}
-                · IVG: <span className="font-mono">{ivg}</span>
+              <div className="text-xs font-bold text-ink-1">{entry.name}</div>
+              <div className="text-[10px] text-ink-3">
+                <span className="font-mono text-accent">{entry.value}%</span> · IVG:{' '}
+                <span className="font-mono">{ivg}</span>
               </div>
             </div>
           </div>
@@ -178,7 +174,7 @@ function GerminationTable({
 
   if (allDays.length === 0) {
     return (
-      <div className="text-center py-6 text-xs text-neutral-400 dark:text-zinc-500">
+      <div className="text-center py-6 text-xs text-ink-3">
         Nenhum dado de avaliação registrado ainda.
       </div>
     );
@@ -211,13 +207,11 @@ function GerminationTable({
   });
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-zinc-800">
+    <div className="overflow-x-auto rounded-xl border border-line">
       <table className="w-full text-left text-xs whitespace-nowrap">
-        <thead className="bg-neutral-50 dark:bg-zinc-900 border-b border-neutral-200 dark:border-zinc-800 text-neutral-400 dark:text-zinc-500 uppercase text-[9px] font-bold tracking-widest">
+        <thead className="bg-surface-2 border-b border-line text-ink-3 uppercase text-[9px] font-bold tracking-widest">
           <tr>
-            <th className="px-4 py-3 sticky left-0 bg-neutral-50 dark:bg-zinc-900 z-10">
-              Tratamento
-            </th>
+            <th className="px-4 py-3 sticky left-0 bg-surface-2 z-10">Tratamento</th>
             {allDays.map((day) => (
               <th key={day} className="px-3 py-3 text-center">
                 DAP {day}
@@ -230,10 +224,7 @@ function GerminationTable({
           {filteredTreatments.map((treatment, ti) => {
             const ivg = calcIVG(treatment);
             return (
-              <tr
-                key={treatment.id}
-                className="hover:bg-neutral-50/50 dark:hover:bg-zinc-900/50 transition-colors"
-              >
+              <tr key={treatment.id} className="hover:bg-surface-2/50 transition-colors">
                 <td className="px-4 py-2.5 sticky left-0 bg-surface-1 z-10">
                   <div className="flex items-center gap-2">
                     <div
@@ -241,10 +232,8 @@ function GerminationTable({
                       style={{ backgroundColor: TREATMENT_COLORS[ti % TREATMENT_COLORS.length] }}
                     />
                     <div>
-                      <div className="font-bold text-neutral-800 dark:text-zinc-100">
-                        {treatment.code}
-                      </div>
-                      <div className="text-[10px] text-neutral-400 dark:text-zinc-500 truncate max-w-[160px]">
+                      <div className="font-bold text-ink-1">{treatment.code}</div>
+                      <div className="text-[10px] text-ink-3 truncate max-w-[160px]">
                         {treatment.name}
                       </div>
                     </div>
@@ -259,20 +248,18 @@ function GerminationTable({
                       {pct !== null ? (
                         <span
                           className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded ${
-                            isHighest
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
-                              : 'text-neutral-700 dark:text-zinc-300'
+                            isHighest ? 'bg-accent-tint text-accent' : 'text-ink-2'
                           }`}
                         >
                           {pct}%
                         </span>
                       ) : (
-                        <span className="text-neutral-300 dark:text-zinc-700">—</span>
+                        <span className="text-ink-3">—</span>
                       )}
                     </td>
                   );
                 })}
-                <td className="px-3 py-2.5 text-center font-mono font-bold text-xs text-neutral-700 dark:text-zinc-300">
+                <td className="px-3 py-2.5 text-center font-mono font-bold text-xs text-ink-2">
                   {ivg > 0 ? ivg : '—'}
                 </td>
               </tr>
@@ -301,7 +288,7 @@ function PlateRunsList({
 }) {
   if (treatment.plates.length === 0) {
     return (
-      <div className="text-center py-4 text-xs text-neutral-400 dark:text-zinc-500 italic">
+      <div className="text-center py-4 text-xs text-ink-3 italic">
         Nenhuma avaliação registrada ainda.
       </div>
     );
@@ -317,19 +304,17 @@ function PlateRunsList({
           return (
             <div
               key={i}
-              className="flex items-center gap-3 px-3 py-2 bg-neutral-50 dark:bg-zinc-900/50 rounded-lg border border-neutral-100 dark:border-zinc-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-all group"
+              className="flex items-center gap-3 px-3 py-2 bg-surface-2 rounded-lg border border-line-soft hover:border-accent/30 transition-all group"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-[10px] font-bold font-mono bg-neutral-100 dark:bg-zinc-800 text-neutral-600 dark:text-zinc-300 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-bold font-mono bg-surface-2 text-ink-2 px-2 py-0.5 rounded">
                   DAP {run.dayIndex}
                 </span>
-                <span className="text-[10px] text-neutral-500 dark:text-zinc-400">
+                <span className="text-[10px] text-ink-3">
                   {new Date(run.evaluationDate).toLocaleDateString('pt-BR')}
                 </span>
-                <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
-                  {pct}%
-                </span>
-                <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
+                <span className="font-mono font-bold text-xs text-accent">{pct}%</span>
+                <span className="text-[10px] text-ink-3">
                   ({run.germinatedSeeds}/{run.totalSeeds})
                 </span>
               </div>
@@ -357,7 +342,7 @@ function PlateRunsList({
                 {run.sessionId && (
                   <button
                     onClick={() => onViewSession(run.sessionId!)}
-                    className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 bg-accent-tint text-accent border border-accent/30 rounded hover:bg-accent-tint transition-colors cursor-pointer"
                     title="Ver foto desta avaliação"
                   >
                     <ImageIcon size={10} />
@@ -368,7 +353,7 @@ function PlateRunsList({
                 {/* Edit run */}
                 <button
                   onClick={() => onAddPlateRun(experimentId, treatment.id, run)}
-                  className="p-1 text-neutral-400 dark:text-zinc-600 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                  className="p-1 text-ink-3 hover:text-accent hover:bg-accent-tint rounded transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
                   title="Editar avaliação"
                 >
                   <Pencil size={12} />
@@ -487,21 +472,19 @@ export function LongitudinalView({
   if (experiments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 p-16 text-center">
-        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl flex items-center justify-center">
-          <FlaskConical size={32} className="text-emerald-500 dark:text-emerald-400" />
+        <div className="w-16 h-16 bg-accent-tint rounded-2xl flex items-center justify-center">
+          <FlaskConical size={32} className="text-accent" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-lg font-bold text-neutral-800 dark:text-zinc-100">
-            Nenhum Experimento Registrado
-          </h2>
-          <p className="text-sm text-neutral-500 dark:text-zinc-400 max-w-sm">
+          <h2 className="text-lg font-bold text-ink-1">Nenhum Experimento Registrado</h2>
+          <p className="text-sm text-ink-3 max-w-sm">
             Crie o primeiro experimento longitudinal para rastrear a germinação de sementes ao longo
             do tempo.
           </p>
         </div>
         <button
           onClick={onCreateExperiment}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm hover:shadow-md cursor-pointer"
+          className="flex items-center gap-2 bg-accent hover:bg-accent-strong text-accent-on px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm hover:shadow-md cursor-pointer"
         >
           <Plus size={16} />
           Criar Primeiro Experimento
@@ -516,17 +499,17 @@ export function LongitudinalView({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Top toolbar ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
+      <div className="flex flex-wrap items-center gap-3 px-6 py-3 border-b border-line bg-surface-2 shrink-0">
         {/* Experiment selector */}
         <div className="flex items-center gap-2">
-          <label className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+          <label className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
             Experimento
           </label>
           <div className="relative">
             <select
               value={selectedExperimentId ?? ''}
               onChange={(e) => setSelectedExperimentId(e.target.value || null)}
-              className="appearance-none bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-800 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+              className="appearance-none bg-surface-1 border border-line text-ink-1 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
             >
               {experiments.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -536,7 +519,7 @@ export function LongitudinalView({
             </select>
             <ChevronDown
               size={12}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
             />
           </div>
         </div>
@@ -544,14 +527,14 @@ export function LongitudinalView({
         {/* Treatment filter */}
         {selectedExperiment && selectedExperiment.treatments.length > 0 && (
           <div className="flex items-center gap-2">
-            <label className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
               Tratamento
             </label>
             <div className="relative">
               <select
                 value={selectedTreatmentId ?? ''}
                 onChange={(e) => setSelectedTreatmentId(e.target.value || null)}
-                className="appearance-none bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-800 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                className="appearance-none bg-surface-1 border border-line text-ink-1 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               >
                 <option value="">Todos</option>
                 {selectedExperiment.treatments.map((t) => (
@@ -562,7 +545,7 @@ export function LongitudinalView({
               </select>
               <ChevronDown
                 size={12}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
               />
             </div>
           </div>
@@ -571,14 +554,14 @@ export function LongitudinalView({
         {/* DAP selector for stage chart */}
         {hasData && (
           <div className="flex items-center gap-2">
-            <label className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
               Ponto (DAP)
             </label>
             <div className="relative">
               <select
                 value={selectedDap ?? ''}
                 onChange={(e) => setSelectedDap(e.target.value ? Number(e.target.value) : null)}
-                className="appearance-none bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-700 text-neutral-800 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                className="appearance-none bg-surface-1 border border-line text-ink-1 text-xs font-semibold px-3 py-1.5 pr-8 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               >
                 {selectedExperiment &&
                   (() => {
@@ -597,7 +580,7 @@ export function LongitudinalView({
               </select>
               <ChevronDown
                 size={12}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
               />
             </div>
           </div>
@@ -616,21 +599,21 @@ export function LongitudinalView({
                 )
               }
               disabled={selectedExperiment.treatments.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-line text-ink-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
             >
               <Plus size={12} />
               Avaliação
             </button>
             <button
               onClick={() => onEditExperiment(selectedExperiment)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-line text-ink-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
             >
               <Pencil size={12} />
               Editar
             </button>
             <button
               onClick={() => deleteExperiment(selectedExperiment.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-zinc-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-neutral-400 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-red-50 dark:hover:bg-red-950/30 text-ink-3 hover:text-red-600 dark:hover:text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
             >
               <Trash2 size={12} />
             </button>
@@ -639,7 +622,7 @@ export function LongitudinalView({
 
         <button
           onClick={onCreateExperiment}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-accent-on rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm"
         >
           <Plus size={12} />
           Novo Experimento
@@ -648,17 +631,17 @@ export function LongitudinalView({
 
       {/* ── Experiment info banner ────────────────────────────────────────── */}
       {selectedExperiment && (
-        <div className="px-6 py-3 border-b border-neutral-200 dark:border-zinc-800 bg-surface-1 shrink-0">
+        <div className="px-6 py-3 border-b border-line bg-surface-1 shrink-0">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
             <div className="flex items-center gap-1.5">
-              <Microscope size={13} className="text-emerald-500" />
-              <span className="text-xs font-bold italic text-neutral-700 dark:text-zinc-200">
+              <Microscope size={13} className="text-accent" />
+              <span className="text-xs font-bold italic text-ink-2">
                 {selectedExperiment.species}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <CalendarDays size={13} className="text-neutral-400 dark:text-zinc-500" />
-              <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
+              <CalendarDays size={13} className="text-ink-3" />
+              <span className="text-[11px] text-ink-3">
                 Semeadura:{' '}
                 <span className="font-semibold">
                   {new Date(selectedExperiment.sowingDate).toLocaleDateString('pt-BR')}
@@ -666,19 +649,19 @@ export function LongitudinalView({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <BookOpen size={13} className="text-neutral-400 dark:text-zinc-500" />
-              <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
+              <BookOpen size={13} className="text-ink-3" />
+              <span className="text-[11px] text-ink-3">
                 Meio: <span className="font-semibold">{selectedExperiment.cultureMedia}</span>
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <ClipboardList size={13} className="text-neutral-400 dark:text-zinc-500" />
-              <span className="text-[11px] text-neutral-500 dark:text-zinc-400">
+              <ClipboardList size={13} className="text-ink-3" />
+              <span className="text-[11px] text-ink-3">
                 {selectedExperiment.treatments.length} tratamento(s) · Lote:{' '}
                 <span className="font-mono font-semibold">{selectedExperiment.seedLot}</span>
               </span>
             </div>
-            <span className="text-[11px] text-neutral-400 dark:text-zinc-500">
+            <span className="text-[11px] text-ink-3">
               {selectedExperiment.responsible} · {selectedExperiment.institution}
             </span>
           </div>
@@ -686,7 +669,7 @@ export function LongitudinalView({
       )}
 
       {/* ── Tab selector ─────────────────────────────────────────────────── */}
-      <div className="flex border-b border-neutral-200 dark:border-zinc-800 shrink-0 bg-surface-1">
+      <div className="flex border-b border-line shrink-0 bg-surface-1">
         {(
           [
             { key: 'chart', label: 'Curva de Germinação', icon: '📈' },
@@ -700,8 +683,8 @@ export function LongitudinalView({
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-2 px-5 py-3 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer border-b-2 ${
               activeTab === tab.key
-                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-neutral-400 dark:text-zinc-500 hover:text-neutral-700 dark:hover:text-zinc-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-ink-3 hover:text-ink-2'
             }`}
           >
             <span>{tab.icon}</span>
@@ -713,19 +696,17 @@ export function LongitudinalView({
       {/* ── Content area ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto p-6 bg-surface-1">
         {!selectedExperiment ? (
-          <div className="flex items-center justify-center h-full text-neutral-400 dark:text-zinc-600 text-sm">
+          <div className="flex items-center justify-center h-full text-ink-3 text-sm">
             Selecione um experimento acima.
           </div>
         ) : !hasData && activeTab !== 'runs' ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-            <div className="w-12 h-12 bg-neutral-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center">
-              <FlaskConical size={24} className="text-neutral-300 dark:text-zinc-600" />
+            <div className="w-12 h-12 bg-surface-2 rounded-xl flex items-center justify-center">
+              <FlaskConical size={24} className="text-ink-3" />
             </div>
             <div>
-              <p className="font-bold text-neutral-600 dark:text-zinc-300 text-sm">
-                Nenhum dado de avaliação
-              </p>
-              <p className="text-xs text-neutral-400 dark:text-zinc-500 mt-1 max-w-sm">
+              <p className="font-bold text-ink-2 text-sm">Nenhum dado de avaliação</p>
+              <p className="text-xs text-ink-3 mt-1 max-w-sm">
                 Adicione avaliações de placa clicando em "+ Avaliação" acima para começar a rastrear
                 a germinação.
               </p>
@@ -738,7 +719,7 @@ export function LongitudinalView({
                 )
               }
               disabled={selectedExperiment.treatments.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-strong text-accent-on rounded-lg text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none shadow-sm"
             >
               <Plus size={13} />
               Registrar Primeira Avaliação
@@ -749,8 +730,8 @@ export function LongitudinalView({
             {/* ── Germination curve chart ─── */}
             {activeTab === 'chart' && (
               <div className="space-y-4">
-                <div className="bg-white dark:bg-zinc-900/40 rounded-2xl border border-neutral-200 dark:border-zinc-800 p-4 shadow-sm">
-                  <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-4">
+                <div className="bg-surface-1 rounded-2xl border border-line p-4 shadow-sm">
+                  <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-4">
                     % Germinação Acumulada por Tratamento
                   </h3>
                   <ResponsiveContainer width="100%" height={320}>
@@ -808,16 +789,16 @@ export function LongitudinalView({
             {/* ── Stage distribution chart ─── */}
             {activeTab === 'stages' && (
               <div className="space-y-4">
-                <div className="bg-white dark:bg-zinc-900/40 rounded-2xl border border-neutral-200 dark:border-zinc-800 p-4 shadow-sm">
-                  <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-1">
+                <div className="bg-surface-1 rounded-2xl border border-line p-4 shadow-sm">
+                  <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-1">
                     Distribuição de Estágios Protocórmicos — DAP {selectedDap ?? '—'}
                   </h3>
-                  <p className="text-[10px] text-neutral-400 dark:text-zinc-600 mb-4">
+                  <p className="text-[10px] text-ink-3 mb-4">
                     Arditti (1967) adaptado pelo Lab. GPEOrq
                   </p>
 
                   {stageData.length === 0 ? (
-                    <div className="flex items-center justify-center h-48 text-neutral-400 dark:text-zinc-600 text-xs">
+                    <div className="flex items-center justify-center h-48 text-ink-3 text-xs">
                       Selecione um ponto de avaliação (DAP) com dados registrados.
                     </div>
                   ) : (
@@ -866,7 +847,7 @@ export function LongitudinalView({
                           className="w-3 h-3 rounded-sm"
                           style={{ backgroundColor: STAGE_COLORS[stage] }}
                         />
-                        <span className="text-[10px] text-neutral-600 dark:text-zinc-400">
+                        <span className="text-[10px] text-ink-2">
                           {PROTOCORM_STAGE_LABELS[stage]}
                         </span>
                       </div>
@@ -879,14 +860,14 @@ export function LongitudinalView({
             {/* ── Data table ─── */}
             {activeTab === 'table' && (
               <div className="space-y-4">
-                <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+                <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
                   % Germinação Acumulada por Tratamento e Dia de Avaliação
                 </h3>
                 <GerminationTable
                   experiment={selectedExperiment}
                   selectedTreatmentId={selectedTreatmentId}
                 />
-                <p className="text-[10px] text-neutral-400 dark:text-zinc-500 italic">
+                <p className="text-[10px] text-ink-3 italic">
                   * Valores em verde = maior porcentagem de germinação para aquele dia de avaliação.
                   IVG calculado pelo índice de Maguire (1962).
                 </p>
@@ -907,21 +888,17 @@ export function LongitudinalView({
                         style={{ backgroundColor: TREATMENT_COLORS[ti % TREATMENT_COLORS.length] }}
                       />
                       <div>
-                        <span className="text-sm font-bold text-neutral-800 dark:text-zinc-100">
-                          {treatment.code}
-                        </span>
-                        <span className="text-xs text-neutral-500 dark:text-zinc-400 ml-2">
-                          {treatment.name}
-                        </span>
+                        <span className="text-sm font-bold text-ink-1">{treatment.code}</span>
+                        <span className="text-xs text-ink-3 ml-2">{treatment.name}</span>
                         {treatment.description && (
-                          <span className="text-[10px] text-neutral-400 dark:text-zinc-600 ml-2 italic">
+                          <span className="text-[10px] text-ink-3 ml-2 italic">
                             — {treatment.description}
                           </span>
                         )}
                       </div>
                       <button
                         onClick={() => onAddPlateRun(selectedExperiment.id, treatment.id)}
-                        className="ml-auto flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 bg-neutral-100 dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-neutral-600 dark:text-zinc-300 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-lg transition-all cursor-pointer"
+                        className="ml-auto flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 bg-surface-2 hover:bg-accent-tint text-ink-2 hover:text-accent rounded-lg transition-all cursor-pointer"
                       >
                         <Plus size={10} />
                         Avaliar
@@ -940,16 +917,14 @@ export function LongitudinalView({
 
                 {selectedExperiment.treatments.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-                    <FlaskConical size={32} className="text-neutral-200 dark:text-zinc-700" />
-                    <p className="text-sm font-bold text-neutral-500 dark:text-zinc-400">
-                      Nenhum tratamento cadastrado
-                    </p>
-                    <p className="text-xs text-neutral-400 dark:text-zinc-500 max-w-xs">
+                    <FlaskConical size={32} className="text-line" />
+                    <p className="text-sm font-bold text-ink-3">Nenhum tratamento cadastrado</p>
+                    <p className="text-xs text-ink-3 max-w-xs">
                       Edite o experimento para adicionar tratamentos.
                     </p>
                     <button
                       onClick={() => onEditExperiment(selectedExperiment)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-zinc-800 hover:bg-neutral-200 dark:hover:bg-zinc-700 text-neutral-700 dark:text-zinc-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-line text-ink-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
                     >
                       <Pencil size={12} />
                       Editar Experimento

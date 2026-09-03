@@ -42,7 +42,7 @@ function HistogramView({ hist }: { hist: Histogram | null }) {
   return (
     <svg
       viewBox="0 0 256 40"
-      className="w-full h-10 rounded bg-neutral-100 dark:bg-zinc-900"
+      className="w-full h-10 rounded bg-surface-2"
       preserveAspectRatio="none"
     >
       <path d={path} className="fill-neutral-400/60 dark:fill-zinc-600/60" />
@@ -79,19 +79,17 @@ function Slider({
   min,
   max,
   step = 1,
-  accent = 'accent-emerald-500',
+  accent = 'accent-accent',
   format,
   onChange,
 }: SliderProps) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+        <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
           {label}
         </label>
-        <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-          {format ? format(value) : value}
-        </span>
+        <span className="text-[11px] font-mono text-ink-2">{format ? format(value) : value}</span>
       </div>
       <input
         type="range"
@@ -145,14 +143,14 @@ export function ImageAdjustPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={14} className="text-cyan-500" />
-          <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+          <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
             Ajuste de Imagem
           </h3>
         </div>
         <button
           onClick={onToggleEnabled}
           title={enabled ? 'Ver imagem original' : 'Aplicar ajustes'}
-          className="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors"
+          className="p-1 rounded text-ink-3 hover:text-ink-2 transition-colors"
         >
           {enabled ? <Eye size={15} /> : <EyeOff size={15} />}
         </button>
@@ -167,7 +165,7 @@ export function ImageAdjustPanel({
             key={p.id}
             onClick={() => applyPreset(p.values)}
             title={p.hint}
-            className="px-2 py-1 rounded-lg text-[10px] font-bold border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors"
+            className="px-2 py-1 rounded-lg text-[10px] font-bold border border-line text-ink-2 hover:bg-surface-2 transition-colors"
           >
             {p.label}
           </button>
@@ -214,9 +212,7 @@ export function ImageAdjustPanel({
 
         {/* Canais RGB */}
         <div className="mt-3 space-y-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-            Canais
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ink-3">Canais</p>
           <Slider
             label="Vermelho"
             value={adjustments.red}
@@ -230,7 +226,7 @@ export function ImageAdjustPanel({
             value={adjustments.green}
             min={-100}
             max={100}
-            accent="accent-green-500"
+            accent="accent-accent"
             onChange={(v) => set('green', v)}
           />
           <Slider
@@ -238,16 +234,14 @@ export function ImageAdjustPanel({
             value={adjustments.blue}
             min={-100}
             max={100}
-            accent="accent-blue-500"
+            accent="accent-accent"
             onChange={(v) => set('blue', v)}
           />
         </div>
 
         {/* Isolar canal */}
         <div className="mt-3 space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-            Exibir canal
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ink-3">Exibir canal</p>
           <div className="grid grid-cols-4 gap-1">
             {(
               [
@@ -263,7 +257,7 @@ export function ImageAdjustPanel({
                 className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
                   adjustments.channel === value
                     ? 'bg-cyan-500 border-cyan-500 text-white'
-                    : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                    : 'border-line text-ink-2 hover:bg-surface-2'
                 }`}
               >
                 {txt}
@@ -279,22 +273,20 @@ export function ImageAdjustPanel({
             onChange={(e) => set('invert', e.target.checked)}
             className="accent-cyan-500"
           />
-          <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
-            Inverter (negativo)
-          </span>
+          <span className="text-[11px] text-ink-2">Inverter (negativo)</span>
         </label>
       </div>
 
       {!neutral && (
         <button
           onClick={() => onChange(NEUTRAL_ADJUSTMENTS)}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-[11px] font-bold uppercase tracking-wide transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-line text-ink-2 hover:bg-surface-2 text-[11px] font-bold uppercase tracking-wide transition-colors"
         >
           <RotateCcw size={13} /> Restaurar original
         </button>
       )}
 
-      <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
+      <p className="text-[10px] text-ink-3 leading-relaxed">
         Os ajustes são apenas de visualização e detecção — a imagem original e as medidas não são
         alteradas.
       </p>

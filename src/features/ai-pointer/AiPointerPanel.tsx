@@ -196,16 +196,16 @@ export function AiPointerPanel({
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+        <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
           Detecção por IA
         </h3>
-        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-400">
+        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent-tint text-accent">
           YOLOv8
         </span>
         {quality === 'full' && (
           <span
             title={`Pesos originais do TCC em precisão total (${FULL_PRECISION_MODEL_URL}). Classificação viável/inviável confiável.`}
-            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400"
+            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent-tint text-accent"
           >
             fp32
           </span>
@@ -222,7 +222,7 @@ export function AiPointerPanel({
 
       {/* A quantização foi medida degradando a classificação — vale avisar. */}
       {quality === 'quantized' && (
-        <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
+        <p className="text-[10px] text-ink-3 leading-relaxed">
           Modelo quantizado. A contagem é confiável, mas a divisão viável/inviável perde precisão.
           Para pesquisa, use a instalação do laboratório, que carrega os pesos em precisão total.
         </p>
@@ -242,12 +242,10 @@ export function AiPointerPanel({
       {/* Confiança mínima */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
             Confiança mínima
           </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-            {confidence}%
-          </span>
+          <span className="text-[11px] font-mono text-ink-2">{confidence}%</span>
         </div>
         <input
           type="range"
@@ -256,7 +254,7 @@ export function AiPointerPanel({
           step={5}
           value={confidence}
           onChange={(e) => setConfidence(Number(e.target.value))}
-          className="w-full accent-violet-500"
+          className="w-full accent-accent"
         />
       </div>
 
@@ -265,22 +263,20 @@ export function AiPointerPanel({
           type="checkbox"
           checked={withMorphometry}
           onChange={(e) => setWithMorphometry(e.target.checked)}
-          className="accent-violet-500"
+          className="accent-accent"
         />
-        <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
-          Medir sementes (morfometria)
-        </span>
+        <span className="text-[11px] text-ink-2">Medir sementes (morfometria)</span>
       </label>
 
       <button
         onClick={handleRun}
         disabled={!image || isRunning || modelPresent === false}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold"
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-surface-2 hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-line transition-all text-ink-2 font-bold"
       >
         {isRunning ? (
-          <Loader2 size={16} className="animate-spin text-violet-500" />
+          <Loader2 size={16} className="animate-spin text-accent" />
         ) : (
-          <Brain size={16} className="text-violet-500" />
+          <Brain size={16} className="text-accent" />
         )}
         <span className="text-xs uppercase tracking-wide">
           {isRunning
@@ -292,12 +288,12 @@ export function AiPointerPanel({
       </button>
 
       {isRunning && !progress && (
-        <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
+        <p className="text-[10px] text-ink-3">
           Baixando o modelo e o motor de inferência na primeira execução. Depois ficam em cache.
         </p>
       )}
 
-      <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
+      <p className="text-[10px] text-ink-3 leading-relaxed">
         Este recurso exige conexão na primeira execução. O restante do aplicativo continua
         funcionando offline.
       </p>
@@ -310,12 +306,12 @@ export function AiPointerPanel({
       )}
 
       {detections && (
-        <div className="space-y-2.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/60 p-3">
-          <p className="text-xs text-neutral-700 dark:text-zinc-300">
+        <div className="space-y-2.5 rounded-xl border border-line bg-surface-2 p-3">
+          <p className="text-xs text-ink-2">
             <strong>{newDetections.length}</strong>{' '}
             {newDetections.length === 1 ? 'semente' : 'sementes'}
             {newDetections.length > 0 && (
-              <span className="text-neutral-500 dark:text-zinc-500">
+              <span className="text-ink-3">
                 {' '}
                 · {counts.viavel} viáveis, {counts.inviavel} inviáveis
               </span>
@@ -324,18 +320,18 @@ export function AiPointerPanel({
 
           {/* Resumo morfométrico */}
           {morphSummary && (
-            <div className="rounded-lg bg-violet-50 dark:bg-violet-950/25 border border-violet-200 dark:border-violet-900/40 px-2.5 py-2 space-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+            <div className="rounded-lg bg-accent-tint border border-accent/30 px-2.5 py-2 space-y-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-accent">
                 Morfometria ({morphSummary.count} medidas)
               </p>
-              <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
+              <p className="text-[11px] text-ink-2">
                 Comprimento médio:{' '}
                 <strong>{formatLength(morphSummary.meanLength, umPerPixel)}</strong>
               </p>
-              <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
+              <p className="text-[11px] text-ink-2">
                 Largura média: <strong>{formatLength(morphSummary.meanWidth, umPerPixel)}</strong>
               </p>
-              <p className="text-[11px] text-neutral-700 dark:text-zinc-300">
+              <p className="text-[11px] text-ink-2">
                 Área média: <strong>{formatArea(morphSummary.meanArea, umPerPixel)}</strong>
               </p>
               {!umPerPixel && (
@@ -350,19 +346,19 @@ export function AiPointerPanel({
             <button
               onClick={handleConfirm}
               disabled={newDetections.length === 0}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-violet-500 hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-bold uppercase tracking-wide transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed text-accent-on text-[11px] font-bold uppercase tracking-wide transition-colors"
             >
               <Check size={14} /> Adicionar
             </button>
             <button
               onClick={() => setDetections(null)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-[11px] font-bold uppercase tracking-wide transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-line text-ink-2 hover:bg-surface-2 text-[11px] font-bold uppercase tracking-wide transition-colors"
             >
               <X size={14} /> Descartar
             </button>
           </div>
 
-          <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-relaxed">
+          <p className="text-[10px] text-ink-3 leading-relaxed">
             O modelo classifica viável/inviável automaticamente. Confira antes de exportar — a
             decisão final é sempre sua.
           </p>

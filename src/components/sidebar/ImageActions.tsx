@@ -20,7 +20,7 @@ export function ImageActions({
   return (
     <section className="space-y-2.5">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+        <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
           Ações & Arquivos
         </h3>
       </div>
@@ -28,12 +28,9 @@ export function ImageActions({
         {/* Load Image Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
+          className="w-full flex items-center gap-3 px-4 py-3 bg-surface-2 hover:bg-surface-2 rounded-xl border border-line hover:border-line transition-all text-ink-2 hover:text-ink-1 font-bold group"
         >
-          <Upload
-            size={17}
-            className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors"
-          />
+          <Upload size={17} className="text-ink-3 group-hover:text-ink-2 transition-colors" />
           <span className="text-xs uppercase tracking-wide">Carregar Amostras</span>
         </button>
         <input
@@ -49,12 +46,9 @@ export function ImageActions({
         {onOpenCamera && (
           <button
             onClick={onOpenCamera}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-surface-2 hover:bg-surface-2 rounded-xl border border-line hover:border-line transition-all text-ink-2 hover:text-ink-1 font-bold group"
           >
-            <Camera
-              size={17}
-              className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors"
-            />
+            <Camera size={17} className="text-ink-3 group-hover:text-ink-2 transition-colors" />
             <span className="text-xs uppercase tracking-wide">Capturar da Câmera</span>
           </button>
         )}
@@ -62,12 +56,9 @@ export function ImageActions({
         {/* Import Session Button */}
         <button
           onClick={() => importInputRef.current?.click()}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 transition-all text-neutral-700 dark:text-zinc-200 hover:text-neutral-900 dark:hover:text-zinc-50 font-bold group"
+          className="w-full flex items-center gap-3 px-4 py-3 bg-surface-2 hover:bg-surface-2 rounded-xl border border-line hover:border-line transition-all text-ink-2 hover:text-ink-1 font-bold group"
         >
-          <FolderUp
-            size={17}
-            className="text-neutral-400 dark:text-zinc-500 group-hover:text-neutral-600 dark:group-hover:text-zinc-300 transition-colors"
-          />
+          <FolderUp size={17} className="text-ink-3 group-hover:text-ink-2 transition-colors" />
           <span className="text-xs uppercase tracking-wide">Importar Sessão (JSON)</span>
         </button>
         <input

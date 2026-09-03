@@ -41,8 +41,8 @@ const SERIE_EXCEDENTE = 'var(--color-ink-3)';
 export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurveChartProps) {
   if (!data || data.length === 0 || treatmentCodes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 bg-neutral-50 dark:bg-zinc-900/30 border border-dashed border-line rounded-2xl">
-        <p className="text-xs text-neutral-400 dark:text-zinc-500 font-semibold">
+      <div className="flex items-center justify-center h-64 bg-surface-2 border border-dashed border-line rounded-2xl">
+        <p className="text-xs text-ink-3 font-semibold">
           Dados insuficientes para gerar a curva de germinação.
         </p>
       </div>

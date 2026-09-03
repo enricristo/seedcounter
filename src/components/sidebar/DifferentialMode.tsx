@@ -39,23 +39,23 @@ export function DifferentialMode({ metadata, updateMetadata, sessions }: Differe
   };
 
   return (
-    <section className="space-y-3.5 bg-emerald-50/40 dark:bg-emerald-950/10 p-4 rounded-xl border border-emerald-100 dark:border-emerald-950/40">
+    <section className="space-y-3.5 bg-accent-tint/40 p-4 rounded-xl border border-accent/30">
       {/* Toggle Box */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Percent size={15} className="text-accent" />
-          <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+          <span className="text-[11px] font-bold text-accent uppercase tracking-wider">
             Cálculo Diferencial
           </span>
         </div>
         <button
           onClick={() => updateMetadata('useDifferential', !metadata.useDifferential)}
           className={`relative inline-flex h-5.5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none
-            ${metadata.useDifferential ? 'bg-emerald-600' : 'bg-neutral-300 dark:bg-zinc-700'}
+            ${metadata.useDifferential ? 'bg-accent' : 'bg-line'}
           `}
         >
           <span
-            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-300
+            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-1 transition-transform duration-300
             ${metadata.useDifferential ? 'translate-x-4.5' : 'translate-x-1'}
           `}
           />
@@ -64,7 +64,7 @@ export function DifferentialMode({ metadata, updateMetadata, sessions }: Differe
 
       {metadata.useDifferential && (
         <div className="space-y-3 pt-1">
-          <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400 leading-normal font-medium">
+          <p className="text-[10px] text-accent/80 leading-normal font-medium">
             Inviáveis são auto-calculadas como a diferença: <strong>Contagem Base - Viáveis</strong>
             . Útil para contar sementes inviáveis apenas subtraindo o total conhecido.
           </p>
@@ -78,7 +78,7 @@ export function DifferentialMode({ metadata, updateMetadata, sessions }: Differe
             />
             <button
               onClick={handlePullHistory}
-              className="bg-white dark:bg-zinc-900 hover:bg-neutral-50 dark:hover:bg-zinc-800 text-neutral-700 dark:text-zinc-300 border border-neutral-200 dark:border-zinc-800 rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-all h-[36px] flex items-center gap-1.5 shrink-0"
+              className="bg-surface-1 hover:bg-surface-2 text-ink-2 border border-line rounded-lg px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider transition-all h-[36px] flex items-center gap-1.5 shrink-0"
               title="Buscar total de sementes da última sessão da mesma placa"
             >
               <History size={13} />

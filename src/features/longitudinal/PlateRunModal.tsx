@@ -239,31 +239,31 @@ export function PlateRunModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/80 dark:bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-all duration-300"
+        className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-line transition-all duration-300"
       >
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-line bg-surface-2 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-xl text-accent shadow-inner">
+            <div className="bg-accent-tint p-2.5 rounded-xl text-accent shadow-inner">
               <Link2 size={20} />
             </div>
             <div>
-              <h2 className="font-bold text-lg text-neutral-800 dark:text-zinc-100 uppercase tracking-wide">
+              <h2 className="font-bold text-lg text-ink-1 uppercase tracking-wide">
                 {plateRun ? 'Editar Avaliação' : 'Registrar Avaliação'}
               </h2>
-              <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-semibold uppercase tracking-wider">
+              <p className="text-[10px] text-ink-3 font-semibold uppercase tracking-wider">
                 {experiment.name} • {experiment.species}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-neutral-100 dark:hover:bg-zinc-800 text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-surface-2 text-ink-3 hover:text-ink-2 transition-colors"
           >
             <X size={18} />
           </button>
@@ -272,9 +272,9 @@ export function PlateRunModal({
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Linked Session Info */}
-          <div className="bg-neutral-50 dark:bg-zinc-900/50 border border-neutral-200 dark:border-zinc-800 p-4 rounded-2xl">
+          <div className="bg-surface-2 border border-line p-4 rounded-2xl">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xs font-bold text-neutral-600 dark:text-zinc-400 uppercase tracking-wider">
+              <h3 className="text-xs font-bold text-ink-2 uppercase tracking-wider">
                 Vincular Sessão de Contagem (YOLO/Manual)
               </h3>
               {linkedSessionId ? (
@@ -289,7 +289,7 @@ export function PlateRunModal({
                 <button
                   type="button"
                   onClick={() => setShowSessionSelector(true)}
-                  className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 hover:underline font-bold uppercase tracking-wider"
+                  className="flex items-center gap-1 text-xs text-accent hover:underline font-bold uppercase tracking-wider"
                 >
                   <Link2 size={12} /> Vincular Sessão
                 </button>
@@ -297,22 +297,20 @@ export function PlateRunModal({
             </div>
 
             {linkedSession ? (
-              <div className="flex items-center justify-between bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-200/50 dark:border-emerald-900/30 p-3 rounded-xl">
+              <div className="flex items-center justify-between bg-accent-tint/50 border border-accent/30 p-3 rounded-xl">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-800 dark:text-zinc-200">
-                    {linkedSession.filename}
-                  </p>
-                  <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-medium">
+                  <p className="text-sm font-semibold text-ink-1">{linkedSession.filename}</p>
+                  <p className="text-[10px] text-ink-3 font-medium">
                     Data: {new Date(linkedSession.date).toLocaleString('pt-BR')} •{' '}
                     {linkedSession.viableCount} Viáveis / {linkedSession.inviableCount} Inviáveis
                   </p>
                 </div>
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-accent-tint text-accent rounded-lg text-xs font-bold uppercase tracking-wider">
                   <Check size={12} /> Vinculado
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-neutral-400 dark:text-zinc-500 font-medium">
+              <p className="text-xs text-ink-3 font-medium">
                 Nenhuma imagem ou contagem do aplicativo vinculada a esta avaliação. Os dados podem
                 ser inseridos de forma totalmente manual abaixo.
               </p>
@@ -324,23 +322,23 @@ export function PlateRunModal({
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="border border-neutral-200 dark:border-zinc-800 p-4 rounded-2xl bg-neutral-100/50 dark:bg-zinc-900 space-y-3"
+              className="border border-line p-4 rounded-2xl bg-surface-2/50 space-y-3"
             >
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-neutral-600 dark:text-zinc-400 uppercase">
+                <span className="text-xs font-bold text-ink-2 uppercase">
                   Selecione uma Contagem Recente
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowSessionSelector(false)}
-                  className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-zinc-200"
+                  className="text-xs text-ink-3 hover:text-ink-2"
                 >
                   Fechar
                 </button>
               </div>
               <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
                 {linkableSessions.length === 0 ? (
-                  <p className="text-xs text-neutral-400 dark:text-zinc-600 text-center py-4 font-semibold">
+                  <p className="text-xs text-ink-3 text-center py-4 font-semibold">
                     Nenhuma contagem disponível para vincular.
                   </p>
                 ) : (
@@ -349,18 +347,18 @@ export function PlateRunModal({
                       key={s.id}
                       type="button"
                       onClick={() => handleLinkSession(s)}
-                      className="w-full text-left p-2.5 bg-white dark:bg-zinc-800 border border-line hover:border-purple-400 hover:ring-1 hover:ring-purple-400 rounded-xl text-xs flex justify-between items-center transition-all"
+                      className="w-full text-left p-2.5 bg-surface-1 border border-line hover:border-accent hover:ring-1 hover:ring-accent rounded-xl text-xs flex justify-between items-center transition-all"
                     >
                       <div>
-                        <span className="font-semibold text-neutral-800 dark:text-zinc-200 block truncate max-w-xs sm:max-w-md">
+                        <span className="font-semibold text-ink-1 block truncate max-w-xs sm:max-w-md">
                           {s.filename}
                         </span>
-                        <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
+                        <span className="text-[10px] text-ink-3">
                           {new Date(s.date).toLocaleDateString('pt-BR')} •{' '}
                           {s.metadata.treatment || 'S/ Tratamento'}
                         </span>
                       </div>
-                      <div className="font-bold text-neutral-700 dark:text-zinc-300">
+                      <div className="font-bold text-ink-2">
                         {s.viableCount + s.inviableCount} sementes ({s.viableCount} viáveis)
                       </div>
                     </button>
@@ -373,14 +371,14 @@ export function PlateRunModal({
           {/* Form Fields: Treatment, Date, DAP, Status */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+              <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
                 Tratamento <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedTreatmentId}
                 onChange={(e) => setSelectedTreatmentId(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {experiment.treatments.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -390,7 +388,7 @@ export function PlateRunModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+              <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
                 Data da Avaliação <span className="text-red-500">*</span>
               </label>
               <input
@@ -398,29 +396,29 @@ export function PlateRunModal({
                 value={evaluationDate}
                 onChange={(e) => handleDateChange(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+              <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
                 DAP (Dias Após Plantio)
               </label>
               <input
                 type="number"
                 value={dayIndex}
                 onChange={(e) => setDayIndex(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500 text-center"
+                className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 font-bold focus:outline-none focus:ring-2 focus:ring-accent text-center"
               />
             </div>
           </div>
 
           {/* Section: Stage Distribution (0-6) */}
-          <div className="border-t border-neutral-200 dark:border-zinc-800 pt-6">
+          <div className="border-t border-line pt-6">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xs font-bold text-neutral-600 dark:text-zinc-400 uppercase tracking-wider">
+              <h3 className="text-xs font-bold text-ink-2 uppercase tracking-wider">
                 Distribuição por Estágios de Desenvolvimento (Arditti Scale)
               </h3>
-              <span className="text-xs text-neutral-400 dark:text-zinc-500 font-semibold">
+              <span className="text-xs text-ink-3 font-semibold">
                 Total sementes: {totalSeeds} • Germinadas (Estágio ≥ 1): {germinatedSeeds}
               </span>
             </div>
@@ -431,17 +429,17 @@ export function PlateRunModal({
                 return (
                   <div
                     key={stageKey}
-                    className="p-3 bg-neutral-50 dark:bg-zinc-900/50 border border-line rounded-2xl flex flex-col items-center"
+                    className="p-3 bg-surface-2 border border-line rounded-2xl flex flex-col items-center"
                   >
                     <span
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold mb-2 ${
                         stageNum === 0
-                          ? 'bg-neutral-200 dark:bg-zinc-800 text-neutral-600 dark:text-neutral-400'
+                          ? 'bg-line text-ink-2'
                           : stageNum === 1
                             ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400'
                             : stageNum === 2 || stageNum === 3
-                              ? 'bg-emerald-50 dark:bg-emerald-950/20 text-accent'
-                              : 'bg-emerald-600 text-white shadow-sm'
+                              ? 'bg-accent-tint text-accent'
+                              : 'bg-accent text-accent-on shadow-sm'
                       }`}
                       title={PROTOCORM_STAGE_LABELS[stageNum]}
                     >
@@ -453,28 +451,28 @@ export function PlateRunModal({
                       onChange={(e) =>
                         handleStageChange(stageNum, parseInt(e.target.value, 10) || 0)
                       }
-                      className="w-full text-center px-1 py-1 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg text-xs text-neutral-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full text-center px-1 py-1 border border-line bg-surface-1 rounded-lg text-xs text-ink-1 focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                   </div>
                 );
               })}
             </div>
-            <p className="text-[10px] text-neutral-400 dark:text-zinc-500 mt-2 font-medium">
+            <p className="text-[10px] text-ink-3 mt-2 font-medium">
               * E0: sementes não alteradas / inviáveis. E1: semente intumescida com embrião verde
               (ruptura da testa). E2+: estágios de formação de protocormo globular e plântula.
             </p>
           </div>
 
           {/* Section: Contamination, Status, Observer */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-neutral-200 dark:border-zinc-800 pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-line pt-6">
             <div>
-              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+              <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
                 Contaminação Visual
               </label>
               <select
                 value={contamination}
                 onChange={(e) => setContamination(e.target.value as ContaminationType)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {Object.entries(CONTAMINATION_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>
@@ -484,13 +482,13 @@ export function PlateRunModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+              <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
                 Status Operacional da Placa
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as PlateStatus)}
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {Object.entries(PLATE_STATUS_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>
@@ -500,7 +498,7 @@ export function PlateRunModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+              <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
                 Avaliador / Observador
               </label>
               <input
@@ -508,14 +506,14 @@ export function PlateRunModal({
                 value={observerName}
                 onChange={(e) => setObserverName(e.target.value)}
                 placeholder="Ex: Profa. Ceci Custódio"
-                className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-bold text-neutral-500 dark:text-zinc-400 uppercase mb-1.5">
+            <label className="block text-xs font-bold text-ink-3 uppercase mb-1.5">
               Observações da Avaliação
             </label>
             <textarea
@@ -523,24 +521,24 @@ export function PlateRunModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ex: Formação de colônias brancas isoladas, protocormos saudáveis..."
-              className="w-full px-3 py-2 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl text-sm text-neutral-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent resize-none"
             />
           </div>
         </form>
 
         {/* Footer */}
-        <div className="flex justify-end items-center gap-2 px-6 py-4 border-t border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50 shrink-0">
+        <div className="flex justify-end items-center gap-2 px-6 py-4 border-t border-line bg-surface-2 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-neutral-200 dark:border-zinc-800 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-neutral-700 dark:text-zinc-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+            className="px-4 py-2 border border-line hover:bg-surface-2 text-ink-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20"
+            className="flex items-center gap-1.5 px-5 py-2 bg-accent hover:bg-accent-strong text-accent-on rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20"
           >
             <Save size={14} />
             Salvar Avaliação

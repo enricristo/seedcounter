@@ -79,20 +79,20 @@ export function CalibrationPanel({
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <Ruler size={14} className="text-sky-500" />
-        <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+        <Ruler size={14} className="text-accent" />
+        <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
           Calibração Espacial
         </h3>
       </div>
 
       {/* Escala vigente */}
-      <div className="rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/60 px-3 py-2.5">
+      <div className="rounded-xl border border-line bg-surface-2 px-3 py-2.5">
         {umPerPixel && umPerPixel > 0 ? (
           <>
-            <p className="text-sm font-bold text-neutral-800 dark:text-zinc-100">
+            <p className="text-sm font-bold text-ink-1">
               {umPerPixel.toFixed(3)} <span className="text-[11px] font-normal">µm/px</span>
             </p>
-            <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
+            <p className="text-[10px] text-ink-3">
               ≈ {Math.round(umPerPixelToDpi(umPerPixel))} DPI · 1 mm ≈{' '}
               {Math.round(1000 / umPerPixel)} px
             </p>
@@ -107,13 +107,11 @@ export function CalibrationPanel({
 
       {/* Método */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
-          Método
-        </label>
+        <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">Método</label>
         <select
           value={method}
           onChange={(e) => setMethod(e.target.value as CalibrationMethod)}
-          className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+          className="w-full bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           {METHODS.map((m) => (
             <option key={m} value={m}>
@@ -126,7 +124,7 @@ export function CalibrationPanel({
       {/* --- Método: DPI --- */}
       {method === 'dpi' && (
         <div className="space-y-2">
-          <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
+          <p className="text-[10px] text-ink-3">
             Use a resolução configurada no scanner ao digitalizar a placa. Padrão do laboratório:{' '}
             <strong>{DEFAULT_LAB_SCANNER}</strong> a {DEFAULT_LAB_DPI} DPI.
           </p>
@@ -142,10 +140,10 @@ export function CalibrationPanel({
                 }
                 className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                   dpi === p
-                    ? 'bg-sky-500 border-sky-500 text-white'
+                    ? 'bg-accent border-accent text-accent-on'
                     : p === DEFAULT_LAB_DPI
-                      ? 'border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/30'
-                      : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                      ? 'border-accent text-accent hover:bg-accent-tint'
+                      : 'border-line text-ink-2 hover:bg-surface-2'
                 }`}
               >
                 {p}
@@ -159,7 +157,7 @@ export function CalibrationPanel({
             value={dpi}
             onChange={(e) => setDpi(Number(e.target.value))}
             placeholder="DPI"
-            className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+            className="w-full bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
           />
         </div>
       )}
@@ -167,7 +165,7 @@ export function CalibrationPanel({
       {/* --- Métodos por medição na imagem --- */}
       {(method === 'reference' || method === 'stage_micrometer') && (
         <div className="space-y-2">
-          <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
+          <p className="text-[10px] text-ink-3">
             {method === 'stage_micrometer'
               ? 'Fotografe o micrômetro de platina no mesmo aumento da amostra e meça uma divisão conhecida.'
               : 'Meça um objeto de dimensão conhecida na própria imagem: régua, marcação na placa ou o diâmetro da placa.'}
@@ -177,8 +175,8 @@ export function CalibrationPanel({
             onClick={onStartMeasure}
             className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border font-bold text-xs uppercase tracking-wide transition-colors ${
               isMeasuring
-                ? 'bg-sky-500 border-sky-500 text-white'
-                : 'bg-neutral-50 dark:bg-zinc-900 border-neutral-200 dark:border-zinc-800 text-neutral-700 dark:text-zinc-200 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                ? 'bg-accent border-accent text-accent-on'
+                : 'bg-surface-2 border-line text-ink-2 hover:bg-surface-2'
             }`}
           >
             <Crosshair size={15} />
@@ -186,11 +184,11 @@ export function CalibrationPanel({
           </button>
 
           {measuredPixels ? (
-            <p className="text-[11px] text-neutral-600 dark:text-zinc-300">
+            <p className="text-[11px] text-ink-2">
               Distância medida: <strong>{measuredPixels.toFixed(1)} px</strong>
             </p>
           ) : (
-            <p className="flex items-start gap-1.5 text-[10px] text-neutral-500 dark:text-zinc-500">
+            <p className="flex items-start gap-1.5 text-[10px] text-ink-3">
               <Info size={12} className="shrink-0 mt-0.5" />
               Nenhuma medição ainda.
             </p>
@@ -203,7 +201,7 @@ export function CalibrationPanel({
               if (p) applyPreset(p.length, p.unit, p.label);
             }}
             defaultValue=""
-            className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-[11px] dark:text-zinc-100 focus:outline-none"
+            className="w-full bg-surface-2 border border-line rounded-lg px-3 py-2 text-[11px] focus:outline-none"
           >
             <option value="" disabled>
               Referências comuns…
@@ -223,12 +221,12 @@ export function CalibrationPanel({
               value={refLength}
               onChange={(e) => setRefLength(Number(e.target.value))}
               placeholder="Comprimento real"
-              className="flex-1 bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+              className="flex-1 bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
             <select
               value={refUnit}
               onChange={(e) => setRefUnit(e.target.value as LengthUnit)}
-              className="bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-2 py-2 text-sm dark:text-zinc-100 focus:outline-none"
+              className="bg-surface-2 border border-line rounded-lg px-2 py-2 text-sm focus:outline-none"
             >
               {(Object.keys(UNIT_LABELS) as LengthUnit[]).map((u) => (
                 <option key={u} value={u}>
@@ -243,7 +241,7 @@ export function CalibrationPanel({
       {/* --- Método: manual --- */}
       {method === 'manual' && (
         <div className="space-y-2">
-          <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
+          <p className="text-[10px] text-ink-3">
             Informe diretamente a escala, se você já a conhece.
           </p>
           <input
@@ -253,15 +251,15 @@ export function CalibrationPanel({
             value={manualValue}
             onChange={(e) => setManualValue(Number(e.target.value))}
             placeholder="µm por pixel"
-            className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+            className="w-full bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
           />
         </div>
       )}
 
       {/* Prévia + aplicar */}
       {computed > 0 && (
-        <div className="rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 px-3 py-2">
-          <p className="text-[11px] text-sky-800 dark:text-sky-300">
+        <div className="rounded-lg bg-accent-tint border border-accent/30 px-3 py-2">
+          <p className="text-[11px] text-accent">
             Resultado: <strong>{computed.toFixed(3)} µm/px</strong>
           </p>
         </div>
@@ -277,7 +275,7 @@ export function CalibrationPanel({
       <button
         onClick={handleApply}
         disabled={computed <= 0 || needsMeasure}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wide transition-colors"
+        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed text-accent-on text-xs font-bold uppercase tracking-wide transition-colors"
       >
         <Check size={15} /> Aplicar calibração
       </button>

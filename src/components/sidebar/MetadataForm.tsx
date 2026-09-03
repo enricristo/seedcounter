@@ -10,7 +10,7 @@ interface MetadataFormProps {
 export function MetadataForm({ metadata, updateMetadata }: MetadataFormProps) {
   return (
     <section className="space-y-4">
-      <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+      <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
         Contexto da Amostra
       </h3>
       <div className="space-y-3.5">
@@ -62,13 +62,13 @@ export function MetadataForm({ metadata, updateMetadata }: MetadataFormProps) {
 
         {/* Comments & Observations */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold text-neutral-600 dark:text-zinc-400 ml-1 uppercase tracking-wide">
+          <label className="text-[11px] font-semibold text-ink-2 ml-1 uppercase tracking-wide">
             Observações
           </label>
           <textarea
             value={metadata.notes || ''}
             onChange={(e) => updateMetadata('notes', e.target.value)}
-            className="w-full bg-neutral-100 dark:bg-zinc-900/80 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y min-h-[70px] placeholder:text-ink-3 dark:text-zinc-100"
+            className="w-full bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all resize-y min-h-[70px] placeholder:text-ink-3"
             placeholder="Comentários adicionais sobre a germinação, anomalias, etc."
           />
         </div>

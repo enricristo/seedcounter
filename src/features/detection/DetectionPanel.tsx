@@ -212,7 +212,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest">
+        <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
           Detecção Assistida
         </h3>
         <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400">
@@ -222,7 +222,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
 
       {/* Cenários — ponto de partida */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+        <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
           Comece por um cenário
         </label>
         <div className="grid grid-cols-2 gap-1">
@@ -231,7 +231,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
               key={s.id}
               onClick={() => applyScenario(s.values)}
               title={s.hint}
-              className="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors text-left leading-tight"
+              className="px-2 py-1.5 rounded-lg text-[10px] font-bold border border-line text-ink-2 hover:bg-surface-2 transition-colors text-left leading-tight"
             >
               {s.label}
             </button>
@@ -242,10 +242,10 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
       {/* Remoção de fundo — o ajuste que mais resolve */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
             Remover fundo
           </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
+          <span className="text-[11px] font-mono text-ink-2">
             {backgroundRadius === 0 ? 'desligado' : `${backgroundRadius} px`}
           </span>
         </div>
@@ -256,9 +256,9 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           step={10}
           value={backgroundRadius}
           onChange={(e) => setBackgroundRadius(Number(e.target.value))}
-          className="w-full accent-emerald-500"
+          className="w-full accent-accent"
         />
-        <p className="text-[10px] text-neutral-500 dark:text-zinc-500 leading-snug">
+        <p className="text-[10px] text-ink-3 leading-snug">
           Elimina gradiente de iluminação e o tom da placa. Use um valor
           <strong> maior que a maior semente</strong>.
         </p>
@@ -267,12 +267,10 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
       {/* Sensibilidade e tamanho mínimo */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
             Sensibilidade
           </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-            {sensitivity}
-          </span>
+          <span className="text-[11px] font-mono text-ink-2">{sensitivity}</span>
         </div>
         <input
           type="range"
@@ -280,18 +278,16 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           max={100}
           value={sensitivity}
           onChange={(e) => setSensitivity(Number(e.target.value))}
-          className="w-full accent-emerald-500"
+          className="w-full accent-accent"
         />
       </div>
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
             Tamanho mínimo (px²)
           </label>
-          <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-            {minArea}
-          </span>
+          <span className="text-[11px] font-mono text-ink-2">{minArea}</span>
         </div>
         <input
           type="range"
@@ -300,24 +296,24 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           step={5}
           value={minArea}
           onChange={(e) => setMinArea(Number(e.target.value))}
-          className="w-full accent-emerald-500"
+          className="w-full accent-accent"
         />
       </div>
 
       {/* Avançado */}
       <button
         onClick={() => setShowAdvanced((v) => !v)}
-        className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors"
+        className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-ink-3 hover:bg-surface-2 transition-colors"
       >
         Ajustes avançados
         {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
       </button>
 
       {showAdvanced && (
-        <div className="space-y-3 pl-1 border-l-2 border-neutral-100 dark:border-zinc-800">
+        <div className="space-y-3 pl-1 border-l-2 border-line-soft">
           {/* Limiar */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
               Limiar
             </label>
             <div className="grid grid-cols-2 gap-1">
@@ -337,8 +333,8 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
                   }
                   className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
                     thresholdMode === v
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                      ? 'bg-accent border-accent text-accent-on'
+                      : 'border-line text-ink-2 hover:bg-surface-2'
                   }`}
                 >
                   {t}
@@ -349,7 +345,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
 
           {/* Canal */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
               Canal analisado
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -366,8 +362,8 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
                   onClick={() => setChannel(v)}
                   className={`px-1 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
                     channel === v
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                      ? 'bg-accent border-accent text-accent-on'
+                      : 'border-line text-ink-2 hover:bg-surface-2'
                   }`}
                 >
                   {t}
@@ -378,7 +374,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
 
           {/* Polaridade */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
               Contraste
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -394,8 +390,8 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
                   onClick={() => setPolarity(v)}
                   className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors ${
                     polarity === v
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-400 hover:bg-neutral-100 dark:hover:bg-zinc-800'
+                      ? 'bg-accent border-accent text-accent-on'
+                      : 'border-line text-ink-2 hover:bg-surface-2'
                   }`}
                 >
                   {t}
@@ -407,12 +403,10 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           {/* Limpeza de ruído */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
                 Limpeza de ruído
               </label>
-              <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-                {denoise}
-              </span>
+              <span className="text-[11px] font-mono text-ink-2">{denoise}</span>
             </div>
             <input
               type="range"
@@ -420,17 +414,17 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
               max={3}
               value={denoise}
               onChange={(e) => setDenoise(Number(e.target.value))}
-              className="w-full accent-emerald-500"
+              className="w-full accent-accent"
             />
           </div>
 
           {/* Alongamento máximo */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
                 Alongamento máx.
               </label>
-              <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
+              <span className="text-[11px] font-mono text-ink-2">
                 {maxElongation === 0 ? 'sem limite' : `${maxElongation}:1`}
               </span>
             </div>
@@ -440,11 +434,9 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
               max={15}
               value={maxElongation}
               onChange={(e) => setMaxElongation(Number(e.target.value))}
-              className="w-full accent-emerald-500"
+              className="w-full accent-accent"
             />
-            <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
-              Descarta riscos e fios muito finos.
-            </p>
+            <p className="text-[10px] text-ink-3">Descarta riscos e fios muito finos.</p>
           </div>
 
           {/* Separação */}
@@ -453,22 +445,18 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
               type="checkbox"
               checked={splitTouching}
               onChange={(e) => setSplitTouching(e.target.checked)}
-              className="accent-sky-500"
+              className="accent-accent"
             />
-            <span className="text-[11px] text-neutral-600 dark:text-zinc-400">
-              Separar sementes encostadas
-            </span>
+            <span className="text-[11px] text-ink-2">Separar sementes encostadas</span>
           </label>
 
           {splitTouching && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
                   Separação (raio, px)
                 </label>
-                <span className="text-[11px] font-mono text-neutral-600 dark:text-zinc-300">
-                  {separation}
-                </span>
+                <span className="text-[11px] font-mono text-ink-2">{separation}</span>
               </div>
               <input
                 type="range"
@@ -476,7 +464,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
                 max={60}
                 value={separation}
                 onChange={(e) => setSeparation(Number(e.target.value))}
-                className="w-full accent-sky-500"
+                className="w-full accent-accent"
               />
             </div>
           )}
@@ -490,12 +478,12 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
             void run();
           }}
           disabled={disabled}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold"
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-surface-2 hover:bg-surface-2 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl border border-line transition-all text-ink-2 font-bold"
         >
           {isRunning ? (
-            <Loader2 size={16} className="animate-spin text-emerald-500" />
+            <Loader2 size={16} className="animate-spin text-accent" />
           ) : (
-            <Wand2 size={16} className="text-emerald-500" />
+            <Wand2 size={16} className="text-accent" />
           )}
           <span className="text-xs uppercase tracking-wide">
             {isRunning ? 'Detectando…' : 'Detectar'}
@@ -505,7 +493,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           onClick={handleAutoTune}
           disabled={disabled}
           title="Mede os objetos e ajusta o tamanho mínimo"
-          className="flex items-center justify-center gap-1.5 px-3 py-3 bg-neutral-50 dark:bg-zinc-900 hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-40 rounded-xl border border-neutral-200 dark:border-zinc-800 transition-all text-neutral-700 dark:text-zinc-200 font-bold"
+          className="flex items-center justify-center gap-1.5 px-3 py-3 bg-surface-2 hover:bg-surface-2 disabled:opacity-40 rounded-xl border border-line transition-all text-ink-2 font-bold"
         >
           <Sparkles size={15} className="text-amber-500" />
           <span className="text-xs uppercase tracking-wide">Auto</span>
@@ -514,25 +502,23 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
 
       {/* Resultado */}
       {result && (
-        <div className="space-y-2.5 rounded-xl border border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/60 p-3">
+        <div className="space-y-2.5 rounded-xl border border-line bg-surface-2 p-3">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-xs text-neutral-700 dark:text-zinc-300">
+            <p className="text-xs text-ink-2">
               <strong>{newCandidates.length}</strong>{' '}
               {newCandidates.length === 1 ? 'objeto' : 'objetos'}
-              {splitCount > 0 && (
-                <span className="text-sky-600 dark:text-sky-400"> · {splitCount} separados</span>
-              )}
+              {splitCount > 0 && <span className="text-accent"> · {splitCount} separados</span>}
             </p>
             <button
               onClick={() => setShowMask((v) => !v)}
               title={showMask ? 'Ocultar máscara' : 'Mostrar máscara'}
-              className="shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 transition-colors"
+              className="shrink-0 p-1 rounded text-ink-3 hover:text-ink-2 transition-colors"
             >
               {showMask ? <Eye size={15} /> : <EyeOff size={15} />}
             </button>
           </div>
 
-          <p className="text-[10px] text-neutral-500 dark:text-zinc-500">
+          <p className="text-[10px] text-ink-3">
             {result.totalBlobs} regiões brutas
             {result.rejected &&
               ` · descartadas: ${result.rejected.area} por tamanho, ${result.rejected.background} como fundo${result.rejected.elongation ? `, ${result.rejected.elongation} por forma` : ''}`}
@@ -552,13 +538,13 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
             <button
               onClick={handleConfirm}
               disabled={newCandidates.length === 0}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-[11px] font-bold uppercase tracking-wide transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent hover:bg-accent-strong disabled:opacity-40 text-accent-on text-[11px] font-bold uppercase tracking-wide transition-colors"
             >
               <Check size={14} /> Adicionar
             </button>
             <button
               onClick={() => setResult(null)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-zinc-800 text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-[11px] font-bold uppercase tracking-wide transition-colors"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-line text-ink-2 hover:bg-surface-2 text-[11px] font-bold uppercase tracking-wide transition-colors"
             >
               <X size={14} /> Descartar
             </button>

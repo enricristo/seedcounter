@@ -92,19 +92,19 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-3xl rounded-2xl border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden">
+      <div className="w-full max-w-3xl rounded-2xl border border-line bg-surface-1 shadow-2xl overflow-hidden">
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-zinc-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div className="flex items-center gap-2.5">
-            <Camera size={18} className="text-emerald-500" />
-            <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-800 dark:text-zinc-100">
+            <Camera size={18} className="text-accent" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-ink-1">
               Capturar da Câmera
             </h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-zinc-200 hover:bg-neutral-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-ink-3 hover:text-ink-2 hover:bg-surface-2 transition-colors"
           >
             <X size={18} />
           </button>
@@ -136,13 +136,13 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
           {/* Seleção de dispositivo (lupa/microscópio no desktop) */}
           {isActive && devices.length > 1 && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 dark:text-zinc-500">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
                 Dispositivo (lupa / microscópio / webcam)
               </label>
               <select
                 value={activeDeviceId}
                 onChange={(e) => start(e.target.value)}
-                className="w-full bg-neutral-100 dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 {devices.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>
@@ -154,7 +154,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
           )}
 
           {/* Área de vídeo / prévia */}
-          <div className="relative rounded-xl overflow-hidden bg-neutral-900 aspect-video flex items-center justify-center">
+          <div className="relative rounded-xl overflow-hidden bg-graphite-900 aspect-video flex items-center justify-center">
             {preview ? (
               <img
                 src={preview.url}
@@ -171,15 +171,15 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
                   className="h-full w-full object-contain"
                 />
                 {isStarting && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-neutral-900/80">
-                    <RefreshCw size={22} className="animate-spin text-emerald-400" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <RefreshCw size={22} className="animate-spin text-accent" />
                   </div>
                 )}
               </>
             )}
           </div>
 
-          <p className="text-[11px] text-neutral-500 dark:text-zinc-500">
+          <p className="text-[11px] text-ink-3">
             {mobile
               ? 'Aproxime a câmera da placa, estabilize e capture. Use boa iluminação e evite sombras.'
               : 'Selecione a câmera da lupa ou do microscópio na lista acima. Ajuste o foco antes de capturar.'}
@@ -191,13 +191,13 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
               <>
                 <button
                   onClick={handleRetake}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-200 dark:border-zinc-800 text-neutral-700 dark:text-zinc-200 hover:bg-neutral-100 dark:hover:bg-zinc-800 text-xs font-bold uppercase tracking-wide transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line text-ink-2 hover:bg-surface-2 text-xs font-bold uppercase tracking-wide transition-colors"
                 >
                   <RotateCcw size={15} /> Repetir
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wide transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-strong text-accent-on text-xs font-bold uppercase tracking-wide transition-colors"
                 >
                   <Check size={15} /> Usar esta imagem
                 </button>
@@ -206,7 +206,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
               <button
                 onClick={handleCapture}
                 disabled={!isActive}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wide transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed text-accent-on text-xs font-bold uppercase tracking-wide transition-colors"
               >
                 <Camera size={15} /> Capturar
               </button>

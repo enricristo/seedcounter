@@ -147,6 +147,23 @@ describe('sistema de design — Bancada Óptica', () => {
     }
   });
 
+  it('não põe texto branco sobre o fundo de acento', () => {
+    // Regressão introduzida e corrigida em 2026-09-03, durante a unificação
+    // dos acentos: bg-emerald-600 + text-white era legível, mas o acento do
+    // tema escuro é claro (#3fb4c4) e branco sobre ele dá 2,46:1. O par certo
+    // é --color-accent-on, que dá 6,52:1. O erro é invisível no tema claro,
+    // que é onde se costuma revisar.
+    const par = /bg-accent(?:-strong)?\b[^"'`]{0,90}?\btext-white\b/g;
+
+    const achados: string[] = [];
+    for (const arquivo of ARQUIVOS) {
+      for (const m of readFileSync(arquivo, 'utf8').matchAll(par)) {
+        achados.push(`${relativo(arquivo)}: ${m[0].slice(0, 70)}`);
+      }
+    }
+    expect(achados).toEqual([]);
+  });
+
   it('liga a variante dark à classe, não ao sistema operacional', () => {
     // useTheme.ts alterna a classe .dark no elemento raiz. Sem esta linha o
     // Tailwind v4 usa @media (prefers-color-scheme) e o alternador de tema

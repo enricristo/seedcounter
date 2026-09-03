@@ -26,23 +26,23 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
   const isSig = anova?.significant ?? kruskalWallisResult?.significant ?? false;
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+    <div className="bg-surface-1 rounded-2xl border border-line shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-line-soft bg-surface-2">
         <div className="flex items-center gap-2">
-          <TrendingUp size={15} className="text-violet-500" />
-          <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+          <TrendingUp size={15} className="text-accent" />
+          <span className="text-[11px] font-bold text-ink-3 uppercase tracking-widest">
             Resultado Estatístico
           </span>
         </div>
         <div className="flex items-center gap-2">
           {isSig ? (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-700">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-accent bg-accent-tint px-2 py-0.5 rounded-full border border-accent/30">
               <CheckCircle size={10} />
               Significativo (p &lt; 0,05)
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-zinc-700">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-ink-3 bg-surface-2 px-2 py-0.5 rounded-full border border-line">
               <AlertTriangle size={10} />
               Não significativo
             </span>
@@ -54,12 +54,10 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
         {/* Test info */}
         <div className="space-y-3">
           <div>
-            <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">
+            <p className="text-[9px] font-bold text-ink-3 uppercase tracking-widest mb-0.5">
               Método
             </p>
-            <p className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
-              {METHOD_LABELS[method]}
-            </p>
+            <p className="text-sm font-bold text-ink-1">{METHOD_LABELS[method]}</p>
           </div>
 
           {transformed && (
@@ -96,7 +94,7 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
           )}
 
           {method === 'descriptive-only' && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-ink-3">
               Dados insuficientes para comparação estatística (mínimo 2 grupos com ≥ 2 réplicas
               cada).
             </p>
@@ -105,29 +103,27 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
 
         {/* Normality per group */}
         <div>
-          <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-2">
+          <p className="text-[9px] font-bold text-ink-3 uppercase tracking-widest mb-2">
             Normalidade por Grupo — Shapiro-Wilk
           </p>
           <div className="space-y-1.5">
             {normalityResults.map((nr, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between text-xs bg-zinc-50 dark:bg-zinc-800/60 rounded-lg px-3 py-1.5"
+                className="flex items-center justify-between text-xs bg-surface-2 rounded-lg px-3 py-1.5"
               >
-                <span className="font-semibold text-zinc-700 dark:text-zinc-200 truncate max-w-[120px]">
+                <span className="font-semibold text-ink-2 truncate max-w-[120px]">
                   {groups[i]?.label ?? `Grupo ${i + 1}`}
                 </span>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-mono text-zinc-500 dark:text-zinc-400 text-[10px]">
-                    W = {nr.W.toFixed(3)}
-                  </span>
-                  <span className="font-mono text-zinc-500 dark:text-zinc-400 text-[10px]">
+                  <span className="font-mono text-ink-3 text-[10px]">W = {nr.W.toFixed(3)}</span>
+                  <span className="font-mono text-ink-3 text-[10px]">
                     p = {pValueLabel(nr.pValue)}
                   </span>
                   <span
                     className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
                       nr.normal
-                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                        ? 'bg-accent-tint text-accent'
                         : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                     }`}
                   >
@@ -136,9 +132,7 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
                 </div>
               </div>
             ))}
-            {normalityResults.length === 0 && (
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">—</p>
-            )}
+            {normalityResults.length === 0 && <p className="text-xs text-ink-3">—</p>}
           </div>
           {!isParametric && normalityResults.some((r) => !r.normal) && (
             <p className="mt-2 text-[10px] text-orange-600 dark:text-orange-400 flex items-center gap-1">
@@ -154,15 +148,9 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
 
 function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-800/70 rounded-xl px-3 py-2 text-center">
-      <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">
-        {label}
-      </p>
-      <p
-        className={`text-sm font-bold font-mono ${
-          highlight ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-800 dark:text-zinc-100'
-        }`}
-      >
+    <div className="bg-surface-2 rounded-xl px-3 py-2 text-center">
+      <p className="text-[9px] font-bold text-ink-3 uppercase tracking-widest mb-0.5">{label}</p>
+      <p className={`text-sm font-bold font-mono ${highlight ? 'text-accent' : 'text-ink-1'}`}>
         {value}
       </p>
     </div>
