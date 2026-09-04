@@ -134,7 +134,7 @@ export function Header({
             <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
               Contador de Sementes
             </h1>
-            <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
+            <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase 2xl:block">
               Edição Acadêmica •{' '}
               <a
                 href="https://www.instagram.com/gpeorq"
@@ -158,11 +158,11 @@ export function Header({
           </div>
         </div>
 
-        <div className="bg-line hidden h-8 w-px lg:block" />
+        <div className="bg-line hidden h-8 w-px xl:block" />
 
         {/* Marcas dos grupos de pesquisa. São de terceiros: exibidas como
             recebidas, sem recorte nem recolorização. */}
-        <div className="hidden items-center gap-1.5 lg:flex">
+        <div className="hidden items-center gap-1.5 xl:flex">
           <a
             href="https://www.instagram.com/gpeorq"
             target="_blank"

@@ -29,7 +29,11 @@ interface RoiModalProps {
   onCrop: (recorte: File) => void;
 }
 
-const LARGURA_PREVIA = 460;
+// A prévia cabe numa CAIXA, não só numa largura. Imagem de lupa é retrato
+// (1880×4096); limitar só a largura deixava a prévia com 1002 px de altura e
+// empurrava o rodapé para fora da janela.
+const PREVIA_MAX_LARGURA = 420;
+const PREVIA_MAX_ALTURA = 400;
 const AMOSTRA_DETECCAO = 320;
 
 /** Lê a imagem numa resolução baixa e devolve o círculo em coordenadas reais. */
@@ -83,7 +87,9 @@ export function RoiModal({ isOpen, onClose, image, filename, onCrop }: RoiModalP
     if (isOpen && image) propor();
   }, [isOpen, image, propor]);
 
-  const escala = image ? LARGURA_PREVIA / image.width : 1;
+  const escala = image
+    ? Math.min(PREVIA_MAX_LARGURA / image.width, PREVIA_MAX_ALTURA / image.height)
+    : 1;
 
   const aoMover = useCallback(
     (e: React.PointerEvent) => {
@@ -147,9 +153,9 @@ export function RoiModal({ isOpen, onClose, image, filename, onCrop }: RoiModalP
         role="dialog"
         aria-modal="true"
         aria-label="Delimitar região de interesse"
-        className="bg-surface-1 border-line rounded-panel max-h-[92vh] w-full max-w-lg overflow-auto border shadow-2xl"
+        className="bg-surface-1 border-line rounded-panel flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden border shadow-2xl"
       >
-        <header className="border-line flex items-start gap-3 border-b p-5">
+        <header className="border-line flex shrink-0 items-start gap-3 border-b p-5">
           <span className="text-accent mt-0.5 shrink-0">
             <Crosshair size={20} strokeWidth={1.75} aria-hidden="true" />
           </span>
@@ -171,10 +177,11 @@ export function RoiModal({ isOpen, onClose, image, filename, onCrop }: RoiModalP
           </button>
         </header>
 
-        <div className="space-y-4 p-5">
+        {/* Só o corpo rola. O rodapé com a ação fica sempre visível. */}
+        <div className="min-h-0 flex-1 space-y-4 overflow-auto p-5">
           <div
             className="bg-stage rounded-panel relative mx-auto overflow-hidden select-none"
-            style={{ width: LARGURA_PREVIA, height: image.height * escala }}
+            style={{ width: image.width * escala, height: image.height * escala }}
             onPointerMove={aoMover}
             onPointerUp={() => (arrasto.current = null)}
             onPointerLeave={() => (arrasto.current = null)}
@@ -237,7 +244,7 @@ export function RoiModal({ isOpen, onClose, image, filename, onCrop }: RoiModalP
           </p>
         </div>
 
-        <footer className="border-line bg-surface-2 flex items-center justify-between gap-2 border-t p-4">
+        <footer className="border-line bg-surface-2 flex shrink-0 items-center justify-between gap-2 border-t p-4">
           <button
             onClick={propor}
             className="rounded-control border-line text-ink-2 hover:bg-surface-1 hover:text-ink-1 flex items-center gap-2 border px-3 py-2 text-[11px] font-bold tracking-wider uppercase transition-all"
