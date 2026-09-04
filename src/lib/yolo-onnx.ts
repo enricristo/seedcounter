@@ -14,6 +14,7 @@
 // =============================================================================
 
 import type { InferenceSession as OrtSession, Tensor as OrtTensor } from 'onnxruntime-web';
+import { limitarRegiao, planejarJanelas, type Regiao } from './region';
 
 /** Origem do runtime ONNX. Fixada em versão para builds reproduzíveis. */
 const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0';
@@ -88,6 +89,15 @@ export interface InferenceOptions {
   overlap?: number;
   /** Extrai contornos das máscaras para morfometria (mais lento). */
   withMasks?: boolean;
+  /**
+   * Restringe a inferência a um retângulo da imagem.
+   *
+   * Sem isto o modelo varria SEMPRE a imagem inteira. Numa digitalização a
+   * 3600 dpi isso são centenas de janelas de 960 px e minutos de espera, mesmo
+   * quando a pergunta era sobre um pedaço da lâmina que o usuário já sabia
+   * apontar. Ausente = imagem inteira, como antes.
+   */
+  roi?: Regiao;
   /** Progresso do processamento das janelas. */
   onProgress?: (done: number, total: number) => void;
 }
@@ -501,22 +511,19 @@ export async function detectWithYolo(
   const srcW = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
   const srcH = image instanceof HTMLImageElement ? image.naturalHeight : image.height;
 
-  // Janela do tamanho nativo do treino; imagens menores viram uma janela só.
-  const tile = opts.imgSize;
-  const step = Math.max(1, Math.round(tile * (1 - opts.overlap)));
+  // Área a varrer: a região pedida, recortada aos limites da imagem, ou a
+  // imagem inteira quando nenhuma região foi dada.
+  const area = opts.roi
+    ? limitarRegiao(opts.roi, srcW, srcH)
+    : { x: 0, y: 0, width: srcW, height: srcH };
 
-  const tiles: { x: number; y: number; w: number; h: number }[] = [];
-  if (srcW <= tile && srcH <= tile) {
-    tiles.push({ x: 0, y: 0, w: srcW, h: srcH });
-  } else {
-    for (let y = 0; y < srcH; y += step) {
-      for (let x = 0; x < srcW; x += step) {
-        const w = Math.min(tile, srcW - x);
-        const h = Math.min(tile, srcH - y);
-        if (w > 8 && h > 8) tiles.push({ x, y, w, h });
-      }
-    }
-  }
+  // Região inteiramente fora da imagem. Devolver lista vazia é honesto;
+  // seguir com um retângulo de área zero pareceria "o modelo não achou nada".
+  if (!area) return [];
+
+  // Janela do tamanho nativo do treino; áreas menores viram uma janela só.
+  const tile = opts.imgSize;
+  const tiles = planejarJanelas(area, tile, opts.overlap);
 
   const inputName = session.inputNames[0];
   const all: YoloDetection[] = [];

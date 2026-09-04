@@ -4,7 +4,15 @@
 // =============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Brain, Check, X, Loader2, AlertCircle, Download } from 'lucide-react';
+import {
+  Brain,
+  Check,
+  X,
+  Loader2,
+  AlertCircle,
+  Download,
+  SquareDashedMousePointer,
+} from 'lucide-react';
 import {
   detectWithYolo,
   isModelAvailable,
@@ -15,6 +23,7 @@ import {
   type ModelQuality,
 } from '../../lib/yolo-onnx';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
+import { contarJanelas, limitarRegiao, type Regiao } from '../../lib/region';
 import { formatLengthDual, formatAreaDual } from '../../lib/calibration';
 import type { Mark, YoloSegmentation } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
@@ -34,6 +43,17 @@ interface AiPointerPanelProps {
   onAddSegmentations?: (segs: YoloSegmentation[]) => void;
   /** Escala atual, para exibir as medidas em µm. */
   umPerPixel?: number;
+  /**
+   * Restringe a inferência a um retângulo. Ausente = imagem inteira.
+   *
+   * É o que torna o modelo utilizável em digitalização de scanner: varrer
+   * 6000 x 4000 px são dezenas de janelas de 960; um pedaço é uma ou duas.
+   */
+  regiao?: Regiao | null;
+  /** Abre o modo de arraste no canvas para desenhar a região. */
+  onSelecionarRegiao?: () => void;
+  /** Volta a varrer a imagem inteira. */
+  onLimparRegiao?: () => void;
 }
 
 const DEDUPE_RADIUS = 12;
@@ -45,6 +65,9 @@ export function AiPointerPanel({
   onPreviewChange,
   onAddSegmentations,
   umPerPixel,
+  regiao,
+  onSelecionarRegiao,
+  onLimparRegiao,
 }: AiPointerPanelProps) {
   const [confidence, setConfidence] = useState(45);
   const [withMorphometry, setWithMorphometry] = useState(true);
@@ -110,6 +133,7 @@ export function AiPointerPanel({
       const result = await detectWithYolo(image, {
         confThreshold: confidence / 100,
         withMasks: withMorphometry,
+        roi: regiao ?? undefined,
         onProgress: (done, total) => setProgress({ done, total }),
       });
       setDetections(result);
@@ -127,7 +151,22 @@ export function AiPointerPanel({
       setIsRunning(false);
       setProgress(null);
     }
-  }, [image, confidence, withMorphometry]);
+  }, [image, confidence, withMorphometry, regiao]);
+
+  /**
+   * Quantas janelas a varredura vai exigir.
+   *
+   * Mostrado ANTES de rodar porque é a diferença entre esperar dois segundos e
+   * esperar dois minutos, e não havia como saber disso antes de apertar.
+   */
+  const janelas = useMemo(() => {
+    if (!image) return null;
+    const w = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
+    const h = image instanceof HTMLImageElement ? image.naturalHeight : image.height;
+    const area = regiao ? limitarRegiao(regiao, w, h) : { x: 0, y: 0, width: w, height: h };
+    if (!area) return null;
+    return contarJanelas(area, 960, 0.2);
+  }, [image, regiao]);
 
   const handleConfirm = useCallback(() => {
     if (newDetections.length === 0) return;
@@ -267,6 +306,46 @@ export function AiPointerPanel({
         />
         <span className="text-[11px] text-ink-2">Medir sementes (morfometria)</span>
       </label>
+
+      {/* Região de varredura */}
+      {onSelecionarRegiao && (
+        <div className="space-y-1.5 rounded-xl border border-line p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
+              Região
+            </span>
+            <span className="text-[10px] font-mono text-ink-3">
+              {janelas !== null ? `${janelas} janela${janelas === 1 ? '' : 's'}` : '—'}
+            </span>
+          </div>
+
+          <p className="text-[10px] text-ink-3 leading-snug">
+            {regiao
+              ? `${Math.round(regiao.width)} × ${Math.round(regiao.height)} px selecionados.`
+              : 'Sem região: o modelo varre a imagem inteira.'}
+          </p>
+
+          <div className="flex gap-1.5">
+            <button
+              onClick={onSelecionarRegiao}
+              disabled={!image || isRunning}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-line text-ink-2 hover:bg-surface-2 disabled:opacity-40 text-[10px] font-bold uppercase tracking-wide transition-colors"
+            >
+              <SquareDashedMousePointer size={12} />
+              {regiao ? 'Redesenhar' : 'Selecionar'}
+            </button>
+            {regiao && onLimparRegiao && (
+              <button
+                onClick={onLimparRegiao}
+                disabled={isRunning}
+                className="px-2 py-1.5 rounded-lg border border-line text-ink-3 hover:bg-surface-2 disabled:opacity-40 text-[10px] font-bold uppercase tracking-wide transition-colors"
+              >
+                Imagem toda
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <button
         onClick={handleRun}

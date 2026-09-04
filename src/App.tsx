@@ -51,6 +51,7 @@ import { RoiModal } from './features/roi';
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
+import type { Regiao } from './lib/region';
 import {
   NEUTRAL_ADJUSTMENTS,
   applyAdjustments,
@@ -157,6 +158,12 @@ export default function App() {
   const [adjustEnabled, setAdjustEnabled] = useState(true);
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
+
+  // Região de detecção: onde os motores (clássico e YOLO) vão rodar.
+  // Sem ela, os dois varrem a imagem inteira — que numa digitalização de
+  // scanner são dezenas de janelas de inferência e minutos de espera.
+  const [regiaoDeDeteccao, setRegiaoDeDeteccao] = useState<Regiao | null>(null);
+  const [selecionandoRegiao, setSelecionandoRegiao] = useState(false);
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
   const {
@@ -1222,6 +1229,9 @@ export default function App() {
                       onPreviewChange={setDetectionPreview}
                       onAddSegmentations={addYoloSegmentations}
                       umPerPixel={metadata.umPerPixel}
+                      regiao={regiaoDeDeteccao}
+                      onSelecionarRegiao={() => setSelecionandoRegiao(true)}
+                      onLimparRegiao={() => setRegiaoDeDeteccao(null)}
                     />
                   )}
                   {isDetectionEnabled && (
@@ -1230,6 +1240,9 @@ export default function App() {
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
+                      regiao={regiaoDeDeteccao}
+                      onSelecionarRegiao={() => setSelecionandoRegiao(true)}
+                      onLimparRegiao={() => setRegiaoDeDeteccao(null)}
                     />
                   )}
                 </div>
@@ -1285,6 +1298,12 @@ export default function App() {
                 showRulers={showRulers}
                 isMeasuring={isMeasuring}
                 onMeasured={handleMeasured}
+                isSelectingRegion={selecionandoRegiao}
+                selectedRegion={regiaoDeDeteccao}
+                onRegionSelected={(r) => {
+                  setRegiaoDeDeteccao(r);
+                  setSelecionandoRegiao(false);
+                }}
               />
             )}
           </ImageViewport>
