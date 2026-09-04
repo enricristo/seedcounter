@@ -117,17 +117,21 @@ export function StatsResultCard({ result }: StatsResultCardProps) {
                 </span>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-mono text-ink-3 text-[10px]">W = {nr.W.toFixed(3)}</span>
+                  {/* Com menos de 5 repetições o teste não tem poder — mostrar
+                      "p = NaN · Não-normal" era pior que não mostrar nada. */}
                   <span className="font-mono text-ink-3 text-[10px]">
-                    p = {pValueLabel(nr.pValue)}
+                    {nr.testable ? `p = ${pValueLabel(nr.pValue)}` : 'n < 5'}
                   </span>
                   <span
                     className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                      nr.normal
-                        ? 'bg-accent-tint text-accent'
-                        : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                      !nr.testable
+                        ? 'bg-surface-2 text-ink-3'
+                        : nr.normal
+                          ? 'bg-accent-tint text-accent'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                     }`}
                   >
-                    {nr.normal ? 'Normal' : 'Não-normal'}
+                    {!nr.testable ? 'Não avaliável' : nr.normal ? 'Normal' : 'Não-normal'}
                   </span>
                 </div>
               </div>
