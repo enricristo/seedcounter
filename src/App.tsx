@@ -623,14 +623,45 @@ export default function App() {
   // --- Exportação por objeto (uma linha por semente) ---------------------
   // Funciona em qualquer cenário: sem calibração sai em pixels, sem
   // segmentação sai só posição e classe. Nenhuma camada é obrigatória.
+  /**
+   * Lê os pixels da imagem em exibição, para as medidas de cor por objeto.
+   *
+   * Feito sob demanda, só na hora de exportar: manter um ImageData de uma
+   * digitalização de 7992×3672 vivo o tempo todo custaria ~117 MB de RAM por
+   * imagem, e a contagem manual não precisa dele.
+   *
+   * Devolve undefined se algo falhar — as colunas de cor saem vazias e a
+   * morfometria continua inteira, porque ela não depende dos pixels.
+   */
+  const lerPixelsDaImagem = useCallback(() => {
+    if (!image) return undefined;
+    try {
+      const off = document.createElement('canvas');
+      off.width = image.width;
+      off.height = image.height;
+      const ctx = off.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return undefined;
+      ctx.drawImage(image, 0, 0);
+      return ctx.getImageData(0, 0, image.width, image.height);
+    } catch {
+      // Imagem de outra origem marca o canvas como contaminado e getImageData
+      // lança. Não é motivo para abortar a exportação inteira.
+      return undefined;
+    }
+  }, [image]);
+
   const buildMeasurementContext = useCallback(
     () => ({
       marks,
       segmentations: yoloSegmentations,
       metadata,
       filename,
+      imageData: lerPixelsDaImagem(),
+      // Uma semente de orquídea a 3600 DPI tem milhares de pixels; ler um de
+      // cada quatro não muda a média e corta o custo em 4x.
+      colorSampling: 2,
     }),
-    [marks, yoloSegmentations, metadata, filename]
+    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem]
   );
 
   const handleExportMeasurementsCSV = useCallback(() => {
