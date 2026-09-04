@@ -27,6 +27,7 @@ import {
 import type { Experiment, Treatment, PlateRun, ProtocormStage } from '../../types';
 import { CONTAMINATION_LABELS, PLATE_STATUS_LABELS, PROTOCORM_STAGE_LABELS } from '../../types';
 import { useExperiments } from '../../hooks/useExperiments';
+import { MOTIVO_SEM_INDICES_DE_VIGOR, rotulosDoEixo } from '../../lib/time-axis';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -127,13 +128,16 @@ function GerminationTooltip({
   return (
     <div className="bg-surface-1 border border-line rounded-xl shadow-xl p-3 min-w-[200px]">
       <div className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-2">
-        DAP {label} dias
+        {rotulosDoEixo(experiment).prefixo} {label} dias
       </div>
       {payload.map((entry, i) => {
         const treatment = experiment.treatments.find(
           (t) => t.code === entry.name || t.name === entry.name
         );
-        const ivg = treatment ? calcIVG(treatment) : 0;
+        // IVG so descreve a mesma placa reavaliada. Em armazenamento cada
+        // data e uma amostra nova: o numero existiria sem significar nada.
+        const mostraIvg = rotulosDoEixo(experiment).aplicaIndicesDeVigor;
+        const ivg = treatment && mostraIvg ? calcIVG(treatment) : 0;
         return (
           <div key={i} className="flex items-center gap-2 mb-1">
             <div
@@ -143,8 +147,13 @@ function GerminationTooltip({
             <div className="flex-1">
               <div className="text-xs font-bold text-ink-1">{entry.name}</div>
               <div className="text-[10px] text-ink-3">
-                <span className="font-mono text-accent">{entry.value}%</span> · IVG:{' '}
-                <span className="font-mono">{ivg}</span>
+                <span className="font-mono text-accent">{entry.value}%</span>
+                {mostraIvg && (
+                  <>
+                    {' · IVG: '}
+                    <span className="font-mono">{ivg}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -165,6 +174,7 @@ function GerminationTable({
   experiment: Experiment;
   selectedTreatmentId: string | null;
 }) {
+  const eixo = rotulosDoEixo(experiment);
   const allDays = useMemo(() => {
     const days = new Set<number>();
     experiment.evaluationDays.forEach((d) => days.add(d));
@@ -214,10 +224,10 @@ function GerminationTable({
             <th className="px-4 py-3 sticky left-0 bg-surface-2 z-10">Tratamento</th>
             {allDays.map((day) => (
               <th key={day} className="px-3 py-3 text-center">
-                DAP {day}
+                {eixo.prefixo} {day}
               </th>
             ))}
-            <th className="px-3 py-3 text-center">IVG</th>
+            {eixo.aplicaIndicesDeVigor && <th className="px-3 py-3 text-center">IVG</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-line-soft">
@@ -278,11 +288,14 @@ function GerminationTable({
 function PlateRunsList({
   treatment,
   experimentId,
+  prefixoDoEixo,
   onAddPlateRun,
   onViewSession,
 }: {
   treatment: Treatment;
   experimentId: string;
+  /** "DAP" ou "Arm." — o que o dayIndex mede neste experimento. */
+  prefixoDoEixo: string;
   onAddPlateRun: (experimentId: string, treatmentId: string, existingRun?: PlateRun) => void;
   onViewSession: (sessionId: string) => void;
 }) {
@@ -308,7 +321,7 @@ function PlateRunsList({
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="text-[10px] font-bold font-mono bg-surface-2 text-ink-2 px-2 py-0.5 rounded">
-                  DAP {run.dayIndex}
+                  {prefixoDoEixo} {run.dayIndex}
                 </span>
                 <span className="text-[10px] text-ink-3">
                   {new Date(run.evaluationDate).toLocaleDateString('pt-BR')}
@@ -386,6 +399,9 @@ export function LongitudinalView({
     () => experiments.find((e) => e.id === selectedExperimentId) ?? null,
     [experiments, selectedExperimentId]
   );
+
+  /** DAP ou dias de armazenamento — decide rotulo e o que faz sentido calcular. */
+  const eixoDoTempo = useMemo(() => rotulosDoEixo(selectedExperiment), [selectedExperiment]);
 
   // Auto-select first experiment when list loads
   React.useEffect(() => {
@@ -555,7 +571,7 @@ export function LongitudinalView({
         {hasData && (
           <div className="flex items-center gap-2">
             <label className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
-              Ponto (DAP)
+              Ponto ({eixoDoTempo.prefixo})
             </label>
             <div className="relative">
               <select
@@ -573,7 +589,7 @@ export function LongitudinalView({
                       .sort((a, b) => a - b)
                       .map((d) => (
                         <option key={d} value={d}>
-                          DAP {d}
+                          {eixoDoTempo.prefixo} {d}
                         </option>
                       ));
                   })()}
@@ -732,7 +748,9 @@ export function LongitudinalView({
               <div className="space-y-4">
                 <div className="bg-surface-1 rounded-2xl border border-line p-4 shadow-sm">
                   <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-4">
-                    % Germinação Acumulada por Tratamento
+                    {eixoDoTempo.aplicaIndicesDeVigor
+                      ? '% Germinação Acumulada por Tratamento'
+                      : '% Germinação por Tratamento ao Longo do Armazenamento'}
                   </h3>
                   <ResponsiveContainer width="100%" height={320}>
                     <ComposedChart
@@ -742,10 +760,10 @@ export function LongitudinalView({
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(150,150,150,0.15)" />
                       <XAxis
                         dataKey="dap"
-                        tickFormatter={(v) => `DAP ${v}`}
+                        tickFormatter={(v) => `${eixoDoTempo.prefixo} ${v}`}
                         tick={{ fontSize: 10, fill: 'currentColor' }}
                         label={{
-                          value: 'Dias após plantio (DAP)',
+                          value: eixoDoTempo.eixo,
                           position: 'insideBottom',
                           offset: -4,
                           fontSize: 10,
@@ -791,7 +809,8 @@ export function LongitudinalView({
               <div className="space-y-4">
                 <div className="bg-surface-1 rounded-2xl border border-line p-4 shadow-sm">
                   <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-1">
-                    Distribuição de Estágios Protocórmicos — DAP {selectedDap ?? '—'}
+                    Distribuição de Estágios Protocórmicos — {eixoDoTempo.prefixo}{' '}
+                    {selectedDap ?? '—'}
                   </h3>
                   <p className="text-[10px] text-ink-3 mb-4">
                     Arditti (1967) adaptado pelo Lab. GPEOrq
@@ -799,7 +818,8 @@ export function LongitudinalView({
 
                   {stageData.length === 0 ? (
                     <div className="flex items-center justify-center h-48 text-ink-3 text-xs">
-                      Selecione um ponto de avaliação (DAP) com dados registrados.
+                      Selecione um ponto de avaliação ({eixoDoTempo.prefixo}) com dados
+                      registrados.
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height={320}>
@@ -868,8 +888,10 @@ export function LongitudinalView({
                   selectedTreatmentId={selectedTreatmentId}
                 />
                 <p className="text-[10px] text-ink-3 italic">
-                  * Valores em verde = maior porcentagem de germinação para aquele dia de avaliação.
-                  IVG calculado pelo índice de Maguire (1962).
+                  * Valores em verde = maior porcentagem de germinação para aquele dia de avaliação.{' '}
+                  {eixoDoTempo.aplicaIndicesDeVigor
+                    ? 'IVG calculado pelo índice de Maguire (1962).'
+                    : MOTIVO_SEM_INDICES_DE_VIGOR}
                 </p>
               </div>
             )}
@@ -908,6 +930,7 @@ export function LongitudinalView({
                       <PlateRunsList
                         treatment={treatment}
                         experimentId={selectedExperiment.id}
+                        prefixoDoEixo={eixoDoTempo.prefixo}
                         onAddPlateRun={onAddPlateRun}
                         onViewSession={onViewSession}
                       />

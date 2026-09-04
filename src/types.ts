@@ -190,6 +190,19 @@ export interface Experiment {
   replicates: number; // Number of replicates per treatment
   sowingDate: string; // ISO date — base for DAP calculation
   evaluationDays: number[]; // Planned evaluation days: [0, 14, 30, 45, 60, 90]
+  /**
+   * O que o eixo de tempo mede.
+   *
+   * 'dap'  — dias após plantio: a MESMA placa reavaliada, germinação acumulada.
+   *          Índices de vigor (IVG, TMG, t50) fazem sentido.
+   * 'armazenamento' — dias de armazenamento do lote: cada data é uma amostra
+   *          NOVA, e a curva é de deterioração, não de germinação acumulada.
+   *          Índice de velocidade de germinação não se aplica — é o desenho de
+   *          CUSTÓDIO, ABRANTES & MACHADO NETO (2025) em Urochloa.
+   *
+   * Ausente significa 'dap', que é o que todo experimento existente é.
+   */
+  timeAxis?: 'dap' | 'armazenamento';
   treatments: Treatment[];
   tags?: string[]; // Free tags for filtering
   notes?: string;

@@ -18,6 +18,12 @@ interface CurvePoint {
 interface GerminationCurveChartProps {
   data: CurvePoint[];
   treatmentCodes: string[];
+  /** Rótulo do eixo x. Muda entre DAP e dias de armazenamento. */
+  rotuloDoEixo?: string;
+  /** Prefixo curto usado na dica: "DAP" ou "Arm.". */
+  prefixoDoEixo?: string;
+  /** Rótulo do eixo y — em armazenamento a curva não é acumulada. */
+  rotuloDaGerminacao?: string;
 }
 
 /**
@@ -38,7 +44,13 @@ const COLORS = [
 /** Acima da 8a serie a cor deixa de identificar: o excedente vira "Outros". */
 const SERIE_EXCEDENTE = 'var(--color-ink-3)';
 
-export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurveChartProps) {
+export function GerminationCurveChart({
+  data,
+  treatmentCodes,
+  rotuloDoEixo = 'Dias Após Semeadura (DAP)',
+  prefixoDoEixo = 'DAP',
+  rotuloDaGerminacao = 'Germinação Acumulada (%)',
+}: GerminationCurveChartProps) {
   if (!data || data.length === 0 || treatmentCodes.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-surface-2 border border-dashed border-line rounded-2xl">
@@ -60,7 +72,7 @@ export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurve
           <XAxis
             dataKey="day"
             label={{
-              value: 'Dias Após Semeadura (DAP)',
+              value: rotuloDoEixo,
               position: 'insideBottom',
               offset: -10,
               className: 'fill-neutral-500 dark:fill-zinc-400 font-bold text-[10px]',
@@ -70,7 +82,7 @@ export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurve
           <YAxis
             domain={[0, 100]}
             label={{
-              value: 'Germinação Acumulada (%)',
+              value: rotuloDaGerminacao,
               angle: -90,
               position: 'insideLeft',
               offset: 0,
@@ -89,7 +101,7 @@ export function GerminationCurveChart({ data, treatmentCodes }: GerminationCurve
               boxShadow: '0 8px 24px -8px rgb(0 0 0 / 0.28)',
             }}
             formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Germinação']}
-            labelFormatter={(label) => `Dia: ${label} DAP`}
+            labelFormatter={(label) => `${prefixoDoEixo} ${label} dias`}
           />
           <Legend
             verticalAlign="top"
