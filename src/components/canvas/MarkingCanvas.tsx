@@ -171,11 +171,11 @@ export function MarkingCanvas({
     if (isPanningMode) return;
     e.stopPropagation(); // Avoid placing a manual mark when clicking a polygon
 
-    if (e.shiftKey || e.ctrlKey || e.button === 2) {
-      // Delete/hide segment
+    // Mesma regra da marcação manual: Ctrl inverte a classe, Shift/Alt e o
+    // botão direito apagam, clique simples não faz nada.
+    if (e.shiftKey || e.altKey || e.button === 2) {
       onDeleteSegmentation(seg.id);
-    } else {
-      // Toggle category (viable <-> inviable)
+    } else if (e.ctrlKey || e.metaKey) {
       onToggleSegmentationClass(seg.id);
     }
   };
@@ -345,19 +345,31 @@ export function MarkingCanvas({
                 onMouseLeave={() => setHoveredMarkId(null)}
                 onMouseDown={(e) => {
                   // Arrastar reposiciona a marcação (só com a ferramenta de marcação).
-                  if (isEraser || e.button !== 0 || e.shiftKey || e.altKey) return;
+                  if (
+                    isEraser ||
+                    e.button !== 0 ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.ctrlKey ||
+                    e.metaKey
+                  )
+                    return;
                   e.stopPropagation();
                   setDragMark({ id: mark.id, moved: false });
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Se houve arraste, não interpreta como clique (evita inverter sem querer).
+                  // Se houve arraste, não interpreta como clique.
                   if (dragMark?.moved) return;
-                  // Borracha, Shift ou Alt apagam; clique simples inverte a classe.
+
+                  // O clique simples fica LIVRE para arrastar. Antes ele
+                  // invertia a classe, então parar em cima de uma marcação sem
+                  // mover trocava viável por inviável sem querer — o erro mais
+                  // caro possível numa contagem de viabilidade.
                   if (isEraser || e.shiftKey || e.altKey) {
                     onRemoveMark?.(mark.id);
                     setHoveredMarkId(null);
-                  } else {
+                  } else if (e.ctrlKey || e.metaKey) {
                     onToggleMarkClass?.(mark.id);
                   }
                 }}
@@ -515,7 +527,7 @@ export function MarkingCanvas({
               </>
             )}
             <div className="text-[8px] text-neutral-400 pt-1 border-t border-neutral-700/30 mt-1 uppercase">
-              Clique: Alternar • Shift+Clique: Apagar
+              Ctrl+clique: inverter classe • Shift+clique: apagar
             </div>
           </div>
         </div>

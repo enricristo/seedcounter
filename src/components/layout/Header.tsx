@@ -134,7 +134,7 @@ export function Header({
             <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
               Contador de Sementes
             </h1>
-            <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase 2xl:block">
+            <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
               Edição Acadêmica •{' '}
               <a
                 href="https://www.instagram.com/gpeorq"
@@ -156,45 +156,6 @@ export function Header({
               • Unoeste
             </p>
           </div>
-        </div>
-
-        <div className="bg-line hidden h-8 w-px xl:block" />
-
-        {/* Marcas dos grupos de pesquisa. São de terceiros: exibidas como
-            recebidas, sem recorte nem recolorização. */}
-        <div className="hidden items-center gap-1.5 xl:flex">
-          <a
-            href="https://www.instagram.com/gpeorq"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GPEOrq — Grupo de Pesquisa em Orquídeas"
-            className="rounded-control border-line hover:border-accent flex items-center justify-center border bg-white p-1 transition-colors"
-          >
-            <img
-              src="/logo-gpeorq.png"
-              alt="Logo GPEOrq"
-              className="h-7 w-7 object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </a>
-          <a
-            href="https://www.instagram.com/gpsem_2000/"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GPSEM — Grupo de Estudos e Pesquisas em Sementes"
-            className="rounded-control border-line hover:border-accent flex items-center justify-center border bg-white p-1 transition-colors"
-          >
-            <img
-              src="/logo-gpsem.png"
-              alt="Logo GPSEM"
-              className="h-7 w-7 object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </a>
         </div>
 
         {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento

@@ -59,6 +59,7 @@ import {
   type ImageAdjustments,
 } from './lib/image-adjust';
 import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
+import { baixarArquivo, nomeDeExportacao } from './lib/download';
 
 // Types
 import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './types';
@@ -66,15 +67,12 @@ import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './ty
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
 
-// Helper function to download locally generated data
+// Delega para src/lib/download.ts. A versão anterior criava a âncora sem
+// anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
+// chegavam com nome de UUID e sem extensão, parecendo que a exportação não
+// tinha funcionado.
 function downloadBlob(content: string, filename: string, contentType: string) {
-  const blob = new Blob([content], { type: contentType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  baixarArquivo(content, filename, contentType);
 }
 
 // Render marks overlay helper for the canvas context
@@ -627,12 +625,26 @@ export default function App() {
   const { isDragActive } = useDragDrop({ onFilesDropped });
 
   // Unified filename generation helper
-  const generateExportName = (extension: string) => {
-    const baseName = filename ? filename.split('.')[0] : 'contagem';
-    const cleanPlate = metadata.plate ? `_${metadata.plate}` : '';
-    const cleanQuad = metadata.quadrant ? `_Q${metadata.quadrant}` : '';
-    return `${baseName}${cleanPlate}${cleanQuad}.${extension}`;
-  };
+  /**
+   * Nome de arquivo rastreável: projeto, tratamento, placa, quadrante,
+   * amostra, tipo e carimbo de data.
+   *
+   * Ordenar a pasta por nome passa a agrupar por projeto e depois por
+   * tratamento — que é como o pesquisador procura — em vez de por ordem de
+   * exportação, que não significa nada.
+   */
+  const generateExportName = (extension: string, tipo?: string) =>
+    nomeDeExportacao(
+      {
+        arquivo: filename,
+        projeto: metadata.project,
+        tratamento: metadata.treatment,
+        placa: metadata.plate,
+        quadrante: metadata.quadrant,
+        tipo,
+      },
+      extension
+    );
 
   // EXPORTS
   const handleExportTextReport = () => {
@@ -653,7 +665,7 @@ export default function App() {
       `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
       `Total: ${totalCount}\n`;
 
-    downloadBlob(content, generateExportName('txt'), 'text/plain');
+    downloadBlob(content, generateExportName('txt', 'relatorio'), 'text/plain');
   };
 
   const handleExportJSON = () => {
@@ -671,7 +683,11 @@ export default function App() {
       marks,
       yoloSegmentations,
     };
-    downloadBlob(JSON.stringify(data, null, 2), generateExportName('json'), 'application/json');
+    downloadBlob(
+      JSON.stringify(data, null, 2),
+      generateExportName('json', 'sessao'),
+      'application/json'
+    );
   };
 
   // --- Exportação por objeto (uma linha por semente) ---------------------
@@ -722,16 +738,14 @@ export default function App() {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const csv = measurementsToCSV(rows, ctx);
-    const base = (filename || 'amostra').replace(/\.[^.]+$/, '');
-    downloadBlob(csv, `${base}_medidas.csv`, 'text/csv;charset=utf-8;');
+    downloadBlob(csv, generateExportName('csv', 'medidas'), 'text/csv;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
   const handleExportSQL = useCallback(() => {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const sql = measurementsToSQL(rows, ctx);
-    const base = (filename || 'amostra').replace(/\.[^.]+$/, '');
-    downloadBlob(sql, `${base}_medidas.sql`, 'text/plain;charset=utf-8;');
+    downloadBlob(sql, generateExportName('sql', 'medidas'), 'text/plain;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
   const handleExportCSV = () => {
@@ -770,7 +784,7 @@ export default function App() {
       .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
-    downloadBlob(csvContent, generateExportName('csv'), 'text/csv');
+    downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
   };
 
   const handleExportAnnotatedImage = () => {
@@ -861,11 +875,12 @@ export default function App() {
     ctx.fillStyle = ESPECIME.inviable;
     ctx.fillText(`Inviáveis: ${inviableCount}`, padding + 160, statsY);
 
-    const dataUrl = offscreenCanvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = generateExportName('png');
-    link.click();
+    // toBlob em vez de toDataURL: uma data: URL de uma digitalização grande
+    // vira uma string de dezenas de MB, e o mesmo defeito da âncora destacada
+    // fazia o arquivo sair sem nome nem extensão.
+    offscreenCanvas.toBlob((blob) => {
+      if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
+    }, 'image/png');
   };
 
   const handleExportPDF = () => {
