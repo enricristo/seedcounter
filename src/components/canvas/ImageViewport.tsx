@@ -5,6 +5,8 @@ interface ViewportProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   image: HTMLImageElement | null;
   onBrowseFiles: () => void;
+  /** Falha do último carregamento, exibida no estado vazio. */
+  loadError?: string | null;
   isPanningMode: boolean;
   isDragging: boolean;
   startDrag: (e: React.MouseEvent, container: HTMLDivElement | null) => void;
@@ -17,6 +19,7 @@ export function ImageViewport({
   containerRef,
   image,
   onBrowseFiles,
+  loadError,
   isPanningMode,
   isDragging,
   startDrag,
@@ -50,7 +53,7 @@ export function ImageViewport({
       onMouseLeave={stopDrag}
     >
       <div className="w-fit h-fit min-w-full min-h-full flex items-center justify-center p-8 selection:bg-none">
-        {!image ? <EmptyState onBrowseFiles={onBrowseFiles} /> : children}
+        {!image ? <EmptyState onBrowseFiles={onBrowseFiles} loadError={loadError} /> : children}
       </div>
     </div>
   );

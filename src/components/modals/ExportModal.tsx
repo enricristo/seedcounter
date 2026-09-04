@@ -65,26 +65,26 @@ export function ExportModal({
   const isLastInQueue = currentImageIndex === imageQueueLength - 1;
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/60 dark:bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        className="bg-surface-1 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-neutral-200 dark:border-zinc-800 transition-colors duration-300"
+        className="bg-surface-1 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-line transition-colors duration-300"
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-5 border-b border-neutral-200 dark:border-zinc-800 bg-neutral-50 dark:bg-zinc-900/50">
+        <div className="flex justify-between items-center p-5 border-b border-line bg-surface-2">
           <div>
-            <h2 className="font-bold text-base text-neutral-800 dark:text-zinc-100 uppercase tracking-wide">
+            <h2 className="font-bold text-base text-ink-1 uppercase tracking-wide">
               Exportar Resultados
             </h2>
-            <p className="text-[10px] text-neutral-400 dark:text-zinc-500 font-medium font-mono pt-0.5 truncate max-w-[400px]">
+            <p className="text-[10px] text-ink-3 font-medium font-mono pt-0.5 truncate max-w-[400px]">
               Amostra: {filename}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:text-zinc-500 dark:hover:text-zinc-300 p-1.5 hover:bg-surface-2 rounded-full transition-colors cursor-pointer"
+            className="text-ink-3 hover:text-ink-2 p-1.5 hover:bg-surface-2 rounded-full transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -131,7 +131,7 @@ export function ExportModal({
 
           {/* Individual Export Cards */}
           <div>
-            <h3 className="text-[10px] font-bold text-neutral-400 dark:text-zinc-500 uppercase tracking-widest mb-3">
+            <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-3">
               Formatos de Download
             </h3>
 
@@ -196,7 +196,7 @@ export function ExportModal({
               <div className="col-span-2">
                 <button
                   onClick={exportAnnotatedImage}
-                  className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-neutral-50 dark:bg-zinc-900/50 hover:bg-surface-2 hover:shadow-sm transition-all text-neutral-700 dark:text-zinc-300 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
+                  className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-line hover:border-line bg-surface-2 hover:bg-surface-2 hover:shadow-sm transition-all text-ink-2 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
                 >
                   <ImageIcon
                     size={15}

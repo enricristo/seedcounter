@@ -37,7 +37,7 @@ export function WilsonCIBar({ value, ci, width = 120 }: WilsonCIBarProps) {
     >
       {/* Bar track */}
       <div
-        className="relative flex-shrink-0 h-3 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-visible"
+        className="relative flex-shrink-0 h-3 rounded-full bg-line overflow-visible"
         style={{ width }}
       >
         {/* CI interval band */}
@@ -56,12 +56,12 @@ export function WilsonCIBar({ value, ci, width = 120 }: WilsonCIBarProps) {
         />
         {/* Lower CI tick */}
         <div
-          className="absolute top-0 h-full w-0.5 bg-white/80 dark:bg-zinc-900/80"
+          className="absolute top-0 h-full w-0.5 bg-surface-1/80"
           style={{ left: `${lower}%`, transform: 'translateX(-50%)' }}
         />
         {/* Upper CI tick */}
         <div
-          className="absolute top-0 h-full w-0.5 bg-white/80 dark:bg-zinc-900/80"
+          className="absolute top-0 h-full w-0.5 bg-surface-1/80"
           style={{ left: `${upper}%`, transform: 'translateX(-50%)' }}
         />
       </div>

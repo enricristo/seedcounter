@@ -45,6 +45,8 @@ import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { ImageAdjustPanel } from './features/image-adjust';
+import { SplitModal } from './features/split';
+import { RoiModal } from './features/roi';
 
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -145,6 +147,8 @@ export default function App() {
   const isCameraEnabled = useFeatureFlag('cameraCapture');
   const isDetectionEnabled = useFeatureFlag('assistedDetection');
   const isAiPointerEnabled = useFeatureFlag('aiPointer');
+  const isSplitEnabled = useFeatureFlag('splitScan');
+  const isRoiEnabled = useFeatureFlag('circularRoi');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
 
@@ -183,6 +187,8 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isSplitOpen, setIsSplitOpen] = useState(false);
+  const [isRoiOpen, setIsRoiOpen] = useState(false);
   const [isExperimentModalOpen, setIsExperimentModalOpen] = useState(false);
   const [selectedExperimentForEdit, setSelectedExperimentForEdit] = useState<
     Experiment | undefined
@@ -252,6 +258,7 @@ export default function App() {
     setFilename,
     imageQueue,
     currentImageIndex,
+    loadError,
     loadFiles,
     handleFileUpload,
     handleNextImage,
@@ -1067,6 +1074,8 @@ export default function App() {
             updateMetadata={updateMetadata}
             sessions={sessions}
             onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
+            onOpenSplit={isSplitEnabled && image ? () => setIsSplitOpen(true) : undefined}
+            onOpenRoi={isRoiEnabled && image ? () => setIsRoiOpen(true) : undefined}
             calibrationSummary={
               metadata.umPerPixel && metadata.umPerPixel > 0
                 ? `${metadata.umPerPixel.toFixed(2)} µm/px`
@@ -1125,6 +1134,7 @@ export default function App() {
             containerRef={containerRef}
             image={image}
             onBrowseFiles={handleBrowseFiles}
+            loadError={loadError}
             isPanningMode={isPanningMode}
             isDragging={isPanningDrag}
             startDrag={startDrag}
@@ -1311,6 +1321,35 @@ export default function App() {
           onCapture={handleCameraCapture}
         />
       )}
+
+      {/* Preparo da imagem (Fase G) */}
+      <AnimatePresence>
+        {isSplitOpen && isSplitEnabled && (
+          <SplitModal
+            isOpen={isSplitOpen}
+            onClose={() => setIsSplitOpen(false)}
+            image={image}
+            filename={filename}
+            // Os pedaços substituem a fila: é o fluxo do scanner, em que a
+            // folha inteira deixa de interessar depois de fatiada.
+            onSplit={(pecas) => loadFiles(pecas)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isRoiOpen && isRoiEnabled && (
+          <RoiModal
+            isOpen={isRoiOpen}
+            onClose={() => setIsRoiOpen(false)}
+            image={image}
+            filename={filename}
+            // Troca só a imagem em exibição, sem mexer na fila: quem tem uma
+            // fila de pedaços continua podendo navegar entre eles.
+            onCrop={(recorte) => loadImageFromFile(recorte)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Confirmação de limpeza — ação destrutiva, foco inicial em Cancelar */}
       <AnimatePresence>

@@ -29,6 +29,8 @@ interface SidebarProps {
 
   /** Abre a captura por câmera. Ausente = botão oculto. */
   onOpenCamera?: () => void;
+  onOpenSplit?: () => void;
+  onOpenRoi?: () => void;
 
   // --- Painéis opcionais, agrupados por etapa do fluxo ---
   /** Etapa 1 — ajuste de imagem. */
@@ -61,6 +63,8 @@ export function Sidebar({
   updateMetadata,
   sessions,
   onOpenCamera,
+  onOpenSplit,
+  onOpenRoi,
   adjustSlot,
   calibrationSlot,
   detectionSlot,
@@ -92,6 +96,8 @@ export function Sidebar({
           handleFileUpload={handleFileUpload}
           handleImportJSON={handleImportJSON}
           onOpenCamera={onOpenCamera}
+          onOpenSplit={onOpenSplit}
+          onOpenRoi={onOpenRoi}
         />
 
         {/* Etapas de preparo e análise — recolhidas por padrão */}
