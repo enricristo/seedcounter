@@ -156,39 +156,75 @@ export function transformPercentages(values: number[]): number[] {
 // Normality Test — Shapiro-Wilk (n < 50)
 // ---------------------------------------------------------------------------
 
+export interface NormalityResult {
+  W: number;
+  pValue: number;
+  normal: boolean;
+  /** false quando n é pequeno demais para o teste dizer alguma coisa. */
+  testable: boolean;
+}
+
 /**
- * Simplified Shapiro-Wilk W statistic approximation for n ≤ 50.
- * Returns W and approximate p-value.
- * For n > 50, defaults to a simple skewness-based check.
+ * Estatística W de Shapiro-Francia (a variante do Shapiro-Wilk que usa os
+ * escores normais normalizados), com o valor-p pela aproximação de Royston.
+ *
+ * POR QUE FOI REESCRITA.
+ *
+ * A versão anterior somava os coeficientes a_i SEM dividir pela norma do vetor
+ * de escores normais. Sem essa divisão a desigualdade de Cauchy-Schwarz não
+ * limita W, e para n pequeno W passava de 1 — em n = 3 e n = 4, SEMPRE.
+ * Aí `Math.log(1 - W)` de um W maior que 1 é NaN, `NaN > 0.05` é false, e o
+ * grupo era declarado NÃO-NORMAL.
+ *
+ * O efeito era silencioso e grave: todo ensaio com 3 ou 4 repetições — que é o
+ * delineamento padrão em tecnologia de sementes, e é o dos trabalhos do grupo —
+ * reprovava na normalidade e o pipeline trocava ANOVA + Scott-Knott por
+ * Kruskal-Wallis + Dunn sem que ninguém percebesse. A tela mostrava
+ * "W = 1,000 · p = NaN · Não-normal".
+ *
+ * A segunda correção é de honestidade: abaixo de n = 5 a aproximação de Royston
+ * não vale e o teste não tem poder nenhum. Não dá para AFIRMAR não-normalidade
+ * com 3 pontos. Nesse caso o resultado volta como não avaliável (`testable:
+ * false`) e não bloqueia o caminho paramétrico — que é o que a área faz na
+ * prática com 3 ou 4 repetições.
+ *
+ * Royston, P. (1993). A Toolkit for Testing for Non-Normality in Complete and
+ * Censored Samples. The Statistician 42(1):37-43.
  */
-export function shapiroWilk(values: number[]): { W: number; pValue: number; normal: boolean } {
+export function shapiroWilk(values: number[]): NormalityResult {
   const n = values.length;
-  if (n < 3) return { W: 1, pValue: 1, normal: true };
+  if (n < 3) return { W: 1, pValue: NaN, normal: true, testable: false };
 
   const sorted = [...values].sort((a, b) => a - b);
   const mean = ssMean(sorted);
   const SS = sorted.reduce((s, v) => s + (v - mean) ** 2, 0);
 
-  if (SS === 0) return { W: 1, pValue: 1, normal: true };
+  // Variância zero: todas as repetições iguais. Não há o que testar.
+  if (SS === 0) return { W: 1, pValue: NaN, normal: true, testable: false };
 
-  // Coefficients for W (approximated for small n using simplified a_i)
-  // Full Shapiro-Wilk table not included; use correlation-based approximation
-  const h = Math.floor(n / 2);
+  // Escores normais esperados, normalizados: a = m / ||m||. É a normalização
+  // que garante W ≤ 1.
+  const m: number[] = [];
+  for (let i = 1; i <= n; i++) m.push(jStat.normal.inv((i - 0.375) / (n + 0.25), 0, 1));
+  const norma = Math.sqrt(m.reduce((s, v) => s + v * v, 0));
+
   let b = 0;
-  for (let i = 0; i < h; i++) {
-    // Simplified: use normal scores approximation
-    const ai = Math.abs(jStat.normal.inv((i + 1 - 0.375) / (n + 0.25), 0, 1));
-    b += ai * (sorted[n - 1 - i] - sorted[i]);
-  }
+  for (let i = 0; i < n; i++) b += (m[i] / norma) * sorted[i];
 
-  const W = (b * b) / SS;
-  // Approximate p-value using normal approximation of ln(1-W)
-  const mu = -1.2725 + 1.0521 * Math.log(n);
-  const sigma = Math.max(0.01, 1.0308 - 0.26763 * Math.log(n));
+  const W = Math.min(1, Math.max(0, (b * b) / SS));
+
+  if (n < 5) return { W, pValue: NaN, normal: true, testable: false };
+
+  const u = Math.log(n);
+  const v = Math.log(u);
+  const mu = -1.2725 + 1.0521 * (v - u);
+  const sigma = Math.max(0.01, 1.0308 - 0.26758 * (v + 2 / u));
+  // W === 1 dá log(0) = -Infinity, z = -Infinity e p = 1 — que é o certo para
+  // uma amostra perfeitamente alinhada com a normal.
   const z = (Math.log(1 - W) - mu) / sigma;
   const pValue = 1 - jStat.normal.cdf(z, 0, 1);
 
-  return { W: Math.min(1, Math.max(0, W)), pValue, normal: pValue > 0.05 };
+  return { W, pValue, normal: pValue > 0.05, testable: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -230,6 +266,130 @@ export function oneWayANOVA(groups: GroupStat[]): ANOVAResult {
 }
 
 // ---------------------------------------------------------------------------
+// Distribuição da amplitude estudentizada (q de Tukey)
+//
+// POR QUE ESTÁ IMPLEMENTADA AQUI.
+//
+// O código chamava `jStat.studentizedRange.inv(...)`. Essa distribuição NÃO
+// existe no jStat: a chamada lançava `Cannot read properties of undefined`, e
+// escolher "Tukey-Kramer HSD" no painel quebrava a análise inteira. O erro só
+// não aparecia sempre porque o pipeline caía no Scott-Knott na maioria dos
+// casos — e, com o bug do Shapiro, no Kruskal-Wallis.
+//
+// A distribuição é uma integral dupla e não tem forma fechada; abaixo ela é
+// integrada por Simpson e invertida por bisseção. Aproximar q por
+// sqrt(2)·t_Bonferroni seria mais curto e daria HSD conservador demais — em
+// comparação de médias isso vira diferença declarada como não significativa
+// que na verdade é significativa.
+// ---------------------------------------------------------------------------
+
+/** log Γ(x) por Lanczos. Escrito aqui para não depender de mais uma API do jStat. */
+function logGama(x: number): number {
+  const g = [
+    676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+  ];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - logGama(1 - x);
+  const z = x - 1;
+  let a = 0.99999999999980993;
+  for (let i = 0; i < g.length; i++) a += g[i] / (z + i + 1);
+  const t = z + g.length - 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+/** Simpson composto em [a, b] com `n` subintervalos (n par). */
+function simpson(f: (x: number) => number, a: number, b: number, n: number): number {
+  const h = (b - a) / n;
+  let s = f(a) + f(b);
+  for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 === 0 ? 2 : 4);
+  return (s * h) / 3;
+}
+
+const densidadeNormal = (z: number) => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+
+/**
+ * Acumulada da normal padrão por Abramowitz & Stegun 7.1.26 (erro < 1,5e-7).
+ *
+ * Existe por velocidade, não por precisão: a integral dupla abaixo avalia esta
+ * função centenas de milhares de vezes por valor crítico, e `jStat.normal.cdf`
+ * nesse volume levava a análise a segundos de travamento no navegador.
+ */
+function acumuladaNormal(x: number): number {
+  const sinal = x < 0 ? -1 : 1;
+  const z = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * z);
+  const y =
+    1 -
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
+      t *
+      Math.exp(-z * z);
+  return 0.5 * (1 + sinal * y);
+}
+
+/**
+ * P(amplitude de k normais padrão independentes < w).
+ *
+ * = k ∫ φ(z) [Φ(z) − Φ(z − w)]^(k−1) dz
+ */
+function probabilidadeDaAmplitude(w: number, k: number): number {
+  if (w <= 0) return 0;
+  const f = (z: number) => {
+    const d = acumuladaNormal(z) - acumuladaNormal(z - w);
+    return d <= 0 ? 0 : densidadeNormal(z) * Math.pow(d, k - 1);
+  };
+  return Math.min(1, k * simpson(f, -7.5, 7.5, 140));
+}
+
+/**
+ * P(q < Q) para a amplitude estudentizada com k grupos e `df` graus de
+ * liberdade do resíduo — a amplitude dividida pelo desvio estimado.
+ */
+export function probabilidadeDaAmplitudeEstudentizada(Q: number, k: number, df: number): number {
+  if (Q <= 0) return 0;
+  // Com muitos graus de liberdade o denominador vira 1 e sobra a amplitude pura.
+  if (!Number.isFinite(df) || df > 3000) return probabilidadeDaAmplitude(Q, k);
+
+  // Densidade de s = raiz(qui-quadrado_df / df), o desvio padrão estimado.
+  const logC = (df / 2) * Math.log(df) - logGama(df / 2) - (df / 2 - 1) * Math.LN2;
+  const densidade = (s: number) =>
+    s <= 0 ? 0 : Math.exp(logC + (df - 1) * Math.log(s) - (df * s * s) / 2);
+
+  // s se concentra em torno de 1; fora desta janela a densidade é desprezível.
+  const meio = Math.max(0, 1 - 8 / Math.sqrt(df));
+  const fim = 1 + 8 / Math.sqrt(df);
+  return Math.min(1, simpson((s) => densidade(s) * probabilidadeDaAmplitude(Q * s, k), meio, fim, 40));
+}
+
+/**
+ * Valor crítico q de Tukey: o Q tal que P(q < Q) = 1 − alpha.
+ *
+ * Memorizado porque é integral dupla invertida por bisseção: sem cache, mexer
+ * num controle do painel refaria centenas de milhares de avaliações a cada
+ * re-renderização.
+ */
+const cacheDeQ = new Map<string, number>();
+
+export function amplitudeEstudentizadaCritica(alpha: number, k: number, df: number): number {
+  const chave = `${alpha}|${k}|${df}`;
+  const guardado = cacheDeQ.get(chave);
+  if (guardado !== undefined) return guardado;
+
+  const alvo = 1 - alpha;
+  let baixo = 0;
+  let alto = 30;
+  // 30 bisseções em [0, 30] dão ~3e-8, muito abaixo do erro da integração.
+  for (let i = 0; i < 30; i++) {
+    const meio = (baixo + alto) / 2;
+    if (probabilidadeDaAmplitudeEstudentizada(meio, k, df) < alvo) baixo = meio;
+    else alto = meio;
+  }
+
+  const q = (baixo + alto) / 2;
+  cacheDeQ.set(chave, q);
+  return q;
+}
+
+// ---------------------------------------------------------------------------
 // Tukey-Kramer HSD (post-hoc after ANOVA — handles unequal n)
 // ---------------------------------------------------------------------------
 
@@ -246,7 +406,7 @@ export function tukeyHSD(groups: GroupStat[], alpha = 0.05): ComparisonPair[] {
   );
   const MSW = SSW / dfWithin;
 
-  const qCrit = jStat.studentizedRange.inv(1 - alpha, k, dfWithin);
+  const qCrit = amplitudeEstudentizadaCritica(alpha, k, dfWithin);
   const results: ComparisonPair[] = [];
 
   for (let i = 0; i < k; i++) {

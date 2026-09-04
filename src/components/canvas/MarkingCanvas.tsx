@@ -3,6 +3,8 @@ import type { Mark, YoloSegmentation } from '../../types';
 import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
 import { CanvasRulers } from './CanvasRulers';
+import { formatLengthDual } from '../../lib/calibration';
+import { regiaoDeDoisPontos, regiaoUtilizavel, type Regiao } from '../../lib/region';
 
 /** Prévia da detecção assistida (Fase E) — candidatos ainda não confirmados. */
 export interface DetectionPreview {
@@ -47,6 +49,12 @@ interface MarkingCanvasProps {
   isMeasuring?: boolean;
   /** Devolve a distância medida, em pixels da imagem. */
   onMeasured?: (pixels: number, a: { x: number; y: number }, b: { x: number; y: number }) => void;
+  /** Modo de seleção de região: arrastar define onde a detecção vai rodar. */
+  isSelectingRegion?: boolean;
+  /** Região já escolhida — continua desenhada enquanto valer. */
+  selectedRegion?: Regiao | null;
+  /** Devolve a região desenhada, em pixels da imagem. */
+  onRegionSelected?: (regiao: Regiao) => void;
 }
 
 export function MarkingCanvas({
@@ -73,6 +81,9 @@ export function MarkingCanvas({
   showRulers,
   isMeasuring,
   onMeasured,
+  isSelectingRegion,
+  selectedRegion,
+  onRegionSelected,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -153,6 +164,44 @@ export function MarkingCanvas({
     if (pos) setCursorPos(pos);
   };
 
+  // --- Região de detecção: um arraste define onde o modelo vai rodar ---
+  // Arraste, e não dois cliques como a régua: aqui o retorno visual contínuo
+  // do retângulo é o que deixa a pessoa enquadrar o que quer, e o gesto é o
+  // mesmo de qualquer seleção retangular que ela já conhece.
+  const [arrasteInicio, setArrasteInicio] = useState<{ x: number; y: number } | null>(null);
+  const [arrasteAtual, setArrasteAtual] = useState<{ x: number; y: number } | null>(null);
+
+  const regiaoEmConstrucao =
+    arrasteInicio && arrasteAtual
+      ? regiaoDeDoisPontos(arrasteInicio.x, arrasteInicio.y, arrasteAtual.x, arrasteAtual.y)
+      : null;
+
+  const iniciarRegiao = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const pos = toImageCoords(e);
+    if (!pos) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setArrasteInicio(pos);
+    setArrasteAtual(pos);
+  };
+
+  const arrastarRegiao = (e: React.MouseEvent) => {
+    if (!arrasteInicio) return;
+    const pos = toImageCoords(e);
+    if (pos) setArrasteAtual(pos);
+  };
+
+  const concluirRegiao = () => {
+    // Arraste curto demais é clique com a mão trêmula, não seleção: descarta
+    // em silêncio em vez de mandar o modelo rodar num retângulo de 3 px.
+    if (regiaoUtilizavel(regiaoEmConstrucao)) onRegionSelected?.(regiaoEmConstrucao);
+    setArrasteInicio(null);
+    setArrasteAtual(null);
+  };
+
+  const regiaoDesenhada = regiaoEmConstrucao ?? selectedRegion ?? null;
+
   const handlePolygonMouseMove = (e: React.MouseEvent, seg: YoloSegmentation) => {
     if (isPanningMode) return;
     const rect = e.currentTarget.parentElement?.getBoundingClientRect();
@@ -170,11 +219,11 @@ export function MarkingCanvas({
     if (isPanningMode) return;
     e.stopPropagation(); // Avoid placing a manual mark when clicking a polygon
 
-    if (e.shiftKey || e.ctrlKey || e.button === 2) {
-      // Delete/hide segment
+    // Mesma regra da marcação manual: Ctrl inverte a classe, Shift/Alt e o
+    // botão direito apagam, clique simples não faz nada.
+    if (e.shiftKey || e.altKey || e.button === 2) {
       onDeleteSegmentation(seg.id);
-    } else {
-      // Toggle category (viable <-> inviable)
+    } else if (e.ctrlKey || e.metaKey) {
       onToggleSegmentationClass(seg.id);
     }
   };
@@ -289,6 +338,68 @@ export function MarkingCanvas({
         </svg>
       )}
 
+      {/* Região de detecção — camada de arraste, acima de tudo */}
+      {isSelectingRegion && (
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox={`0 0 ${image.width} ${image.height}`}
+          style={{ width: '100%', height: '100%', zIndex: 13, cursor: 'crosshair' }}
+          onMouseDown={iniciarRegiao}
+          onMouseMove={arrastarRegiao}
+          onMouseUp={concluirRegiao}
+          onMouseLeave={concluirRegiao}
+        >
+          {/* Escurece o que está FORA da região: o recorte é a informação, e
+              quatro retângulos ao redor mostram isso sem depender de máscara
+              SVG, que alguns navegadores rasterizam mal em zoom alto. */}
+          {regiaoDesenhada ? (
+            <>
+              <rect x={0} y={0} width={image.width} height={regiaoDesenhada.y} fill="rgba(0,0,0,0.45)" />
+              <rect
+                x={0}
+                y={regiaoDesenhada.y + regiaoDesenhada.height}
+                width={image.width}
+                height={Math.max(0, image.height - regiaoDesenhada.y - regiaoDesenhada.height)}
+                fill="rgba(0,0,0,0.45)"
+              />
+              <rect
+                x={0}
+                y={regiaoDesenhada.y}
+                width={regiaoDesenhada.x}
+                height={regiaoDesenhada.height}
+                fill="rgba(0,0,0,0.45)"
+              />
+              <rect
+                x={regiaoDesenhada.x + regiaoDesenhada.width}
+                y={regiaoDesenhada.y}
+                width={Math.max(0, image.width - regiaoDesenhada.x - regiaoDesenhada.width)}
+                height={regiaoDesenhada.height}
+                fill="rgba(0,0,0,0.45)"
+              />
+              <rect
+                x={regiaoDesenhada.x}
+                y={regiaoDesenhada.y}
+                width={regiaoDesenhada.width}
+                height={regiaoDesenhada.height}
+                fill="none"
+                stroke={ESPECIME.tool}
+                strokeWidth={Math.max(2, image.width / 500)}
+                strokeDasharray={`${image.width / 120},${image.width / 200}`}
+                className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
+              />
+            </>
+          ) : (
+            <rect
+              x={0}
+              y={0}
+              width={image.width}
+              height={image.height}
+              fill="rgba(0,0,0,0.25)"
+            />
+          )}
+        </svg>
+      )}
+
       {/* Fase F — Camada interativa: hover nas marcações + borracha */}
       {(isEraser || onRemoveMark || onToggleMarkClass) && (
         <svg
@@ -344,19 +455,31 @@ export function MarkingCanvas({
                 onMouseLeave={() => setHoveredMarkId(null)}
                 onMouseDown={(e) => {
                   // Arrastar reposiciona a marcação (só com a ferramenta de marcação).
-                  if (isEraser || e.button !== 0 || e.shiftKey || e.altKey) return;
+                  if (
+                    isEraser ||
+                    e.button !== 0 ||
+                    e.shiftKey ||
+                    e.altKey ||
+                    e.ctrlKey ||
+                    e.metaKey
+                  )
+                    return;
                   e.stopPropagation();
                   setDragMark({ id: mark.id, moved: false });
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Se houve arraste, não interpreta como clique (evita inverter sem querer).
+                  // Se houve arraste, não interpreta como clique.
                   if (dragMark?.moved) return;
-                  // Borracha, Shift ou Alt apagam; clique simples inverte a classe.
+
+                  // O clique simples fica LIVRE para arrastar. Antes ele
+                  // invertia a classe, então parar em cima de uma marcação sem
+                  // mover trocava viável por inviável sem querer — o erro mais
+                  // caro possível numa contagem de viabilidade.
                   if (isEraser || e.shiftKey || e.altKey) {
                     onRemoveMark?.(mark.id);
                     setHoveredMarkId(null);
-                  } else {
+                  } else if (e.ctrlKey || e.metaKey) {
                     onToggleMarkClass?.(mark.id);
                   }
                 }}
@@ -503,18 +626,18 @@ export function MarkingCanvas({
             <div>Confiança: {(hoveredSeg.confidence * 100).toFixed(1)}%</div>
             {hoveredSeg.width && hoveredSeg.height && (
               <>
-                <div>
-                  Comprimento: {hoveredSeg.width} px{' '}
-                  {umPerPixel ? `(${(hoveredSeg.width * umPerPixel).toFixed(1)} µm)` : ''}
-                </div>
-                <div>
-                  Largura: {hoveredSeg.height} px{' '}
-                  {umPerPixel ? `(${(hoveredSeg.height * umPerPixel).toFixed(1)} µm)` : ''}
-                </div>
+                {/* Pixel e milímetro juntos: o pixel é o que a imagem tem, o
+                    milímetro é a unidade em que a semente é descrita e
+                    publicada. Mostrar só um obriga a converter de cabeça. */}
+                <div>Comprimento: {formatLengthDual(hoveredSeg.width, umPerPixel)}</div>
+                <div>Largura: {formatLengthDual(hoveredSeg.height, umPerPixel)}</div>
+                {hoveredSeg.height > 0 && (
+                  <div>Razão C/L: {(hoveredSeg.width / hoveredSeg.height).toFixed(2)}</div>
+                )}
               </>
             )}
             <div className="text-[8px] text-neutral-400 pt-1 border-t border-neutral-700/30 mt-1 uppercase">
-              Clique: Alternar • Shift+Clique: Apagar
+              Ctrl+clique: inverter classe • Shift+clique: apagar
             </div>
           </div>
         </div>

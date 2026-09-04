@@ -15,6 +15,7 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  SquareDashedMousePointer,
 } from 'lucide-react';
 import {
   detectObjects,
@@ -26,12 +27,24 @@ import {
 } from '../../lib/detect';
 import type { Mark } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
+import type { Regiao } from '../../lib/region';
 
 interface DetectionPanelProps {
   image: HTMLImageElement | HTMLCanvasElement | null;
   marks: Mark[];
   onAddMarks: (marks: Mark[]) => void;
   onPreviewChange: (preview: DetectionPreview | null) => void;
+  /**
+   * Restringe a detecção a um retângulo. Ausente = imagem inteira.
+   *
+   * `detectObjects` já aceitava `roi` desde sempre; o que faltava era um jeito
+   * de a pessoa desenhar o retângulo em vez de digitar quatro números.
+   */
+  regiao?: Regiao | null;
+  /** Abre o modo de arraste no canvas para desenhar a região. */
+  onSelecionarRegiao?: () => void;
+  /** Volta a detectar na imagem inteira. */
+  onLimparRegiao?: () => void;
 }
 
 const DEDUPE_RADIUS = 12;
@@ -89,7 +102,15 @@ const SCENARIOS = [
   },
 ];
 
-export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: DetectionPanelProps) {
+export function DetectionPanel({
+  image,
+  marks,
+  onAddMarks,
+  onPreviewChange,
+  regiao,
+  onSelecionarRegiao,
+  onLimparRegiao,
+}: DetectionPanelProps) {
   // Básico
   const [sensitivity, setSensitivity] = useState(50);
   const [minArea, setMinArea] = useState(60);
@@ -149,6 +170,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
           channel,
           denoise,
           maxElongation,
+          roi: regiao ?? undefined,
           buildMask: true,
         });
         setResult(r);
@@ -169,6 +191,7 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
       channel,
       denoise,
       maxElongation,
+      regiao,
     ]
   );
 
@@ -468,6 +491,41 @@ export function DetectionPanel({ image, marks, onAddMarks, onPreviewChange }: De
               />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Região de varredura */}
+      {onSelecionarRegiao && (
+        <div className="space-y-1.5 rounded-xl border border-line p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
+              Região
+            </span>
+          </div>
+          <p className="text-[10px] text-ink-3 leading-snug">
+            {regiao
+              ? `${Math.round(regiao.width)} × ${Math.round(regiao.height)} px selecionados.`
+              : 'Sem região: detecta na imagem inteira.'}
+          </p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={onSelecionarRegiao}
+              disabled={!image || isRunning}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-line text-ink-2 hover:bg-surface-2 disabled:opacity-40 text-[10px] font-bold uppercase tracking-wide transition-colors"
+            >
+              <SquareDashedMousePointer size={12} />
+              {regiao ? 'Redesenhar' : 'Selecionar'}
+            </button>
+            {regiao && onLimparRegiao && (
+              <button
+                onClick={onLimparRegiao}
+                disabled={isRunning}
+                className="px-2 py-1.5 rounded-lg border border-line text-ink-3 hover:bg-surface-2 disabled:opacity-40 text-[10px] font-bold uppercase tracking-wide transition-colors"
+              >
+                Imagem toda
+              </button>
+            )}
+          </div>
         </div>
       )}
 

@@ -158,45 +158,6 @@ export function Header({
           </div>
         </div>
 
-        <div className="bg-line hidden h-8 w-px lg:block" />
-
-        {/* Marcas dos grupos de pesquisa. São de terceiros: exibidas como
-            recebidas, sem recorte nem recolorização. */}
-        <div className="hidden items-center gap-1.5 lg:flex">
-          <a
-            href="https://www.instagram.com/gpeorq"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GPEOrq — Grupo de Pesquisa em Orquídeas"
-            className="rounded-control border-line hover:border-accent flex items-center justify-center border bg-white p-1 transition-colors"
-          >
-            <img
-              src="/logo-gpeorq.png"
-              alt="Logo GPEOrq"
-              className="h-7 w-7 object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </a>
-          <a
-            href="https://www.instagram.com/gpsem_2000/"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GPSEM — Grupo de Estudos e Pesquisas em Sementes"
-            className="rounded-control border-line hover:border-accent flex items-center justify-center border bg-white p-1 transition-colors"
-          >
-            <img
-              src="/logo-gpsem.png"
-              alt="Logo GPSEM"
-              className="h-7 w-7 object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </a>
-        </div>
-
         {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
             embaixo, não por cor de texto: cor sozinha não carrega estado. */}
         <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">

@@ -1,10 +1,23 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
+import { execSync } from 'child_process';
+import { createRequire } from 'module';
+import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig(({mode}) => {
+const pkg = createRequire(import.meta.url)('./package.json');
+
+/** Commit curto do build. Vazio fora de um repositório git — não é erro. */
+function commitCurto(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'sem-git';
+  }
+}
+
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     base: './',
@@ -24,7 +37,7 @@ export default defineConfig(({mode}) => {
       },
     },
     plugins: [
-      react(), 
+      react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -46,22 +59,22 @@ export default defineConfig(({mode}) => {
               src: 'icon-192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any'
+              purpose: 'any',
             },
             {
               src: 'icon-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any'
+              purpose: 'any',
             },
             {
               // Fundo sangrado: a mascara do sistema recorta os cantos.
               src: 'icon-maskable-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'maskable'
-            }
-          ]
+              purpose: 'maskable',
+            },
+          ],
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
@@ -77,19 +90,26 @@ export default defineConfig(({mode}) => {
                 cacheName: 'google-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            }
-          ]
-        }
-      })
+                  statuses: [0, 200],
+                },
+              },
+            },
+          ],
+        },
+      }),
     ],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      // Identidade do build. Injetada aqui, e não escrita à mão num componente,
+      // porque versão que depende de alguém lembrar de atualizar fica errada —
+      // e um relatório exportado precisa poder dizer exatamente qual código o
+      // produziu, que é requisito de reprodutibilidade, não enfeite.
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __BUILD_COMMIT__: JSON.stringify(commitCurto()),
+      __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
     },
     resolve: {
       alias: {
@@ -103,9 +123,10 @@ export default defineConfig(({mode}) => {
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       // Inside Docker, usePolling is required for file changes to be detected
       // (set via CHOKIDAR_USEPOLLING in docker-compose.yml).
-      watch: process.env.DISABLE_HMR === 'true'
-        ? null
-        : { usePolling: process.env.CHOKIDAR_USEPOLLING === 'true' },
+      watch:
+        process.env.DISABLE_HMR === 'true'
+          ? null
+          : { usePolling: process.env.CHOKIDAR_USEPOLLING === 'true' },
     },
   };
 });

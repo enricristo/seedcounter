@@ -16,6 +16,27 @@ const defaultMetadata: Metadata = {
 
 const METADATA_ID = 'current_metadata';
 
+/**
+ * Fila de escrita dos metadados.
+ *
+ * Gravar um campo é ler-modificar-gravar. Duas chamadas concorrentes leem a
+ * MESMA base antes de qualquer uma gravar, então a segunda sobrescreve o campo
+ * que a primeira acabou de definir — e como cada tecla dispara uma gravação,
+ * digitar rápido em dois campos fazia um deles simplesmente não ser salvo.
+ *
+ * A fila é de módulo, não de componente: precisa sobreviver às re-renderizações
+ * para de fato serializar.
+ */
+let filaDeEscrita: Promise<unknown> = Promise.resolve();
+
+function enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
+  // O catch mantém a fila viva: uma gravação que falhe não pode travar as
+  // seguintes.
+  const proxima = filaDeEscrita.catch(() => {}).then(tarefa);
+  filaDeEscrita = proxima.catch(() => {});
+  return proxima;
+}
+
 export function useMetadata() {
   const storedMetadata = useLiveQuery(() => db.metadataStore.get(METADATA_ID));
   const metadata = storedMetadata?.data ?? defaultMetadata;
@@ -42,27 +63,29 @@ export function useMetadata() {
   }, []);
 
   const setMetadata = useCallback(
-    async (newMetadata: Metadata | ((prev: Metadata) => Metadata)) => {
-      if (typeof newMetadata === 'function') {
-        const existing = await db.metadataStore.get(METADATA_ID);
-        const current = existing?.data ?? defaultMetadata;
-        await db.metadataStore.put({ id: METADATA_ID, data: newMetadata(current) });
-      } else {
-        await db.metadataStore.put({ id: METADATA_ID, data: newMetadata });
-      }
-    },
+    (newMetadata: Metadata | ((prev: Metadata) => Metadata)) =>
+      enfileirar(async () => {
+        if (typeof newMetadata === 'function') {
+          const existing = await db.metadataStore.get(METADATA_ID);
+          const current = existing?.data ?? defaultMetadata;
+          await db.metadataStore.put({ id: METADATA_ID, data: newMetadata(current) });
+        } else {
+          await db.metadataStore.put({ id: METADATA_ID, data: newMetadata });
+        }
+      }),
     []
   );
 
   const updateMetadata = useCallback(
-    async <K extends keyof Metadata>(key: K, value: Metadata[K]) => {
-      const existing = await db.metadataStore.get(METADATA_ID);
-      const current = existing?.data ?? defaultMetadata;
-      await db.metadataStore.put({
-        id: METADATA_ID,
-        data: { ...current, [key]: value },
-      });
-    },
+    <K extends keyof Metadata>(key: K, value: Metadata[K]) =>
+      enfileirar(async () => {
+        const existing = await db.metadataStore.get(METADATA_ID);
+        const current = existing?.data ?? defaultMetadata;
+        await db.metadataStore.put({
+          id: METADATA_ID,
+          data: { ...current, [key]: value },
+        });
+      }),
     []
   );
 

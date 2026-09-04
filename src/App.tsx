@@ -51,6 +51,7 @@ import { RoiModal } from './features/roi';
 // Utils
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
+import type { Regiao } from './lib/region';
 import {
   NEUTRAL_ADJUSTMENTS,
   applyAdjustments,
@@ -59,6 +60,7 @@ import {
   type ImageAdjustments,
 } from './lib/image-adjust';
 import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
+import { baixarArquivo, nomeDeExportacao } from './lib/download';
 
 // Types
 import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './types';
@@ -66,15 +68,12 @@ import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './ty
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
 
-// Helper function to download locally generated data
+// Delega para src/lib/download.ts. A versão anterior criava a âncora sem
+// anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
+// chegavam com nome de UUID e sem extensão, parecendo que a exportação não
+// tinha funcionado.
 function downloadBlob(content: string, filename: string, contentType: string) {
-  const blob = new Blob([content], { type: contentType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  baixarArquivo(content, filename, contentType);
 }
 
 // Render marks overlay helper for the canvas context
@@ -159,6 +158,12 @@ export default function App() {
   const [adjustEnabled, setAdjustEnabled] = useState(true);
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
+
+  // Região de detecção: onde os motores (clássico e YOLO) vão rodar.
+  // Sem ela, os dois varrem a imagem inteira — que numa digitalização de
+  // scanner são dezenas de janelas de inferência e minutos de espera.
+  const [regiaoDeDeteccao, setRegiaoDeDeteccao] = useState<Regiao | null>(null);
+  const [selecionandoRegiao, setSelecionandoRegiao] = useState(false);
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
   const {
@@ -627,12 +632,26 @@ export default function App() {
   const { isDragActive } = useDragDrop({ onFilesDropped });
 
   // Unified filename generation helper
-  const generateExportName = (extension: string) => {
-    const baseName = filename ? filename.split('.')[0] : 'contagem';
-    const cleanPlate = metadata.plate ? `_${metadata.plate}` : '';
-    const cleanQuad = metadata.quadrant ? `_Q${metadata.quadrant}` : '';
-    return `${baseName}${cleanPlate}${cleanQuad}.${extension}`;
-  };
+  /**
+   * Nome de arquivo rastreável: projeto, tratamento, placa, quadrante,
+   * amostra, tipo e carimbo de data.
+   *
+   * Ordenar a pasta por nome passa a agrupar por projeto e depois por
+   * tratamento — que é como o pesquisador procura — em vez de por ordem de
+   * exportação, que não significa nada.
+   */
+  const generateExportName = (extension: string, tipo?: string) =>
+    nomeDeExportacao(
+      {
+        arquivo: filename,
+        projeto: metadata.project,
+        tratamento: metadata.treatment,
+        placa: metadata.plate,
+        quadrante: metadata.quadrant,
+        tipo,
+      },
+      extension
+    );
 
   // EXPORTS
   const handleExportTextReport = () => {
@@ -653,7 +672,7 @@ export default function App() {
       `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
       `Total: ${totalCount}\n`;
 
-    downloadBlob(content, generateExportName('txt'), 'text/plain');
+    downloadBlob(content, generateExportName('txt', 'relatorio'), 'text/plain');
   };
 
   const handleExportJSON = () => {
@@ -671,36 +690,69 @@ export default function App() {
       marks,
       yoloSegmentations,
     };
-    downloadBlob(JSON.stringify(data, null, 2), generateExportName('json'), 'application/json');
+    downloadBlob(
+      JSON.stringify(data, null, 2),
+      generateExportName('json', 'sessao'),
+      'application/json'
+    );
   };
 
   // --- Exportação por objeto (uma linha por semente) ---------------------
   // Funciona em qualquer cenário: sem calibração sai em pixels, sem
   // segmentação sai só posição e classe. Nenhuma camada é obrigatória.
+  /**
+   * Lê os pixels da imagem em exibição, para as medidas de cor por objeto.
+   *
+   * Feito sob demanda, só na hora de exportar: manter um ImageData de uma
+   * digitalização de 7992×3672 vivo o tempo todo custaria ~117 MB de RAM por
+   * imagem, e a contagem manual não precisa dele.
+   *
+   * Devolve undefined se algo falhar — as colunas de cor saem vazias e a
+   * morfometria continua inteira, porque ela não depende dos pixels.
+   */
+  const lerPixelsDaImagem = useCallback(() => {
+    if (!image) return undefined;
+    try {
+      const off = document.createElement('canvas');
+      off.width = image.width;
+      off.height = image.height;
+      const ctx = off.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return undefined;
+      ctx.drawImage(image, 0, 0);
+      return ctx.getImageData(0, 0, image.width, image.height);
+    } catch {
+      // Imagem de outra origem marca o canvas como contaminado e getImageData
+      // lança. Não é motivo para abortar a exportação inteira.
+      return undefined;
+    }
+  }, [image]);
+
   const buildMeasurementContext = useCallback(
     () => ({
       marks,
       segmentations: yoloSegmentations,
       metadata,
       filename,
+      imageData: lerPixelsDaImagem(),
+      // Uma semente de orquídea a 3600 DPI tem milhares de pixels; ler um de
+      // cada quatro não muda a média e corta o custo em 4x.
+      colorSampling: 2,
     }),
-    [marks, yoloSegmentations, metadata, filename]
+    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem]
   );
 
   const handleExportMeasurementsCSV = useCallback(() => {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const csv = measurementsToCSV(rows, ctx);
-    const base = (filename || 'amostra').replace(/\.[^.]+$/, '');
-    downloadBlob(csv, `${base}_medidas.csv`, 'text/csv;charset=utf-8;');
+    downloadBlob(csv, generateExportName('csv', 'medidas'), 'text/csv;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
   const handleExportSQL = useCallback(() => {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const sql = measurementsToSQL(rows, ctx);
-    const base = (filename || 'amostra').replace(/\.[^.]+$/, '');
-    downloadBlob(sql, `${base}_medidas.sql`, 'text/plain;charset=utf-8;');
+    downloadBlob(sql, generateExportName('sql', 'medidas'), 'text/plain;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
   const handleExportCSV = () => {
@@ -739,7 +791,7 @@ export default function App() {
       .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
-    downloadBlob(csvContent, generateExportName('csv'), 'text/csv');
+    downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
   };
 
   const handleExportAnnotatedImage = () => {
@@ -830,11 +882,12 @@ export default function App() {
     ctx.fillStyle = ESPECIME.inviable;
     ctx.fillText(`Inviáveis: ${inviableCount}`, padding + 160, statsY);
 
-    const dataUrl = offscreenCanvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = generateExportName('png');
-    link.click();
+    // toBlob em vez de toDataURL: uma data: URL de uma digitalização grande
+    // vira uma string de dezenas de MB, e o mesmo defeito da âncora destacada
+    // fazia o arquivo sair sem nome nem extensão.
+    offscreenCanvas.toBlob((blob) => {
+      if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
+    }, 'image/png');
   };
 
   const handleExportPDF = () => {
@@ -1176,6 +1229,9 @@ export default function App() {
                       onPreviewChange={setDetectionPreview}
                       onAddSegmentations={addYoloSegmentations}
                       umPerPixel={metadata.umPerPixel}
+                      regiao={regiaoDeDeteccao}
+                      onSelecionarRegiao={() => setSelecionandoRegiao(true)}
+                      onLimparRegiao={() => setRegiaoDeDeteccao(null)}
                     />
                   )}
                   {isDetectionEnabled && (
@@ -1184,6 +1240,9 @@ export default function App() {
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
+                      regiao={regiaoDeDeteccao}
+                      onSelecionarRegiao={() => setSelecionandoRegiao(true)}
+                      onLimparRegiao={() => setRegiaoDeDeteccao(null)}
                     />
                   )}
                 </div>
@@ -1239,6 +1298,12 @@ export default function App() {
                 showRulers={showRulers}
                 isMeasuring={isMeasuring}
                 onMeasured={handleMeasured}
+                isSelectingRegion={selecionandoRegiao}
+                selectedRegion={regiaoDeDeteccao}
+                onRegionSelected={(r) => {
+                  setRegiaoDeDeteccao(r);
+                  setSelecionandoRegiao(false);
+                }}
               />
             )}
           </ImageViewport>

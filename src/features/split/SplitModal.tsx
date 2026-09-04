@@ -33,7 +33,9 @@ interface SplitModalProps {
 
 type Modo = 'total' | 'grade' | 'lado';
 
-const LARGURA_PREVIA = 640;
+// Mesma regra do RoiModal: a prévia cabe numa caixa, não só numa largura.
+const PREVIA_MAX_LARGURA = 620;
+const PREVIA_MAX_ALTURA = 320;
 const MIN_REGIAO = 32;
 
 export function SplitModal({ isOpen, onClose, image, filename, onSplit }: SplitModalProps) {
@@ -53,7 +55,9 @@ export function SplitModal({ isOpen, onClose, image, filename, onSplit }: SplitM
     }
   }, [isOpen, image]);
 
-  const escala = image ? LARGURA_PREVIA / image.width : 1;
+  const escala = image
+    ? Math.min(PREVIA_MAX_LARGURA / image.width, PREVIA_MAX_ALTURA / image.height)
+    : 1;
 
   const grade = useMemo(() => {
     if (!regiao) return { colunas: 1, linhas: 1 };
@@ -146,9 +150,9 @@ export function SplitModal({ isOpen, onClose, image, filename, onSplit }: SplitM
         role="dialog"
         aria-modal="true"
         aria-label="Dividir digitalização"
-        className="bg-surface-1 border-line rounded-panel max-h-[92vh] w-full max-w-3xl overflow-auto border shadow-2xl"
+        className="bg-surface-1 border-line rounded-panel flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden border shadow-2xl"
       >
-        <header className="border-line flex items-start gap-3 border-b p-5">
+        <header className="border-line flex shrink-0 items-start gap-3 border-b p-5">
           <span className="text-accent mt-0.5 shrink-0">
             <Grid3x3 size={20} strokeWidth={1.75} aria-hidden="true" />
           </span>
@@ -168,11 +172,12 @@ export function SplitModal({ isOpen, onClose, image, filename, onSplit }: SplitM
           </button>
         </header>
 
-        <div className="space-y-4 p-5">
+        {/* Só o corpo rola. O rodapé com a ação fica sempre visível. */}
+        <div className="min-h-0 flex-1 space-y-4 overflow-auto p-5">
           {/* Prévia com a região ajustável e a grade sobreposta. */}
           <div
             className="bg-stage rounded-panel relative mx-auto overflow-hidden select-none"
-            style={{ width: LARGURA_PREVIA, height: image.height * escala }}
+            style={{ width: image.width * escala, height: image.height * escala }}
             onPointerMove={aoMover}
             onPointerUp={encerrar}
             onPointerLeave={encerrar}
@@ -325,7 +330,7 @@ export function SplitModal({ isOpen, onClose, image, filename, onSplit }: SplitM
           )}
         </div>
 
-        <footer className="border-line bg-surface-2 flex justify-end gap-2 border-t p-4">
+        <footer className="border-line bg-surface-2 flex shrink-0 justify-end gap-2 border-t p-4">
           <button
             onClick={onClose}
             className="rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-1 border px-4 py-2 text-[11px] font-bold tracking-wider uppercase transition-all"

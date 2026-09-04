@@ -25,6 +25,10 @@ import { GerminationBarChart } from './components/GerminationBarChart';
 import { GerminationCurveChart } from './components/GerminationCurveChart';
 import { StatsResultCard } from './components/StatsResultCard';
 import { WilsonCIBar } from './components/WilsonCIBar';
+import { MOTIVO_SEM_INDICES_DE_VIGOR, rotulosDoEixo } from '../../lib/time-axis';
+
+/** Valor sentinela do filtro de ensaio. Não é nome de projeto de ninguém. */
+const TODOS_OS_PROJETOS = '__todos__';
 
 interface StatsViewProps {
   sessions: Session[];
@@ -41,11 +45,42 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
   const [sortField, setSortField] = useState<'date' | 'plate' | 'treatment' | 'viable'>('date');
   const [sortAsc, setSortAsc] = useState(false);
   const [copiedLetters, setCopiedLetters] = useState(false);
+  const [projetoSelecionado, setProjetoSelecionado] = useState(TODOS_OS_PROJETOS);
+  const [experimentoSelecionado, setExperimentoSelecionado] = useState<string>('');
+
+  // Projetos presentes nas contagens salvas — o filtro da comparação.
+  const projetosDisponiveis = useMemo(() => {
+    const nomes = new Set<string>();
+    sessions.forEach((s) => {
+      const p = s.metadata.project?.trim();
+      if (p) nomes.add(p);
+    });
+    return [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [sessions]);
+
+  /**
+   * Contagens que entram na comparação.
+   *
+   * Sem filtro, a ANOVA junta tratamentos de ensaios diferentes num teste só —
+   * comparar "-0,6 MPa" contra "TZ 1,0%" não significa nada, e o painel dava a
+   * resposta assim mesmo, sem avisar.
+   */
+  const sessoesDaComparacao = useMemo(() => {
+    if (projetoSelecionado === TODOS_OS_PROJETOS) return sessions;
+    return sessions.filter((s) => (s.metadata.project?.trim() || '') === projetoSelecionado);
+  }, [sessions, projetoSelecionado]);
+
+  /** Quantos ensaios diferentes estão caindo na mesma comparação. */
+  const projetosNaComparacao = useMemo(() => {
+    const nomes = new Set<string>();
+    sessoesDaComparacao.forEach((s) => nomes.add(s.metadata.project?.trim() || 'Sem projeto'));
+    return nomes.size;
+  }, [sessoesDaComparacao]);
 
   // Group sessions by treatment
   const treatmentGroups = useMemo(() => {
     const groups: Record<string, number[]> = {};
-    sessions.forEach((s) => {
+    sessoesDaComparacao.forEach((s) => {
       const treatment = s.metadata.treatment?.trim() || 'Controle';
       const total = s.viableCount + s.inviableCount;
       if (total > 0) {
@@ -59,7 +94,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
       label,
       values,
     })) as GroupStat[];
-  }, [sessions]);
+  }, [sessoesDaComparacao]);
 
   // Run stats pipeline
   const statsResult = useMemo(() => {
@@ -116,13 +151,26 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     return { none, fungal, bacterial, mixed, hasData: false };
   }, [sessions, experiments]);
 
+  /**
+   * Experimento em foco nas abas de curva e vigor.
+   *
+   * Antes era sempre `experiments[0]`: com mais de um experimento salvo, os
+   * demais simplesmente não tinham como ser vistos.
+   */
+  const experimentoEmFoco = useMemo(
+    () => experiments.find((e) => e.id === experimentoSelecionado) ?? experiments[0],
+    [experiments, experimentoSelecionado]
+  );
+
+  /** DAP ou dias de armazenamento — muda rótulo e o que faz sentido calcular. */
+  const eixoDoTempo = useMemo(() => rotulosDoEixo(experimentoEmFoco), [experimentoEmFoco]);
+
   // Time-series curve data extraction
   const curveData = useMemo(() => {
     // If we have experiments, build time series points
-    if (experiments.length === 0) return { points: [], treatmentCodes: [] };
+    const exp = experimentoEmFoco;
+    if (!exp) return { points: [], treatmentCodes: [] };
 
-    // Use first active experiment
-    const exp = experiments[0];
     const days = exp.evaluationDays;
     const codes = exp.treatments.map((t) => t.code);
 
@@ -146,12 +194,12 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     });
 
     return { points, treatmentCodes: codes, experimentName: exp.name };
-  }, [experiments]);
+  }, [experimentoEmFoco]);
 
   // Vigor table data
   const vigorStats = useMemo(() => {
-    if (experiments.length === 0) return [];
-    const exp = experiments[0];
+    const exp = experimentoEmFoco;
+    if (!exp) return [];
 
     return exp.treatments.map((t) => {
       // Group readings by dayIndex
@@ -195,7 +243,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
         t50: t50 ? `${t50.toFixed(1)} dias` : 'N/A',
       };
     });
-  }, [experiments]);
+  }, [experimentoEmFoco]);
 
   // Sort sessions
   const sortedSessions = useMemo(() => {
@@ -536,6 +584,24 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
 
               {/* Toggles */}
               <div className="flex flex-wrap items-center gap-3">
+                {projetosDisponiveis.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[10px] font-bold text-ink-3 uppercase">Ensaio:</label>
+                    <select
+                      value={projetoSelecionado}
+                      onChange={(e) => setProjetoSelecionado(e.target.value)}
+                      className="px-2 py-1 bg-surface-2 text-ink-2 border border-line rounded-lg text-[10.5px] font-bold focus:outline-none max-w-[16rem]"
+                    >
+                      <option value={TODOS_OS_PROJETOS}>Todos os projetos</option>
+                      {projetosDisponiveis.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-1.5">
                   <label className="text-[10px] font-bold text-ink-3 uppercase">Pós-Hoc:</label>
                   <select
@@ -559,6 +625,18 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 </label>
               </div>
             </div>
+
+            {/* Mistura de ensaios: o teste roda, mas a resposta não significa nada. */}
+            {projetosNaComparacao > 1 && (
+              <div className="flex items-start gap-2 rounded-2xl border border-warn/40 bg-warn/10 px-4 py-3">
+                <AlertCircle size={14} className="text-warn mt-px shrink-0" />
+                <p className="text-[11px] text-ink-2 leading-snug">
+                  A comparação está juntando <strong>{projetosNaComparacao} ensaios diferentes</strong>{' '}
+                  no mesmo teste. ANOVA compara tratamentos de um mesmo experimento — selecione um
+                  ensaio acima para que as letras signifiquem alguma coisa.
+                </p>
+              </div>
+            )}
 
             {/* Results Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -604,8 +682,16 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                         </span>
                         <div className="flex items-center gap-1.5 font-bold">
                           <span className="font-mono text-ink-3">W={r.W.toFixed(3)}</span>
-                          <span className={r.normal ? 'text-accent' : 'text-amber-500'}>
-                            {r.normal ? 'Normal (p>0.05)' : 'Não-Normal'}
+                          <span
+                            className={
+                              !r.testable ? 'text-ink-3' : r.normal ? 'text-accent' : 'text-amber-500'
+                            }
+                          >
+                            {!r.testable
+                              ? 'n < 5 — não avaliável'
+                              : r.normal
+                                ? 'Normal (p>0.05)'
+                                : 'Não-Normal'}
                           </span>
                         </div>
                       </div>
@@ -679,14 +765,33 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
         {/* Tab 3: Vigor */}
         {activeTab === 'vigor' && (
           <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-ink-2 uppercase">
-                Análise Temporal e Índices de Vigor
-              </h3>
-              <p className="text-[10px] text-ink-3 font-semibold">
-                Análise cinética da germinação. Requer lançamento de avaliações longitudinais
-                vinculadas a experimentos.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-ink-2 uppercase">
+                  Análise Temporal e Índices de Vigor
+                </h3>
+                <p className="text-[10px] text-ink-3 font-semibold">
+                  Análise cinética da germinação. Requer lançamento de avaliações longitudinais
+                  vinculadas a experimentos.
+                </p>
+              </div>
+
+              {experiments.length > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] font-bold text-ink-3 uppercase">Experimento:</label>
+                  <select
+                    value={experimentoEmFoco?.id ?? ''}
+                    onChange={(e) => setExperimentoSelecionado(e.target.value)}
+                    className="px-2 py-1 bg-surface-2 text-ink-2 border border-line rounded-lg text-[10.5px] font-bold focus:outline-none max-w-[18rem]"
+                  >
+                    {experiments.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {vigorStats.length > 0 ? (
@@ -695,19 +800,44 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                 <div className="lg:col-span-2 bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4">
                   <div>
                     <h4 className="text-xs font-bold text-ink-2 uppercase tracking-wide">
-                      Curva Cumulativa de Germinação (Cinética)
+                      {eixoDoTempo.aplicaIndicesDeVigor
+                        ? 'Curva Cumulativa de Germinação (Cinética)'
+                        : 'Germinação ao Longo do Armazenamento'}
                     </h4>
                     <p className="text-[9px] text-ink-3 font-medium">
-                      Evolução acumulada da germinação (%) em relação aos Dias Após Semeadura (DAP).
+                      {eixoDoTempo.aplicaIndicesDeVigor
+                        ? `Evolução acumulada da germinação (%) em relação aos ${eixoDoTempo.eixo}.`
+                        : `Germinação (%) de cada amostra em relação aos ${eixoDoTempo.eixo.toLowerCase()}.`}
                     </p>
                   </div>
                   <GerminationCurveChart
                     data={curveData.points}
                     treatmentCodes={curveData.treatmentCodes}
+                    rotuloDoEixo={eixoDoTempo.eixo}
+                    prefixoDoEixo={eixoDoTempo.prefixo}
+                    rotuloDaGerminacao={
+                      eixoDoTempo.aplicaIndicesDeVigor
+                        ? 'Germinação Acumulada (%)'
+                        : 'Germinação (%)'
+                    }
                   />
                 </div>
 
                 {/* Vigor Index Table Card */}
+                {/* Indice de velocidade de germinacao pressupoe a MESMA placa
+                    reavaliada. Em ensaio de armazenamento cada data e uma
+                    amostra nova: mostrar um IVG ali seria numero sem
+                    significado ao lado de um rotulo confiante. */}
+                {!eixoDoTempo.aplicaIndicesDeVigor ? (
+                  <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-3">
+                    <h4 className="text-xs font-bold text-ink-2 uppercase tracking-wide">
+                      Índices de Vigor não se aplicam
+                    </h4>
+                    <p className="text-[11px] text-ink-3 leading-relaxed font-semibold">
+                      {MOTIVO_SEM_INDICES_DE_VIGOR}
+                    </p>
+                  </div>
+                ) : (
                 <div className="bg-surface-1 border border-line p-5 rounded-3xl shadow-sm space-y-4 flex flex-col justify-between">
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-ink-2 uppercase tracking-wide">
@@ -766,6 +896,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                     </p>
                   </div>
                 </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-8 bg-surface-2 border border-dashed border-line rounded-3xl max-w-xl mx-auto text-center">

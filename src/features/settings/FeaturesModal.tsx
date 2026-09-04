@@ -8,6 +8,7 @@ import React from 'react';
 import { X, Sparkles, RotateCcw, FlaskConical, CheckCircle2 } from 'lucide-react';
 import { useFeatureFlags } from '../../context/FeatureFlagContext';
 import { FEATURE_REGISTRY } from '../flags';
+import { DemoDataPanel } from '../demo';
 
 interface FeaturesModalProps {
   isOpen: boolean;
@@ -112,6 +113,9 @@ export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: Feat
             </p>
             <div className="space-y-1.5">{experimental.map(renderFlag)}</div>
           </div>
+
+          {/* Demonstração */}
+          <DemoDataPanel />
 
           <button
             onClick={reset}

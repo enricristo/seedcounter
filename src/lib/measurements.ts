@@ -13,6 +13,7 @@
 
 import { calculateSeedDimensions } from './pca-utils';
 import type { Mark, YoloSegmentation, Metadata } from '../types';
+import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
 
 export interface SeedMeasurement {
   /** Identificador sequencial dentro da amostra. */
@@ -32,12 +33,53 @@ export interface SeedMeasurement {
   comprimentoUm?: number;
   larguraUm?: number;
   areaUm2?: number;
+  /**
+   * As mesmas medidas em milímetros. Redundante por decisão: µm é a unidade
+   * natural do pixel, mas mm é a unidade em que o lote é descrito e publicado
+   * (semente de Cattleya tem ~1,17 × 0,34 mm). Deixar a conversão para a
+   * planilha convida a erro de fator 1000 em trabalho de campo.
+   */
+  comprimentoMm?: number;
+  larguraMm?: number;
+  areaMm2?: number;
   /** Razão de aspecto (comprimento / largura). */
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
   circularidade?: number;
   /** Confiança do modelo, quando aplicável. */
   confianca?: number;
+
+  /**
+   * Características de cor medidas DENTRO do contorno. Só existem quando o
+   * contexto recebe os pixels da imagem.
+   *
+   * O conjunto é o mesmo do AIseed (Tu et al., 2023) para que os dois sistemas
+   * sejam comparáveis. O campo que mais importa aqui é o aMean: eixo
+   * verde–vermelho do CIELAB, e portanto a medida direta do que o critério de
+   * anotação por tetrazólio descreve em palavras.
+   */
+  rMean?: number;
+  rStd?: number;
+  gMean?: number;
+  gStd?: number;
+  bMean?: number;
+  bStd?: number;
+  hMean?: number;
+  hStd?: number;
+  sMean?: number;
+  sStd?: number;
+  vMean?: number;
+  vStd?: number;
+  lMean?: number;
+  lStd?: number;
+  aMean?: number;
+  aStd?: number;
+  labBMean?: number;
+  labBStd?: number;
+  grayMean?: number;
+  grayStd?: number;
+  /** Pixels do contorno que entraram na média de cor. */
+  pixelsCor?: number;
 }
 
 export interface MeasurementContext {
@@ -47,6 +89,44 @@ export interface MeasurementContext {
   filename?: string;
   /** Distância máxima (px) para casar uma marcação com um contorno. */
   matchRadius?: number;
+  /**
+   * Pixels da imagem. Sem isto as colunas de cor saem vazias — a morfometria
+   * não depende deles, então exportar sem imagem continua funcionando.
+   */
+  imageData?: DadosImagem;
+  /** Salto de amostragem na leitura de cor. 2 corta o custo em 4x. */
+  colorSampling?: number;
+}
+
+/**
+ * A marcação está dentro do contorno? Lançamento de raio.
+ *
+ * Esta é a associação CORRETA entre marca e segmentação. A versão anterior
+ * usava distância ao centroide com raio fixo de 25 px, o que falha por dois
+ * motivos: uma semente de orquídea a 3600 DPI tem ~165 px de comprimento,
+ * então clicar na ponta já fica a mais de 25 px do centro; e o mesmo raio fixo
+ * atende imagens de 946 px e de 7992 px, onde 25 px significam coisas
+ * completamente diferentes.
+ */
+export function pointInPolygon(px: number, py: number, poly: [number, number][]): boolean {
+  let dentro = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    const cruza = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (cruza) dentro = !dentro;
+  }
+  return dentro;
+}
+
+/** Maior distância do centroide a um vértice — o "raio" próprio do contorno. */
+function raioDoContorno(poly: [number, number][], c: { x: number; y: number }): number {
+  let maior = 0;
+  for (const [x, y] of poly) {
+    const d = Math.hypot(x - c.x, y - c.y);
+    if (d > maior) maior = d;
+  }
+  return maior;
 }
 
 /** Perímetro de um polígono fechado, em pixels. */
@@ -87,7 +167,8 @@ function polygonCentroid(points: [number, number][]): { x: number; y: number } {
  * contorno correspondente, a linha ganha as colunas morfométricas.
  */
 export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
-  const { marks, segmentations = [], metadata } = ctx;
+  const { marks, segmentations = [], metadata, imageData } = ctx;
+  const colorSampling = ctx.colorSampling ?? 1;
   const umPerPixel = metadata.umPerPixel;
   const matchRadius = ctx.matchRadius ?? 25;
 
@@ -106,15 +187,36 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       y: Math.round(mark.y),
     };
 
-    // Procura o contorno mais próximo ainda não usado.
+    // Duas etapas, nesta ordem.
+    //
+    // 1. O contorno que CONTÉM a marcação. É exato e independe de escala: o
+    //    técnico clica em cima da semente, não no centro geométrico dela.
+    // 2. Se nenhum contém — a marcação caiu na borda, ou o contorno é côncavo
+    //    e ela ficou numa reentrância —, o mais próximo cujo raio próprio
+    //    alcança a marcação. O raio vem do contorno, não de uma constante:
+    //    matchRadius fixo em 25 px era menor que meia semente a 3600 DPI.
     let best: (typeof contours)[number] | null = null;
-    let bestDist = matchRadius;
+
     for (const c of contours) {
       if (used.has(c.seg.id)) continue;
-      const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
-      if (d < bestDist) {
-        bestDist = d;
+      if (pointInPolygon(mark.x, mark.y, c.seg.polygon_points)) {
         best = c;
+        break;
+      }
+    }
+
+    if (!best) {
+      let melhorDist = Infinity;
+      for (const c of contours) {
+        if (used.has(c.seg.id)) continue;
+        const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
+        // Tolerância: o próprio tamanho do contorno, com uma folga de 20%.
+        // matchRadius continua servindo de piso, para contornos minúsculos.
+        const limite = Math.max(matchRadius, raioDoContorno(c.seg.polygon_points, c.c) * 1.2);
+        if (d < limite && d < melhorDist) {
+          melhorDist = d;
+          best = c;
+        }
       }
     }
 
@@ -138,11 +240,49 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
           : undefined;
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
 
+      // Cor dentro do contorno, quando os pixels estão disponíveis.
+      if (imageData) {
+        const cor = extrairCaracteristicasDeCor(imageData, poly, colorSampling);
+        if (cor.pixels > 0) {
+          row.rMean = cor.rMean;
+          row.rStd = cor.rStd;
+          row.gMean = cor.gMean;
+          row.gStd = cor.gStd;
+          row.bMean = cor.bMean;
+          row.bStd = cor.bStd;
+          row.hMean = cor.hMean;
+          row.hStd = cor.hStd;
+          row.sMean = cor.sMean;
+          row.sStd = cor.sStd;
+          row.vMean = cor.vMean;
+          row.vStd = cor.vStd;
+          row.lMean = cor.lMean;
+          row.lStd = cor.lStd;
+          row.aMean = cor.aMean;
+          row.aStd = cor.aStd;
+          row.labBMean = cor.labBMean;
+          row.labBStd = cor.labBStd;
+          row.grayMean = cor.grayMean;
+          row.grayStd = cor.grayStd;
+          row.pixelsCor = cor.pixels;
+        }
+      }
+
       // Conversão para micrômetros só quando há calibração.
       if (umPerPixel && umPerPixel > 0) {
-        row.comprimentoUm = Number((comprimento * umPerPixel).toFixed(1));
-        row.larguraUm = Number((largura * umPerPixel).toFixed(1));
-        row.areaUm2 = Number((area * umPerPixel * umPerPixel).toFixed(0));
+        const compUm = comprimento * umPerPixel;
+        const largUm = largura * umPerPixel;
+        const areaUm2 = area * umPerPixel * umPerPixel;
+
+        row.comprimentoUm = Number(compUm.toFixed(1));
+        row.larguraUm = Number(largUm.toFixed(1));
+        row.areaUm2 = Number(areaUm2.toFixed(0));
+
+        // Três casas em mm preservam a resolução: a 7,06 µm/px, um pixel vale
+        // 0,007 mm — arredondar antes disso jogaria fora precisão real.
+        row.comprimentoMm = Number((compUm / 1000).toFixed(3));
+        row.larguraMm = Number((largUm / 1000).toFixed(3));
+        row.areaMm2 = Number((areaUm2 / 1e6).toFixed(4));
       }
     }
 
@@ -166,6 +306,30 @@ const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'comprimentoUm', label: 'comprimento_um' },
   { key: 'larguraUm', label: 'largura_um' },
   { key: 'areaUm2', label: 'area_um2' },
+  { key: 'comprimentoMm', label: 'comprimento_mm' },
+  { key: 'larguraMm', label: 'largura_mm' },
+  { key: 'areaMm2', label: 'area_mm2' },
+  { key: 'rMean', label: 'r_mean' },
+  { key: 'rStd', label: 'r_std' },
+  { key: 'gMean', label: 'g_mean' },
+  { key: 'gStd', label: 'g_std' },
+  { key: 'bMean', label: 'b_mean' },
+  { key: 'bStd', label: 'b_std' },
+  { key: 'hMean', label: 'h_mean' },
+  { key: 'hStd', label: 'h_std' },
+  { key: 'sMean', label: 's_mean' },
+  { key: 'sStd', label: 's_std' },
+  { key: 'vMean', label: 'v_mean' },
+  { key: 'vStd', label: 'v_std' },
+  { key: 'lMean', label: 'lab_l_mean' },
+  { key: 'lStd', label: 'lab_l_std' },
+  { key: 'aMean', label: 'lab_a_mean' },
+  { key: 'aStd', label: 'lab_a_std' },
+  { key: 'labBMean', label: 'lab_b_mean' },
+  { key: 'labBStd', label: 'lab_b_std' },
+  { key: 'grayMean', label: 'gray_mean' },
+  { key: 'grayStd', label: 'gray_std' },
+  { key: 'pixelsCor', label: 'pixels_cor' },
   { key: 'razaoAspecto', label: 'razao_aspecto' },
   { key: 'circularidade', label: 'circularidade' },
   { key: 'confianca', label: 'confianca' },
@@ -272,6 +436,32 @@ CREATE TABLE IF NOT EXISTS medida (
   comprimento_um  REAL,
   largura_um      REAL,
   area_um2        REAL,
+  comprimento_mm  REAL,          -- mesma medida em mm: unidade do relatorio
+  largura_mm      REAL,
+  area_mm2        REAL,
+  -- Cor medida DENTRO do contorno. lab_a_mean e o eixo verde-vermelho: e a
+  -- medida direta da coloracao por tetrazolio.
+  r_mean          REAL,
+  r_std           REAL,
+  g_mean          REAL,
+  g_std           REAL,
+  b_mean          REAL,
+  b_std           REAL,
+  h_mean          REAL,
+  h_std           REAL,
+  s_mean          REAL,
+  s_std           REAL,
+  v_mean          REAL,
+  v_std           REAL,
+  lab_l_mean      REAL,
+  lab_l_std       REAL,
+  lab_a_mean      REAL,
+  lab_a_std       REAL,
+  lab_b_mean      REAL,
+  lab_b_std       REAL,
+  gray_mean       REAL,
+  gray_std        REAL,
+  pixels_cor      INTEGER,
   razao_aspecto   REAL,
   circularidade   REAL,
   confianca       REAL,
@@ -350,6 +540,30 @@ VALUES (${[
           r.comprimentoUm,
           r.larguraUm,
           r.areaUm2,
+          r.comprimentoMm,
+          r.larguraMm,
+          r.areaMm2,
+          r.rMean,
+          r.rStd,
+          r.gMean,
+          r.gStd,
+          r.bMean,
+          r.bStd,
+          r.hMean,
+          r.hStd,
+          r.sMean,
+          r.sStd,
+          r.vMean,
+          r.vStd,
+          r.lMean,
+          r.lStd,
+          r.aMean,
+          r.aStd,
+          r.labBMean,
+          r.labBStd,
+          r.grayMean,
+          r.grayStd,
+          r.pixelsCor,
           r.razaoAspecto,
           r.circularidade,
           r.confianca,
@@ -358,7 +572,7 @@ VALUES (${[
           .join(', ')})`
     );
     parts.push(
-      `INSERT INTO medida (amostra_id, objeto_id, classe, origem, x_px, y_px, comprimento_px, largura_px, area_px2, comprimento_um, largura_um, area_um2, razao_aspecto, circularidade, confianca)\nVALUES\n${values.join(',\n')};\n`
+      `INSERT INTO medida (amostra_id, objeto_id, classe, origem, x_px, y_px, comprimento_px, largura_px, area_px2, comprimento_um, largura_um, area_um2, comprimento_mm, largura_mm, area_mm2, r_mean, r_std, g_mean, g_std, b_mean, b_std, h_mean, h_std, s_mean, s_std, v_mean, v_std, lab_l_mean, lab_l_std, lab_a_mean, lab_a_std, lab_b_mean, lab_b_std, gray_mean, gray_std, pixels_cor, razao_aspecto, circularidade, confianca)\nVALUES\n${values.join(',\n')};\n`
     );
   }
 
