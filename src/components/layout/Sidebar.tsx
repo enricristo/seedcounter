@@ -6,6 +6,7 @@ import { DifferentialMode } from '../sidebar/DifferentialMode';
 import { HelpTip } from '../sidebar/HelpTip';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import type { Metadata, Session } from '../../types';
+import type { PresetDeCena } from '../../lib/synthetic-scene';
 
 interface SidebarProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -31,6 +32,8 @@ interface SidebarProps {
   onOpenCamera?: () => void;
   onOpenSplit?: () => void;
   onOpenRoi?: () => void;
+  onCarregarExemplo?: (preset: PresetDeCena) => void;
+  exemploCarregando?: PresetDeCena | null;
 
   // --- Painéis opcionais, agrupados por etapa do fluxo ---
   /** Etapa 1 — ajuste de imagem. */
@@ -65,6 +68,8 @@ export function Sidebar({
   onOpenCamera,
   onOpenSplit,
   onOpenRoi,
+  onCarregarExemplo,
+  exemploCarregando,
   adjustSlot,
   calibrationSlot,
   detectionSlot,
@@ -98,6 +103,8 @@ export function Sidebar({
           onOpenCamera={onOpenCamera}
           onOpenSplit={onOpenSplit}
           onOpenRoi={onOpenRoi}
+          onCarregarExemplo={onCarregarExemplo}
+          exemploCarregando={exemploCarregando}
         />
 
         {/* Etapas de preparo e análise — recolhidas por padrão */}
