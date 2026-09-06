@@ -44,6 +44,8 @@ import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
+import { carregarExemplo } from './features/demo';
+import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
@@ -988,6 +990,37 @@ export default function App() {
     [loadFiles, updateMetadata]
   );
 
+  // Cena de exemplo: entra pela mesma porta que qualquer imagem, para exercitar
+  // o fluxo real — fila, contagem, medida, exportação — e não um caminho
+  // paralelo que só funciona na demonstração.
+  const [exemploCarregando, setExemploCarregando] = useState<PresetDeCena | null>(null);
+
+  const handleCarregarExemplo = useCallback(
+    async (preset: PresetDeCena) => {
+      setExemploCarregando(preset);
+      try {
+        const { arquivo, cena, projeto } = await carregarExemplo(preset);
+        loadFiles([arquivo]);
+        // A escala vem declarada pela cena: sem ela a morfometria sairia em
+        // pixels, e o exemplo não mostraria milímetros — que é metade do ponto.
+        setMetadata((prev) => ({
+          ...prev,
+          project: projeto,
+          treatment: '',
+          plate: '',
+          quadrant: '',
+          notes: AVISO_CENA,
+          umPerPixel: cena.umPorPixel,
+        }));
+      } catch (e) {
+        console.error('Falha ao gerar a cena de exemplo', e);
+      } finally {
+        setExemploCarregando(null);
+      }
+    },
+    [loadFiles, setMetadata]
+  );
+
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
   // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
   // depois de trocar de ferramenta (o que bloqueava os cliques de marcação).
@@ -1191,6 +1224,8 @@ export default function App() {
             onOpenCamera={isCameraEnabled ? () => setIsCameraOpen(true) : undefined}
             onOpenSplit={isSplitEnabled && image ? () => setIsSplitOpen(true) : undefined}
             onOpenRoi={isRoiEnabled && image ? () => setIsRoiOpen(true) : undefined}
+            onCarregarExemplo={handleCarregarExemplo}
+            exemploCarregando={exemploCarregando}
             calibrationSummary={
               metadata.umPerPixel && metadata.umPerPixel > 0
                 ? `${metadata.umPerPixel.toFixed(2)} µm/px`
