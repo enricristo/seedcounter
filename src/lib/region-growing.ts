@@ -139,6 +139,14 @@ export const CRESCIMENTO_MAXIMO_CONFIAVEL = 0.5;
  */
 const ALCANCE_MAXIMO = 60;
 
+/**
+ * Quanto além do ΔE de fuga a onda ainda avança antes de parar.
+ *
+ * Precisa sobrar margem para medir `crescimentoNaBorda` do outro lado da
+ * transição; 40% é folga confortável e corta a maior parte do trabalho.
+ */
+const FOLGA_APOS_ESCAPE = 1.4;
+
 // ---------------------------------------------------------------------------
 // Fila de prioridade (heap binário de mínimo)
 // ---------------------------------------------------------------------------
@@ -350,6 +358,12 @@ export function segmentarPorClique(
   while (!fila.vazia) {
     const custo = Math.max(custoAnterior, fila.custoDoTopo());
     if (custo > ALCANCE_MAXIMO) break;
+    // Depois que a onda escapa da janela, tudo o que ela ainda faz é inundar o
+    // fundo — e o critério só precisa de um pedaço além da fuga para medir
+    // quanto a região cresce ao atravessar a borda. Sem esta parada a onda
+    // convertia a janela inteira para Lab a cada clique, e um clique custava
+    // ~600 ms num scanner.
+    if (custo > custoDaBorda * FOLGA_APOS_ESCAPE) break;
     const i = fila.remover();
     if (i < 0) break;
     custoAnterior = custo;

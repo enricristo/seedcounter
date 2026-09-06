@@ -101,15 +101,28 @@ export function rgbParaHsv(r: number, g: number, b: number): [number, number, nu
  * equipamentos, é a diferença entre um número transferível e um número que só
  * vale naquela foto.
  */
+/**
+ * sRGB -> linear, tabelado nos 256 valores possíveis.
+ *
+ * A conversão exige uma potência por canal. Na extração de características
+ * isso são três potências por pixel do contorno; na segmentação por clique,
+ * três por pixel da janela — centenas de milhares por clique, e era o que
+ * fazia um clique custar meio segundo. O canal só tem 256 valores, então a
+ * tabela é exata, não uma aproximação.
+ */
+const SRGB_LINEAR = (() => {
+  const t = new Float64Array(256);
+  for (let i = 0; i < 256; i++) {
+    const s = i / 255;
+    t[i] = s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  }
+  return t;
+})();
+
 export function rgbParaLab(r: number, g: number, b: number): [number, number, number] {
-  // sRGB -> linear
-  const lin = (c: number) => {
-    const s = c / 255;
-    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  };
-  const R = lin(r);
-  const G = lin(g);
-  const B = lin(b);
+  const R = SRGB_LINEAR[r & 255];
+  const G = SRGB_LINEAR[g & 255];
+  const B = SRGB_LINEAR[b & 255];
 
   // linear -> XYZ (matriz sRGB D65)
   const X = R * 0.4124564 + G * 0.3575761 + B * 0.1804375;
