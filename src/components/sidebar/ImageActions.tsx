@@ -1,6 +1,8 @@
 import React from 'react';
 import { Upload, FolderUp, Camera, Grid3x3, Crosshair, Sparkles } from 'lucide-react';
-import { EXEMPLOS } from '../../features/demo';
+// Do módulo específico, NÃO do barril: o barril reexporta o DemoDataPanel, que
+// puxa o demo-store e com ele o Dexie para dentro da barra lateral.
+import { EXEMPLOS } from '../../features/demo/exemplos';
 import type { PresetDeCena } from '../../lib/synthetic-scene';
 
 interface ImageActionsProps {

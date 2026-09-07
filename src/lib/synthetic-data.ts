@@ -35,6 +35,7 @@
 // 2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md
 // =============================================================================
 
+import { criarRng } from './rng';
 import type {
   Experiment,
   Metadata,
@@ -60,23 +61,11 @@ export function ehDemonstracao(id: string): boolean {
 // Aleatoriedade determinística
 // ---------------------------------------------------------------------------
 
-/**
- * mulberry32 — gerador pequeno, rápido e com estado de 32 bits.
- *
- * O ponto não é qualidade criptográfica, é reprodutibilidade: a mesma semente
- * tem que dar o mesmo conjunto em qualquer navegador e no vitest.
- */
-export function criarRng(semente: number): () => number {
-  let a = semente >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
+// O sorteador vive em `rng.ts`. Ele saiu daqui porque este módulo alcança o
+// Dexie (via demo-store) e arrastava o banco para dentro de quem só queria
+// sortear um número — o que derrubou a build de produção com dependência
+// circular entre pedaços. Reexportado para não quebrar quem já importava daqui.
+export { criarRng };
 /** Normal padrão por Box-Muller. */
 function normalPadrao(rng: () => number): number {
   // rng() pode devolver 0; log(0) é -Infinity.
