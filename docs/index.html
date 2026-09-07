@@ -123,11 +123,14 @@
       <div class="grid">
         <div class="feature"><div class="ico">🖱️</div><h3>Marcação assistida</h3><p>Ferramentas estilo editor gráfico: marcar, borracha, arrastar e inverter classe com atalhos.</p></div>
         <div class="feature"><div class="ico">📷</div><h3>Captura por câmera</h3><p>Lupa e estereomicroscópio no computador, ou câmera do celular e tablet — direto no navegador.</p></div>
-        <div class="feature"><div class="ico">🧠</div><h3>Detecção por IA</h3><p>Modelo YOLOv8 treinado em sementes de orquídea roda no próprio navegador e classifica viável/inviável.</p></div>
+        <div class="feature"><div class="ico">🌊</div><h3>Segmentação por clique</h3><p>Um clique faz uma onda crescer até a borda da semente. Não depende de espécie nem de modelo treinado — funciona em soja, orquídea e forrageira igual.</p></div>
+        <div class="feature"><div class="ico">🧠</div><h3>Detecção por IA</h3><p>Modelo YOLOv8 treinado em sementes de orquídea roda no próprio navegador. É a única parte que depende de espécie.</p></div>
+        <div class="feature"><div class="ico">🎨</div><h3>Cor e tetrazólio</h3><p>Vinte características de cor por semente. O eixo a* do CIELAB mede diretamente o vermelho do formazan — o limiar transfere entre capturas.</p></div>
         <div class="feature"><div class="ico">📏</div><h3>Calibração espacial</h3><p>DPI de scanner, régua sobre a imagem, micrômetro de platina ou µm/px manual — medidas com significado físico.</p></div>
         <div class="feature"><div class="ico">🔬</div><h3>Morfometria</h3><p>Comprimento, largura e área de cada semente por análise de componentes principais, em µm ou mm.</p></div>
-        <div class="feature"><div class="ico">📈</div><h3>Estatística embutida</h3><p>Taxa de germinação, intervalo de confiança de Wilson e curvas de germinação.</p></div>
-        <div class="feature"><div class="ico">⏳</div><h3>Modo longitudinal</h3><p>Acompanhe experimentos de germinação ao longo do tempo, placa a placa.</p></div>
+        <div class="feature"><div class="ico">📈</div><h3>Estatística embutida</h3><p>Wilson, ANOVA com Scott-Knott ou Tukey, Kruskal-Wallis com Dunn, IVG, TMG e t50. Com menos de 5 repetições o painel diz "não avaliável" em vez de inventar veredito.</p></div>
+        <div class="feature"><div class="ico">⏳</div><h3>Modo longitudinal</h3><p>Dias após plantio, onde a mesma placa é reavaliada — ou dias de armazenamento, onde cada data é uma amostra nova e a curva é de deterioração.</p></div>
+        <div class="feature"><div class="ico">🧫</div><h3>Exemplos embutidos</h3><p>Cenas desenhadas por código e quatro ensaios simulados. Como a verdade é conhecida, dá para medir o erro do algoritmo, não só olhar o contorno.</p></div>
         <div class="feature"><div class="ico">📤</div><h3>Exportação completa</h3><p>CSV, JSON, imagem anotada, PDF — e formato YOLO para treinar novos modelos.</p></div>
         <div class="feature"><div class="ico">🔒</div><h3>Privado por padrão</h3><p>Os dados ficam no seu navegador (IndexedDB). Sem backend, sem nuvem, funciona offline.</p></div>
       </div>
@@ -141,8 +144,8 @@
       <p class="sub">Do abrir a imagem ao exportar o resultado.</p>
       <div class="steps">
         <div class="step"><p><strong>Abra a imagem</strong> da placa direto no aplicativo.</p></div>
-        <div class="step"><p><strong>Marque as viáveis</strong> com clique esquerdo.</p></div>
-        <div class="step"><p><strong>Marque detritos/inviáveis</strong> com Shift + clique.</p></div>
+        <div class="step"><p><strong>Marque as viáveis</strong> com clique esquerdo — ou deixe a onda achar a semente inteira.</p></div>
+        <div class="step"><p><strong>Troque a classe</strong> com Ctrl + clique; o clique simples fica livre para arrastar.</p></div>
         <div class="step"><p><strong>Acompanhe a estatística</strong> no painel lateral em tempo real.</p></div>
         <div class="step"><p><strong>Exporte</strong> em CSV, JSON, PDF ou imagem anotada.</p></div>
       </div>
@@ -165,12 +168,27 @@
 
   <section class="block">
     <div class="wrap">
+      <h2>Fundamentação científica</h2>
+      <p class="sub">A abordagem já foi validada e publicada pelo próprio laboratório — treze anos antes deste aplicativo existir.</p>
+      <div class="steps">
+        <div class="step"><p><strong>Imagem digitalizada equivale ao estereomicroscópio.</strong> Cinco lotes de <em>Brachiaria brizantha</em> avaliados por tetrazólio das duas formas, e o resultado foi equivalente. Mesmo laboratório, mesmo teste, scanner de mesa, revisado por pares — e sobre forrageira, não orquídea.<br><span style="opacity:.75">CUSTÓDIO, DAMASCENO &amp; MACHADO NETO. <em>Revista Brasileira de Sementes</em> 34(2):334–341, 2012. <a href="https://doi.org/10.1590/s0101-31222012000200020" target="_blank" rel="noopener" style="color:var(--brand)">doi:10.1590/s0101-31222012000200020</a></span></p></div>
+        <div class="step"><p><strong>O protocolo de tetrazólio em orquídeas.</strong> Pré-condicionamento em sacarose — necessário porque a semente de orquídea não tem o aparato para reativar sozinha o metabolismo respiratório — mais clareamento e escarificação por gênero. Coloração a 40 °C, 24 h, no escuro, com 10 a 20 mg de semente por repetição: a ordem de milhares de sementes por imagem, e a razão de existir da contagem assistida.<br><span style="opacity:.75">CUSTÓDIO, HOSOMI &amp; MACHADO NETO. <em>Boletim de Pesquisa PPGA/Unoeste</em> 2(2):54–59, 2021.</span></p></div>
+        <div class="step"><p><strong>Por que o tetrazólio, e não só a aparência.</strong> O AIseed extrai 54 características por semente e chega a 98,9% para separar semente de impureza — mas só 77,6% para vigor, porque os valores se sobrepõem. Aparência não mede vigor. O tetrazólio converte o problema difícil no fácil: medir quão vermelho o núcleo ficou.<br><span style="opacity:.75">TU et al. <em>Computers and Electronics in Agriculture</em> 207:107740, 2023.</span></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
       <h2>Em desenvolvimento</h2>
       <p class="sub">A versão de teste recebe os recursos primeiro; a versão estável só muda após validação.</p>
       <div class="grid">
-        <div class="feature"><div class="ico">🧪</div><h3>Detecção assistida</h3><p>Contagem automática por visão computacional clássica, sem precisar de modelo treinado. Em ajuste.</p></div>
-        <div class="feature"><div class="ico">🗂️</div><h3>Protocolos reaplicáveis</h3><p>Salvar parâmetros de detecção e calibração como protocolo e reaplicar em lote, para reprodutibilidade.</p></div>
-        <div class="feature"><div class="ico">🌱</div><h3>Outras culturas</h3><p>A mesma abordagem aplicada a outras espécies — e, potencialmente, a contagens além de sementes.</p></div>
+        <div class="feature"><div class="ico">📋</div><h3>Registro de curadoria</h3><p>Cada objeto passa a carregar de onde veio e o que a pessoa decidiu. Sem isso não há como responder se o modelo está ajudando ou criando retrabalho.</p></div>
+        <div class="feature"><div class="ico">📐</div><h3>Regressão para fator quantitativo</h3><p>Ensaio de estresse osmótico tem fator contínuo (MPa) e a análise publicada é regressão com ponto de ótimo — não letras. Hoje o aplicativo entrega a análise errada para esse caso.</p></div>
+        <div class="feature"><div class="ico">🌾</div><h3>Classes dinâmicas</h3><p>Em forrageira, a semente não germinada pode ser dormente, dura, vazia ou morta. Contar espigueta vazia como semente produz porcentagem errada.</p></div>
+        <div class="feature"><div class="ico">🗂️</div><h3>Protocolo por espécie</h3><p>Pré-condicionamento, escarificação e clareamento variam por gênero. O catálogo já existe publicado; falta o aplicativo representá-lo.</p></div>
+        <div class="feature"><div class="ico">✂️</div><h3>Sementes encostadas</h3><p>A onda não junta sementes que se tocam numa quina, mas não separa as que se fundem. Watershed com marcadores é a resposta.</p></div>
+        <div class="feature"><div class="ico">🌱</div><h3>Outras culturas</h3><p>Soja e orquídea são alvos permanentes; forrageira é a terceira frente. O que não depende de modelo já funciona nas três.</p></div>
       </div>
     </div>
   </section>
