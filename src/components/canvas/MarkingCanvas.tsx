@@ -30,7 +30,7 @@ interface MarkingCanvasProps {
   /** Prévia da detecção assistida (Fase E). */
   detectionPreview?: DetectionPreview | null;
   /** Ferramenta ativa (Fase F — editor). */
-  activeTool?: 'viable' | 'inviable' | 'eraser' | 'pan';
+  activeTool?: 'viable' | 'inviable' | 'onda' | 'eraser' | 'pan';
   /** Raio da borracha, em pixels da imagem. */
   eraserRadius?: number;
   /** Remove uma marcação específica (clique direto nela). */

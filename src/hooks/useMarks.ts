@@ -28,6 +28,17 @@ export function useMarks() {
     setYoloSegmentations(segs);
   }, []);
 
+  /**
+   * Acrescenta UMA segmentação, preservando as demais.
+   *
+   * `addYoloSegmentations` substitui a lista inteira — é o que a detecção em
+   * lote precisa. A segmentação por clique é o oposto: uma semente de cada
+   * vez, e cada clique tem que somar ao que já foi curado.
+   */
+  const appendYoloSegmentation = useCallback((seg: YoloSegmentation) => {
+    setYoloSegmentations((prev) => [...prev, seg]);
+  }, []);
+
   const toggleSegmentationClass = useCallback((id: number) => {
     setYoloSegmentations((prev) =>
       prev.map((seg) => {
@@ -86,6 +97,7 @@ export function useMarks() {
 
     // YOLO
     addYoloSegmentations,
+    appendYoloSegmentation,
     toggleSegmentationClass,
     deleteSegmentation,
     toggleSegmentsVisibility,

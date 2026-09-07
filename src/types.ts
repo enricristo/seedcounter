@@ -25,6 +25,19 @@ export interface YoloSegmentation {
   edited?: boolean;
   width?: number; // PCA computed width (px)
   height?: number; // PCA computed height (px)
+  /**
+   * De onde veio este contorno.
+   *
+   * 'modelo' (ou ausente) — proposto por detecção. Conta como uma semente,
+   *   porque não existe marcação manual correspondente.
+   * 'clique' — a pessoa clicou na semente e a onda mediu o contorno. NÃO conta
+   *   como semente: quem já conta é a marcação criada pelo mesmo clique.
+   *   Contar os dois somaria a mesma semente duas vezes.
+   *
+   * É também a primeira peça do registro de curadoria: saber quem propôs cada
+   * objeto é pré-requisito para medir se a máquina está ajudando.
+   */
+  origem?: 'modelo' | 'clique';
 }
 
 // ---------------------------------------------------------------------------

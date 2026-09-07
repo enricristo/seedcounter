@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 
-export type ToolId = 'viable' | 'inviable' | 'eraser' | 'pan';
+export type ToolId = 'viable' | 'inviable' | 'onda' | 'eraser' | 'pan';
 
 export interface ToolDefinition {
   id: ToolId;
@@ -27,6 +27,14 @@ export const TOOLS: ToolDefinition[] = [
     label: 'Marcar inviável',
     shortcut: 'i',
     hint: 'Clique para marcar sementes inviáveis',
+  },
+  {
+    // A onda marca E contorna no mesmo gesto: o clique é a identidade da
+    // semente, e o contorno é o que a máquina responde a partir dele.
+    id: 'onda',
+    label: 'Segmentar por clique',
+    shortcut: 's',
+    hint: 'Clique numa semente: a onda cresce até a borda e mede o contorno',
   },
   {
     id: 'eraser',

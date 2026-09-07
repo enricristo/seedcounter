@@ -45,12 +45,14 @@ import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { carregarExemplo } from './features/demo/exemplos';
+import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
 import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
 
 // Utils
+import { contarObjetos } from './lib/contagem';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
 import type { Regiao } from './lib/region';
@@ -226,6 +228,7 @@ export default function App() {
     undoMark,
     removeMark,
     addYoloSegmentations,
+    appendYoloSegmentation,
     toggleSegmentationClass,
     deleteSegmentation,
     resetAllAnnotations,
@@ -359,22 +362,19 @@ export default function App() {
     hasPrevImage: imageQueue.length > 0 && currentImageIndex > 0,
   });
 
-  // Derived counts
-  const manualViable = marks.filter((m) => m.type === 'viable').length;
-  const yoloViable = yoloSegmentations.filter(
-    (s) => s.category === 'viable' && s.visible !== false
-  ).length;
-  const viableCount = manualViable + yoloViable;
+  // A regra vive em `lib/contagem.ts`, com teste: é o número que o aplicativo
+  // existe para produzir, e já quebrou uma vez estando solto aqui.
+  const contagem = contarObjetos(marks, yoloSegmentations);
+  const viableCount = contagem.viaveis;
 
-  const manualInviable = marks.filter((m) => m.type === 'inviable').length;
-  const yoloInviable = yoloSegmentations.filter(
-    (s) => s.category === 'inviable' && s.visible !== false
-  ).length;
+  // Cálculo diferencial: quem conhece o total semeado marca só as viáveis, e
+  // as inviáveis saem por subtração.
+  const usaDiferencial =
+    !!metadata.useDifferential && !!metadata.baselineCount && metadata.baselineCount > 0;
 
-  const inviableCount =
-    metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
-      ? Math.max(0, metadata.baselineCount - viableCount)
-      : manualInviable + yoloInviable;
+  const inviableCount = usaDiferencial
+    ? Math.max(0, (metadata.baselineCount ?? 0) - viableCount)
+    : contagem.inviaveis;
 
   const totalCount =
     metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
@@ -433,8 +433,68 @@ export default function App() {
     const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
     const type = shouldInvert ? (baseType === 'viable' ? 'inviable' : 'viable') : baseType;
 
+    if (activeTool === 'onda') {
+      segmentarComOnda(x, y, type);
+      return;
+    }
+
     addMark(x, y, type);
   };
+
+  /**
+   * Segmentação por clique.
+   *
+   * A marcação é criada SEMPRE, mesmo quando o contorno não sai confiável: o
+   * ponto clicado é a identidade e a localização da semente, e a contagem não
+   * pode depender de o algoritmo ter acertado a borda. Quem contou foi a
+   * pessoa.
+   *
+   * O contorno, esse sim, só entra quando dá para confiar. Contorno errado não
+   * é um detalhe estético — ele vira área, comprimento e largura no CSV, e um
+   * número errado é pior que número nenhum.
+   */
+  const segmentarComOnda = useCallback(
+    (x: number, y: number, tipo: 'viable' | 'inviable') => {
+      if (!image) return;
+      addMark(x, y, tipo);
+
+      const inicio = performance.now();
+      const r = segmentarNoCanvas(image, { x, y });
+      const ms = Math.round(performance.now() - inicio);
+
+      if (!r) {
+        setRecadoDaOnda({ tom: 'aviso', texto: 'Não foi possível ler os pixels desta imagem.' });
+        return;
+      }
+
+      if (r.tocouBorda) {
+        setRecadoDaOnda({
+          tom: 'aviso',
+          texto: 'Contagem registrada, sem contorno: a onda escapou. Clique mais para dentro da semente.', // prettier-ignore
+        });
+        return;
+      }
+
+      const area = metadata.umPerPixel
+        ? `${((r.areaPx * metadata.umPerPixel ** 2) / 1e6).toFixed(3)} mm²`
+        : `${r.areaPx} px`;
+
+      appendYoloSegmentation({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        category: tipo,
+        class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        // Não é probabilidade de modelo: foi a pessoa que apontou a semente.
+        confidence: 1,
+        polygon_points: r.contorno,
+        visible: true,
+        // A marcação criada por este mesmo clique é quem conta a semente.
+        origem: 'clique',
+      });
+
+      setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
+    },
+    [image, addMark, appendYoloSegmentation, metadata.umPerPixel]
+  );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
   // Preserva o histórico, os experimentos e a identificação do trabalho
@@ -990,6 +1050,20 @@ export default function App() {
     [loadFiles, updateMetadata]
   );
 
+  /** Última resposta da onda, mostrada junto ao canvas. */
+  const [recadoDaOnda, setRecadoDaOnda] = useState<{
+    tom: 'ok' | 'aviso';
+    texto: string;
+  } | null>(null);
+
+  // O recado some sozinho. Aviso que fica para sempre deixa de ser lido, e o
+  // seguinte perde a chance de ser notado.
+  useEffect(() => {
+    if (!recadoDaOnda) return;
+    const t = setTimeout(() => setRecadoDaOnda(null), recadoDaOnda.tom === 'ok' ? 2500 : 5000);
+    return () => clearTimeout(t);
+  }, [recadoDaOnda]);
+
   // Cena de exemplo: entra pela mesma porta que qualquer imagem, para exercitar
   // o fluxo real — fila, contagem, medida, exportação — e não um caminho
   // paralelo que só funciona na demonstração.
@@ -1307,6 +1381,20 @@ export default function App() {
                 showRulers={showRulers}
                 onToggleRulers={() => setShowRulers((v) => !v)}
               />
+            )}
+            {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
+                acabou de clicar, e não numa barra distante. */}
+            {recadoDaOnda && (
+              <div
+                className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
+                  recadoDaOnda.tom === 'ok'
+                    ? 'border-accent bg-accent-tint text-accent'
+                    : 'border-warn bg-warn/15 text-ink-1'
+                }`}
+                role="status"
+              >
+                {recadoDaOnda.texto}
+              </div>
             )}
             {image && (
               <MarkingCanvas

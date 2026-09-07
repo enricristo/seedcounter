@@ -9,12 +9,13 @@
 // =============================================================================
 
 import React from 'react';
-import { Circle, XCircle, Eraser, Hand, Ruler } from 'lucide-react';
+import { Circle, XCircle, Eraser, Hand, Ruler, Waves } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 
 const ICONS: Record<ToolId, React.ElementType> = {
   viable: Circle,
   inviable: XCircle,
+  onda: Waves,
   eraser: Eraser,
   pan: Hand,
 };
@@ -24,6 +25,9 @@ const ACTIVE_STYLES: Record<ToolId, string> = {
   // viavel, anel vazado para inviavel — a forma repete o que a cor diz.
   viable: 'bg-[var(--color-ov-viable)] border-[var(--color-ov-viable)] text-[#101719]',
   inviable: 'border-2 border-[var(--color-ov-inviable)] text-[var(--color-ov-inviable)]',
+  // A onda é instrumento, não classe: ela mede o contorno da semente que a
+  // ferramenta de classe já escolheu. Por isso acento, e não ciano/magenta.
+  onda: 'bg-accent border-accent text-accent-on',
   // Instrumento, não espécime.
   eraser: 'bg-danger border-danger text-white',
   pan: 'bg-accent border-accent text-accent-on',
