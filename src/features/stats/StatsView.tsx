@@ -26,6 +26,7 @@ import { GerminationCurveChart } from './components/GerminationCurveChart';
 import { StatsResultCard } from './components/StatsResultCard';
 import { WilsonCIBar } from './components/WilsonCIBar';
 import { MOTIVO_SEM_INDICES_DE_VIGOR, rotulosDoEixo } from '../../lib/time-axis';
+import { BotaoDemonstracao } from '../demo/BotaoDemonstracao';
 
 /** Valor sentinela do filtro de ensaio. Não é nome de projeto de ninguém. */
 const TODOS_OS_PROJETOS = '__todos__';
@@ -909,6 +910,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   registre múltiplos lançamentos de placas vinculados às avaliações longitudinais da
                   Fase A.
                 </p>
+                <BotaoDemonstracao variante="compacto" />
               </div>
             )}
           </div>

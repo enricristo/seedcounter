@@ -28,6 +28,7 @@ import type { Experiment, Treatment, PlateRun, ProtocormStage } from '../../type
 import { CONTAMINATION_LABELS, PLATE_STATUS_LABELS, PROTOCORM_STAGE_LABELS } from '../../types';
 import { useExperiments } from '../../hooks/useExperiments';
 import { MOTIVO_SEM_INDICES_DE_VIGOR, rotulosDoEixo } from '../../lib/time-axis';
+import { BotaoDemonstracao } from '../demo/BotaoDemonstracao';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -505,6 +506,12 @@ export function LongitudinalView({
           <Plus size={16} />
           Criar Primeiro Experimento
         </button>
+
+        {/* Quem chega aqui sem experimento nenhum precisa conseguir ver o
+            painel funcionando antes de investir meses montando o seu. */}
+        <div className="max-w-sm border-t border-line pt-5">
+          <BotaoDemonstracao />
+        </div>
       </div>
     );
   }
