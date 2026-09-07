@@ -44,7 +44,7 @@ import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
-import { carregarExemplo } from './features/demo';
+import { carregarExemplo } from './features/demo/exemplos';
 import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';

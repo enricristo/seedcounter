@@ -38,7 +38,7 @@
 // =============================================================================
 
 import type { DadosImagem } from './color-features';
-import { criarRng } from './synthetic-data';
+import { criarRng } from './rng';
 
 export type PresetDeCena = 'soja' | 'orquidea-tz' | 'forrageira';
 
