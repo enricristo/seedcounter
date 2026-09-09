@@ -267,6 +267,15 @@ export function AiPointerPanel({
         </p>
       )}
 
+      {/* A pessoa precisa saber que o ajuste de imagem NÃO chega aqui, senão
+          mexe no brilho esperando melhorar a detecção e não entende o que
+          aconteceu. */}
+      <p className="text-[10px] text-ink-3 leading-relaxed">
+        Roda sempre sobre a <strong>imagem original</strong>. Os ajustes de brilho, contraste e
+        saturação não chegam ao modelo — ele foi treinado em digitalização crua, e alterar a entrada
+        piora o resultado em vez de melhorar.
+      </p>
+
       {/* Modelo ausente */}
       {modelPresent === false && (
         <div className="flex items-start gap-2.5 rounded-xl border border-amber-300 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5">

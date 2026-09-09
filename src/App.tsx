@@ -1137,8 +1137,18 @@ export default function App() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [image, setZoomLevel]);
 
-  // Imagem com os ajustes aplicados. Serve de entrada para a detecção —
-  // a imagem original permanece intacta para exibição e medidas.
+  // Imagem com os ajustes aplicados.
+  //
+  // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
+  // detalhe. No clássico o ajuste é controle: a pessoa regula o limiar e vê o
+  // efeito na hora. No modelo é sabotagem silenciosa — a rede foi treinada em
+  // digitalização crua, e brilho, contraste ou saturação empurram a entrada
+  // para fora da distribuição de treino sem que nada na tela diga que foi isso
+  // que degradou o resultado.
+  //
+  // Escala de cinza é o caso extremo: colapsa a entrada no plano R=G=B, onde
+  // todo filtro que codifica diferença entre canais produz exatamente zero.
+  // Não é deslocamento recuperável, é informação destruída.
   const adjustedSource = useMemo(() => {
     if (!image || !adjustEnabled || isNeutral(adjustments)) return image;
     return applyAdjustments(image, adjustments) ?? image;
@@ -1332,7 +1342,8 @@ export default function App() {
                 <div className="space-y-5">
                   {isAiPointerEnabled && (
                     <AiPointerPanel
-                      image={adjustedSource}
+                      // A ORIGINAL, sempre: é nela que o modelo foi treinado.
+                      image={image}
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
