@@ -81,20 +81,20 @@ passaram no sintético e falharam na soja real.
 
 ---
 
-## 3. Candidatos externos — Roboflow
+## 3. Conjuntos externos baixados e disponíveis na pasta `datasets/`
 
-Conjuntos públicos de outras culturas, úteis para responder "generaliza?".
-**Nenhum foi baixado nem verificado ainda** — a lista é de intenção, e cada um
-precisa ter licença, anotação e resolução conferidas antes de virar validação.
+Os conjuntos abaixo foram baixados e organizados na pasta `datasets/` para treinamento de modelos de detecção, segmentação e classificação de qualidade:
 
-| Conjunto | Cultura | Link | Por que interessa |
-|---|---|---|---|
-| seed-detect | Semente (geral) | https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet | Detecção genérica de semente |
-| wheat-seed-classification | Trigo | https://universe.roboflow.com/sudipta-abjbw/wheat-seed-classification | Classificação, grande cultura |
-| paddy-seed-detection | Arroz | https://universe.roboflow.com/tanvi-gaikwad/paddy-seed-detection-cuisa | Semente alongada, próxima de forrageira |
-| wheat-quality-detection | Trigo | https://universe.roboflow.com/first-pijnk/wheat-quality-detection | Qualidade, não só presença |
-| rice | Arroz | https://universe.roboflow.com/test-rzp49/rice-te3lx | Alongada, alta densidade |
-| chili-quality | Pimenta | https://universe.roboflow.com/cdac-4hzts/chili-quality | Qualidade por cor — parente do problema do tetrazólio |
+| Conjunto | Cultura / Alvo | Formato / Anotação | Quantidade | Origem & Licença |
+|---|---|---|---|---|
+| `lucasiturriago-seeds` | Sementes em geral | Máscaras binárias semânticas (512×512) | 2.807 imagens (5.614 máscaras) | [Kaggle](https://www.kaggle.com/datasets/lucasiturriago/seeds) (CC BY-SA 4.0) |
+| `seed detect.v3i.yolov8` | Semente de trigo | YOLOv8 Bounding Boxes (`.txt` + `data.yaml`) | 113 imagens | [Roboflow Universe](https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet) (CC BY 4.0) |
+| `wheat quality detection.v2i.multiclass` | Trigo (qualidade/sanidade) | CSV multiclasse (*bad seed*, *healthy seed*, *impurity*) | 7.217 imagens | [Roboflow Universe](https://universe.roboflow.com/first-pijnk/wheat-quality-detection) (Public Domain) |
+| `wheat seed classification.v2i.multiclass` | Trigo (classificação) | CSV multiclasse (*bad seed*, *healthy seed*, *impurity*) | 538 imagens | [Roboflow Universe](https://universe.roboflow.com/bcd-hhv9y/wheat-seed-classification) (CC BY 4.0) |
+| `rice.v1i.multiclass` | Arroz, impurezas e pragas | CSV multiclasse (12 classes: grãos, cascas, *Sitophilus*, daninhas) | 591 imagens | [Roboflow Universe](https://universe.roboflow.com/test-rzp49/rice-te3lx) (CC BY 4.0) |
+| `peanuts.v2-release.multiclass` | Amendoim (sanidade) | CSV multiclasse (*with mold*, *without mold*) | 387 imagens | [Roboflow 100](https://universe.roboflow.com/roboflow-100/peanuts-sd4kf) (CC BY 4.0) |
+
+Consulte o guia completo em [`datasets/README.md`](../../../datasets/README.md) para detalhes de pipeline de treino e métricas.
 
 ### 3.1 O que conferir em cada um antes de usar
 
