@@ -9,8 +9,16 @@
 // =============================================================================
 
 import React from 'react';
-import { Circle, XCircle, Eraser, Hand, Ruler, Waves } from 'lucide-react';
+import { Circle, XCircle, Eraser, Hand, Ruler, Waves, Eye, EyeOff, Grid3x3 } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
+import { descrever, type Mascara } from '../../features/mascara/mascara';
+
+/** Icone de cada estado da mascara. O disco vazado e "so pontos". */
+const ICONE_DA_MASCARA: Record<Mascara, React.ElementType> = {
+  tudo: Eye,
+  pontos: Circle,
+  nada: EyeOff,
+};
 
 const ICONS: Record<ToolId, React.ElementType> = {
   viable: Circle,
@@ -43,6 +51,13 @@ interface ToolbarProps {
   /** Réguas nas bordas ligadas? */
   showRulers?: boolean;
   onToggleRulers?: () => void;
+  /** Estado da mascara de anotacao. Ausente = botao oculto. */
+  mascara?: Mascara;
+  onCiclarMascara?: () => void;
+  /** Abre a galeria de objetos. Ausente = botao oculto. */
+  onAbrirGaleria?: () => void;
+  /** Quantos objetos ha, para o distintivo da galeria. */
+  totalDeObjetos?: number;
 }
 
 const INATIVO = 'border-transparent text-ink-2 hover:bg-surface-2 hover:text-ink-1';
@@ -55,7 +70,12 @@ export function Toolbar({
   isTemporary,
   showRulers,
   onToggleRulers,
+  mascara,
+  onCiclarMascara,
+  onAbrirGaleria,
+  totalDeObjetos = 0,
 }: ToolbarProps) {
+  const IconeDaMascara = mascara ? ICONE_DA_MASCARA[mascara] : Eye;
   return (
     <div className="border-line bg-surface-1/95 rounded-panel absolute top-1/2 left-3 z-20 flex -translate-y-1/2 flex-col gap-1.5 border p-1.5 shadow-xl backdrop-blur">
       {TOOLS.map((tool) => {
@@ -94,6 +114,42 @@ export function Toolbar({
           }`}
         >
           <Ruler size={20} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+      )}
+
+      {mascara && onCiclarMascara && (
+        <button
+          onClick={onCiclarMascara}
+          title={`${descrever(mascara).explicacao} (M)`}
+          aria-label={`Máscara: ${descrever(mascara).rotulo}. Pressione para alternar.`}
+          aria-pressed={mascara !== 'tudo'}
+          className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
+            mascara !== 'tudo' ? 'bg-accent border-accent text-accent-on' : INATIVO
+          }`}
+        >
+          <IconeDaMascara size={20} strokeWidth={1.75} aria-hidden="true" />
+          <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
+            m
+          </span>
+        </button>
+      )}
+
+      {onAbrirGaleria && (
+        <button
+          onClick={onAbrirGaleria}
+          title="Ver todos os objetos lado a lado (G)"
+          aria-label="Abrir galeria de objetos"
+          className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${INATIVO}`}
+        >
+          <Grid3x3 size={20} strokeWidth={1.75} aria-hidden="true" />
+          {totalDeObjetos > 0 && (
+            <span className="bg-accent text-accent-on absolute -top-1 -right-1 min-w-4 rounded-full px-1 text-[9px] leading-4 font-bold tabular-nums">
+              {totalDeObjetos > 99 ? '99+' : totalDeObjetos}
+            </span>
+          )}
+          <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
+            g
+          </span>
         </button>
       )}
 

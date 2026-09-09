@@ -18,7 +18,10 @@ interface MarkingCanvasProps {
   image: HTMLImageElement;
   marks: Mark[];
   yoloSegmentations: YoloSegmentation[];
-  segmentsVisible: boolean;
+  /** Os contornos de segmentacao aparecem? (mascara) */
+  mostrarContornos: boolean;
+  /** As marcacoes aparecem? (mascara) */
+  mostrarPontos: boolean;
   visualMode: 'dots' | 'numbers';
   zoomLevel: number;
   isPanningMode: boolean;
@@ -61,7 +64,8 @@ export function MarkingCanvas({
   image,
   marks,
   yoloSegmentations,
-  segmentsVisible,
+  mostrarContornos,
+  mostrarPontos,
   visualMode,
   zoomLevel,
   isPanningMode,
@@ -426,8 +430,11 @@ export function MarkingCanvas({
             setHoveredMarkId(null);
           }}
         >
-          {/* Alvos de interação sobre cada marcação */}
-          {marks.map((mark) => {
+          {/* Alvos de interacao sobre cada marcacao.
+              Com a mascara em "nada" as marcacoes somem INTEIRAS — inclusive o
+              alvo de clique. Deixar o alvo invisivel porem clicavel criaria uma
+              area que responde sem nada a mostrar, que e pior que nao ter. */}
+          {(mostrarPontos ? marks : []).map((mark) => {
             const isHovered = hoveredMarkId === mark.id;
             const r = Math.max(6, image.width / 130);
             // Cor do realce indica a ação: vermelho apaga, branco inverte.
@@ -544,7 +551,7 @@ export function MarkingCanvas({
       )}
 
       {/* SVG Overlay for YOLO Polygons */}
-      {segmentsVisible && yoloSegmentations.length > 0 && (
+      {mostrarContornos && yoloSegmentations.length > 0 && (
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none select-none"
           viewBox={`0 0 ${image.width} ${image.height}`}

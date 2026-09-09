@@ -45,6 +45,14 @@ import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
+import { GaleriaModal } from './features/galeria';
+import {
+  ESTADO_INICIAL as MASCARA_INICIAL,
+  mostraContornos,
+  mostraPontos,
+  proxima as proximaMascara,
+  type Mascara,
+} from './features/mascara';
 import { useLaboratorio } from './hooks/useLaboratorio';
 import { carregarExemplo } from './features/demo/exemplos';
 import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
@@ -162,6 +170,9 @@ export default function App() {
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   const { laboratorio } = useLaboratorio();
+  const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
+  const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
+  const ciclarMascara = useCallback(() => setMascara((m) => proximaMascara(m)), []);
   const [showRulers, setShowRulers] = useState(true);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
   const [adjustEnabled, setAdjustEnabled] = useState(true);
@@ -338,34 +349,6 @@ export default function App() {
   useEffect(() => {
     segmentacoesRef.current = yoloSegmentations;
   }, [yoloSegmentations]);
-
-  useKeyboardShortcuts({
-    onUndo: undoMark,
-    onSetVisualMode: setVisualMode,
-    onNextImage: handleNextImage,
-    onPrevImage: handlePrevImage,
-    onTogglePanning: togglePanningMode,
-    onZoomIn: zoomIn,
-    onZoomOut: zoomOut,
-    onResetZoom: () => {
-      if (containerRef.current && image) {
-        fitToScreen(
-          containerRef.current.clientWidth,
-          containerRef.current.clientHeight,
-          image.width,
-          image.height
-        );
-      } else {
-        resetZoom();
-      }
-    },
-    onSaveSession: () => saveCurrentSession(true),
-    onOpenExport: () => setIsExportModalOpen(true),
-    onToggleTheme: toggleTheme,
-    hasImage: !!image,
-    hasNextImage: imageQueue.length > 0 && currentImageIndex < imageQueue.length - 1,
-    hasPrevImage: imageQueue.length > 0 && currentImageIndex > 0,
-  });
 
   // A regra vive em `lib/contagem.ts`, com teste: é o número que o aplicativo
   // existe para produzir, e já quebrou uma vez estando solto aqui.
@@ -1245,6 +1228,8 @@ export default function App() {
     onSaveSession: () => saveCurrentSession(false),
     onOpenExport: () => setIsExportModalOpen(true),
     onToggleTheme: toggleTheme,
+    onCiclarMascara: ciclarMascara,
+    onAbrirGaleria: () => setIsGaleriaOpen(true),
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
     hasPrevImage: currentImageIndex > 0,
@@ -1405,6 +1390,10 @@ export default function App() {
                 isTemporary={isToolTemporary}
                 showRulers={showRulers}
                 onToggleRulers={() => setShowRulers((v) => !v)}
+                mascara={mascara}
+                onCiclarMascara={ciclarMascara}
+                onAbrirGaleria={() => setIsGaleriaOpen(true)}
+                totalDeObjetos={marks.length + yoloSegmentations.length}
               />
             )}
             {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
@@ -1426,7 +1415,8 @@ export default function App() {
                 image={image}
                 marks={marks}
                 yoloSegmentations={yoloSegmentations}
-                segmentsVisible={segmentsVisible}
+                mostrarContornos={mostraContornos(mascara)}
+                mostrarPontos={mostraPontos(mascara)}
                 visualMode={visualMode}
                 zoomLevel={zoomLevel}
                 isPanningMode={isPanningMode}
@@ -1656,6 +1646,18 @@ export default function App() {
 
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+
+      <GaleriaModal
+        isOpen={isGaleriaOpen}
+        onClose={() => setIsGaleriaOpen(false)}
+        image={image}
+        marks={marks}
+        yoloSegmentations={yoloSegmentations}
+        onToggleSegmentationClass={toggleSegmentationClass}
+        onDeleteSegmentation={deleteSegmentation}
+        onToggleMarkClass={handleToggleMarkClass}
+        onRemoveMark={removeMark}
+      />
 
       <IdentificacaoModal
         isOpen={isIdentificacaoOpen}

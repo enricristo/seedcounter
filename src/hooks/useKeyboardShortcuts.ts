@@ -12,6 +12,10 @@ interface KeyboardShortcutsProps {
   onSaveSession: () => void;
   onOpenExport: () => void;
   onToggleTheme: () => void;
+  /** Cicla a mascara de anotacao (tudo -> so pontos -> nada). */
+  onCiclarMascara: () => void;
+  /** Abre a galeria de objetos. */
+  onAbrirGaleria: () => void;
   hasImage: boolean;
   hasNextImage: boolean;
   hasPrevImage: boolean;
@@ -29,6 +33,8 @@ export function useKeyboardShortcuts({
   onSaveSession,
   onOpenExport,
   onToggleTheme,
+  onCiclarMascara,
+  onAbrirGaleria,
   hasImage,
   hasNextImage,
   hasPrevImage,
@@ -95,6 +101,17 @@ export function useKeyboardShortcuts({
           e.preventDefault();
           onToggleTheme();
           break;
+        case 'm':
+          // Alternar a mascara precisa ser mais rapido que a duvida: com o
+          // overlay ligado nao da para julgar se o contorno esta sobre uma
+          // semente ou sobre uma sombra.
+          e.preventDefault();
+          if (hasImage) onCiclarMascara();
+          break;
+        case 'g':
+          e.preventDefault();
+          if (hasImage) onAbrirGaleria();
+          break;
         case ' ':
           // Spacebar: next image if we have image queue
           if (hasNextImage) {
@@ -128,6 +145,8 @@ export function useKeyboardShortcuts({
     onZoomOut,
     onResetZoom,
     onSaveSession,
+    onCiclarMascara,
+    onAbrirGaleria,
     onOpenExport,
     onToggleTheme,
     hasImage,
