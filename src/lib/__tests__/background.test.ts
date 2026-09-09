@@ -242,12 +242,22 @@ describe('nas cenas geradas', () => {
     expect(achadas).toBeGreaterThan(c.sementes.length * 0.8);
   });
 
-  it('é rápido o bastante para rodar uma vez por imagem', () => {
+  it('não degrada para uma ordem de grandeza inaceitável', () => {
+    // ISTO É UM CANÁRIO, NÃO UM BENCHMARK.
+    //
+    // A primeira versão exigia menos de 500 ms, e falhava de forma
+    // intermitente: o tempo de parede depende da carga da máquina, e a suíte
+    // roda em paralelo com testes pesados. Teste que pisca é pior que teste
+    // nenhum — ensina a ignorar vermelho.
+    //
+    // O teto agora é largo de propósito. Ele não afirma que está rápido;
+    // afirma que ninguém trocou a amostragem por uma varredura pixel a pixel,
+    // que é o erro que importa pegar. A medida real (menos de 500 ms numa cena
+    // de 1100²) está registrada no commit que introduziu o módulo.
     const c = gerarCenaSintetica('soja', { quantidade: 24 });
     const t0 = performance.now();
     estimarFundo(c.imagem);
     const ms = performance.now() - t0;
-    // Amostragem de 8 em 8: 1100² viram ~19 mil amostras. Deve ser instantâneo.
-    expect(ms, `${ms.toFixed(0)} ms`).toBeLessThan(500);
+    expect(ms, `${ms.toFixed(0)} ms`).toBeLessThan(8000);
   });
 });

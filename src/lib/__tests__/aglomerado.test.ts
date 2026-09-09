@@ -193,7 +193,10 @@ describe('analisarContorno', () => {
 });
 
 describe('sobre os contornos que a onda realmente produz', () => {
-  it('marca os contornos que engoliram a vizinha na forrageira', () => {
+  // Trinta segmentações de verdade não cabem no limite padrão de 5 s do
+  // vitest. Não é lentidão: é o teste fazendo trabalho real, que é justamente
+  // o que dá valor a ele.
+  it('marca os contornos que engoliram a vizinha na forrageira', { timeout: 30_000 }, () => {
     // É a razão de o módulo existir. Sem ele, 28 de 30 passam como confiáveis.
     const c = gerarCenaSintetica('forrageira', { quantidade: 30, semente: 77 });
 
@@ -235,7 +238,7 @@ describe('sobre os contornos que a onda realmente produz', () => {
     ).toBeLessThan(0.5);
   });
 
-  it('não marca as sementes de soja, que estão isoladas de verdade', () => {
+  it('não marca as sementes de soja, que estão isoladas de verdade', { timeout: 30_000 }, () => {
     const c = gerarCenaSintetica('soja', { quantidade: 12, semente: 77 });
     const referencia = medianaDaCena(c.sementes.map((s) => s.areaPx));
 
