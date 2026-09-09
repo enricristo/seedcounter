@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 
-export type ToolId = 'viable' | 'inviable' | 'onda' | 'eraser' | 'pan';
+export type ToolId = 'viable' | 'inviable' | 'onda' | 'contorno' | 'eraser' | 'pan';
 
 export interface ToolDefinition {
   id: ToolId;
@@ -35,6 +35,14 @@ export const TOOLS: ToolDefinition[] = [
     label: 'Segmentar por clique',
     shortcut: 's',
     hint: 'Clique numa semente: a onda cresce até a borda e mede o contorno',
+  },
+  {
+    // Ajustar o que a onda ja produziu. Um contorno errado nao precisa ser
+    // jogado fora: quase sempre so uma parte dele esta errada.
+    id: 'contorno',
+    label: 'Ajustar contorno',
+    shortcut: 'c',
+    hint: 'Clique num contorno para selecionar; arraste os pontos, ou raspe a borda (Shift acrescenta)',
   },
   {
     id: 'eraser',

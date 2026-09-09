@@ -9,7 +9,18 @@
 // =============================================================================
 
 import React from 'react';
-import { Circle, XCircle, Eraser, Hand, Ruler, Waves, Eye, EyeOff, Grid3x3 } from 'lucide-react';
+import {
+  Circle,
+  XCircle,
+  Eraser,
+  Hand,
+  Ruler,
+  Waves,
+  Eye,
+  EyeOff,
+  Grid3x3,
+  Spline,
+} from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 import { descrever, type Mascara } from '../../features/mascara/mascara';
 import { AJUSTE_MAXIMO, AJUSTE_MINIMO } from '../../lib/escala-da-marca';
@@ -25,6 +36,7 @@ const ICONS: Record<ToolId, React.ElementType> = {
   viable: Circle,
   inviable: XCircle,
   onda: Waves,
+  contorno: Spline,
   eraser: Eraser,
   pan: Hand,
 };
@@ -37,6 +49,9 @@ const ACTIVE_STYLES: Record<ToolId, string> = {
   // A onda é instrumento, não classe: ela mede o contorno da semente que a
   // ferramenta de classe já escolheu. Por isso acento, e não ciano/magenta.
   onda: 'bg-accent border-accent text-accent-on',
+  // Ajuste de contorno tambem e instrumento: ele nao classifica, corrige a
+  // medida que a onda ja fez.
+  contorno: 'bg-accent border-accent text-accent-on',
   // Instrumento, não espécime.
   eraser: 'bg-danger border-danger text-white',
   pan: 'bg-accent border-accent text-accent-on',
@@ -62,6 +77,9 @@ interface ToolbarProps {
   /** Multiplicador do tamanho da marca. Ausente = controle oculto. */
   ajusteDaMarca?: number;
   onAjusteDaMarcaChange?: (v: number) => void;
+  /** Raio do traço da borracha de contorno. */
+  raioDaRaspagem?: number;
+  onRaioDaRaspagemChange?: (v: number) => void;
 }
 
 const INATIVO = 'border-transparent text-ink-2 hover:bg-surface-2 hover:text-ink-1';
@@ -80,6 +98,8 @@ export function Toolbar({
   totalDeObjetos = 0,
   ajusteDaMarca,
   onAjusteDaMarcaChange,
+  raioDaRaspagem,
+  onRaioDaRaspagemChange,
 }: ToolbarProps) {
   const IconeDaMascara = mascara ? ICONE_DA_MASCARA[mascara] : Eye;
   return (
@@ -180,6 +200,26 @@ export function Toolbar({
             </p>
           </div>
         )}
+
+      {activeTool === 'contorno' && raioDaRaspagem !== undefined && onRaioDaRaspagemChange && (
+        <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+          <input
+            type="range"
+            min={4}
+            max={60}
+            step={2}
+            value={raioDaRaspagem}
+            onChange={(e) => onRaioDaRaspagemChange(Number(e.target.value))}
+            title="Espessura do traço que raspa a borda"
+            aria-label="Espessura do traço"
+            className="accent-accent w-10"
+            style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+          />
+          <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
+            {raioDaRaspagem}
+          </p>
+        </div>
+      )}
 
       {activeTool === 'eraser' && (
         <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">

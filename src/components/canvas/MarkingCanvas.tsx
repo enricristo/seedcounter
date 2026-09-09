@@ -36,7 +36,7 @@ interface MarkingCanvasProps {
   /** Prévia da detecção assistida (Fase E). */
   detectionPreview?: DetectionPreview | null;
   /** Ferramenta ativa (Fase F — editor). */
-  activeTool?: 'viable' | 'inviable' | 'onda' | 'eraser' | 'pan';
+  activeTool?: 'viable' | 'inviable' | 'onda' | 'contorno' | 'eraser' | 'pan';
   /** Raio da borracha, em pixels da imagem. */
   eraserRadius?: number;
   /** Remove uma marcação específica (clique direto nela). */
@@ -61,6 +61,26 @@ interface MarkingCanvasProps {
   selectedRegion?: Regiao | null;
   /** Devolve a região desenhada, em pixels da imagem. */
   onRegionSelected?: (regiao: Regiao) => void;
+
+  // --- Ajuste de contorno (ferramenta `contorno`) ---
+  /** Qual contorno está selecionado para edição. */
+  contornoSelecionado?: number | null;
+  onSelecionarContorno?: (id: number | null) => void;
+  /** Move um vértice do contorno. */
+  onMoverVertice?: (id: number, indice: number, x: number, y: number) => void;
+  /** Remove um vértice (duplo clique nele). */
+  onRemoverVertice?: (id: number, indice: number) => void;
+  /**
+   * Traço da borracha concluído, em pixels da imagem.
+   * `acrescentar` verdadeiro quando a pessoa segurou Shift.
+   */
+  onRaspar?: (
+    id: number,
+    pinceladas: { x: number; y: number; raio: number }[],
+    acrescentar: boolean
+  ) => void;
+  /** Raio do traço da borracha de contorno. */
+  raioDaRaspagem?: number;
 }
 
 export function MarkingCanvas({
@@ -92,8 +112,29 @@ export function MarkingCanvas({
   isSelectingRegion,
   selectedRegion,
   onRegionSelected,
+  contornoSelecionado,
+  onSelecionarContorno,
+  onMoverVertice,
+  onRemoverVertice,
+  onRaspar,
+  raioDaRaspagem = 14,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
+
+  // --- Ajuste de contorno ---
+  /** Vértice sendo arrastado agora. */
+  const [verticeArrastado, setVerticeArrastado] = useState<{
+    id: number;
+    indice: number;
+  } | null>(null);
+  /** Traço da borracha em curso, acumulado em pixels da imagem. */
+  const [raspagem, setRaspagem] = useState<{
+    id: number;
+    acrescentar: boolean;
+    pinceladas: { x: number; y: number; raio: number }[];
+  } | null>(null);
+
+  const editandoContorno = activeTool === 'contorno';
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [hoveredMarkId, setHoveredMarkId] = useState<number | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
@@ -114,6 +155,32 @@ export function MarkingCanvas({
   };
 
   const handleLayerMouseMove = (e: React.MouseEvent) => {
+    // Arrastando um vértice do contorno.
+    if (verticeArrastado && onMoverVertice) {
+      const pos = toImageCoords(e);
+      if (pos) onMoverVertice(verticeArrastado.id, verticeArrastado.indice, pos.x, pos.y);
+      return;
+    }
+
+    // Raspando a borda: cada movimento vira uma pincelada.
+    if (raspagem) {
+      const pos = toImageCoords(e);
+      if (pos) {
+        // Só acumula quando o cursor andou de fato: sem isso um tremor de mão
+        // enche o traço de pinceladas idênticas e a busca do caminho fica lenta
+        // sem ficar melhor.
+        const ultima = raspagem.pinceladas[raspagem.pinceladas.length - 1];
+        const andou = !ultima || Math.hypot(pos.x - ultima.x, pos.y - ultima.y) > raioDaRaspagem / 2;
+        if (andou) {
+          setRaspagem({
+            ...raspagem,
+            pinceladas: [...raspagem.pinceladas, { x: pos.x, y: pos.y, raio: raioDaRaspagem }],
+          });
+        }
+      }
+      return;
+    }
+
     // Arrastando uma marcação: reposiciona em tempo real.
     if (dragMark && onMoveMark) {
       const pos = toImageCoords(e);
@@ -137,7 +204,34 @@ export function MarkingCanvas({
 
   const endDragMark = () => setDragMark(null);
 
+  /**
+   * Fecha o gesto de contorno.
+   *
+   * O traço só é enviado se acumulou pincelada: um clique seco na área da
+   * imagem seleciona, não raspa. Sem isso, selecionar um contorno dispararia
+   * uma raspagem de raio zero.
+   */
+  const encerrarGestoDeContorno = () => {
+    setVerticeArrastado(null);
+    if (raspagem) {
+      if (raspagem.pinceladas.length > 0 && onRaspar) {
+        onRaspar(raspagem.id, raspagem.pinceladas, raspagem.acrescentar);
+      }
+      setRaspagem(null);
+    }
+  };
+
   const handleLayerMouseDown = (e: React.MouseEvent) => {
+    // Ferramenta de contorno: arrastar sobre a imagem raspa a borda do contorno
+    // selecionado. Shift acrescenta em vez de remover — o mesmo gesto, o outro
+    // sentido, que e como o algoritmo tambem enxerga os dois casos.
+    if (editandoContorno && e.button === 0 && contornoSelecionado != null) {
+      e.preventDefault();
+      e.stopPropagation();
+      setRaspagem({ id: contornoSelecionado, acrescentar: e.shiftKey, pinceladas: [] });
+      return;
+    }
+
     if (!isEraser || e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
@@ -426,10 +520,12 @@ export function MarkingCanvas({
           onMouseUp={() => {
             stopErasing();
             endDragMark();
+            encerrarGestoDeContorno();
           }}
           onMouseLeave={() => {
             stopErasing();
             endDragMark();
+            encerrarGestoDeContorno();
             setCursorPos(null);
             setHoveredMarkId(null);
           }}
@@ -597,7 +693,17 @@ export function MarkingCanvas({
                   stroke={strokeColor}
                   strokeWidth={isHovered ? 2.5 : 1.2}
                   className="pointer-events-auto cursor-pointer transition-all duration-150"
-                  onClick={(e) => handlePolygonClick(e, seg)}
+                  onClick={(e) => {
+                    // Com a ferramenta de contorno, clicar SELECIONA para
+                    // editar em vez de inverter a classe: inverter por engano
+                    // no meio de uma correcao seria o pior desfecho possivel.
+                    if (editandoContorno) {
+                      e.stopPropagation();
+                      onSelecionarContorno?.(contornoSelecionado === seg.id ? null : seg.id);
+                      return;
+                    }
+                    handlePolygonClick(e, seg);
+                  }}
                   onMouseDown={(e) => {
                     if (e.button === 2) {
                       e.preventDefault();
@@ -612,6 +718,65 @@ export function MarkingCanvas({
                 />
               );
             })}
+        </svg>
+      )}
+
+      {/* Camada de edição de contorno: alças dos vértices e prévia do traço. */}
+      {editandoContorno && (
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full select-none"
+          viewBox={`0 0 ${image.width} ${image.height}`}
+          style={{ width: '100%', height: '100%', zIndex: 8 }}
+        >
+          {yoloSegmentations
+            .filter((seg) => seg.visible !== false && seg.id === contornoSelecionado)
+            .map((seg) => {
+              const raio = Math.max(3, image.width / 220);
+              const cor = corDoEspecime(seg.category === 'viable' ? 'viable' : 'inviable');
+              return (
+                <g key={`ed-${seg.id}`}>
+                  {seg.polygon_points.map(([x, y], indice) => (
+                    <circle
+                      key={indice}
+                      cx={x}
+                      cy={y}
+                      r={raio}
+                      fill={ESPECIME.tool}
+                      stroke={cor}
+                      strokeWidth={raio * 0.45}
+                      className="pointer-events-auto"
+                      style={{ cursor: 'grab' }}
+                      onMouseDown={(e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setVerticeArrastado({ id: seg.id, indice });
+                      }}
+                      onDoubleClick={(e) => {
+                        // Um polígono precisa de três pontos para existir.
+                        if (seg.polygon_points.length <= 3) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRemoverVertice?.(seg.id, indice);
+                      }}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+
+          {/* O traço em curso, para a pessoa ver o que está declarando. */}
+          {raspagem?.pinceladas.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={p.raio}
+              fill={raspagem.acrescentar ? 'rgba(0,229,255,0.28)' : 'rgba(192,57,46,0.30)'}
+              stroke={raspagem.acrescentar ? ESPECIME.viable : 'var(--color-danger)'}
+              strokeWidth={1}
+            />
+          ))}
         </svg>
       )}
 

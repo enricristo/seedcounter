@@ -60,6 +60,18 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Ajustar contorno (tecla C)',
+        detalhe:
+          'Clique num contorno para selecioná-lo: os pontos viram alças que se arrastam, e duplo clique remove um. Arrastar sobre a imagem raspa a borda — e ela não vai para onde o cursor passou, vai para a borda de verdade mais próxima. Com Shift, o traço acrescenta em vez de remover.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Conferência de forma, sem precisar de calibração',
+        detalhe:
+          'A razão comprimento/largura do contorno é comparada com a da espécie. Medida em 1200 sementes de soja, ela pega o contorno que engoliu a vizinha sem saber quantos µm tem o pixel.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Galeria de objetos (tecla G)',
         detalhe:
           'Vê todos os objetos recortados lado a lado, com ou sem fundo. Marcações sem contorno aparecem como região a segmentar — a lista de pendências e a de resultados são a mesma lista.',

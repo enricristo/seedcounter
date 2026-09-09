@@ -55,6 +55,7 @@ import {
   type Versao,
 } from './lib/novidades';
 import { envolver } from './features/galeria/recortes';
+import { ajustarContorno, type Pincelada } from './lib/borracha';
 import {
   ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
@@ -191,6 +192,8 @@ export default function App() {
   const { laboratorio } = useLaboratorio();
   const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
+  const [contornoSelecionado, setContornoSelecionado] = useState<number | null>(null);
+  const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
 
   const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
 
@@ -1221,6 +1224,93 @@ export default function App() {
   }, []);
 
   // Fase F — clicar numa marcação inverte a classe (viável ↔ inviável).
+  // --- Ajuste de contorno -------------------------------------------------
+
+  /** Move um vertice, e remede o objeto com o contorno novo. */
+  const handleMoverVertice = useCallback(
+    (id: number, indice: number, x: number, y: number) => {
+      setYoloSegmentations((antes) =>
+        antes.map((seg) => {
+          if (seg.id !== id) return seg;
+          const pontos = seg.polygon_points.map((p, i) =>
+            i === indice ? ([x, y] as [number, number]) : p
+          );
+          const { width, height } = calculateSeedDimensions(pontos);
+          return { ...seg, polygon_points: pontos, edited: true, width, height };
+        })
+      );
+    },
+    [setYoloSegmentations]
+  );
+
+  const handleRemoverVertice = useCallback(
+    (id: number, indice: number) => {
+      setYoloSegmentations((antes) =>
+        antes.map((seg) => {
+          if (seg.id !== id || seg.polygon_points.length <= 3) return seg;
+          const pontos = seg.polygon_points.filter((_, i) => i !== indice);
+          const { width, height } = calculateSeedDimensions(pontos);
+          return { ...seg, polygon_points: pontos, edited: true, width, height };
+        })
+      );
+    },
+    [setYoloSegmentations]
+  );
+
+  /**
+   * O traco da borracha, resolvido pelo caminho de menor esforco no gradiente.
+   *
+   * A imagem lida e a ORIGINAL, nao a ajustada: o gradiente que interessa e o
+   * da evidencia, e um realce de contraste move a borda aparente sem mover a
+   * semente.
+   */
+  const handleRaspar = useCallback(
+    (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
+      if (!image) return;
+      const alvo = segmentacoesRef.current.find((s) => s.id === id);
+      if (!alvo) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.drawImage(image, 0, 0);
+      const dados = ctx.getImageData(0, 0, image.width, image.height);
+
+      const r = ajustarContorno(
+        { data: dados.data, width: image.width, height: image.height },
+        alvo.polygon_points,
+        pinceladas,
+        acrescentar ? 'acrescentar' : 'remover'
+      );
+
+      if (!r) {
+        // Devolver o contorno igual em silencio faria a pessoa achar que a
+        // ferramenta nao funciona. Dizer o motivo e o minimo.
+        setRecadoDaOnda({
+          tom: 'aviso',
+          texto: 'O traço não encostou na borda deste contorno — nada foi alterado.',
+        });
+        return;
+      }
+
+      const { width, height } = calculateSeedDimensions(r.contorno);
+      setYoloSegmentations((antes) =>
+        antes.map((seg) =>
+          seg.id === id
+            ? { ...seg, polygon_points: r.contorno, edited: true, width, height }
+            : seg
+        )
+      );
+      setRecadoDaOnda({
+        tom: 'ok',
+        texto: `Contorno reassentado — ${r.verticesRefeitos} ${r.verticesRefeitos === 1 ? 'ponto refeito' : 'pontos refeitos'}`,
+      });
+    },
+    [image, setYoloSegmentations]
+  );
+
   const handleToggleMarkClass = useCallback(
     (id: number) => {
       setMarks((prev) =>
@@ -1460,6 +1550,8 @@ export default function App() {
                 totalDeObjetos={marks.length + yoloSegmentations.length}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
+                raioDaRaspagem={raioDaRaspagem}
+                onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
             )}
             {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
@@ -1483,6 +1575,12 @@ export default function App() {
                 yoloSegmentations={yoloSegmentations}
                 mostrarContornos={mostraContornos(mascara)}
                 mostrarPontos={mostraPontos(mascara)}
+                contornoSelecionado={contornoSelecionado}
+                onSelecionarContorno={setContornoSelecionado}
+                onMoverVertice={handleMoverVertice}
+                onRemoverVertice={handleRemoverVertice}
+                onRaspar={handleRaspar}
+                raioDaRaspagem={raioDaRaspagem}
                 ajusteDaMarca={ajusteDaMarca}
                 visualMode={visualMode}
                 zoomLevel={zoomLevel}
