@@ -1,0 +1,1 @@
+export { IdentificacaoModal } from './IdentificacaoModal';

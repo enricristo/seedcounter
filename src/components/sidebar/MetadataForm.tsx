@@ -1,13 +1,23 @@
 import React from 'react';
+import { FileCheck2 } from 'lucide-react';
 import { MetadataInput } from '../shared/MetadataInput';
 import type { Metadata } from '../../types';
 
 interface MetadataFormProps {
   metadata: Metadata;
   updateMetadata: <K extends keyof Metadata>(key: K, value: Metadata[K]) => void;
+  /**
+   * Abre a identificação normativa (BAS/BASO). Ausente = botão oculto, que é o
+   * caso de quem usa o aplicativo para pesquisa e não emite laudo.
+   */
+  onAbrirIdentificacao?: () => void;
 }
 
-export function MetadataForm({ metadata, updateMetadata }: MetadataFormProps) {
+export function MetadataForm({
+  metadata,
+  updateMetadata,
+  onAbrirIdentificacao,
+}: MetadataFormProps) {
   return (
     <section className="space-y-4">
       <h3 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
@@ -72,6 +82,17 @@ export function MetadataForm({ metadata, updateMetadata }: MetadataFormProps) {
             placeholder="Comentários adicionais sobre a germinação, anomalias, etc."
           />
         </div>
+
+        {onAbrirIdentificacao && (
+          <button
+            type="button"
+            onClick={onAbrirIdentificacao}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-line bg-surface-2 hover:border-accent hover:text-accent text-ink-2 text-xs font-semibold transition-colors"
+          >
+            <FileCheck2 size={14} className="shrink-0" />
+            Identificação para laudo (BAS/BASO)
+          </button>
+        )}
       </div>
     </section>
   );

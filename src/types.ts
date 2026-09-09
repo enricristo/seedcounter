@@ -4,6 +4,8 @@
 // Baseado nas publicações do Prof. Nelson Barbosa Machado Neto e Profa. Ceci Castilho Custódio
 // =============================================================================
 
+import type { IdentificacaoDaAmostra } from './lib/normas/identificacao';
+
 // ---------------------------------------------------------------------------
 // Marking & Segmentation
 // ---------------------------------------------------------------------------
@@ -72,6 +74,20 @@ export interface Metadata {
   useDifferential?: boolean;
   umPerPixel?: number; // Spatial calibration: micrometers per pixel
   imageSource?: ImageSource; // Image acquisition source
+  /**
+   * A amostra como o Boletim de Análise de Sementes a identifica.
+   *
+   * Os campos acima são de PESQUISA — projeto, tratamento, placa, quadrante
+   * agrupam repetições de um ensaio, e é disso que um pesquisador precisa. O
+   * boletim pede outra coisa: identificar um LOTE, com espécie em nome
+   * científico, cultivar do RNC, safra, categoria e quem amostrou sob qual
+   * RENASEM. São dois vocabulários, e forçar um no outro estraga os dois.
+   *
+   * Por isso entra ao lado, e OPCIONAL: quem usa o aplicativo para pesquisa
+   * nunca preenche; quem vai emitir laudo preenche, e aí `conferirParaEmissao`
+   * sabe dizer o que ainda falta.
+   */
+  amostra?: IdentificacaoDaAmostra;
 }
 
 // ---------------------------------------------------------------------------

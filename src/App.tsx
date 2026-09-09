@@ -44,6 +44,7 @@ import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
+import { IdentificacaoModal } from './features/normas';
 import { carregarExemplo } from './features/demo/exemplos';
 import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
 import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
@@ -150,6 +151,7 @@ export default function App() {
   const isCameraEnabled = useFeatureFlag('cameraCapture');
   const isDetectionEnabled = useFeatureFlag('assistedDetection');
   const isAiPointerEnabled = useFeatureFlag('aiPointer');
+  const isModoLaudoEnabled = useFeatureFlag('modoLaudo');
   const isSplitEnabled = useFeatureFlag('splitScan');
   const isRoiEnabled = useFeatureFlag('circularRoi');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -157,6 +159,7 @@ export default function App() {
 
   // Calibração — modo régua e última distância medida
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
+  const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   const [showRulers, setShowRulers] = useState(true);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
   const [adjustEnabled, setAdjustEnabled] = useState(true);
@@ -1310,6 +1313,9 @@ export default function App() {
             onOpenRoi={isRoiEnabled && image ? () => setIsRoiOpen(true) : undefined}
             onCarregarExemplo={handleCarregarExemplo}
             exemploCarregando={exemploCarregando}
+            onAbrirIdentificacao={
+              isModoLaudoEnabled ? () => setIsIdentificacaoOpen(true) : undefined
+            }
             calibrationSummary={
               metadata.umPerPixel && metadata.umPerPixel > 0
                 ? `${metadata.umPerPixel.toFixed(2)} µm/px`
@@ -1642,6 +1648,13 @@ export default function App() {
 
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+
+      <IdentificacaoModal
+        isOpen={isIdentificacaoOpen}
+        onClose={() => setIsIdentificacaoOpen(false)}
+        metadata={metadata}
+        updateMetadata={updateMetadata}
+      />
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />
