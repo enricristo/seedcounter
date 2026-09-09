@@ -45,6 +45,7 @@ import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
+import { useLaboratorio } from './hooks/useLaboratorio';
 import { carregarExemplo } from './features/demo/exemplos';
 import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
 import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
@@ -64,7 +65,7 @@ import {
   toCssFilter,
   type ImageAdjustments,
 } from './lib/image-adjust';
-import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
+import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
 
 // Types
@@ -160,6 +161,7 @@ export default function App() {
   // Calibração — modo régua e última distância medida
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
+  const { laboratorio } = useLaboratorio();
   const [showRulers, setShowRulers] = useState(true);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
   const [adjustEnabled, setAdjustEnabled] = useState(true);
@@ -955,25 +957,31 @@ export default function App() {
     }, 'image/png');
   };
 
-  const handleExportPDF = () => {
-    generatePDFReport({
+  const handleExportPDF = async () => {
+    const r = await exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
       metadata,
       viableCount,
       inviableCount,
-      totalCount: viableCount + inviableCount,
-      viablePercent,
-      inviablePercent,
       marks,
       yoloSegmentations,
-      canvasElement: canvasRef.current,
       imageElement: image,
       visualMode,
+      laboratorio,
+      versaoDoApp: `v${__APP_VERSION__}`,
+      commitDoBuild: __BUILD_COMMIT__,
     });
+    if (!r.ok && r.erro) alert(r.erro);
   };
 
-  const handleExportHistoryBatchPDF = () => {
-    generateBatchPDFReport(sessions, visualMode);
+  const handleExportHistoryBatchPDF = async () => {
+    const r = await exportarLaudosEmLote(sessions, {
+      visualMode,
+      laboratorio,
+      versaoDoApp: `v${__APP_VERSION__}`,
+      commitDoBuild: __BUILD_COMMIT__,
+    });
+    if (!r.ok && r.erro) alert(r.erro);
   };
 
   const handleExportHistoryCSV = () => {
