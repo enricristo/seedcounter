@@ -134,7 +134,7 @@ Dele saem o pré-condicionamento em sacarose (necessário porque a semente de or
 
 O padrão de calibração do aplicativo (HP Scanjet G2710) é o mesmo scanner do artigo.
 
-Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensaios exigem e o que o aplicativo faz ou ainda não faz, está em [`docs/superpowers/specs/`](docs/superpowers/specs/).
+Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensaios exigem e o que o aplicativo faz ou ainda não faz, está em [`docs/superpowers/specs/`](docs/superpowers/specs/). O catálogo dos conjuntos de imagem usados na validação — o que cada um responde e o que **não** responde — está em [`docs/datasets/`](docs/datasets/).
 
 ## Versões
 
