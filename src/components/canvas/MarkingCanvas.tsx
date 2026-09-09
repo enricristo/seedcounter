@@ -5,6 +5,7 @@ import type { DetectedObject } from '../../lib/detect';
 import { CanvasRulers } from './CanvasRulers';
 import { formatLengthDual } from '../../lib/calibration';
 import { regiaoDeDoisPontos, regiaoUtilizavel, type Regiao } from '../../lib/region';
+import { AJUSTE_PADRAO, espessuraNaImagem, raioDoAlvo } from '../../lib/escala-da-marca';
 
 /** Prévia da detecção assistida (Fase E) — candidatos ainda não confirmados. */
 export interface DetectionPreview {
@@ -22,6 +23,8 @@ interface MarkingCanvasProps {
   mostrarContornos: boolean;
   /** As marcacoes aparecem? (mascara) */
   mostrarPontos: boolean;
+  /** Multiplicador do tamanho da marca, controlado pela pessoa. */
+  ajusteDaMarca?: number;
   visualMode: 'dots' | 'numbers';
   zoomLevel: number;
   isPanningMode: boolean;
@@ -66,6 +69,7 @@ export function MarkingCanvas({
   yoloSegmentations,
   mostrarContornos,
   mostrarPontos,
+  ajusteDaMarca = AJUSTE_PADRAO,
   visualMode,
   zoomLevel,
   isPanningMode,
@@ -436,7 +440,9 @@ export function MarkingCanvas({
               area que responde sem nada a mostrar, que e pior que nao ter. */}
           {(mostrarPontos ? marks : []).map((mark) => {
             const isHovered = hoveredMarkId === mark.id;
-            const r = Math.max(6, image.width / 130);
+            // Mesma fonte que o desenho da marca, para o alvo nunca ficar menor
+            // que o que a pessoa esta vendo.
+            const r = raioDoAlvo(image.width, ajusteDaMarca);
             // Cor do realce indica a ação: vermelho apaga, branco inverte.
             const highlight = isEraser ? 'var(--color-danger)' : ESPECIME.tool;
             return (
@@ -453,7 +459,7 @@ export function MarkingCanvas({
                     : 'transparent'
                 }
                 stroke={isHovered ? highlight : 'none'}
-                strokeWidth={Math.max(1.5, image.width / 500)}
+                strokeWidth={espessuraNaImagem(image.width, 1.5)}
                 style={{
                   pointerEvents: 'auto',
                   cursor: isEraser ? 'none' : dragMark?.id === mark.id ? 'grabbing' : 'grab',

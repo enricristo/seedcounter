@@ -46,6 +46,7 @@ import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
+import { envolver } from './features/galeria/recortes';
 import {
   ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
@@ -81,6 +82,7 @@ import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './ty
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
+import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
 
 // Delega para src/lib/download.ts. A versão anterior criava a âncora sem
 // anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
@@ -94,8 +96,16 @@ function downloadBlob(content: string, filename: string, contentType: string) {
 function renderMarksToContext(
   ctx: CanvasRenderingContext2D,
   marks: Mark[],
-  mode: 'dots' | 'numbers'
+  mode: 'dots' | 'numbers',
+  larguraDaImagem: number,
+  ajusteDaMarca = AJUSTE_PADRAO
 ) {
+  // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
+  // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
+  // tela. Agora acompanha a imagem, como o alvo de clique sempre acompanhou.
+  const raio = raioDaMarca(larguraDaImagem, ajusteDaMarca);
+  const traco = espessuraNaImagem(larguraDaImagem, 1.5);
+
   let viableCounter = 0;
   let inviableCounter = 0;
 
@@ -111,31 +121,32 @@ function renderMarksToContext(
 
     if (mode === 'dots') {
       // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
-      desenharMarca(ctx, mark.type, mark.x, mark.y, 4.5);
+      desenharMarca(ctx, mark.type, mark.x, mark.y, raio);
     } else {
       // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
       // vazada. A redundancia vira um anel externo escuro so no inviavel.
       const cor = corDoEspecime(mark.type);
+      const raioDoIndice = raio * 1.8;
       ctx.beginPath();
-      ctx.arc(mark.x, mark.y, 8, 0, Math.PI * 2);
+      ctx.arc(mark.x, mark.y, raioDoIndice, 0, Math.PI * 2);
       ctx.fillStyle = cor;
       ctx.fill();
       ctx.strokeStyle = ESPECIME.halo;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = traco;
       ctx.stroke();
 
       if (mark.type === 'inviable') {
         ctx.beginPath();
-        ctx.arc(mark.x, mark.y, 10.5, 0, Math.PI * 2);
+        ctx.arc(mark.x, mark.y, raioDoIndice * 1.3, 0, Math.PI * 2);
         ctx.strokeStyle = cor;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = traco;
         ctx.stroke();
       }
 
       // Tinta escura sobre ciano e magenta, que sao claros: texto branco
       // sumiria.
       ctx.fillStyle = '#101719';
-      ctx.font = 'bold 9px monospace';
+      ctx.font = `bold ${corpoDaFonte(raioDoIndice)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(num.toString(), mark.x, mark.y + 0.5);
@@ -171,6 +182,8 @@ export default function App() {
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   const { laboratorio } = useLaboratorio();
   const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
+  const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
+
   const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
   const ciclarMascara = useCallback(() => setMascara((m) => proximaMascara(m)), []);
   const [showRulers, setShowRulers] = useState(true);
@@ -249,6 +262,22 @@ export default function App() {
     deleteSegmentation,
     resetAllAnnotations,
   } = useMarks();
+  // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
+  // maior lado dos contornos ja segmentados. E o que permite conferir se a
+  // escala informada faz sentido para a especie declarada.
+  const comprimentoTipicoEmPixels = useMemo(() => {
+    const lados = yoloSegmentations
+      .filter((s) => s.visible !== false)
+      .map((s) => {
+        const caixa = envolver(s.polygon_points);
+        return caixa ? Math.max(caixa.largura, caixa.altura) : 0;
+      })
+      .filter((l) => l > 0)
+      .sort((a, b) => a - b);
+    if (lados.length < 3) return undefined;
+    const meio = Math.floor(lados.length / 2);
+    return lados.length % 2 === 0 ? (lados[meio - 1] + lados[meio]) / 2 : lados[meio];
+  }, [yoloSegmentations]);
 
   // Metadata sample inputs
   const { metadata, setMetadata, updateMetadata } = useMetadata();
@@ -387,8 +416,8 @@ export default function App() {
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode);
-  }, [image, marks, visualMode]);
+    renderMarksToContext(ctx, marks, visualMode, image.width, ajusteDaMarca);
+  }, [image, marks, visualMode, ajusteDaMarca]);
 
   useEffect(() => {
     if (image && canvasRef.current) {
@@ -882,7 +911,7 @@ export default function App() {
     }
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode);
+    renderMarksToContext(ctx, marks, visualMode, image.width, ajusteDaMarca);
 
     // Summary Box
     const padding = 20;
@@ -1334,6 +1363,10 @@ export default function App() {
                 }}
                 measuredPixels={measuredPixels}
                 isMeasuring={isMeasuring}
+                especie={
+                  metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum
+                }
+                comprimentoTipicoEmPixels={comprimentoTipicoEmPixels}
               />
             }
             detectionSlot={
@@ -1394,6 +1427,8 @@ export default function App() {
                 onCiclarMascara={ciclarMascara}
                 onAbrirGaleria={() => setIsGaleriaOpen(true)}
                 totalDeObjetos={marks.length + yoloSegmentations.length}
+                ajusteDaMarca={ajusteDaMarca}
+                onAjusteDaMarcaChange={setAjusteDaMarca}
               />
             )}
             {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
@@ -1417,6 +1452,7 @@ export default function App() {
                 yoloSegmentations={yoloSegmentations}
                 mostrarContornos={mostraContornos(mascara)}
                 mostrarPontos={mostraPontos(mascara)}
+                ajusteDaMarca={ajusteDaMarca}
                 visualMode={visualMode}
                 zoomLevel={zoomLevel}
                 isPanningMode={isPanningMode}

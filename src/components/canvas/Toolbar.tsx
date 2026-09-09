@@ -12,6 +12,7 @@ import React from 'react';
 import { Circle, XCircle, Eraser, Hand, Ruler, Waves, Eye, EyeOff, Grid3x3 } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 import { descrever, type Mascara } from '../../features/mascara/mascara';
+import { AJUSTE_MAXIMO, AJUSTE_MINIMO } from '../../lib/escala-da-marca';
 
 /** Icone de cada estado da mascara. O disco vazado e "so pontos". */
 const ICONE_DA_MASCARA: Record<Mascara, React.ElementType> = {
@@ -58,6 +59,9 @@ interface ToolbarProps {
   onAbrirGaleria?: () => void;
   /** Quantos objetos ha, para o distintivo da galeria. */
   totalDeObjetos?: number;
+  /** Multiplicador do tamanho da marca. Ausente = controle oculto. */
+  ajusteDaMarca?: number;
+  onAjusteDaMarcaChange?: (v: number) => void;
 }
 
 const INATIVO = 'border-transparent text-ink-2 hover:bg-surface-2 hover:text-ink-1';
@@ -74,6 +78,8 @@ export function Toolbar({
   onCiclarMascara,
   onAbrirGaleria,
   totalDeObjetos = 0,
+  ajusteDaMarca,
+  onAjusteDaMarcaChange,
 }: ToolbarProps) {
   const IconeDaMascara = mascara ? ICONE_DA_MASCARA[mascara] : Eye;
   return (
@@ -152,6 +158,28 @@ export function Toolbar({
           </span>
         </button>
       )}
+
+      {ajusteDaMarca !== undefined &&
+        onAjusteDaMarcaChange &&
+        (activeTool === 'viable' || activeTool === 'inviable') && (
+          <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+            <input
+              type="range"
+              min={AJUSTE_MINIMO}
+              max={AJUSTE_MAXIMO}
+              step={0.1}
+              value={ajusteDaMarca}
+              onChange={(e) => onAjusteDaMarcaChange(Number(e.target.value))}
+              title="Tamanho do ponto na imagem"
+              aria-label="Tamanho do ponto"
+              className="accent-accent w-10"
+              style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+            />
+            <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
+              {ajusteDaMarca.toFixed(1)}x
+            </p>
+          </div>
+        )}
 
       {activeTool === 'eraser' && (
         <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">

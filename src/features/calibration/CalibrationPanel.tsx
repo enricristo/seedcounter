@@ -19,6 +19,7 @@ import {
   type CalibrationData,
   type LengthUnit,
 } from '../../lib/calibration';
+import { conferirEscala } from '../../lib/normas/tamanhos-de-semente';
 
 interface CalibrationPanelProps {
   /** Escala atual (µm/px). */
@@ -31,6 +32,12 @@ interface CalibrationPanelProps {
   measuredPixels?: number;
   /** true enquanto o modo régua está ativo. */
   isMeasuring?: boolean;
+  /**
+   * Espécie declarada na amostra, e o comprimento típico de um objeto da
+   * imagem em pixels. Juntos permitem CONFERIR a escala, não só calculá-la.
+   */
+  especie?: string;
+  comprimentoTipicoEmPixels?: number;
 }
 
 const METHODS: CalibrationMethod[] = ['dpi', 'reference', 'stage_micrometer', 'manual'];
@@ -41,6 +48,8 @@ export function CalibrationPanel({
   onStartMeasure,
   measuredPixels,
   isMeasuring,
+  especie,
+  comprimentoTipicoEmPixels,
 }: CalibrationPanelProps) {
   const [method, setMethod] = useState<CalibrationMethod>('dpi');
   const [dpi, setDpi] = useState(DEFAULT_LAB_DPI);
@@ -64,6 +73,14 @@ export function CalibrationPanel({
 
   const computed = useMemo(() => computeUmPerPixel(data), [data]);
   const warning = useMemo(() => validateScale(computed), [computed]);
+
+  // A conferência por espécie pega o que `validateScale` deixa passar: informar
+  // centímetro onde era milímetro produz uma escala dentro da faixa plausível,
+  // e só o tamanho esperado da semente denuncia.
+  const conferencia = useMemo(
+    () => conferirEscala(comprimentoTipicoEmPixels ?? 0, computed, especie),
+    [comprimentoTipicoEmPixels, computed, especie]
+  );
   const needsMeasure = (method === 'reference' || method === 'stage_micrometer') && !measuredPixels;
 
   const handleApply = useCallback(() => {
@@ -261,6 +278,18 @@ export function CalibrationPanel({
         <div className="rounded-lg bg-accent-tint border border-accent/30 px-3 py-2">
           <p className="text-[11px] text-accent">
             Resultado: <strong>{computed.toFixed(3)} µm/px</strong>
+          </p>
+        </div>
+      )}
+
+      {conferencia.veredicto === 'suspeita' && (
+        <div className="flex items-start gap-1.5 rounded-lg border border-amber-300 bg-amber-50 p-2 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <AlertTriangle
+            size={12}
+            className="mt-0.5 shrink-0 text-amber-700 dark:text-amber-400"
+          />
+          <p className="text-[10px] leading-snug text-amber-800 dark:text-amber-300">
+            {conferencia.recado}
           </p>
         </div>
       )}

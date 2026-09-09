@@ -27,6 +27,7 @@
 // =============================================================================
 
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from '../../theme/specimen';
+import { corpoDaFonte, raioDaMarca } from '../escala-da-marca';
 import type { Mark, YoloSegmentation } from '../../types';
 
 /**
@@ -144,7 +145,12 @@ function pintarMarcas(
   visualMode: 'dots' | 'numbers',
   fator: number
 ) {
-  const raio = (visualMode === 'dots' ? 5 : 10) / fator;
+  // Mesma escala do canvas: o raio acompanha a imagem em vez de ser fixo, senao
+  // a marca some no laudo de uma digitalizacao grande exatamente como sumia na
+  // tela. Dividido pelo fator porque o contexto ja esta escalado.
+  const larguraOriginal = ctx.canvas.width / fator;
+  const base = raioDaMarca(larguraOriginal);
+  const raio = (visualMode === 'dots' ? base : base * 1.8) / fator;
   let viaveis = 0;
   let inviaveis = 0;
 
@@ -157,7 +163,7 @@ function pintarMarcas(
 
     if (visualMode === 'numbers') {
       ctx.save();
-      ctx.font = `bold ${11 / fator}px sans-serif`;
+      ctx.font = `bold ${corpoDaFonte(raio * fator) / fator}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 3 / fator;

@@ -177,3 +177,75 @@ I6 (avançado) ──▶ só com medida de erro junto
 I2 e I3 antes de tudo: as duas reduzem o custo de *achar o erro*, e todas as
 outras são ferramentas para *corrigir* o erro. Não adianta afiar a correção
 enquanto encontrar continua caro.
+
+---
+
+# Segunda leva — 09/09/2026 (tarde)
+
+Registrada depois que a máscara e a galeria subiram para `develop`.
+
+## I7 — Tamanho da marca relativo à imagem ✅ FEITO
+
+**O relato.** "Quando coloca os scan de soja, o pontinho fica muito pequeno,
+quase não consigo ver ele."
+
+**A causa, encontrada no código.** `renderMarksToContext` desenhava a marca com
+raio **fixo de 4,5 px no espaço da imagem**. Num scan de 2400 px exibido a 800
+px de largura, isso vira 1,5 pixel de tela. E o mais revelador: o ALVO DE
+CLIQUE ao lado já escalava (`image.width / 130`). Ou seja, dava para clicar na
+marca, mas não para vê-la — a interação funcionava e o desenho não.
+
+Ver `src/lib/escala-da-marca.ts`.
+
+## I8 — Régua com duas escalas
+
+**A ideia.** Na régua da borda, mostrar px e cm/mm ao mesmo tempo, como régua
+profissional; ou clicar na régua e alternar a unidade.
+
+**Por que duas escalas ao mesmo tempo, e não alternância.** O pixel é o que a
+imagem tem; o milímetro é como o lote é descrito e publicado. Quem anota o
+caderno precisa dos dois, e alternar obriga a lembrar em qual modo está — o
+mesmo erro que a máscara evita mostrando o estado no botão.
+
+`formatLengthDual` já faz isso para uma medida solta; falta na régua.
+
+**Depende de:** nada. `CanvasRulers.tsx` já desenha a escala em px.
+
+## I9 — Biblioteca de tamanhos por espécie ✅ FEITO (primeira versão)
+
+**A ideia.** "Se estivermos olhando orquídea, sabemos que é algo na casa de mm;
+se for soja já é maior; se for arroz..." Ter uma média por espécie.
+
+**O uso que vale mais que a sugestão de calibração.** Uma tabela de tamanhos
+esperados permite **conferir** a calibração, não só propô-la: se a escala
+informada implica uma semente de soja de 0,2 mm, alguém errou a unidade — e o
+aplicativo sabe disso antes do laudo sair. `validateScale` hoje só olha a faixa
+absoluta de µm/px, que não pega erro de unidade quando o número cai na faixa
+plausível.
+
+Ver `src/lib/normas/tamanhos-de-semente.ts`.
+
+## I10 — Calibração assistida com alvos em cm/mm
+
+**A ideia.** Os alvos da calibração assistida também em cm/mm, não só px.
+
+**Depende de:** I9 (a tabela dá o alvo esperado por espécie).
+
+## I11 — Caixa lateral à imagem
+
+**A ideia.** Sobra espaço ao lado da imagem; caber ali uma caixa de ferramentas
+ocultável.
+
+**Cuidado registrado.** O espaço ao lado só sobra em imagem retrato ou quadrada.
+Numa digitalização panorâmica não sobra nada, e uma caixa que empurra a imagem
+para caber é pior que espaço vazio. A caixa precisa flutuar SOBRE a área morta e
+sumir quando não há área morta.
+
+## I12 — Afordância nas bordas do que é clicável
+
+**A ideia.** Efeitos de design nas bordas do que é clicável.
+
+**A regra a seguir.** O sistema já separa CLASSE (ciano/magenta, do espécime) de
+INSTRUMENTO (acento cromo). Afordância é uma terceira coisa e não pode roubar
+nenhuma das duas: sugerir clicabilidade com a cor do espécime faria a interface
+parecer uma anotação. Fica em cromo neutro — borda, elevação e foco visível.
