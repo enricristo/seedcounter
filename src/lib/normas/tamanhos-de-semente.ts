@@ -33,6 +33,31 @@ export interface TamanhoDeSemente {
   minimo: number;
   /** Comprimento máximo típico, em mm. */
   maximo: number;
+  /**
+   * Razão comprimento/largura OBSERVADA na imagem, pelos eixos principais.
+   *
+   * É a peça mais útil da tabela, porque é INVARIANTE DE ESCALA: não depende de
+   * calibração nenhuma. Um contorno de soja com razão 2,4 quase certamente
+   * engoliu a vizinha, e isso dá para afirmar sem saber quantos µm tem o pixel.
+   *
+   * ATENÇÃO — É A RAZÃO PROJETADA, NÃO A DA SEMENTE.
+   *
+   * A primeira versão deste campo usava a razão das dimensões publicadas da
+   * semente, e estava errada para tudo que é alongado. Uma semente é um corpo
+   * de três eixos; a imagem vê a PROJEÇÃO de como ela caiu. Um grão de trigo
+   * deitado mostra ~2:1, e o mesmo grão apoiado na ponta mostra ~1:1.
+   *
+   * Medindo 2222 blobs de trigo em imagens só com semente sadia: mediana 1,87,
+   * mas p5 = 1,08 — quase metade fica abaixo do 1,8 que a literatura dá para o
+   * grão. Não é erro de segmentação: é orientação.
+   *
+   * Consequência de projeto: o piso é BAIXO de propósito para espécie alongada,
+   * e a checagem serve sobretudo para pegar o lado ALTO, que é onde mora o
+   * contorno que engoliu a vizinha. Para soja o piso pode ser justo, porque
+   * semente quase esférica projeta igual de qualquer lado.
+   */
+  razaoMinima?: number;
+  razaoMaxima?: number;
   /** De onde vem a faixa, para quem quiser conferir. */
   origem: string;
 }
@@ -51,15 +76,27 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Orchidaceae',
     minimo: 0.15,
     maximo: 2.0,
+    // Cattleya ~1,17 x 0,34 mm; piso rebaixado pela orientacao.
+    razaoMinima: 1.4,
+    razaoMaxima: 6.0,
     origem: 'Semente sem endosperma; Cattleya ~1,2 mm de comprimento',
   },
   {
     chave: 'soja',
     nomeComum: 'Soja',
     nomeCientifico: 'Glycine max',
+    // Faixa alargada depois de MEDIR: nas variedades indonésias de semente
+    // graúda a mediana bate 9,07 mm à resolução declarada pelo scanner, ou
+    // seja, exatamente no antigo teto. Manter 9,0 faria a tabela reclamar de
+    // um lote legítimo.
     minimo: 5.0,
-    maximo: 9.0,
-    origem: 'Peneira comercial 5,0 a 6,5 mm; grão de 5 a 9 mm',
+    maximo: 11.0,
+    // Medido: mediana 1,208, p99 1,364, máximo observado 1,396 (n = 1200).
+    // A faixa é o p1–p99 arredondado para fora.
+    razaoMinima: 1.05,
+    razaoMaxima: 1.4,
+    origem:
+      'Medido em 1200 sementes do conjunto Mendeley c733bjz4m3 (Anjasmoro, Dega I, Grobogan), por PCA sobre a máscara de instância',
   },
   {
     chave: 'milho',
@@ -67,6 +104,9 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Zea mays',
     minimo: 8.0,
     maximo: 13.0,
+    // grao dentado.
+    razaoMinima: 1.1,
+    razaoMaxima: 1.8,
     origem: 'Grão dentado e duro, faixa comercial',
   },
   {
@@ -75,6 +115,9 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Oryza sativa',
     minimo: 5.0,
     maximo: 11.0,
+    // longo fino a curto; piso rebaixado pela orientacao.
+    razaoMinima: 1.2,
+    razaoMaxima: 4.5,
     origem: 'Grão com casca; longo fino a curto',
   },
   {
@@ -83,6 +126,9 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Phaseolus vulgaris',
     minimo: 8.0,
     maximo: 15.0,
+    // carioca e preto.
+    razaoMinima: 1.2,
+    razaoMaxima: 2.0,
     origem: 'Carioca e preto, faixa comercial',
   },
   {
@@ -91,6 +137,9 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Triticum aestivum',
     minimo: 5.0,
     maximo: 8.0,
+    // MEDIDO: 2222 blobs do conjunto wheat-quality, mediana 1,87, p5 1,08, p95 3,20.
+    razaoMinima: 1.1,
+    razaoMaxima: 3.0,
     origem: 'Cariopse',
   },
   {
@@ -99,6 +148,9 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Urochloa brizantha',
     minimo: 3.5,
     maximo: 6.0,
+    // espigueta alongada; piso rebaixado pela orientacao.
+    razaoMinima: 1.3,
+    razaoMaxima: 3.5,
     origem: 'Espigueta; gênero renomeado de Brachiaria',
   },
   {
@@ -107,6 +159,9 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Megathyrsus maximus',
     minimo: 2.0,
     maximo: 3.5,
+    // espigueta; piso rebaixado pela orientacao.
+    razaoMinima: 1.2,
+    razaoMaxima: 3.0,
     origem: 'Espigueta; antes Panicum maximum',
   },
   {
@@ -284,4 +339,92 @@ export function escalaSugerida(
   if (!referencia || !(comprimentoEmPixels > 0)) return null;
   const meio = (referencia.minimo + referencia.maximo) / 2;
   return (meio * 1000) / comprimentoEmPixels;
+}
+
+// ---------------------------------------------------------------------------
+// Conferência de FORMA — sem calibração
+// ---------------------------------------------------------------------------
+
+export type VeredictoDaForma = 'plausivel' | 'alongado-demais' | 'redondo-demais' | 'sem-referencia';
+
+export interface ConferenciaDaForma {
+  veredicto: VeredictoDaForma;
+  razao?: number;
+  referencia?: TamanhoDeSemente;
+  recado: string;
+}
+
+/**
+ * A forma do contorno bate com a da espécie?
+ *
+ * POR QUE ISTO VALE MAIS QUE A CONFERÊNCIA DE TAMANHO.
+ *
+ * A razão comprimento/largura não depende de escala. Ela responde sem
+ * calibração nenhuma — e a calibração é justamente o que costuma faltar, ou
+ * estar errada.
+ *
+ * E ela pega o modo de falha dominante da segmentação. Medindo 1200 sementes de
+ * soja isoladas, a razão ficou entre 1,05 e 1,40 (mediana 1,21). Um contorno
+ * que engole a vizinha encostada tem o comprimento dobrado e a largura igual —
+ * razão perto de 2,4, muito fora da faixa.
+ *
+ * RESSALVA QUE PRECISA ACOMPANHAR O NÚMERO: o conjunto medido não tem sementes
+ * encostadas (foram dispostas em grade à mão), então o 2,4 é o que a aritmética
+ * prevê para um par, não uma medição de par. O que está medido é a faixa da
+ * semente ISOLADA — e é essa faixa que o teste usa.
+ *
+ * É TRIAGEM, NÃO VEREDITO. Semente quebrada, semente germinando e variedade
+ * atípica também saem da faixa. O papel é dizer "olhe este aqui".
+ */
+export function conferirForma(
+  comprimento: number,
+  largura: number,
+  especie: string | undefined
+): ConferenciaDaForma {
+  const referencia = acharPorNome(especie);
+
+  if (
+    !referencia?.razaoMinima ||
+    !referencia.razaoMaxima ||
+    !(comprimento > 0) ||
+    !(largura > 0)
+  ) {
+    return { veredicto: 'sem-referencia', referencia, recado: '' };
+  }
+
+  const razao = Math.max(comprimento, largura) / Math.min(comprimento, largura);
+  const esperado = `${virgula(referencia.razaoMinima)} a ${virgula(referencia.razaoMaxima)}`;
+
+  if (razao >= referencia.razaoMinima && razao <= referencia.razaoMaxima) {
+    return { veredicto: 'plausivel', razao, referencia, recado: '' };
+  }
+
+  if (razao > referencia.razaoMaxima) {
+    // O dobro do comprimento com a mesma largura é a assinatura de duas
+    // sementes encostadas dentro de um contorno só.
+    const pareceDuas = razao >= referencia.razaoMaxima * 1.5;
+    return {
+      veredicto: 'alongado-demais',
+      razao,
+      referencia,
+      recado:
+        `Contorno com razão ${virgula(razao)} — ${referencia.nomeComum} costuma ficar entre ${esperado}. ` +
+        (pareceDuas
+          ? 'O alongamento é compatível com duas sementes encostadas num contorno só.'
+          : 'Confira se o contorno pegou sombra ou parte da vizinha.'),
+    };
+  }
+
+  return {
+    veredicto: 'redondo-demais',
+    razao,
+    referencia,
+    recado:
+      `Contorno com razão ${virgula(razao)} — ${referencia.nomeComum} costuma ficar entre ${esperado}. ` +
+      'Confira se o contorno cobre a semente inteira.',
+  };
+}
+
+function virgula(valor: number): string {
+  return valor.toFixed(2).replace('.', ',');
 }

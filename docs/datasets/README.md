@@ -145,3 +145,80 @@ Três saídas, em ordem de custo:
    objetos encostados e máscara por instância em abundância (linhagens
    celulares, núcleos). A geometria do problema é a mesma; a aparência não.
    Serve para desenvolver e calibrar o método, não para validar a aplicação.
+
+---
+
+## 5. Medições feitas sobre os conjuntos
+
+Registro do que foi de fato medido, para os números do código terem procedência
+e para ninguém repetir o trabalho sem saber que já existe.
+
+### 5.1 Soja — dimensões por PCA sobre a máscara de instância
+
+**Conjunto:** Mendeley c733bjz4m3 (Anjasmoro, Dega I, Grobogan)
+**Amostra:** 400 sementes por variedade, 1200 no total, sorteio com semente fixa
+**Método:** máscara do canal alfa → eixos principais → extensão em cada eixo
+
+| medida | valor |
+|---|---|
+| comprimento mediano | 285,5 px |
+| p5 – p95 | 256,9 – 319,9 px |
+| **razão C/L mediana** | **1,208** |
+| razão p1 – p99 | 1,054 – 1,364 |
+| razão máxima observada | 1,396 |
+| área mediana | 52.723 px |
+
+O EXIF das digitalizações declara **800 dpi**. A essa escala o comprimento
+mediano dá **9,07 mm** — exatamente no antigo teto de 9,0 mm da tabela do
+aplicativo, que por isso foi alargado para 11,0 mm. São variedades de semente
+graúda (Dega I tem ~22 g/100 sementes), então o valor é plausível; ainda assim,
+tratar o dpi do EXIF como medido seria erro — scanner grava o nominal.
+
+**O resultado que mais valeu:** a razão comprimento/largura é **invariante de
+escala**. Com limiar no p99 das isoladas (1,36), um par simulado por
+duplicação de comprimento é detectado em 100% dos casos com 1% de falso alarme.
+
+**Ressalva obrigatória:** neste conjunto as sementes **nunca se tocam** — foram
+dispostas em grade à mão. O número do par é o que a aritmética prevê, não uma
+medição de par.
+
+### 5.2 Trigo — razão observada em cena com sementes encostadas
+
+**Conjunto:** `wheat quality detection.v2i.multiclass`, subconjunto
+`(bad=0, healthy=1, impurity=0)` — imagens só com semente sadia
+**Amostra:** 229 imagens originais distintas (descontadas as variantes
+aumentadas do Roboflow), 2222 blobs após descartar fragmentos
+**Método:** limiar de Otsu → componentes conexos → eixos principais.
+Sem máscara de referência: a segmentação é do próprio experimento.
+
+| percentil | razão C/L |
+|---|---|
+| p5 | 1,08 |
+| p25 | 1,49 |
+| **p50** | **1,87** |
+| p75 | 2,38 |
+| p95 | 3,20 |
+
+**O que isto corrigiu no código.** A mediana 1,87 confirma a faixa de
+literatura do grão (1,8–2,8). Mas **45% dos blobs ficam abaixo de 1,8**, e isso
+não é ruído de segmentação: é ORIENTAÇÃO. A imagem vê a projeção de como a
+semente caiu, e um grão de trigo apoiado na ponta projeta quase redondo.
+
+A tabela do aplicativo guardava a razão da SEMENTE; passou a guardar a razão
+**observada na imagem**, com piso rebaixado para tudo que é alongado. Sem essa
+correção, metade de um lote de trigo seria acusada por estar deitada de outro
+jeito.
+
+Consequência de projeto: a checagem de forma serve sobretudo para o lado ALTO
+da faixa — que é onde mora o contorno que engoliu a vizinha. O veredito
+"redondo demais" é fraco para espécie alongada, e isso está dito no código.
+
+### 5.3 O que ainda falta medir
+
+- **Par real de sementes encostadas, com máscara por instância.** Continua sendo
+  a lacuna. Os conjuntos de trigo têm sementes que se tocam, mas a anotação é
+  multiclasse por imagem, não por objeto — dá para medir a distribuição, não
+  para rotular qual blob é par.
+- **Orquídea.** `nelson_phd_images_orquid_enrico` tem aglomerado real e
+  tetrazólio, e é onde a razão projetada mais deve variar.
+- **Morfometria contra paquímetro.** Nenhum conjunto tem medição manual pareada.

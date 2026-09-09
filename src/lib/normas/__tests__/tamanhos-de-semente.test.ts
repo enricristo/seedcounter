@@ -13,6 +13,7 @@ import {
   TAMANHOS,
   acharPorNome,
   conferirEscala,
+  conferirForma,
   escalaSugerida,
   tamanhoDe,
 } from '../tamanhos-de-semente';
@@ -113,7 +114,7 @@ describe('conferir a escala', () => {
     // refazer a conta que o software já fez.
     const r = conferirEscala(PIXELS_DA_SOJA, 2.5, 'soja');
     expect(r.recado).toMatch(/0,60 mm/);
-    expect(r.recado).toMatch(/5,00 a 9,00 mm/);
+    expect(r.recado).toMatch(/5,00 a 11,0 mm/);
   });
 
   it('tolera variação real de cultivar sem reclamar', () => {
@@ -150,8 +151,8 @@ describe('conferir a escala', () => {
 
 describe('escala sugerida', () => {
   it('parte do meio da faixa da espécie', () => {
-    // Soja: meio de 5 a 9 mm = 7 mm. Em 240 px dá 29,17 µm/px.
-    expect(escalaSugerida(240, 'soja')).toBeCloseTo(29.166, 2);
+    // Soja: meio de 5 a 11 mm = 8 mm. Em 240 px dá 33,33 µm/px.
+    expect(escalaSugerida(240, 'soja')).toBeCloseTo(33.333, 2);
   });
 
   it('a sugestão volta a bater com a conferência', () => {
@@ -166,5 +167,117 @@ describe('escala sugerida', () => {
   it('não sugere o que não conhece', () => {
     expect(escalaSugerida(240, 'quinoa')).toBeNull();
     expect(escalaSugerida(0, 'soja')).toBeNull();
+  });
+});
+
+describe('conferir a FORMA — sem calibração', () => {
+  // Medido em 1200 sementes de soja isoladas: razão mediana 1,21, p99 1,36.
+  const COMPRIMENTO = 285.5;
+  const LARGURA = 236.3;
+
+  it('a soja isolada passa', () => {
+    const r = conferirForma(COMPRIMENTO, LARGURA, 'soja');
+    expect(r.veredicto).toBe('plausivel');
+    expect(r.razao).toBeCloseTo(1.208, 2);
+    expect(r.recado).toBe('');
+  });
+
+  it('PEGA o contorno que engoliu a vizinha, SEM calibração', () => {
+    // Duas encostadas: comprimento dobrado, largura igual. É o modo de falha
+    // dominante da onda — 9 de 30 em forrageira — e este teste o pega sem
+    // saber quantos µm tem o pixel.
+    const r = conferirForma(COMPRIMENTO * 2, LARGURA, 'soja');
+    expect(r.veredicto).toBe('alongado-demais');
+    expect(r.recado).toMatch(/duas sementes encostadas/);
+  });
+
+  it('não depende da escala — o mesmo objeto em qualquer resolução', () => {
+    // É a propriedade que torna esta checagem melhor que a de tamanho.
+    for (const fator of [0.1, 1, 10, 1000]) {
+      expect(conferirForma(COMPRIMENTO * fator, LARGURA * fator, 'soja').veredicto).toBe(
+        'plausivel'
+      );
+    }
+  });
+
+  it('não se importa com qual lado veio primeiro', () => {
+    const a = conferirForma(COMPRIMENTO, LARGURA, 'soja');
+    const b = conferirForma(LARGURA, COMPRIMENTO, 'soja');
+    expect(b.veredicto).toBe(a.veredicto);
+    expect(b.razao).toBeCloseTo(a.razao!, 6);
+  });
+
+  it('avisa quando o contorno ficou redondo demais', () => {
+    // Espécie alongada com contorno quase circular: provavelmente pegou só
+    // parte da semente.
+    const r = conferirForma(100, 98, 'urochloa');
+    expect(r.veredicto).toBe('redondo-demais');
+    expect(r.recado).toMatch(/semente inteira/);
+  });
+
+  it('a ORIENTAÇÃO não gera falso alarme em espécie alongada', () => {
+    // Corrigido depois de medir: a razão da imagem é a PROJEÇÃO, não a da
+    // semente. Um grão de trigo deitado mostra ~2:1 e o mesmo grão apoiado na
+    // ponta mostra ~1:1 — quase metade dos 2222 blobs medidos ficou abaixo do
+    // 1,8 que a literatura dá para o grão. Com o piso antigo, metade do lote
+    // seria acusada por estar deitada de outro jeito.
+    for (const razao of [1.1, 1.5, 1.87, 2.5, 3.0]) {
+      expect(conferirForma(razao, 1, 'trigo').veredicto, `${razao}`).toBe('plausivel');
+    }
+  });
+
+  it('mesmo com o piso baixo, o lado ALTO continua pegando o par', () => {
+    // É o lado que importa: o contorno que engoliu a vizinha.
+    const r = conferirForma(1.87 * 2, 1, 'trigo');
+    expect(r.veredicto).toBe('alongado-demais');
+  });
+
+  it('a faixa da soja é ESTREITA e a do trigo é larga — é a orientação que decide', () => {
+    // Soja é quase esférica: projeta igual de qualquer lado, então a faixa
+    // observada é apertada (medida: 1,05 a 1,40). Trigo é um elipsoide: a
+    // mesma semente mostra de ~1:1 a ~2:1 conforme caiu, e a faixa tem de
+    // acomodar isso — senão metade do lote é acusada por estar deitada de
+    // outro jeito.
+    const largura = (c: string) => {
+      const t = tamanhoDe(c)!;
+      return t.razaoMaxima! - t.razaoMinima!;
+    };
+    expect(largura('soja')).toBeLessThan(largura('trigo') / 3);
+  });
+
+  it('a faixa da soja aceita a variação real medida', () => {
+    // p1 = 1,054 e p99 = 1,364 das 1200 sementes.
+    expect(conferirForma(1.054, 1, 'soja').veredicto).toBe('plausivel');
+    expect(conferirForma(1.364, 1, 'soja').veredicto).toBe('plausivel');
+  });
+
+  it('cala quando não conhece a espécie', () => {
+    expect(conferirForma(100, 50, 'quinoa').veredicto).toBe('sem-referencia');
+    expect(conferirForma(100, 50, undefined).veredicto).toBe('sem-referencia');
+  });
+
+  it('cala com medida inválida em vez de dividir por zero', () => {
+    expect(conferirForma(0, 50, 'soja').veredicto).toBe('sem-referencia');
+    expect(conferirForma(100, 0, 'soja').veredicto).toBe('sem-referencia');
+  });
+});
+
+describe('as razões da tabela', () => {
+  it('toda faixa de razão é coerente e nunca menor que 1', () => {
+    // Razão é sempre maior lado sobre menor lado: abaixo de 1 é impossível.
+    for (const t of TAMANHOS) {
+      if (t.razaoMinima === undefined) continue;
+      expect(t.razaoMinima, t.chave).toBeGreaterThanOrEqual(1);
+      expect(t.razaoMaxima!, t.chave).toBeGreaterThan(t.razaoMinima);
+    }
+  });
+
+  it('a orquídea admite forma muito mais alongada que a soja', () => {
+    // Cattleya ~1,17 x 0,34 mm contra soja ~1,2:1. Comparar pelo TETO, e não
+    // pelo piso: o piso da orquídea é baixo de propósito, porque uma semente
+    // alongada apoiada na ponta projeta redonda.
+    expect(tamanhoDe('orquidea')!.razaoMaxima!).toBeGreaterThan(
+      tamanhoDe('soja')!.razaoMaxima! * 2
+    );
   });
 });
