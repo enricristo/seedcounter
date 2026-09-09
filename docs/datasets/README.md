@@ -268,6 +268,38 @@ p1 medido (1,73) de propósito, porque é ele que denuncia o par. E o texto do
 aviso passou a mudar conforme a espécie: dizer "duas encostadas" no lado errado
 mandaria a pessoa procurar o erro errado.
 
+#### O detector de aglomerado, medido contra a mesma verdade
+
+Os limiares de `aglomerado.ts` foram escolhidos por julgamento. Agora deu para
+medi-los: 3530 contornos isolados contra 240 pares reais, na normalização que o
+próprio código usa (profundidade dividida pelo raio do círculo de mesma área).
+
+| sinal | isolada (mediana) | fundida (mediana) |
+|---|---|---|
+| solidez | 0,942 | 0,615 |
+| profundidade relativa | 0,199 | 0,852 |
+| área | 1234 px | 2012 px (1,63×) |
+
+Os sinais separam bem. **Os limiares padrão é que não servem para orquídea:**
+
+| limiar | falso alarme | pares pegos |
+|---|---|---|
+| `profundidadeMaxima` 0,15 (padrão) | **78,0%** | 100% |
+| `profundidadeMaxima` 0,40 | 12,9% | 100% |
+| `profundidadeMaxima` 0,60 | 5,8% | 95,8% |
+| `solidezMinima` 0,92 (padrão) | **40,1%** | 100% |
+| `solidezMinima` 0,75 | 8,4% | 87,8% |
+
+Não é defeito da métrica: semente de orquídea tem testa papirácea e o contorno
+dela **não é convexo**. Uma constante calibrada para soja lisa não pode servir
+a isso.
+
+**Conclusão de projeto:** constante absoluta é a forma errada para este
+problema. O limiar certo é relativo à população da própria imagem — a mesma
+ideia que `medianaDaCena` já aplica à área. Enquanto isso não existe, entrou
+`LIMIARES_DE_CONTORNO_IRREGULAR` com os valores medidos, e há teste que fixa as
+medianas para ninguém apertar o limiar sem ver o custo.
+
 ### 5.4 O que ainda falta medir
 
 - ~~Par real de sementes encostadas, com máscara por instância.~~ **Fechado**

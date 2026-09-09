@@ -92,11 +92,51 @@ export interface LimiaresDeAglomerado {
   razaoDeAreaMaxima?: number;
 }
 
+/**
+ * Limiares padrão — calibrados para contorno LISO, tipo soja.
+ *
+ * MEDIÇÃO QUE PRECISA ACOMPANHAR ESTES NÚMEROS.
+ *
+ * Aplicados a 3530 contornos de orquídea isolada anotados à mão (conjunto de
+ * treino do YOLO em produção), eles reprovam a semente sadia em massa:
+ *
+ *   profundidadeMaxima 0,15 → 78,0% de falso alarme
+ *   solidezMinima      0,92 → 40,1% de falso alarme
+ *
+ * Não é defeito da métrica: é que semente de orquídea tem testa papirácea e
+ * irregular, e o contorno anotado dela NÃO é convexo. Uma constante que serve a
+ * uma soja lisa não pode servir a isso.
+ *
+ * Contra 240 pares que realmente se encostam, os mesmos sinais separam bem —
+ * desde que o limiar mude: a profundidade em 0,60 dá 5,8% de falso alarme com
+ * 95,8% dos pares pegos, e a mediana das fundidas (0,852) fica muito acima da
+ * mediana das isoladas (0,199).
+ *
+ * CONCLUSÃO DE PROJETO: constante absoluta é a forma errada para este problema.
+ * O limiar certo é relativo à POPULAÇÃO DA PRÓPRIA IMAGEM — a mesma ideia que
+ * `medianaDaCena` já usa para a área. Enquanto isso não existe, quem trabalha
+ * com contorno irregular passa `LIMIARES_DE_CONTORNO_IRREGULAR`.
+ */
 const PADROES = {
   solidezMinima: 0.92,
   profundidadeMaxima: 0.15,
   razaoDeAreaMaxima: 1.5,
 };
+
+/**
+ * Limiares medidos para contorno irregular (orquídea e afins).
+ *
+ * Vieram de 3530 contornos isolados contra 240 pares reais. O ponto de operação
+ * escolhido privilegia NÃO importunar quem está certo: 5,8% de falso alarme por
+ * 95,8% de detecção. Num painel de triagem, o custo de um falso alarme é a
+ * pessoa olhar uma semente boa; o custo de um par não detectado é um número
+ * errado no laudo — mas com 95,8% o segundo já é raro.
+ */
+export const LIMIARES_DE_CONTORNO_IRREGULAR = {
+  solidezMinima: 0.75,
+  profundidadeMaxima: 0.6,
+  razaoDeAreaMaxima: 1.6,
+} as const;
 
 /** Abaixo disto o contorno não tem pontos suficientes para as medidas fazerem sentido. */
 const PONTOS_MINIMOS = 8;

@@ -11,6 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  LIMIARES_DE_CONTORNO_IRREGULAR,
   analisarContorno,
   areaDoPoligono,
   fechoConvexo,
@@ -250,5 +251,35 @@ describe('sobre os contornos que a onda realmente produz', () => {
     }
     // A soja está resolvida (+0,6% de erro). Marcar aqui seria alarme falso.
     expect(marcadas, `${marcadas} de ${c.sementes.length} marcadas à toa`).toBeLessThanOrEqual(2);
+  });
+});
+
+// =============================================================================
+// O que a medição em orquídea real impôs.
+// =============================================================================
+
+describe('limiares contra contorno irregular', () => {
+  it('o preset de contorno irregular é MAIS FROUXO que o padrão', () => {
+    // Medido em 3530 contornos de orquídea isolada: o padrão reprova 78% delas
+    // pela profundidade e 40% pela solidez. Não é defeito da métrica — é que
+    // semente de orquídea tem testa papirácea e o contorno dela não é convexo.
+    expect(LIMIARES_DE_CONTORNO_IRREGULAR.profundidadeMaxima).toBeGreaterThan(0.15);
+    expect(LIMIARES_DE_CONTORNO_IRREGULAR.solidezMinima).toBeLessThan(0.92);
+  });
+
+  it('a orquídea isolada MEDIANA passa com o preset e reprovaria com o padrão', () => {
+    // Mediana medida: solidez 0,942 e profundidade relativa 0,199.
+    const solidezMediana = 0.942;
+    const profundidadeMediana = 0.199;
+
+    expect(profundidadeMediana).toBeGreaterThan(0.15); // reprovaria no padrão
+    expect(profundidadeMediana).toBeLessThan(LIMIARES_DE_CONTORNO_IRREGULAR.profundidadeMaxima);
+    expect(solidezMediana).toBeGreaterThan(LIMIARES_DE_CONTORNO_IRREGULAR.solidezMinima);
+  });
+
+  it('o par REAL continua sendo pego pelo preset', () => {
+    // Mediana das 240 fundidas: profundidade relativa 0,852, solidez 0,615.
+    expect(0.852).toBeGreaterThan(LIMIARES_DE_CONTORNO_IRREGULAR.profundidadeMaxima);
+    expect(0.615).toBeLessThan(LIMIARES_DE_CONTORNO_IRREGULAR.solidezMinima);
   });
 });
