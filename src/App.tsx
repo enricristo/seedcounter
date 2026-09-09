@@ -46,6 +46,14 @@ import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
+import { NovidadesModal } from './features/novidades';
+import {
+  decidirAbertura,
+  marcarVersaoComoVista,
+  versaoAtual,
+  versaoVista,
+  type Versao,
+} from './lib/novidades';
 import { envolver } from './features/galeria/recortes';
 import {
   ESTADO_INICIAL as MASCARA_INICIAL,
@@ -185,6 +193,21 @@ export default function App() {
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
 
   const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
+
+  // Notas de versao: abre sozinha so quando a versao avancou desde a ultima
+  // visita. Na primeira visita registra em silencio — quem abre o aplicativo
+  // pela primeira vez quer contar sementes, nao ler o historico.
+  const [novidades, setNovidades] = useState<{ aberto: boolean; versoes: Versao[] }>({
+    aberto: false,
+    versoes: [],
+  });
+
+  useEffect(() => {
+    const atual = versaoAtual()?.numero ?? __APP_VERSION__;
+    const { abrir, versoes } = decidirAbertura(atual, versaoVista());
+    if (abrir) setNovidades({ aberto: true, versoes });
+    marcarVersaoComoVista(atual);
+  }, []);
   const ciclarMascara = useCallback(() => setMascara((m) => proximaMascara(m)), []);
   const [showRulers, setShowRulers] = useState(true);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
@@ -496,6 +519,12 @@ export default function App() {
         ? `${((r.areaPx * metadata.umPerPixel ** 2) / 1e6).toFixed(3)} mm²`
         : `${r.areaPx} px`;
 
+      // Comprimento e largura pelos EIXOS PRINCIPAIS do contorno, e nao pela
+      // caixa alinhada aos eixos da imagem: uma semente deitada na diagonal tem
+      // caixa quase quadrada, e a caixa mediria a diagonal em vez da semente.
+      // A PCA gira o objeto ate ele deitar, e ai mede.
+      const { width, height } = calculateSeedDimensions(r.contorno);
+
       appendYoloSegmentation({
         id: Date.now() + Math.floor(Math.random() * 1000),
         category: tipo,
@@ -504,6 +533,8 @@ export default function App() {
         confidence: 1,
         polygon_points: r.contorno,
         visible: true,
+        width,
+        height,
         // A marcação criada por este mesmo clique é quem conta a semente.
         origem: 'clique',
       });
@@ -1529,7 +1560,12 @@ export default function App() {
 
       {/* 5. Footer Status Bar */}
       {currentView === 'counter' && (
-        <Footer filename={filename} imageWidth={image?.width} imageHeight={image?.height} />
+        <Footer
+          filename={filename}
+          imageWidth={image?.width}
+          imageHeight={image?.height}
+          onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+        />
       )}
 
       {/* 6. Drag Drop file upload overlay */}
@@ -1682,6 +1718,12 @@ export default function App() {
 
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+
+      <NovidadesModal
+        isOpen={novidades.aberto}
+        onClose={() => setNovidades((n) => ({ ...n, aberto: false }))}
+        versoes={novidades.versoes}
+      />
 
       <GaleriaModal
         isOpen={isGaleriaOpen}
