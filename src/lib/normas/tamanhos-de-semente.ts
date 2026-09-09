@@ -51,10 +51,27 @@ export interface TamanhoDeSemente {
    * mas p5 = 1,08 — quase metade fica abaixo do 1,8 que a literatura dá para o
    * grão. Não é erro de segmentação: é orientação.
    *
-   * Consequência de projeto: o piso é BAIXO de propósito para espécie alongada,
-   * e a checagem serve sobretudo para pegar o lado ALTO, que é onde mora o
-   * contorno que engoliu a vizinha. Para soja o piso pode ser justo, porque
-   * semente quase esférica projeta igual de qualquer lado.
+   * QUAL LADO DENUNCIA O PAR DEPENDE DA ESPÉCIE — e eu errei isto na primeira
+   * versão.
+   *
+   * Escrevi que a checagem serve "sobretudo para o lado ALTO, que é onde mora o
+   * contorno que engoliu a vizinha". Isso vale para semente redonda e é FALSO
+   * para semente alongada. Duas sementes de comprimento L e largura W podem
+   * fundir de duas formas:
+   *
+   *   ponta a ponta   → 2L × W  → razão DOBRA
+   *   lado a lado     → L × 2W  → razão CAI PELA METADE
+   *
+   * Semente alongada assenta alinhada com a vizinha, então lado a lado domina.
+   * Medindo 1728 pares que REALMENTE se encostam no conjunto de orquídea, a
+   * razão fundida ficou em 1,90 — bem ABAIXO da mediana isolada de 3,70. E
+   * 88,7% dos pares ficaram abaixo dessa mediana.
+   *
+   * Resultado prático, medido: para orquídea o limiar alto pega 0 a 3% dos
+   * pares, e o limiar baixo em 2,0 pega 54% com 3,3% de falso alarme. Para soja
+   * é o contrário — semente quase redonda só pode ficar mais alongada.
+   *
+   * Por isso os DOIS lados valem, e o texto do aviso muda conforme a espécie.
    */
   razaoMinima?: number;
   razaoMaxima?: number;
@@ -76,10 +93,14 @@ export const TAMANHOS: TamanhoDeSemente[] = [
     nomeCientifico: 'Orchidaceae',
     minimo: 0.15,
     maximo: 2.0,
-    // Cattleya ~1,17 x 0,34 mm; piso rebaixado pela orientacao.
-    razaoMinima: 1.4,
-    razaoMaxima: 6.0,
-    origem: 'Semente sem endosperma; Cattleya ~1,2 mm de comprimento',
+    // MEDIDO em 21.655 sementes anotadas: razão mediana 3,70 (viável 3,84,
+    // inviável 3,56), p1 1,73, p99 7,11. O piso ficou em 2,0 e não no p1
+    // porque é ele que denuncia o par lado a lado — 54% dos 1728 pares reais,
+    // com 3,3% de falso alarme.
+    razaoMinima: 2.0,
+    razaoMaxima: 7.5,
+    origem:
+      'Medido em 21.655 sementes do conjunto de treino do YOLO (Roboflow sementes-de-orquideas v8), por PCA sobre o polígono anotado',
   },
   {
     chave: 'soja',
@@ -399,19 +420,23 @@ export function conferirForma(
     return { veredicto: 'plausivel', razao, referencia, recado: '' };
   }
 
+  const cabecalho = `Contorno com razão ${virgula(razao)} — ${referencia.nomeComum} costuma ficar entre ${esperado}. `;
+
+  // Qual lado sugere PAR depende da forma da espécie. Semente quase redonda só
+  // pode ficar mais alongada ao fundir; semente alongada assenta ao lado da
+  // vizinha e o par fica mais GORDO, com a razão caindo pela metade.
+  const especieAlongada = referencia.razaoMinima >= 2;
+
   if (razao > referencia.razaoMaxima) {
-    // O dobro do comprimento com a mesma largura é a assinatura de duas
-    // sementes encostadas dentro de um contorno só.
-    const pareceDuas = razao >= referencia.razaoMaxima * 1.5;
     return {
       veredicto: 'alongado-demais',
       razao,
       referencia,
       recado:
-        `Contorno com razão ${virgula(razao)} — ${referencia.nomeComum} costuma ficar entre ${esperado}. ` +
-        (pareceDuas
-          ? 'O alongamento é compatível com duas sementes encostadas num contorno só.'
-          : 'Confira se o contorno pegou sombra ou parte da vizinha.'),
+        cabecalho +
+        (especieAlongada
+          ? 'Confira se o contorno pegou sombra, resíduo ou duas sementes ponta a ponta.'
+          : 'O alongamento é compatível com duas sementes encostadas num contorno só.'),
     };
   }
 
@@ -420,8 +445,10 @@ export function conferirForma(
     razao,
     referencia,
     recado:
-      `Contorno com razão ${virgula(razao)} — ${referencia.nomeComum} costuma ficar entre ${esperado}. ` +
-      'Confira se o contorno cobre a semente inteira.',
+      cabecalho +
+      (especieAlongada
+        ? 'Numa semente alongada, contorno mais gordo que o normal costuma ser duas encostadas lado a lado.'
+        : 'Confira se o contorno cobre a semente inteira.'),
   };
 }
 

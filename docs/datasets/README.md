@@ -213,12 +213,68 @@ Consequência de projeto: a checagem de forma serve sobretudo para o lado ALTO
 da faixa — que é onde mora o contorno que engoliu a vizinha. O veredito
 "redondo demais" é fraco para espécie alongada, e isso está dito no código.
 
-### 5.3 O que ainda falta medir
+### 5.3 Orquídea — o conjunto que treinou o YOLO em produção
 
-- **Par real de sementes encostadas, com máscara por instância.** Continua sendo
-  a lacuna. Os conjuntos de trigo têm sementes que se tocam, mas a anotação é
-  multiclasse por imagem, não por objeto — dá para medir a distribuição, não
-  para rotular qual blob é par.
-- **Orquídea.** `nelson_phd_images_orquid_enrico` tem aglomerado real e
-  tetrazólio, e é onde a razão projetada mais deve variar.
+**Conjunto:** `datasets/Sementes de Orquideas` — Roboflow
+`sementes-de-orqudea/sementes-de-orquideas` v8, CC BY 4.0
+**Anotação:** polígonos de segmentação YOLO, duas classes (viável, inviável)
+**Amostra:** 610 imagens de treino a 946×946, **21.655 sementes anotadas**
+
+| classe | n | comprimento mediano | razão C/L mediana | p1 – p99 |
+|---|---|---|---|---|
+| viável | 10.180 | 124,4 px | 3,84 | — |
+| inviável | 11.475 | 96,7 px | 3,56 | — |
+| **todas** | **21.655** | — | **3,70** | 1,73 – 7,11 |
+
+Detalhe biológico que apareceu sozinho: a semente **viável é mais longa e mais
+alongada** que a inviável (124 contra 97 px; 3,84 contra 3,56). Faz sentido —
+a inviável costuma ser testa sem embrião desenvolvido. Não é separação
+suficiente para classificar, mas mostra que uma faixa única por espécie é
+simplificação.
+
+#### O achado que corrigiu o código
+
+Este conjunto tem o que faltava: **1728 pares de contornos que realmente se
+encostam** (distância inferior a 2 px entre polígonos anotados). Fundindo cada
+par e medindo o resultado, dá para saber o que um contorno errado produz — sem
+simular.
+
+E o resultado **refutou** o que estava escrito no código.
+
+A versão anterior afirmava que a checagem de forma "serve sobretudo para o lado
+ALTO, que é onde mora o contorno que engoliu a vizinha". Isso vale para semente
+redonda e é falso para semente alongada:
+
+```
+ponta a ponta   2L × W   → razão DOBRA
+lado a lado     L × 2W   → razão CAI PELA METADE
+```
+
+Semente alongada assenta alinhada com a vizinha, então lado a lado domina.
+Medido: a razão dos pares fundidos ficou em **1,90**, contra 3,70 das isoladas,
+e **88,7% dos pares ficaram abaixo da mediana isolada**.
+
+Desempenho medido, não simulado:
+
+| lado | limiar | falso alarme | pares reais pegos |
+|---|---|---|---|
+| alto | 6,00 | 4,1% | 1,7% |
+| alto | 7,11 | 1,0% | 0,3% |
+| **baixo** | **2,00** | **3,3%** | **54,3%** |
+| baixo | 2,20 | 6,1% | 63,0% |
+
+O lado alto é inútil para orquídea. O piso da tabela foi para **2,0** — acima do
+p1 medido (1,73) de propósito, porque é ele que denuncia o par. E o texto do
+aviso passou a mudar conforme a espécie: dizer "duas encostadas" no lado errado
+mandaria a pessoa procurar o erro errado.
+
+### 5.4 O que ainda falta medir
+
+- ~~Par real de sementes encostadas, com máscara por instância.~~ **Fechado**
+  pelo conjunto de orquídea (§5.3): 1728 pares medidos.
+- **Par real em semente REDONDA.** O de soja não tem par nenhum e o de orquídea
+  é alongado. A afirmação de que o par de soja aparece no lado alto continua
+  sendo aritmética, não medição.
+- **Tetrazólio com leitura de referência.** `nelson_phd_images_orquid_enrico`
+  tem material corado, mas sem laudo pareado por semente.
 - **Morfometria contra paquímetro.** Nenhum conjunto tem medição manual pareada.

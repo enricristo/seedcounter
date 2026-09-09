@@ -281,3 +281,47 @@ describe('as razões da tabela', () => {
     );
   });
 });
+
+describe('qual lado denuncia o par — depende da espécie', () => {
+  // Corrigido depois de medir 1728 pares que REALMENTE se encostam no conjunto
+  // de orquídea. A primeira versão afirmava que o par sempre aparece no lado
+  // alto; isso vale para semente redonda e é falso para semente alongada.
+
+  it('semente REDONDA: o par aparece no lado ALTO', () => {
+    // Soja 1,2:1 — fundir só pode alongar.
+    const r = conferirForma(1.208 * 2, 1, 'soja');
+    expect(r.veredicto).toBe('alongado-demais');
+    expect(r.recado).toMatch(/duas sementes encostadas/);
+  });
+
+  it('semente ALONGADA: o par aparece no lado BAIXO', () => {
+    // Orquídea 3,70:1. Duas encostadas lado a lado ficam L x 2W, e a razão CAI
+    // pela metade — medido: fundidas ficaram em 1,90 contra 3,70 das isoladas.
+    const r = conferirForma(1.9, 1, 'orquidea');
+    expect(r.veredicto).toBe('redondo-demais');
+    expect(r.recado).toMatch(/duas encostadas lado a lado/);
+  });
+
+  it('a orquídea isolada medida continua passando', () => {
+    // Mediana 3,70; viável 3,84; inviável 3,56.
+    for (const razao of [2.2, 3.56, 3.7, 3.84, 6.03, 7.4]) {
+      expect(conferirForma(razao, 1, 'orquidea').veredicto, `${razao}`).toBe('plausivel');
+    }
+  });
+
+  it('o piso da orquídea fica ACIMA do p1 medido, de propósito', () => {
+    // p1 das isoladas = 1,73, mas o piso é 2,0: é ele que denuncia o par lado a
+    // lado, e 3,3% de falso alarme foi o preço aceito por 54% de deteccao.
+    expect(tamanhoDe('orquidea')!.razaoMinima!).toBeGreaterThan(1.73);
+    expect(conferirForma(1.9, 1, 'orquidea').veredicto).not.toBe('plausivel');
+  });
+
+  it('o texto do aviso NUNCA promete o mecanismo errado', () => {
+    // Dizer "duas encostadas" no lado alto de uma espécie alongada mandaria a
+    // pessoa procurar o erro errado.
+    const alongadaNoAlto = conferirForma(9, 1, 'orquidea');
+    expect(alongadaNoAlto.recado).not.toMatch(/duas encostadas lado a lado/);
+    const redondaNoBaixo = conferirForma(1.01, 1, 'soja');
+    expect(redondaNoBaixo.recado).not.toMatch(/lado a lado/);
+  });
+});
