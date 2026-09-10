@@ -60,6 +60,12 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Achatar o fundo do scanner',
+        detalhe:
+          'Modela o gradiente de iluminação e o remove, em três modos: nivelar, realçar ou isolar. A segmentação por clique passa a parar na borda certa. A detecção automática e o laudo continuam recebendo a imagem original.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Ajustar contorno (tecla C)',
         detalhe:
           'Clique num contorno para selecioná-lo: os pontos viram alças que se arrastam, e duplo clique remove um. Arrastar sobre a imagem raspa a borda — e ela não vai para onde o cursor passou, vai para a borda de verdade mais próxima. Com Shift, o traço acrescenta em vez de remover.',

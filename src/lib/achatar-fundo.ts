@@ -60,7 +60,7 @@ export interface ResultadoDoAchatamento {
    * impossível de testar. Quem desenha no canvas constrói o `ImageData` a
    * partir daqui numa linha.
    */
-  imagem: DadosImagem;
+  imagem: ImagemProduzida;
   modelo: ModeloDeFundo;
   /**
    * O modelo não merece confiança e o resultado deve ser mostrado com ressalva.
@@ -70,6 +70,20 @@ export interface ResultadoDoAchatamento {
    * quase toda semente, ou quando o fundo tem textura.
    */
   incerto: boolean;
+}
+
+/**
+ * A saida e sempre `Uint8ClampedArray`, e o tipo diz isso.
+ *
+ * `DadosImagem.data` aceita `number[]` tambem, para poder receber dado de
+ * teste. Como TIPO DE SAIDA isso seria frouxo demais: quem constroi um
+ * `ImageData` a partir daqui precisa da garantia, e sem ela o compilador
+ * reclama no lugar errado.
+ */
+export interface ImagemProduzida {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
 }
 
 const BRANCO: [number, number, number] = [255, 255, 255];
@@ -90,7 +104,11 @@ export function achatarFundo(
   if (!modelo) return null;
 
   const { width: W, height: H } = imagem;
-  const saida: DadosImagem = { data: new Uint8ClampedArray(W * H * 4), width: W, height: H };
+  const saida: ImagemProduzida = {
+    data: new Uint8ClampedArray(W * H * 4),
+    width: W,
+    height: H,
+  };
 
   // A referência é a MEDIANA do fundo previsto, não um branco fixo: dividir
   // pelo branco levantaria a imagem inteira e estouraria o realce numa

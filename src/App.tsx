@@ -56,6 +56,7 @@ import {
 } from './lib/novidades';
 import { envolver } from './features/galeria/recortes';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
+import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
 import {
   ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
@@ -194,6 +195,17 @@ export default function App() {
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
   const [contornoSelecionado, setContornoSelecionado] = useState<number | null>(null);
   const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
+
+  /**
+   * A imagem com o fundo nivelado.
+   *
+   * Fica SEPARADA de `image`, que continua sendo a original. A onda e a
+   * borracha leem esta; o YOLO e o laudo leem a original — o modelo foi
+   * treinado nela, e foto processada nao e a chapa.
+   */
+  const [fundoAchatado, setFundoAchatado] = useState<HTMLImageElement | null>(null);
+  const [fundoIncerto, setFundoIncerto] = useState(false);
+  const [achatando, setAchatando] = useState(false);
 
   const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
 
@@ -396,6 +408,15 @@ export default function App() {
       }
     },
   });
+  /**
+   * A imagem que a SEGMENTACAO le.
+   *
+   * Fundo achatado quando existe; original caso contrario. A onda e a borracha
+   * decidem fronteira por diferenca de cor, e sao exatamente elas que ganham
+   * com o gradiente removido.
+   */
+  const imagemDeTrabalho = fundoAchatado ?? image;
+
 
   useEffect(() => {
     marcasRef.current = marks;
@@ -498,7 +519,7 @@ export default function App() {
    */
   const segmentarComOnda = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      if (!image) return;
+      if (!imagemDeTrabalho) return;
       addMark(x, y, tipo);
 
       const inicio = performance.now();
@@ -544,7 +565,7 @@ export default function App() {
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
     },
-    [image, addMark, appendYoloSegmentation, metadata.umPerPixel]
+    [imagemDeTrabalho, addMark, appendYoloSegmentation, metadata.umPerPixel]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -1207,9 +1228,10 @@ export default function App() {
   // todo filtro que codifica diferença entre canais produz exatamente zero.
   // Não é deslocamento recuperável, é informação destruída.
   const adjustedSource = useMemo(() => {
-    if (!image || !adjustEnabled || isNeutral(adjustments)) return image;
-    return applyAdjustments(image, adjustments) ?? image;
-  }, [image, adjustments, adjustEnabled]);
+    const base = imagemDeTrabalho;
+    if (!base || !adjustEnabled || isNeutral(adjustments)) return base;
+    return applyAdjustments(base, adjustments) ?? base;
+  }, [imagemDeTrabalho, adjustments, adjustEnabled]);
 
   // Filtro CSS para a prévia instantânea no canvas.
   const canvasFilter = useMemo(
@@ -1264,22 +1286,78 @@ export default function App() {
    * da evidencia, e um realce de contraste move a borda aparente sem mover a
    * semente.
    */
+  const handleAchatarFundo = useCallback(
+    async (modo: ModoDeAchatamento) => {
+      if (!image) return;
+      setAchatando(true);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.drawImage(image, 0, 0);
+        const dados = ctx.getImageData(0, 0, image.width, image.height);
+
+        const r = achatarFundo(
+          { data: dados.data, width: image.width, height: image.height },
+          { modo }
+        );
+
+        if (!r) {
+          setRecadoDaOnda({
+            tom: 'aviso',
+            texto: 'Não foi possível modelar o fundo desta imagem.',
+          });
+          return;
+        }
+
+        // Devolve os pixels ao canvas e cria a imagem de trabalho.
+        ctx.putImageData(new ImageData(r.imagem.data, r.imagem.width, r.imagem.height), 0, 0);
+        const nova = new Image();
+        await new Promise<void>((resolve) => {
+          nova.onload = () => resolve();
+          nova.onerror = () => resolve();
+          nova.src = canvas.toDataURL('image/png');
+        });
+
+        setFundoAchatado(nova);
+        setFundoIncerto(r.incerto);
+        setRecadoDaOnda({
+          tom: r.incerto ? 'aviso' : 'ok',
+          texto: r.incerto
+            ? 'Fundo achatado, mas o modelo ficou incerto — confira antes de confiar.'
+            : 'Fundo achatado. A detecção automática continua usando a imagem original.',
+        });
+      } finally {
+        setAchatando(false);
+      }
+    },
+    [image]
+  );
+
+  const handleDesfazerFundo = useCallback(() => {
+    setFundoAchatado(null);
+    setFundoIncerto(false);
+  }, []);
+
   const handleRaspar = useCallback(
     (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
-      if (!image) return;
+      const fonte = imagemDeTrabalho;
+      if (!fonte) return;
       const alvo = segmentacoesRef.current.find((s) => s.id === id);
       if (!alvo) return;
 
       const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
+      canvas.width = fonte.width;
+      canvas.height = fonte.height;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
-      ctx.drawImage(image, 0, 0);
-      const dados = ctx.getImageData(0, 0, image.width, image.height);
+      ctx.drawImage(fonte, 0, 0);
+      const dados = ctx.getImageData(0, 0, fonte.width, fonte.height);
 
       const r = ajustarContorno(
-        { data: dados.data, width: image.width, height: image.height },
+        { data: dados.data, width: fonte.width, height: fonte.height },
         alvo.polygon_points,
         pinceladas,
         acrescentar ? 'acrescentar' : 'remover'
@@ -1308,7 +1386,7 @@ export default function App() {
         texto: `Contorno reassentado — ${r.verticesRefeitos} ${r.verticesRefeitos === 1 ? 'ponto refeito' : 'pontos refeitos'}`,
       });
     },
-    [image, setYoloSegmentations]
+    [imagemDeTrabalho, setYoloSegmentations]
   );
 
   const handleToggleMarkClass = useCallback(
@@ -1472,6 +1550,11 @@ export default function App() {
                 onChange={setAdjustments}
                 enabled={adjustEnabled}
                 onToggleEnabled={() => setAdjustEnabled((v) => !v)}
+                onAchatarFundo={handleAchatarFundo}
+                onDesfazerFundo={handleDesfazerFundo}
+                fundoAchatado={!!fundoAchatado}
+                achatando={achatando}
+                fundoIncerto={fundoIncerto}
               />
             }
             calibrationSlot={
