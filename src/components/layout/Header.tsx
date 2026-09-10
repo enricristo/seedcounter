@@ -19,6 +19,8 @@ interface HeaderProps {
   toggleTheme: () => void;
   sessionsCount: number;
   openHistory: () => void;
+  /** O botao da conta. Ausente = nada no lugar dele. */
+  contaSlot?: React.ReactNode;
   onUndo: () => void;
   undoDisabled: boolean;
   onReset: () => void;
@@ -96,6 +98,7 @@ export function Header({
   toggleTheme,
   sessionsCount,
   openHistory,
+  contaSlot,
   onUndo,
   undoDisabled,
   onReset,
@@ -189,6 +192,9 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* A conta, quando existe. Fica ANTES dos botoes de instrumento e
+            separada deles: e identidade, nao ferramenta. */}
+        {contaSlot && <div className="border-line mr-1 border-r pr-3">{contaSlot}</div>}
         <button
           onClick={toggleTheme}
           className={botaoIcone}

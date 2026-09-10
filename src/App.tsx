@@ -47,6 +47,7 @@ import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
+import { BotaoDeConta, useConta } from './features/conta';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
 import {
   decidirAbertura,
@@ -323,6 +324,10 @@ export default function App() {
 
   // Metadata sample inputs
   const { metadata, setMetadata, updateMetadata } = useMetadata();
+
+  // A conta e opcional e so lembra a bancada. Sem VITE_GOOGLE_CLIENT_ID o botao
+  // nem aparece; o resto do aplicativo nao sabe que ela existe.
+  const conta = useConta(metadata, setMetadata);
 
   // Sessions CRUD history
   const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
@@ -1625,6 +1630,7 @@ export default function App() {
         toggleTheme={toggleTheme}
         sessionsCount={sessions.length}
         openHistory={() => setIsHistoryModalOpen(true)}
+        contaSlot={conta.disponivel ? <BotaoDeConta conta={conta} /> : undefined}
         onUndo={undoMark}
         undoDisabled={marks.length === 0}
         onReset={() => setIsResetConfirmOpen(true)}

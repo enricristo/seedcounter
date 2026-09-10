@@ -83,7 +83,15 @@ export class GisClient {
   constructor(config: GisConfig = {}) {
     this.config = {
       clientId: config.clientId ?? (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_CLIENT_ID ? String(import.meta.env.VITE_GOOGLE_CLIENT_ID) : ''),
-      baseUrl: config.baseUrl ?? '',
+      // Mesmo padrao do clientId: o servidor vem do ambiente, porque em
+      // desenvolvimento ele roda em outra porta (8000) e em producao pode ser
+      // outro dominio. Vazio = mesma origem. (linha acrescentada pelo agente do
+      // frontend ao integrar; ver .agents/HANDOFF_FROM_FRONTEND_AGENT.md)
+      baseUrl:
+        config.baseUrl ??
+        (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL
+          ? String(import.meta.env.VITE_BACKEND_URL).replace(/\/+$/, '')
+          : ''),
       autoLoadScript: config.autoLoadScript ?? false,
     };
 
