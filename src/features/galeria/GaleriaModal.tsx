@@ -300,6 +300,7 @@ function Celula({
   marca,
   onSubclasse,
 }: {
+  key?: React.Key;
   item: ItemDaGaleria;
   indice: number;
   miniatura?: string;
