@@ -6,6 +6,44 @@ import { CanvasRulers } from './CanvasRulers';
 import { formatLengthDual } from '../../lib/calibration';
 import { regiaoDeDoisPontos, regiaoUtilizavel, type Regiao } from '../../lib/region';
 import { AJUSTE_PADRAO, espessuraNaImagem, raioDoAlvo } from '../../lib/escala-da-marca';
+import {
+  arestaMaisProxima,
+  contornoSobOPonto,
+  pesosDeInfluencia,
+  raioDeInfluencia,
+  verticeMaisProximo,
+  type Ponto,
+} from '../../lib/edicao-de-contorno';
+
+/**
+ * O que está sob o cursor na ferramenta de contorno. É o que o realce e o
+ * cursor mostram ANTES do clique — a pessoa vê o que o clique vai fazer.
+ */
+type AlvoDaEdicao =
+  | { tipo: 'vertice'; id: number; indice: number }
+  | { tipo: 'aresta'; id: number; aresta: number; ponto: Ponto }
+  | { tipo: 'contorno'; id: number }
+  | null;
+
+// Tamanhos em pixels de TELA. A alça tem o mesmo tamanho sob o dedo em
+// qualquer zoom; a versão anterior media em pixels da imagem e ficava
+// invisível numa varredura grande com zoom baixo.
+const ALCA_PX = 5;
+const ALCANCE_DO_VERTICE_PX = 9;
+const ALCANCE_DA_ARESTA_PX = 7;
+/** Quanto o ponteiro anda antes de um clique virar arraste ou traço. */
+const ARRANQUE_PX = 3;
+
+/** Dois alvos iguais não merecem um re-render: o move dispara a cada pixel. */
+function mesmoAlvo(a: AlvoDaEdicao, b: AlvoDaEdicao): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.tipo !== b.tipo || a.id !== b.id) return false;
+  if (a.tipo === 'vertice' && b.tipo === 'vertice') return a.indice === b.indice;
+  if (a.tipo === 'aresta' && b.tipo === 'aresta') {
+    return a.aresta === b.aresta && a.ponto[0] === b.ponto[0] && a.ponto[1] === b.ponto[1];
+  }
+  return true;
+}
 
 /** Prévia da detecção assistida (Fase E) — candidatos ainda não confirmados. */
 export interface DetectionPreview {
@@ -66,10 +104,21 @@ interface MarkingCanvasProps {
   /** Qual contorno está selecionado para edição. */
   contornoSelecionado?: number | null;
   onSelecionarContorno?: (id: number | null) => void;
-  /** Move um vértice do contorno. */
-  onMoverVertice?: (id: number, indice: number, x: number, y: number) => void;
-  /** Remove um vértice (duplo clique nele). */
+  /**
+   * Move um vértice do contorno. `rigido` (Shift) move só ele; sem Shift os
+   * vizinhos acompanham.
+   */
+  onMoverVertice?: (id: number, indice: number, x: number, y: number, rigido?: boolean) => void;
+  /** Insere um vértice na aresta `aresta`, em (x, y) — clique na borda. */
+  onInserirVertice?: (id: number, aresta: number, x: number, y: number) => void;
+  /** Remove um vértice (duplo clique ou Ctrl+clique nele). */
   onRemoverVertice?: (id: number, indice: number) => void;
+  /**
+   * Um gesto contínuo (arraste, traço, borracha) começou / terminou. Quem
+   * guarda o histórico usa o par para tratar o gesto inteiro como um passo.
+   */
+  onInicioDeGesto?: () => void;
+  onFimDeGesto?: () => void;
   /**
    * Traço da borracha concluído, em pixels da imagem.
    * `acrescentar` verdadeiro quando a pessoa segurou Shift.
@@ -119,7 +168,10 @@ export function MarkingCanvas({
   contornoSelecionado,
   onSelecionarContorno,
   onMoverVertice,
+  onInserirVertice,
   onRemoverVertice,
+  onInicioDeGesto,
+  onFimDeGesto,
   onRaspar,
   raioDaRaspagem = 14,
   linhaDeCorte,
@@ -128,20 +180,55 @@ export function MarkingCanvas({
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
 
   // --- Ajuste de contorno ---
-  /** Vértice sendo arrastado agora. */
+  /**
+   * Vértice sendo arrastado agora. `origem` é onde o botão desceu: um vértice
+   * já existente só começa a andar depois do arranque, para o duplo clique
+   * que remove não deixar um "movido 1 px" no histórico.
+   */
   const [verticeArrastado, setVerticeArrastado] = useState<{
     id: number;
     indice: number;
+    origem: { x: number; y: number } | null;
   } | null>(null);
   /** Traço da borracha em curso, acumulado em pixels da imagem. */
   const [raspagem, setRaspagem] = useState<{
     id: number;
     acrescentar: boolean;
+    /** Onde o botão desceu: o traço só nasce depois de andar daqui. */
+    origem: { x: number; y: number };
     pinceladas: { x: number; y: number; raio: number }[];
   } | null>(null);
+  const [alvoDaEdicao, setAlvoDaEdicao] = useState<AlvoDaEdicao>(null);
 
   const editandoContorno = activeTool === 'contorno';
   const desenhando = activeTool === 'desenho';
+
+  /** Pixels de tela em pixels da imagem. */
+  const naImagem = (px: number) => px / Math.max(zoomLevel, 1e-6);
+
+  const contornosVisiveis = yoloSegmentations.filter((s) => s.visible !== false);
+  const selecionado =
+    contornoSelecionado != null
+      ? (contornosVisiveis.find((s) => s.id === contornoSelecionado) ?? null)
+      : null;
+
+  /** O que um clique em `p` atingiria, na ordem de prioridade: vértice, aresta, contorno. */
+  const acharAlvo = (p: Ponto): AlvoDaEdicao => {
+    if (selecionado) {
+      const v = verticeMaisProximo(selecionado.polygon_points, p, naImagem(ALCANCE_DO_VERTICE_PX));
+      if (v) return { tipo: 'vertice', id: selecionado.id, indice: v.indice };
+      const a = arestaMaisProxima(selecionado.polygon_points, p, naImagem(ALCANCE_DA_ARESTA_PX));
+      if (a) return { tipo: 'aresta', id: selecionado.id, aresta: a.aresta, ponto: a.ponto };
+    }
+    const sob = contornoSobOPonto(contornosVisiveis, p);
+    return sob ? { tipo: 'contorno', id: sob.id } : null;
+  };
+
+  // Sair da ferramenta limpa o alvo: um realce de aresta sem ferramenta para
+  // usá-lo seria um convite a nada.
+  useEffect(() => {
+    if (!editandoContorno) setAlvoDaEdicao(null);
+  }, [editandoContorno]);
 
   /** Vertices do poligono em construcao, em pixels da imagem. */
   const [desenho, setDesenho] = useState<[number, number][]>([]);
@@ -154,14 +241,17 @@ export function MarkingCanvas({
 
   // Esc cancela. E a unica saida sem fechar, e precisa existir: sem ela a
   // pessoa que errou o primeiro clique teria de trocar de ferramenta.
+  // Na ferramenta de contorno, Esc desmarca o contorno selecionado.
   useEffect(() => {
-    if (!desenhando) return;
+    if (!desenhando && !editandoContorno) return;
     const ao = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDesenho([]);
+      if (e.key !== 'Escape') return;
+      if (desenhando) setDesenho([]);
+      if (editandoContorno) onSelecionarContorno?.(null);
     };
     window.addEventListener('keydown', ao);
     return () => window.removeEventListener('keydown', ao);
-  }, [desenhando]);
+  }, [desenhando, editandoContorno, onSelecionarContorno]);
 
   /** Fecha o poligono se ele tem forma; senao, so limpa. */
   const fecharDesenho = () => {
@@ -187,40 +277,77 @@ export function MarkingCanvas({
     };
   };
 
-  const handleLayerMouseMove = (e: React.MouseEvent) => {
+  /**
+   * Prende o ponteiro à camada enquanto o gesto durar.
+   *
+   * Sem isso, sair da imagem no meio de um arraste abandonava o gesto pela
+   * metade — e o vértice ficava onde o cursor saiu, não onde a pessoa soltou.
+   */
+  const capturar = (e: React.PointerEvent) => {
+    const el = e.currentTarget as Element & { setPointerCapture?: (id: number) => void };
+    if (typeof el.setPointerCapture !== 'function') return;
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {
+      // Ponteiro já solto (ou ambiente sem DOM real): segue sem captura.
+    }
+  };
+
+  const removerVertice = (id: number, indice: number) => {
+    const seg = contornosVisiveis.find((c) => c.id === id);
+    // Um polígono precisa de três pontos para existir.
+    if (!seg || seg.polygon_points.length <= 3) return;
+    onRemoverVertice?.(id, indice);
+  };
+
+  const handleLayerPointerMove = (e: React.PointerEvent) => {
+    const pos = toImageCoords(e);
+    if (!pos) return;
+
     // Arrastando um vértice do contorno.
-    if (verticeArrastado && onMoverVertice) {
-      const pos = toImageCoords(e);
-      if (pos) onMoverVertice(verticeArrastado.id, verticeArrastado.indice, pos.x, pos.y);
+    if (verticeArrastado) {
+      const { origem } = verticeArrastado;
+      const arrancou =
+        !origem || Math.hypot(pos.x - origem.x, pos.y - origem.y) > naImagem(ARRANQUE_PX);
+      if (arrancou) {
+        if (origem) setVerticeArrastado({ ...verticeArrastado, origem: null });
+        onMoverVertice?.(verticeArrastado.id, verticeArrastado.indice, pos.x, pos.y, e.shiftKey);
+      }
       return;
     }
 
     // Raspando a borda: cada movimento vira uma pincelada.
     if (raspagem) {
-      const pos = toImageCoords(e);
-      if (pos) {
-        // Só acumula quando o cursor andou de fato: sem isso um tremor de mão
-        // enche o traço de pinceladas idênticas e a busca do caminho fica lenta
-        // sem ficar melhor.
-        const ultima = raspagem.pinceladas[raspagem.pinceladas.length - 1];
-        const andou = !ultima || Math.hypot(pos.x - ultima.x, pos.y - ultima.y) > raioDaRaspagem / 2;
-        if (andou) {
-          setRaspagem({
-            ...raspagem,
-            pinceladas: [...raspagem.pinceladas, { x: pos.x, y: pos.y, raio: raioDaRaspagem }],
-          });
-        }
+      const ultima = raspagem.pinceladas[raspagem.pinceladas.length - 1];
+      // Só acumula quando o cursor andou de fato: sem isso um tremor de mão
+      // enche o traço de pinceladas idênticas e a busca do caminho fica lenta
+      // sem ficar melhor. E a primeira só nasce depois do arranque — um
+      // clique seco não é traço.
+      const andou = ultima
+        ? Math.hypot(pos.x - ultima.x, pos.y - ultima.y) > raioDaRaspagem / 2
+        : Math.hypot(pos.x - raspagem.origem.x, pos.y - raspagem.origem.y) > naImagem(ARRANQUE_PX);
+      if (andou) {
+        setRaspagem({
+          ...raspagem,
+          pinceladas: [...raspagem.pinceladas, { x: pos.x, y: pos.y, raio: raioDaRaspagem }],
+        });
       }
+      setCursorPos(pos);
       return;
     }
 
     // Arrastando uma marcação: reposiciona em tempo real.
     if (dragMark && onMoveMark) {
-      const pos = toImageCoords(e);
-      if (pos) {
-        onMoveMark(dragMark.id, pos.x, pos.y);
-        if (!dragMark.moved) setDragMark({ ...dragMark, moved: true });
-      }
+      onMoveMark(dragMark.id, pos.x, pos.y);
+      if (!dragMark.moved) setDragMark({ ...dragMark, moved: true });
+      return;
+    }
+
+    if (editandoContorno) {
+      setCursorPos(pos);
+      const alvo = acharAlvo([pos.x, pos.y]);
+      // Só troca o estado quando o alvo mudou: o move dispara a cada pixel.
+      if (!mesmoAlvo(alvo, alvoDaEdicao)) setAlvoDaEdicao(alvo);
       return;
     }
 
@@ -228,52 +355,126 @@ export function MarkingCanvas({
       if (cursorPos) setCursorPos(null);
       return;
     }
-    const pos = toImageCoords(e);
-    if (!pos) return;
     setCursorPos(pos);
     // Arrastar com o botão pressionado apaga continuamente.
     if (isErasing && onEraseArea) onEraseArea(pos.x, pos.y, eraserRadius);
   };
 
-  const endDragMark = () => setDragMark(null);
-
   /**
-   * Fecha o gesto de contorno.
-   *
-   * O traço só é enviado se acumulou pincelada: um clique seco na área da
-   * imagem seleciona, não raspa. Sem isso, selecionar um contorno dispararia
-   * uma raspagem de raio zero.
+   * Fecha o que estiver em curso. Um só ponto de saída para o mouseup, o
+   * cancelamento e a perda da captura, para nenhum caminho deixar gesto
+   * aberto no histórico.
    */
-  const encerrarGestoDeContorno = () => {
-    setVerticeArrastado(null);
+  const encerrarGestos = () => {
+    if (isErasing) {
+      setIsErasing(false);
+      onFimDeGesto?.();
+    }
+    if (dragMark) {
+      setDragMark(null);
+      onFimDeGesto?.();
+    }
+    if (verticeArrastado) {
+      setVerticeArrastado(null);
+      onFimDeGesto?.();
+    }
     if (raspagem) {
-      if (raspagem.pinceladas.length > 0 && onRaspar) {
-        onRaspar(raspagem.id, raspagem.pinceladas, raspagem.acrescentar);
+      if (raspagem.pinceladas.length > 0) {
+        onRaspar?.(raspagem.id, raspagem.pinceladas, raspagem.acrescentar);
+      } else {
+        // Clique seco, longe de vértice e aresta: desmarca. É a saída sem
+        // teclado, e é o que "clicar no vazio" faz em qualquer editor.
+        onSelecionarContorno?.(null);
       }
       setRaspagem(null);
     }
   };
 
-  const handleLayerMouseDown = (e: React.MouseEvent) => {
-    // Ferramenta de contorno: arrastar sobre a imagem raspa a borda do contorno
-    // selecionado. Shift acrescenta em vez de remover — o mesmo gesto, o outro
-    // sentido, que e como o algoritmo tambem enxerga os dois casos.
-    if (editandoContorno && e.button === 0 && contornoSelecionado != null) {
+  const handleLayerPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+
+    if (editandoContorno) {
+      const pos = toImageCoords(e);
+      if (!pos) return;
       e.preventDefault();
       e.stopPropagation();
-      setRaspagem({ id: contornoSelecionado, acrescentar: e.shiftKey, pinceladas: [] });
+      const alvo = acharAlvo([pos.x, pos.y]);
+
+      if (alvo?.tipo === 'vertice') {
+        // Ctrl no vértice remove. Shift não: Shift é "acrescentar" no traço,
+        // e o traço pode começar em cima de um vértice. Alt também não: Alt
+        // segurado já é a borracha temporária, e nem chegaria aqui.
+        if (e.ctrlKey || e.metaKey) {
+          removerVertice(alvo.id, alvo.indice);
+          return;
+        }
+        onInicioDeGesto?.();
+        setVerticeArrastado({ id: alvo.id, indice: alvo.indice, origem: pos });
+        capturar(e);
+        return;
+      }
+
+      if (alvo?.tipo === 'aresta' && !e.shiftKey) {
+        // Clicar na borda cria o vértice ali e já sai arrastando: é o gesto
+        // de "puxar a borda daqui", sem passo intermediário.
+        onInicioDeGesto?.();
+        onInserirVertice?.(alvo.id, alvo.aresta, alvo.ponto[0], alvo.ponto[1]);
+        setVerticeArrastado({ id: alvo.id, indice: alvo.aresta + 1, origem: null });
+        capturar(e);
+        return;
+      }
+
+      if (alvo?.tipo === 'contorno' && alvo.id !== contornoSelecionado) {
+        onSelecionarContorno?.(alvo.id);
+        return;
+      }
+
+      if (selecionado) {
+        // Longe de vértice e aresta: é traço. Dentro remove; com Shift
+        // acrescenta — o mesmo gesto, o outro sentido, que é como o
+        // algoritmo também enxerga os dois casos.
+        setRaspagem({ id: selecionado.id, acrescentar: e.shiftKey, origem: pos, pinceladas: [] });
+        capturar(e);
+      }
       return;
     }
 
-    if (!isEraser || e.button !== 0) return;
+    if (!isEraser) return;
     e.preventDefault();
     e.stopPropagation();
+    onInicioDeGesto?.();
     setIsErasing(true);
+    capturar(e);
     const pos = toImageCoords(e);
     if (pos && onEraseArea) onEraseArea(pos.x, pos.y, eraserRadius);
   };
 
-  const stopErasing = () => setIsErasing(false);
+  const handleLayerDoubleClick = (e: React.MouseEvent) => {
+    if (!editandoContorno) return;
+    const pos = toImageCoords(e);
+    if (!pos) return;
+    const alvo = acharAlvo([pos.x, pos.y]);
+    if (alvo?.tipo === 'vertice') {
+      e.preventDefault();
+      e.stopPropagation();
+      removerVertice(alvo.id, alvo.indice);
+    }
+  };
+
+  /** Cursor que anuncia o que o clique vai fazer. */
+  const cursorDaEdicao = verticeArrastado
+    ? 'grabbing'
+    : raspagem
+      ? 'crosshair'
+      : alvoDaEdicao?.tipo === 'vertice'
+        ? 'grab'
+        : alvoDaEdicao?.tipo === 'aresta'
+          ? 'copy'
+          : alvoDaEdicao?.tipo === 'contorno' && alvoDaEdicao.id !== contornoSelecionado
+            ? 'pointer'
+            : selecionado
+              ? 'crosshair'
+              : 'default';
 
   // --- Régua de calibração: dois cliques definem a distância conhecida ---
   const [rulerStart, setRulerStart] = useState<{ x: number; y: number } | null>(null);
@@ -562,7 +763,10 @@ export function MarkingCanvas({
         </svg>
       )}
 
-      {/* Fase F — Camada interativa: hover nas marcações + borracha */}
+      {/* Fase F — Camada interativa: hover nas marcações, borracha e a
+          ferramenta de contorno. Na ferramenta de contorno ela captura TUDO:
+          a versão anterior só capturava com a borracha ou arrastando marca,
+          e o arraste de vértice perdia o mouse assim que saía da alça. */}
       {(isEraser || onRemoveMark || onToggleMarkClass) && (
         <svg
           className="absolute inset-0 w-full h-full"
@@ -571,30 +775,37 @@ export function MarkingCanvas({
             width: '100%',
             height: '100%',
             zIndex: 8,
-            cursor: isEraser ? 'none' : dragMark ? 'grabbing' : 'default',
-            // Enquanto arrasta, a camada precisa capturar o movimento do mouse.
-            pointerEvents: isEraser || dragMark ? 'auto' : 'none',
+            cursor: isEraser
+              ? 'none'
+              : editandoContorno
+                ? cursorDaEdicao
+                : dragMark
+                  ? 'grabbing'
+                  : 'default',
+            pointerEvents: isEraser || dragMark || editandoContorno ? 'auto' : 'none',
           }}
-          onMouseMove={handleLayerMouseMove}
-          onMouseDown={handleLayerMouseDown}
-          onMouseUp={() => {
-            stopErasing();
-            endDragMark();
-            encerrarGestoDeContorno();
-          }}
-          onMouseLeave={() => {
-            stopErasing();
-            endDragMark();
-            encerrarGestoDeContorno();
+          onPointerMove={handleLayerPointerMove}
+          onPointerDown={handleLayerPointerDown}
+          onPointerUp={encerrarGestos}
+          onPointerCancel={encerrarGestos}
+          onLostPointerCapture={encerrarGestos}
+          onDoubleClick={handleLayerDoubleClick}
+          onPointerLeave={() => {
+            // Com captura, o ponteiro não "sai" no meio do gesto; sem ela
+            // (navegador antigo), sair encerra — melhor do que arrastar às cegas.
+            encerrarGestos();
             setCursorPos(null);
             setHoveredMarkId(null);
+            setAlvoDaEdicao(null);
           }}
         >
           {/* Alvos de interacao sobre cada marcacao.
               Com a mascara em "nada" as marcacoes somem INTEIRAS — inclusive o
               alvo de clique. Deixar o alvo invisivel porem clicavel criaria uma
-              area que responde sem nada a mostrar, que e pior que nao ter. */}
-          {(mostrarPontos ? marks : []).map((mark) => {
+              area que responde sem nada a mostrar, que e pior que nao ter.
+              Na ferramenta de contorno os alvos saem: ali o clique e do
+              contorno, e uma marca por cima roubaria o vertice. */}
+          {(mostrarPontos && !editandoContorno ? marks : []).map((mark) => {
             const isHovered = hoveredMarkId === mark.id;
             // Mesma fonte que o desenho da marca, para o alvo nunca ficar menor
             // que o que a pessoa esta vendo.
@@ -622,7 +833,7 @@ export function MarkingCanvas({
                 }}
                 onMouseEnter={() => setHoveredMarkId(mark.id)}
                 onMouseLeave={() => setHoveredMarkId(null)}
-                onMouseDown={(e) => {
+                onPointerDown={(e) => {
                   // Arrastar reposiciona a marcação (só com a ferramenta de marcação).
                   if (
                     isEraser ||
@@ -634,7 +845,17 @@ export function MarkingCanvas({
                   )
                     return;
                   e.stopPropagation();
+                  onInicioDeGesto?.();
                   setDragMark({ id: mark.id, moved: false });
+                  // A captura vai para a CAMADA, que e quem ouve o movimento.
+                  const camada = (e.currentTarget as SVGElement).ownerSVGElement;
+                  if (camada && typeof camada.setPointerCapture === 'function') {
+                    try {
+                      camada.setPointerCapture(e.pointerId);
+                    } catch {
+                      // Sem captura: o arraste segue enquanto o cursor ficar na camada.
+                    }
+                  }
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -730,7 +951,9 @@ export function MarkingCanvas({
               const pointsStr = seg.polygon_points.map(([x, y]) => `${x},${y}`).join(' ');
 
               const isViable = seg.category === 'viable';
-              const isHovered = hoveredSeg?.id === seg.id;
+              const isHovered =
+                hoveredSeg?.id === seg.id ||
+                (alvoDaEdicao?.tipo === 'contorno' && alvoDaEdicao.id === seg.id);
 
               // Linguagem do especime: ciano e magenta praticamente nao ocorrem
               // em material biologico, entao o contorno sobrevive a qualquer
@@ -753,17 +976,10 @@ export function MarkingCanvas({
                   stroke={strokeColor}
                   strokeWidth={isHovered ? 2.5 : 1.2}
                   className="pointer-events-auto cursor-pointer transition-all duration-150"
-                  onClick={(e) => {
-                    // Com a ferramenta de contorno, clicar SELECIONA para
-                    // editar em vez de inverter a classe: inverter por engano
-                    // no meio de uma correcao seria o pior desfecho possivel.
-                    if (editandoContorno) {
-                      e.stopPropagation();
-                      onSelecionarContorno?.(contornoSelecionado === seg.id ? null : seg.id);
-                      return;
-                    }
-                    handlePolygonClick(e, seg);
-                  }}
+                  // Na ferramenta de contorno a camada interativa fica por
+                  // cima e seleciona por geometria; aqui so chega o clique
+                  // das outras ferramentas.
+                  onClick={(e) => handlePolygonClick(e, seg)}
                   onMouseDown={(e) => {
                     if (e.button === 2) {
                       e.preventDefault();
@@ -842,49 +1058,106 @@ export function MarkingCanvas({
         </svg>
       )}
 
-      {/* Camada de edição de contorno: alças dos vértices e prévia do traço. */}
+      {/* Camada de edição de contorno: só desenho. Quem ouve o mouse é a
+          camada interativa; esta fica por cima dela sem pegar evento, para as
+          alças nunca roubarem o ponteiro do gesto em curso. */}
       {editandoContorno && (
         <svg
           className="pointer-events-none absolute inset-0 h-full w-full select-none"
           viewBox={`0 0 ${image.width} ${image.height}`}
-          style={{ width: '100%', height: '100%', zIndex: 8 }}
+          style={{ width: '100%', height: '100%', zIndex: 9 }}
         >
-          {yoloSegmentations
-            .filter((seg) => seg.visible !== false && seg.id === contornoSelecionado)
-            .map((seg) => {
-              const raio = Math.max(3, image.width / 220);
-              const cor = corDoEspecime(seg.category === 'viable' ? 'viable' : 'inviable');
+          {selecionado &&
+            (() => {
+              const pontos = selecionado.polygon_points;
+              // Alca menor quando os vertices estao apertados na tela: 48
+              // alcas de 5 px num grao de 150 px viravam um colar sem
+              // contorno visivel. Nunca menor que 2 px — abaixo disso e ruido.
+              const espacamentoNaTela = (raioDeInfluencia(pontos) * 8 * zoomLevel) / Math.max(pontos.length, 1);
+              const alca = naImagem(Math.max(2, Math.min(ALCA_PX, espacamentoNaTela / 4)));
+              const traco = naImagem(1.5);
+              const cor = corDoEspecime(selecionado.category === 'viable' ? 'viable' : 'inviable');
+              const caminho = pontos.map(([x, y]) => `${x},${y}`).join(' ');
+              const emArraste = verticeArrastado?.id === selecionado.id ? verticeArrastado.indice : -1;
+              const sobOCursor =
+                alvoDaEdicao?.tipo === 'vertice' && alvoDaEdicao.id === selecionado.id
+                  ? alvoDaEdicao.indice
+                  : -1;
+              // Quem vai junto no puxao: pinta antes do clique, para a pessoa
+              // ver o alcance do arraste suave em vez de descobrir puxando.
+              const foco = emArraste >= 0 ? emArraste : sobOCursor;
+              const pesos = foco >= 0 ? pesosDeInfluencia(pontos, foco, raioDeInfluencia(pontos)) : null;
               return (
-                <g key={`ed-${seg.id}`}>
-                  {seg.polygon_points.map(([x, y], indice) => (
+                <g>
+                  {/* O contorno selecionado ganha halo: e o unico que a
+                      ferramenta edita, e precisa se distinguir dos vizinhos. */}
+                  <polygon
+                    points={caminho}
+                    fill="none"
+                    stroke={ESPECIME.halo}
+                    strokeWidth={traco * 3}
+                    strokeLinejoin="round"
+                  />
+                  <polygon
+                    points={caminho}
+                    fill="none"
+                    stroke={ESPECIME.tool}
+                    strokeWidth={traco}
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Onde um clique inseriria um vertice: a alca fantasma
+                      aparece na aresta antes do clique. */}
+                  {alvoDaEdicao?.tipo === 'aresta' && !verticeArrastado && (
                     <circle
-                      key={indice}
-                      cx={x}
-                      cy={y}
-                      r={raio}
-                      fill={ESPECIME.tool}
-                      stroke={cor}
-                      strokeWidth={raio * 0.45}
-                      className="pointer-events-auto"
-                      style={{ cursor: 'grab' }}
-                      onMouseDown={(e) => {
-                        if (e.button !== 0) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setVerticeArrastado({ id: seg.id, indice });
-                      }}
-                      onDoubleClick={(e) => {
-                        // Um polígono precisa de três pontos para existir.
-                        if (seg.polygon_points.length <= 3) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onRemoverVertice?.(seg.id, indice);
-                      }}
+                      cx={alvoDaEdicao.ponto[0]}
+                      cy={alvoDaEdicao.ponto[1]}
+                      r={alca}
+                      fill={ESPECIME.halo}
+                      stroke={ESPECIME.tool}
+                      strokeWidth={traco}
+                      strokeDasharray={`${traco * 2},${traco * 1.5}`}
                     />
-                  ))}
+                  )}
+
+                  {pontos.map(([x, y], i) => {
+                    const ativo = i === emArraste || i === sobOCursor;
+                    const peso = pesos ? pesos[i] : 0;
+                    return (
+                      <circle
+                        key={i}
+                        cx={x}
+                        cy={y}
+                        r={ativo ? alca * 1.6 : alca * (1 + 0.3 * peso)}
+                        fill={ativo ? cor : ESPECIME.tool}
+                        fillOpacity={ativo ? 1 : 0.55 + 0.45 * peso}
+                        stroke={ativo ? ESPECIME.tool : cor}
+                        strokeWidth={traco}
+                      />
+                    );
+                  })}
                 </g>
               );
-            })}
+            })()}
+
+          {/* O pincel da raspagem, onde o traco vai passar. Some sobre vertice
+              e aresta, onde o clique faz outra coisa. */}
+          {selecionado &&
+            cursorPos &&
+            !verticeArrastado &&
+            alvoDaEdicao?.tipo !== 'vertice' &&
+            alvoDaEdicao?.tipo !== 'aresta' && (
+              <circle
+                cx={cursorPos.x}
+                cy={cursorPos.y}
+                r={raioDaRaspagem}
+                fill="none"
+                stroke={ESPECIME.tool}
+                strokeWidth={naImagem(1)}
+                strokeDasharray={`${naImagem(3)},${naImagem(2)}`}
+                opacity={0.75}
+              />
+            )}
 
           {/* A linha de corte proposta, ANTES de aplicar.
               Mostrar a proposta e nao aplicar direto e o que permite recusar:

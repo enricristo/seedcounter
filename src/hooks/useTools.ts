@@ -58,7 +58,7 @@ export const TOOLS: ToolDefinition[] = [
     id: 'contorno',
     label: 'Ajustar contorno',
     shortcut: 'c',
-    hint: 'Clique num contorno para selecionar; arraste os pontos, ou raspe a borda (Shift acrescenta)',
+    hint: 'Clique num contorno para selecionar. Arraste as alças; clique na borda para criar vértice; raspe por dentro (Shift acrescenta)',
     grupo: 'instrumento',
   },
   {

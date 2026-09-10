@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { Info, Keyboard, MousePointer } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE } from '../../features/ajuda/atalhos';
 
+/**
+ * Instruções de uso, na barra lateral.
+ *
+ * O conteúdo vem de `features/ajuda/atalhos`, que é conferido por teste
+ * contra os ganchos de teclado. Este componente só dá forma: um grupo por
+ * ferramenta, a tecla dela no título, e um gesto por linha.
+ */
 export function HelpTip() {
   const [tab, setTab] = useState<'mouse' | 'keyboard'>('mouse');
 
@@ -50,32 +58,26 @@ export function HelpTip() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -3 }}
             transition={{ duration: 0.15 }}
-            className="space-y-1.5"
+            className="space-y-3"
           >
-            <ul className="text-[10px] text-ink-2 space-y-1 pl-3.5 list-disc font-medium">
-              <li>
-                <strong className="text-accent">Clique Esquerdo:</strong> Adiciona semente na classe
-                da ferramenta ativa
-              </li>
-              <li>
-                <strong className="text-accent">Shift / Ctrl + Clique:</strong> Adiciona na classe
-                oposta
-              </li>
-              <li>
-                <strong className="text-accent">Clique Direito:</strong> Adiciona na classe oposta
-              </li>
-              <li>
-                <strong className="text-accent">Shift / Alt + Clique numa marcação:</strong> Apaga
-                aquela marcação
-              </li>
-              <li>
-                <strong className="text-accent">Scroll do Mouse:</strong> Zoom na posição do cursor
-              </li>
-              <li>
-                <strong className="text-accent">Borracha + arrastar:</strong> Apaga tudo dentro do
-                círculo
-              </li>
-            </ul>
+            {INSTRUCOES_DO_MOUSE.map((grupo) => (
+              <div key={grupo.titulo}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  {grupo.tecla && <Tecla>{grupo.tecla}</Tecla>}
+                  <span className="text-[10px] font-bold text-ink-1 uppercase tracking-wide">
+                    {grupo.titulo}
+                  </span>
+                </div>
+                <ul className="text-[10px] text-ink-2 space-y-0.5 pl-1 font-medium leading-snug">
+                  {grupo.instrucoes.map((i) => (
+                    <li key={i.gesto} className="flex gap-1.5">
+                      <span className="text-accent shrink-0">{i.gesto}:</span>
+                      <span>{i.efeito}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </motion.div>
         ) : (
           <motion.div
@@ -84,67 +86,43 @@ export function HelpTip() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -3 }}
             transition={{ duration: 0.15 }}
-            className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] font-medium text-ink-2 pl-1"
+            className="space-y-3"
           >
-            <div className="flex justify-between items-center bg-red-100/60 dark:bg-red-950/20 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">V</span>
-              <span>Marcar Viável</span>
-            </div>
-            <div className="flex justify-between items-center bg-amber-100/60 dark:bg-amber-950/20 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">I</span>
-              <span>Marcar Inviável</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">X</span>
-              <span>Inverter Classe</span>
-            </div>
-            <div className="flex justify-between items-center bg-rose-100/60 dark:bg-rose-950/20 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">E</span>
-              <span>Borracha</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">Alt</span>
-              <span>Borracha temporária</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">[ ]</span>
-              <span>Tamanho da borracha</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">1</span>
-              <span>Visualizar Pontos</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">2</span>
-              <span>Visualizar Índices</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">H</span>
-              <span>Modo Mão (Pan)</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">Ctrl + Z</span>
-              <span>Desfazer Ponto</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">+ / -</span>
-              <span>Zoom In / Out</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">0</span>
-              <span>Ajustar à Tela</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">Espaço</span>
-              <span>Próxima Foto</span>
-            </div>
-            <div className="flex justify-between items-center bg-surface-2/50 p-1 px-1.5 rounded">
-              <span className="text-ink-3 font-bold font-mono">D</span>
-              <span>Tema Dark</span>
-            </div>
+            {GRUPOS_DE_ATALHOS.map((grupo) => (
+              <div key={grupo.titulo}>
+                <div className="text-[10px] font-bold text-ink-1 uppercase tracking-wide mb-1">
+                  {grupo.titulo}
+                </div>
+                <div className="grid grid-cols-1 gap-y-1 text-[10px] font-medium text-ink-2">
+                  {grupo.atalhos.map((a) => (
+                    <div
+                      key={`${a.teclas}-${a.acao}`}
+                      className="flex items-start gap-2 bg-surface-2/50 p-1 px-1.5 rounded"
+                    >
+                      <Tecla>{a.teclas}</Tecla>
+                      <div className="min-w-0 flex-1">
+                        <span>{a.acao}</span>
+                        {a.nota && (
+                          <div className="text-[9px] text-ink-3 leading-snug mt-0.5">{a.nota}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
     </section>
+  );
+}
+
+/** Uma tecla como aparece no teclado: monoespaçada, num quadradinho. */
+function Tecla({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="shrink-0 rounded border border-line bg-surface-1 px-1 py-px font-mono text-[9px] font-bold text-ink-3 whitespace-nowrap">
+      {children}
+    </kbd>
   );
 }

@@ -57,7 +57,13 @@ import {
   versaoVista,
   type Versao,
 } from './lib/novidades';
-import { envolver, pontoNoPoligono } from './features/galeria/recortes';
+import { envolver } from './features/galeria/recortes';
+import {
+  inserirVertice,
+  moverVerticeSuave,
+  pontoNoPoligono,
+  raioDeInfluencia,
+} from './lib/edicao-de-contorno';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
 import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
@@ -309,14 +315,21 @@ export default function App() {
     setYoloSegmentations,
     segmentsVisible,
     addMark,
-    undoMark,
     removeMark,
+    removerMarcas,
     setSubclasse,
     addYoloSegmentations,
     appendYoloSegmentation,
     toggleSegmentationClass,
     deleteSegmentation,
     resetAllAnnotations,
+    desfazer,
+    refazer,
+    podeDesfazer,
+    podeRefazer,
+    abrirGesto,
+    fecharGesto,
+    carregar,
   } = useMarks();
   // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
   // maior lado dos contornos ja segmentados. E o que permite conferir se a
@@ -416,13 +429,10 @@ export default function App() {
       const chave = chaveDaImagem(file);
       chaveAtual.current = chave;
 
+      // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
+      // pode desfazer o que se fez na anterior.
       const guardado = anotacoesPorImagem.current.get(chave);
-      if (guardado) {
-        setMarks(guardado.marks);
-        setYoloSegmentations(guardado.yoloSegmentations);
-      } else {
-        resetAllAnnotations();
-      }
+      carregar(guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {});
 
       if (containerRef.current) {
         const container = containerRef.current;
@@ -591,7 +601,8 @@ export default function App() {
         // A marcação criada por este mesmo clique é quem conta a semente.
         origem: 'clique',
         marcaId,
-      });
+      // Marca e contorno sairam do MESMO clique: um Ctrl+Z tira os dois.
+      }, { fundir: true });
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
     },
@@ -662,8 +673,7 @@ export default function App() {
 
     setMetadata(session.metadata);
     setFilename(session.filename);
-    setMarks(session.marks || []);
-    setYoloSegmentations(session.yoloSegmentations || []);
+    carregar({ marks: session.marks, segmentacoes: session.yoloSegmentations });
 
     // Restore image if available
     if (session.imageData) {
@@ -749,18 +759,15 @@ export default function App() {
           // 3. Check if it is a single SeedCounter session JSON
           if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
             if (parsed.metadata) setMetadata(parsed.metadata);
-            if (parsed.marks) setMarks(parsed.marks);
-            if (parsed.yoloSegmentations) {
-              const mapped = parsed.yoloSegmentations.map((seg: any) => {
-                const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
-                return {
-                  ...seg,
-                  width: seg.width ?? width,
-                  height: seg.height ?? height,
-                };
-              });
-              addYoloSegmentations(mapped);
-            }
+            const mapped = (parsed.yoloSegmentations ?? []).map((seg: any) => {
+              const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
+              return {
+                ...seg,
+                width: seg.width ?? width,
+                height: seg.height ?? height,
+              };
+            });
+            carregar({ marks: parsed.marks ?? [], segmentacoes: mapped });
             if (parsed.filename) setFilename(parsed.filename);
             alert('Sessão importada com sucesso!');
             return;
@@ -774,7 +781,7 @@ export default function App() {
       };
       reader.readAsText(file);
     },
-    [addYoloSegmentations, importSessions, setMetadata, setMarks, setFilename]
+    [addYoloSegmentations, carregar, importSessions, setMetadata, setFilename]
   );
 
   // Drag & drop hook
@@ -1282,18 +1289,79 @@ export default function App() {
   // Fase F — clicar numa marcação inverte a classe (viável ↔ inviável).
   // --- Ajuste de contorno -------------------------------------------------
 
-  /** Move um vertice, e remede o objeto com o contorno novo. */
+  /**
+   * O arraste de vertice em curso: o poligono COMO ESTAVA quando o gesto
+   * comecou, e o raio de influencia calculado nele.
+   *
+   * Cada movimento do mouse e recalculado a partir do original, nao do
+   * resultado do movimento anterior. Aplicar sobre o deformado derivava: o
+   * raio vem do perimetro, o perimetro cresce com o puxao, e dez passos de
+   * 4 px nao chegavam onde um passo de 40 chega.
+   */
+  const arrasteDeVertice = useRef<{
+    id: number;
+    indice: number;
+    original: [number, number][];
+    raio: number;
+  } | null>(null);
+
+  /**
+   * Move um vertice, levando os vizinhos junto (arraste suave), e remede.
+   *
+   * Contínuo: o canvas abre um gesto no mousedown e fecha no mouseup, e cada
+   * movimento entre os dois substitui o anterior no historico. Ctrl+Z volta
+   * para ANTES do arraste, nao para o penultimo pixel.
+   *
+   * `rigido` (Shift) move so o vertice — para o ajuste fino de um ponto que
+   * ficou fora depois de um puxao suave.
+   */
   const handleMoverVertice = useCallback(
-    (id: number, indice: number, x: number, y: number) => {
-      setYoloSegmentations((antes) =>
-        antes.map((seg) => {
-          if (seg.id !== id) return seg;
-          const pontos = seg.polygon_points.map((p, i) =>
-            i === indice ? ([x, y] as [number, number]) : p
-          );
-          const { width, height } = calculateSeedDimensions(pontos);
-          return { ...seg, polygon_points: pontos, edited: true, width, height };
-        })
+    (id: number, indice: number, x: number, y: number, rigido = false) => {
+      let a = arrasteDeVertice.current;
+      if (!a || a.id !== id || a.indice !== indice) {
+        const seg = segmentacoesRef.current.find((s) => s.id === id);
+        if (!seg) return;
+        a = { id, indice, original: seg.polygon_points, raio: raioDeInfluencia(seg.polygon_points) };
+        arrasteDeVertice.current = a;
+      }
+      const original = a.original;
+      const raio = rigido ? 0 : a.raio;
+      setYoloSegmentations(
+        (antes) =>
+          antes.map((seg) => {
+            if (seg.id !== id) return seg;
+            const pontos = moverVerticeSuave(original, indice, [x, y], raio);
+            const { width, height } = calculateSeedDimensions(pontos);
+            return { ...seg, polygon_points: pontos, edited: true, width, height };
+          }),
+        { continuo: true }
+      );
+    },
+    [setYoloSegmentations]
+  );
+
+  /** Fecha o gesto no historico e esquece o original do arraste. */
+  const handleFimDeGesto = useCallback(() => {
+    arrasteDeVertice.current = null;
+    fecharGesto();
+  }, [fecharGesto]);
+
+  /**
+   * Insere um vertice numa aresta — e o gesto de "clicar na borda para
+   * puxar dali". Continuo porque o canvas ja arrasta o vertice novo no mesmo
+   * gesto: insercao e arraste sao um passo so no historico.
+   */
+  const handleInserirVertice = useCallback(
+    (id: number, aresta: number, x: number, y: number) => {
+      setYoloSegmentations(
+        (antes) =>
+          antes.map((seg) => {
+            if (seg.id !== id) return seg;
+            const pontos = inserirVertice(seg.polygon_points, aresta, [x, y]);
+            const { width, height } = calculateSeedDimensions(pontos);
+            return { ...seg, polygon_points: pontos, edited: true, width, height };
+          }),
+        { continuo: true }
       );
     },
     [setYoloSegmentations]
@@ -1422,6 +1490,7 @@ export default function App() {
     const contemOriginal = (pontos: [number, number][]) =>
       !!marcaOriginal && pontoNoPoligono(marcaOriginal.x, marcaOriginal.y, pontos);
 
+    let criouMarca = false;
     const filhas = [a, b].map((pontos, i) => {
       const { width, height } = calculateSeedDimensions(pontos);
       let marcaId = alvo.marcaId;
@@ -1431,6 +1500,7 @@ export default function App() {
         } else {
           const [cx, cy] = centroide(pontos);
           marcaId = addMark(cx, cy, alvo.category);
+          criouMarca = true;
         }
       }
       return {
@@ -1444,10 +1514,11 @@ export default function App() {
       };
     });
 
-    setYoloSegmentations((antes) => [
-      ...antes.filter((s) => s.id !== contornoSelecionado),
-      ...filhas,
-    ]);
+    // O corte e UM gesto: a marca nova e as duas metades voltam juntas.
+    setYoloSegmentations(
+      (antes) => [...antes.filter((s) => s.id !== contornoSelecionado), ...filhas],
+      { fundir: criouMarca }
+    );
     setContornoSelecionado(null);
     setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
   }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
@@ -1544,18 +1615,22 @@ export default function App() {
 
       if (r && !r.tocouBorda) {
         const { width, height } = calculateSeedDimensions(r.contorno);
-        appendYoloSegmentation({
-          id: Date.now() + i,
-          category: marca.type,
-          class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
-          confidence: 1,
-          polygon_points: r.contorno,
-          visible: true,
-          width,
-          height,
-          origem: 'clique',
-          marcaId: marca.id,
-        });
+        appendYoloSegmentation(
+          {
+            id: Date.now() + i,
+            category: marca.type,
+            class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+            confidence: 1,
+            polygon_points: r.contorno,
+            visible: true,
+            width,
+            height,
+            origem: 'clique',
+            marcaId: marca.id,
+          },
+          // O lote e um pedido so; Ctrl+Z desfaz o lote, nao um contorno.
+          { fundir: medidas > 0 }
+        );
         medidas++;
       } else {
         escaparam++;
@@ -1617,7 +1692,8 @@ export default function App() {
         edited: true,
         origem: 'clique',
         marcaId,
-      });
+      // Se a marca nasceu neste desenho, cai junto com ele no Ctrl+Z.
+      }, { fundir: orfa == null });
       setRecadoDaOnda({
         tom: 'ok',
         texto: orfa ? 'Contorno desenhado e vinculado à marcação.' : 'Contorno desenhado.',
@@ -1686,9 +1762,10 @@ export default function App() {
   );
 
   // Fase F — arrastar reposiciona a marcação (correção fina da detecção).
+  // Contínuo: o arraste inteiro é um passo do histórico.
   const handleMoveMark = useCallback(
     (id: number, x: number, y: number) => {
-      setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, x, y } : m)));
+      setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, x, y } : m)), { continuo: true });
     },
     [setMarks]
   );
@@ -1699,15 +1776,14 @@ export default function App() {
       // A borracha de area apaga marcas — e os contornos vinculados a elas,
       // pela mesma regra de `removeMark`: contorno de semente que nao existe
       // seria medida de nada.
+      // Continuo: uma passada da borracha e um passo, por mais marcas que
+      // ela leve. Cada uma delas volta com o contorno no Ctrl+Z.
       const apagadas = marcasRef.current
         .filter((m) => Math.hypot(m.x - x, m.y - y) <= radius)
         .map((m) => m.id);
-      if (apagadas.length === 0) return;
-      const alvo = new Set(apagadas);
-      setMarks((prev) => prev.filter((m) => !alvo.has(m.id)));
-      setYoloSegmentations((prev) => prev.filter((s) => s.marcaId == null || !alvo.has(s.marcaId)));
+      removerMarcas(apagadas, { continuo: true });
     },
-    [setMarks, setYoloSegmentations]
+    [removerMarcas]
   );
 
   // Fase E — insere os pontos confirmados da detecção assistida.
@@ -1739,7 +1815,8 @@ export default function App() {
   }, [yoloSegmentations]);
 
   useKeyboardShortcuts({
-    onUndo: undoMark,
+    onUndo: desfazer,
+    onRedo: refazer,
     onSetVisualMode: setVisualMode,
     onNextImage: handleNextImage,
     onPrevImage: handlePrevImage,
@@ -1766,8 +1843,10 @@ export default function App() {
         sessionsCount={sessions.length}
         openHistory={() => setIsHistoryModalOpen(true)}
         contaSlot={conta.disponivel ? <BotaoDeConta conta={conta} /> : undefined}
-        onUndo={undoMark}
-        undoDisabled={marks.length === 0}
+        onUndo={desfazer}
+        undoDisabled={!podeDesfazer}
+        onRedo={refazer}
+        redoDisabled={!podeRefazer}
         onReset={() => setIsResetConfirmOpen(true)}
         resetDisabled={
           marks.length === 0 &&
@@ -1994,8 +2073,11 @@ export default function App() {
                 contornoSelecionado={contornoSelecionado}
                 onSelecionarContorno={setContornoSelecionado}
                 onMoverVertice={handleMoverVertice}
+                onInserirVertice={handleInserirVertice}
                 onRemoverVertice={handleRemoverVertice}
                 onRaspar={handleRaspar}
+                onInicioDeGesto={abrirGesto}
+                onFimDeGesto={handleFimDeGesto}
                 linhaDeCorte={corteProposto?.linha ?? null}
                 onDesenhoConcluido={handleDesenhoConcluido}
                 raioDaRaspagem={raioDaRaspagem}

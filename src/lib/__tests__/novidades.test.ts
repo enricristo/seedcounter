@@ -67,7 +67,9 @@ describe('quando abrir', () => {
 
 describe('novidadesDesde', () => {
   it('lista só o que veio depois', () => {
-    expect(novidadesDesde('3.2.0')).toEqual([]);
+    // A mais recente é a do topo — o teste não pode fixar o número, senão
+    // quebra a cada versão publicada.
+    expect(novidadesDesde(VERSOES[0].numero)).toEqual([]);
     expect(novidadesDesde('3.0.0').length).toBeGreaterThan(0);
   });
 
