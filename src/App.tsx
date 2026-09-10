@@ -48,6 +48,7 @@ import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
+import { BarraDeAtividade } from './features/atividade/BarraDeAtividade';
 import {
   decidirAbertura,
   marcarVersaoComoVista,
@@ -455,7 +456,8 @@ export default function App() {
   // Re-draw Canvas markings
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !image) return;
+    const base = imagemDeTrabalho;
+    if (!canvas || !base) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -463,21 +465,24 @@ export default function App() {
     // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw base image
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    // A imagem de TRABALHO, nao a original. Foi o defeito relatado como "ta
+    // igual": o achatamento chegava a onda e a borracha, mas o canvas
+    // continuava pintando a original — a pessoa nao tinha como ver o que a
+    // onda estava vendo.
+    ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode, image.width, ajusteDaMarca);
-  }, [image, marks, visualMode, ajusteDaMarca]);
+    renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca);
+  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca]);
 
   useEffect(() => {
-    if (image && canvasRef.current) {
+    if (imagemDeTrabalho && canvasRef.current) {
       const canvas = canvasRef.current;
-      canvas.width = image.width;
-      canvas.height = image.height;
+      canvas.width = imagemDeTrabalho.width;
+      canvas.height = imagemDeTrabalho.height;
       drawCanvas();
     }
-  }, [image, drawCanvas, marks, visualMode]);
+  }, [imagemDeTrabalho, drawCanvas, marks, visualMode]);
 
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1444,6 +1449,46 @@ export default function App() {
    * 3. CEDE A TELA. Duzentas ondas seguidas travariam o navegador sem dizer
    *    nada; o laco solta o fio a cada poucas sementes e mostra o progresso.
    */
+  /**
+   * Contorna UMA marcacao, escolhida na galeria.
+   *
+   * Existe ao lado do lote porque sao gestos diferentes: o lote e "confio,
+   * resolve tudo"; este e "quero ver o que a onda faz NESTA aqui". Serve para
+   * conferir uma semente duvidosa antes de mandar o lote, e para o caso em que
+   * so uma ficou de fora.
+   */
+  const handleSegmentarUma = useCallback(
+    (marcaId: number) => {
+      if (!imagemDeTrabalho) return;
+      const marca = marks.find((m) => m.id === marcaId);
+      if (!marca) return;
+
+      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+      if (!r || r.tocouBorda) {
+        setRecadoDaOnda({
+          tom: 'aviso',
+          texto: 'A onda escapou nesta marcação — sem contorno. Tente ajustar o fundo ou o ponto.',
+        });
+        return;
+      }
+
+      const { width, height } = calculateSeedDimensions(r.contorno);
+      appendYoloSegmentation({
+        id: Date.now(),
+        category: marca.type,
+        class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+        confidence: 1,
+        polygon_points: r.contorno,
+        visible: true,
+        width,
+        height,
+        origem: 'clique',
+      });
+      setRecadoDaOnda({ tom: 'ok', texto: 'Contorno medido.' });
+    },
+    [imagemDeTrabalho, marks, appendYoloSegmentation]
+  );
+
   const handleSegmentarPendentes = useCallback(async () => {
     if (!imagemDeTrabalho || marcasSemContorno.length === 0) return;
 
@@ -1845,7 +1890,7 @@ export default function App() {
             )}
             {image && (
               <MarkingCanvas
-                image={image}
+                image={imagemDeTrabalho ?? image}
                 marks={marks}
                 yoloSegmentations={yoloSegmentations}
                 mostrarContornos={mostraContornos(mascara)}
@@ -1939,6 +1984,11 @@ export default function App() {
           imageWidth={image?.width}
           imageHeight={image?.height}
           onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+          bancada={{
+            especie: metadata.amostra?.especieNomeCientifico,
+            umPerPixel: metadata.umPerPixel,
+            protocolo: metadata.protocolo,
+          }}
         />
       )}
 
@@ -2093,6 +2143,7 @@ export default function App() {
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
 
+      <BarraDeAtividade />
       <AvisoDeAtualizacao />
 
       <NovidadesModal
@@ -2112,6 +2163,7 @@ export default function App() {
         onToggleMarkClass={handleToggleMarkClass}
         onRemoveMark={removeMark}
         onSegmentarPendentes={handleSegmentarPendentes}
+        onSegmentarUma={handleSegmentarUma}
         progresso={segmentandoLote}
       />
 

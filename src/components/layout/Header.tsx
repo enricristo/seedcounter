@@ -19,6 +19,8 @@ interface HeaderProps {
   toggleTheme: () => void;
   sessionsCount: number;
   openHistory: () => void;
+  /** O botao da conta. Ausente = nada no lugar dele. */
+  contaSlot?: React.ReactNode;
   onUndo: () => void;
   undoDisabled: boolean;
   onReset: () => void;
@@ -96,6 +98,7 @@ export function Header({
   toggleTheme,
   sessionsCount,
   openHistory,
+  contaSlot,
   onUndo,
   undoDisabled,
   onReset,
@@ -125,184 +128,214 @@ export function Header({
   return (
     // Separação por fio de 1px, não por sombra: sombra fica reservada ao que
     // de fato flutua (modais e o controle de zoom).
-    <header className="border-line bg-surface-1 z-10 flex h-16 shrink-0 items-center justify-between gap-4 overflow-hidden border-b px-4 xl:px-6">
-      <div className="flex min-w-0 items-center gap-4 xl:gap-5">
-        {/* Identidade do produto primeiro, credenciais institucionais depois. */}
-        <div className="flex shrink-0 items-center gap-2.5">
-          <MarcaReticulo />
-          <div>
-            <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
-              Contador de Sementes
-            </h1>
-            <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
-              Edição Acadêmica •{' '}
-              <a
-                href="https://www.instagram.com/gpeorq"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                GPEOrq
-              </a>
-              {' / '}
-              <a
-                href="https://www.instagram.com/gpsem_2000/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                GPSEM
-              </a>{' '}
-              • Unoeste
-            </p>
+    // DUAS LINHAS, e nao uma.
+    //
+    // A versao de uma linha tinha `h-16` e `overflow-hidden`, e o botao do
+    // Google — que o script deles renderiza com largura propria — atropelou as
+    // abas de navegacao. Mas o problema era anterior ao botao: identidade,
+    // navegacao, conta, tema, historico, desfazer, borracha, fila, salvar e
+    // exportar disputavam a mesma linha, e cada coisa nova empurrava a anterior.
+    //
+    // A divisao segue o que cada linha responde:
+    //   linha 1 — "onde estou e quem sou": marca, abas, conta, tema, recursos
+    //   linha 2 — "o que posso fazer aqui": as acoes da vista atual
+    //
+    // A segunda linha e da VISTA: muda com ela, e some quando a vista nao tem
+    // acao. E tambem onde cabe o que ainda vai chegar sem quebrar a primeira.
+    <header className="border-line bg-surface-1 z-10 flex shrink-0 flex-col border-b">
+      {/* ---- Linha 1: identidade, navegacao, conta ---- */}
+      <div className="flex h-12 items-center justify-between gap-4 px-4 xl:px-6">
+        <div className="flex min-w-0 items-center gap-4 xl:gap-5">
+          {/* Identidade do produto primeiro, credenciais institucionais depois. */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <MarcaReticulo />
+            <div>
+              <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
+                Contador de Sementes
+              </h1>
+              <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
+                Edição Acadêmica •{' '}
+                <a
+                  href="https://www.instagram.com/gpeorq"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  GPEOrq
+                </a>
+                {' / '}
+                <a
+                  href="https://www.instagram.com/gpsem_2000/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  GPSEM
+                </a>{' '}
+                • Unoeste
+              </p>
+            </div>
           </div>
+
+          {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
+            embaixo, não por cor de texto: cor sozinha não carrega estado. */}
+          <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">
+            <button
+              onClick={() => onViewChange('counter')}
+              className={aba(currentView === 'counter')}
+            >
+              <Target size={14} strokeWidth={2.25} aria-hidden="true" />
+              <span>Contagem</span>
+            </button>
+
+            {isLongitudinalEnabled && (
+              <button
+                onClick={() => onViewChange('longitudinal')}
+                className={aba(currentView === 'longitudinal')}
+              >
+                <Calendar size={14} strokeWidth={2.25} aria-hidden="true" />
+                <span>Longitudinal</span>
+              </button>
+            )}
+
+            {isStatsEnabled && (
+              <button
+                onClick={() => onViewChange('stats')}
+                className={aba(currentView === 'stats')}
+              >
+                <BarChart4 size={14} strokeWidth={2.25} aria-hidden="true" />
+                <span>Estatísticas</span>
+              </button>
+            )}
+          </nav>
         </div>
 
-        {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
-            embaixo, não por cor de texto: cor sozinha não carrega estado. */}
-        <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">
+        <div className="flex shrink-0 items-center gap-2">
+          {/* A conta, quando existe. Fica ANTES dos botoes de instrumento e
+            separada deles: e identidade, nao ferramenta. */}
+          {contaSlot && <div className="border-line mr-1 border-r pr-3">{contaSlot}</div>}
           <button
-            onClick={() => onViewChange('counter')}
-            className={aba(currentView === 'counter')}
-          >
-            <Target size={14} strokeWidth={2.25} aria-hidden="true" />
-            <span>Contagem</span>
-          </button>
-
-          {isLongitudinalEnabled && (
-            <button
-              onClick={() => onViewChange('longitudinal')}
-              className={aba(currentView === 'longitudinal')}
-            >
-              <Calendar size={14} strokeWidth={2.25} aria-hidden="true" />
-              <span>Longitudinal</span>
-            </button>
-          )}
-
-          {isStatsEnabled && (
-            <button onClick={() => onViewChange('stats')} className={aba(currentView === 'stats')}>
-              <BarChart4 size={14} strokeWidth={2.25} aria-hidden="true" />
-              <span>Estatísticas</span>
-            </button>
-          )}
-        </nav>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={toggleTheme}
-          className={botaoIcone}
-          title="Alternar tema (D)"
-          aria-label="Alternar tema"
-        >
-          {isDarkMode ? (
-            <Sun size={16} strokeWidth={2} aria-hidden="true" />
-          ) : (
-            <Moon size={16} strokeWidth={2} aria-hidden="true" />
-          )}
-        </button>
-
-        {onOpenFeatures && (
-          <button
-            onClick={onOpenFeatures}
-            className={`${botaoIcone} hover:border-accent hover:text-accent`}
-            title="Funcionalidades e recursos experimentais"
-            aria-label="Funcionalidades e recursos experimentais"
-          >
-            {/* FlaskConical no lugar de Sparkles: o painel é de laboratório,
-                não de IA — e Sparkles virou taquigrafia de IA na indústria. */}
-            <FlaskConical size={16} strokeWidth={2} aria-hidden="true" />
-          </button>
-        )}
-
-        {currentView === 'counter' && (
-          <button
-            onClick={openHistory}
-            className="rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all"
-          >
-            <History size={16} strokeWidth={2} aria-hidden="true" />
-            <span>Histórico</span>
-            <span className="bg-surface-2 text-ink-2 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
-              {sessionsCount}
-            </span>
-          </button>
-        )}
-
-        {currentView === 'counter' && <div className="bg-line mx-1 h-6 w-px" />}
-
-        {currentView === 'counter' && (
-          <button
-            onClick={onUndo}
-            disabled={undoDisabled}
+            onClick={toggleTheme}
             className={botaoIcone}
-            title="Desfazer último ponto (Ctrl+Z)"
-            aria-label="Desfazer último ponto"
+            title="Alternar tema (D)"
+            aria-label="Alternar tema"
           >
-            <Undo2 size={16} strokeWidth={2} aria-hidden="true" />
+            {isDarkMode ? (
+              <Sun size={16} strokeWidth={2} aria-hidden="true" />
+            ) : (
+              <Moon size={16} strokeWidth={2} aria-hidden="true" />
+            )}
           </button>
-        )}
 
-        {currentView === 'counter' && (
-          <button
-            onClick={onReset}
-            disabled={resetDisabled}
-            className={`${botaoIcone} hover:text-danger hover:border-danger`}
-            title="Limpar a placa atual — pede confirmação"
-            aria-label="Limpar a placa atual"
-          >
-            <Eraser size={16} strokeWidth={2} aria-hidden="true" />
-          </button>
-        )}
-
-        {currentView === 'counter' && <div className="bg-line mx-1 h-6 w-px" />}
-
-        {currentView === 'counter' && hasImageQueue && (
-          <div className="border-line bg-surface-2 rounded-control mr-1 flex items-center gap-1 border p-1">
+          {onOpenFeatures && (
             <button
-              onClick={onPrevImage}
-              disabled={currentImageIndex === 0}
-              className={botaoFila}
-              title="Voltar imagem (Backspace)"
+              onClick={onOpenFeatures}
+              className={`${botaoIcone} hover:border-accent hover:text-accent`}
+              title="Funcionalidades e recursos experimentais"
+              aria-label="Funcionalidades e recursos experimentais"
             >
-              Anterior
+              {/* FlaskConical no lugar de Sparkles: o painel é de laboratório,
+                não de IA — e Sparkles virou taquigrafia de IA na indústria. */}
+              <FlaskConical size={16} strokeWidth={2} aria-hidden="true" />
             </button>
-            <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
-              {currentImageIndex + 1}/{imageQueueLength}
-            </div>
-            <button
-              onClick={onNextImage}
-              disabled={currentImageIndex === imageQueueLength - 1}
-              className={botaoFila}
-              title="Próxima imagem (Espaço)"
-            >
-              Próxima
-            </button>
-          </div>
-        )}
-
-        {currentView === 'counter' && (
-          <button
-            onClick={onSaveSession}
-            disabled={!hasImage}
-            className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
-          >
-            <Save size={16} strokeWidth={2} aria-hidden="true" />
-            <span>Salvar local</span>
-          </button>
-        )}
-
-        {/* Única ação primária da barra, e o único uso de fundo de acento. */}
-        {currentView === 'counter' && (
-          <button
-            onClick={onExport}
-            disabled={!hasImage}
-            className="rounded-control bg-accent text-accent-on hover:bg-accent-strong flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-wider uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
-          >
-            <Download size={16} strokeWidth={2} aria-hidden="true" />
-            <span>Exportar</span>
-          </button>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* ---- Linha 2: as acoes da vista. So existe quando ha acao. ---- */}
+      {currentView === 'counter' && (
+        <div className="border-line bg-surface-1 flex h-11 items-center justify-between gap-2 border-t px-4 xl:px-6">
+          <div className="flex items-center gap-2">
+            {currentView === 'counter' && (
+              <button
+                onClick={openHistory}
+                className="rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all"
+              >
+                <History size={16} strokeWidth={2} aria-hidden="true" />
+                <span>Histórico</span>
+                <span className="bg-surface-2 text-ink-2 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
+                  {sessionsCount}
+                </span>
+              </button>
+            )}
+
+            {currentView === 'counter' && <div className="bg-line mx-1 h-6 w-px" />}
+
+            {currentView === 'counter' && (
+              <button
+                onClick={onUndo}
+                disabled={undoDisabled}
+                className={botaoIcone}
+                title="Desfazer último ponto (Ctrl+Z)"
+                aria-label="Desfazer último ponto"
+              >
+                <Undo2 size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+            )}
+
+            {currentView === 'counter' && (
+              <button
+                onClick={onReset}
+                disabled={resetDisabled}
+                className={`${botaoIcone} hover:text-danger hover:border-danger`}
+                title="Limpar a placa atual — pede confirmação"
+                aria-label="Limpar a placa atual"
+              >
+                <Eraser size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {currentView === 'counter' && hasImageQueue && (
+              <div className="border-line bg-surface-2 rounded-control mr-1 flex items-center gap-1 border p-1">
+                <button
+                  onClick={onPrevImage}
+                  disabled={currentImageIndex === 0}
+                  className={botaoFila}
+                  title="Voltar imagem (Backspace)"
+                >
+                  Anterior
+                </button>
+                <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
+                  {currentImageIndex + 1}/{imageQueueLength}
+                </div>
+                <button
+                  onClick={onNextImage}
+                  disabled={currentImageIndex === imageQueueLength - 1}
+                  className={botaoFila}
+                  title="Próxima imagem (Espaço)"
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
+
+            {currentView === 'counter' && (
+              <button
+                onClick={onSaveSession}
+                disabled={!hasImage}
+                className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
+              >
+                <Save size={16} strokeWidth={2} aria-hidden="true" />
+                <span>Salvar local</span>
+              </button>
+            )}
+
+            {/* Única ação primária da barra, e o único uso de fundo de acento. */}
+            {currentView === 'counter' && (
+              <button
+                onClick={onExport}
+                disabled={!hasImage}
+                className="rounded-control bg-accent text-accent-on hover:bg-accent-strong flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-wider uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
+              >
+                <Download size={16} strokeWidth={2} aria-hidden="true" />
+                <span>Exportar</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
