@@ -31,7 +31,7 @@
 // aceita ou desfaz, e a borracha existe para o caso de ela recusar.
 // =============================================================================
 
-import { indicesDoFechoConvexo } from './aglomerado';
+import { areaDoPoligono, indicesDoFechoConvexo } from './aglomerado';
 
 export type Ponto = [number, number];
 
@@ -251,10 +251,11 @@ export function fatiar(
   return [primeira, segunda];
 }
 
-export function areaDoPoligono(p: Ponto[]): number {
-  let soma = 0;
-  for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
-    soma += p[j][0] * p[i][1] - p[i][0] * p[j][1];
-  }
-  return Math.abs(soma) / 2;
-}
+// A area do poligono vem de `aglomerado.ts`, e nao de uma copia local.
+//
+// As duas implementacoes eram numericamente identicas — a formula do cadarco e
+// a mesma — mas duplicacao e como divergencia comeca: bastaria alguem corrigir
+// um sinal ou um caso de borda num arquivo para os dois modulos passarem a
+// medir areas diferentes do mesmo contorno, e o sintoma apareceria longe da
+// causa.
+export { areaDoPoligono };
