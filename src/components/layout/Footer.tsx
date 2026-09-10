@@ -1,4 +1,5 @@
 import React from 'react';
+import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 
 interface FooterProps {
   filename?: string;
@@ -55,6 +56,12 @@ export function Footer({
             {filename} {imageWidth && imageHeight && `• ${imageWidth}×${imageHeight}px`}
           </div>
         )}
+        {/* O que esta em curso. Some quando nao ha nada — e a excecao
+            deliberada ao ponto estatico acima: aqui o movimento SIGNIFICA
+            alguma coisa, e para quando ela termina. */}
+        <div className="border-line border-l pl-3 empty:hidden">
+          <IndicadorDeAtividade />
+        </div>
       </div>
 
       {/* Créditos e filiação. As logos vieram do cabeçalho: aqui elas ficam

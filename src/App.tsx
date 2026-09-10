@@ -58,6 +58,7 @@ import {
 import { envolver, pontoNoPoligono } from './features/galeria/recortes';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
+import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
 import { acharPorNome } from './lib/normas/tamanhos-de-semente';
 import {
@@ -1031,7 +1032,8 @@ export default function App() {
   };
 
   const handleExportPDF = async () => {
-    const r = await exportarLaudo({
+    const r = await comAtividade('pdf', 'Gerando o laudo…', () =>
+      exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
       metadata,
       viableCount,
@@ -1043,17 +1045,20 @@ export default function App() {
       laboratorio,
       versaoDoApp: `v${__APP_VERSION__}`,
       commitDoBuild: __BUILD_COMMIT__,
-    });
+      })
+    );
     if (!r.ok && r.erro) alert(r.erro);
   };
 
   const handleExportHistoryBatchPDF = async () => {
-    const r = await exportarLaudosEmLote(sessions, {
-      visualMode,
-      laboratorio,
-      versaoDoApp: `v${__APP_VERSION__}`,
-      commitDoBuild: __BUILD_COMMIT__,
-    });
+    const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
+      exportarLaudosEmLote(sessions, {
+        visualMode,
+        laboratorio,
+        versaoDoApp: `v${__APP_VERSION__}`,
+        commitDoBuild: __BUILD_COMMIT__,
+      })
+    );
     if (!r.ok && r.erro) alert(r.erro);
   };
 
@@ -1296,6 +1301,7 @@ export default function App() {
     async (modo: ModoDeAchatamento) => {
       if (!image) return;
       setAchatando(true);
+      const encerrar = iniciarAtividade('fundo', 'Modelando o fundo…');
       try {
         const canvas = document.createElement('canvas');
         canvas.width = image.width;
@@ -1336,6 +1342,7 @@ export default function App() {
             : 'Fundo achatado. A detecção automática continua usando a imagem original.',
         });
       } finally {
+        encerrar();
         setAchatando(false);
       }
     },
@@ -1442,6 +1449,7 @@ export default function App() {
 
     const pendentes = [...marcasSemContorno];
     setSegmentandoLote({ feitas: 0, total: pendentes.length });
+    const encerrar = iniciarAtividade('lote', `Contornando ${pendentes.length} marcações…`);
 
     let medidas = 0;
     let escaparam = 0;
@@ -1470,10 +1478,12 @@ export default function App() {
 
       if (i % 4 === 3) {
         setSegmentandoLote({ feitas: i + 1, total: pendentes.length });
+        atualizarProgresso('lote', (i + 1) / pendentes.length);
         await new Promise((r) => setTimeout(r, 0));
       }
     }
 
+    encerrar();
     setSegmentandoLote(null);
     setRecadoDaOnda({
       tom: escaparam > 0 ? 'aviso' : 'ok',
