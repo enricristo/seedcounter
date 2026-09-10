@@ -81,6 +81,8 @@ interface MarkingCanvasProps {
   ) => void;
   /** Raio do traço da borracha de contorno. */
   raioDaRaspagem?: number;
+  /** Linha de corte proposta para o contorno selecionado. */
+  linhaDeCorte?: [[number, number], [number, number]] | null;
 }
 
 export function MarkingCanvas({
@@ -118,6 +120,7 @@ export function MarkingCanvas({
   onRemoverVertice,
   onRaspar,
   raioDaRaspagem = 14,
+  linhaDeCorte,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
 
@@ -764,6 +767,34 @@ export function MarkingCanvas({
                 </g>
               );
             })}
+
+          {/* A linha de corte proposta, ANTES de aplicar.
+              Mostrar a proposta e nao aplicar direto e o que permite recusar:
+              cortar por engano vira duas sementes onde havia uma, e o numero
+              do laudo sobe. */}
+          {linhaDeCorte && (
+            <g>
+              <line
+                x1={linhaDeCorte[0][0]}
+                y1={linhaDeCorte[0][1]}
+                x2={linhaDeCorte[1][0]}
+                y2={linhaDeCorte[1][1]}
+                stroke={ESPECIME.halo}
+                strokeWidth={Math.max(3, image.width / 180)}
+                strokeLinecap="round"
+              />
+              <line
+                x1={linhaDeCorte[0][0]}
+                y1={linhaDeCorte[0][1]}
+                x2={linhaDeCorte[1][0]}
+                y2={linhaDeCorte[1][1]}
+                stroke={ESPECIME.tool}
+                strokeWidth={Math.max(1.5, image.width / 380)}
+                strokeDasharray={`${image.width / 120},${image.width / 200}`}
+                strokeLinecap="round"
+              />
+            </g>
+          )}
 
           {/* O traço em curso, para a pessoa ver o que está declarando. */}
           {raspagem?.pinceladas.map((p, i) => (

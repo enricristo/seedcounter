@@ -57,6 +57,8 @@ import {
 import { envolver } from './features/galeria/recortes';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
+import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
+import { acharPorNome } from './lib/normas/tamanhos-de-semente';
 import {
   ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
@@ -1341,6 +1343,61 @@ export default function App() {
     setFundoIncerto(false);
   }, []);
 
+  /**
+   * O corte proposto para o contorno selecionado, ou nulo quando nao ha cintura.
+   *
+   * A OPCAO DEPENDE DA ESPECIE, e isso veio de medicao. Dois discos que mal se
+   * tocam produzem cintura de apenas 0,248 do raio equivalente; duas sementes
+   * alongadas produzem 0,852. Usar o limiar de semente redonda numa orquideia
+   * cortaria a semente sadia ao meio — a profundidade mediana dela ja e 0,199.
+   */
+  const corteProposto = useMemo(() => {
+    if (activeTool !== 'contorno' || contornoSelecionado == null) return null;
+    const alvo = yoloSegmentations.find((s) => s.id === contornoSelecionado);
+    if (!alvo || alvo.visible === false) return null;
+
+    const especie =
+      metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
+    const referencia = acharPorNome(especie);
+    const ehAlongada = (referencia?.razaoMinima ?? 0) >= 2;
+
+    return proporCorte(alvo.polygon_points, ehAlongada ? CORTE_PARA_SEMENTE_ALONGADA : {});
+  }, [activeTool, contornoSelecionado, yoloSegmentations, metadata.amostra]);
+
+  /**
+   * Aplica o corte: um contorno vira dois.
+   *
+   * As duas metades herdam a classe do original e sao remedidas por PCA — uma
+   * metade com as dimensoes do todo descreveria um contorno que nao existe.
+   * A marca de `edited` fica nas duas: elas nao vieram do modelo.
+   */
+  const handleAplicarCorte = useCallback(() => {
+    if (!corteProposto || contornoSelecionado == null) return;
+    const alvo = segmentacoesRef.current.find((s) => s.id === contornoSelecionado);
+    if (!alvo) return;
+
+    const [a, b] = corteProposto.partes;
+    const base = Date.now();
+    const filhas = [a, b].map((pontos, i) => {
+      const { width, height } = calculateSeedDimensions(pontos);
+      return {
+        ...alvo,
+        id: base + i,
+        polygon_points: pontos,
+        width,
+        height,
+        edited: true,
+      };
+    });
+
+    setYoloSegmentations((antes) => [
+      ...antes.filter((s) => s.id !== contornoSelecionado),
+      ...filhas,
+    ]);
+    setContornoSelecionado(null);
+    setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
+  }, [corteProposto, contornoSelecionado, setYoloSegmentations]);
+
   const handleRaspar = useCallback(
     (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
       const fonte = imagemDeTrabalho;
@@ -1637,9 +1694,38 @@ export default function App() {
                 onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
             )}
+            {/* O corte proposto. Fica sobre a imagem, ao lado da linha
+                tracejada que ele vai aplicar — decidir olhando a proposta e o
+                que permite RECUSAR, e recusar importa mais que aceitar:
+                cortar por engano vira duas sementes onde havia uma. */}
+            {corteProposto && (
+              <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
+                <div className="min-w-0">
+                  <p className="text-ink-1 text-xs font-bold">Cintura encontrada</p>
+                  <p className="text-ink-3 text-[10px] leading-snug">
+                    O contorno parece conter duas sementes. A linha tracejada mostra onde
+                    separar.
+                  </p>
+                </div>
+                <button
+                  onClick={handleAplicarCorte}
+                  className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                >
+                  Separar
+                </button>
+                <button
+                  onClick={() => setContornoSelecionado(null)}
+                  aria-label="Manter como está"
+                  className="border-line text-ink-2 hover:bg-surface-2 shrink-0 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                >
+                  Manter
+                </button>
+              </div>
+            )}
+
             {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
                 acabou de clicar, e não numa barra distante. */}
-            {recadoDaOnda && (
+            {!corteProposto && recadoDaOnda && (
               <div
                 className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
                   recadoDaOnda.tom === 'ok'
@@ -1663,6 +1749,7 @@ export default function App() {
                 onMoverVertice={handleMoverVertice}
                 onRemoverVertice={handleRemoverVertice}
                 onRaspar={handleRaspar}
+                linhaDeCorte={corteProposto?.linha ?? null}
                 raioDaRaspagem={raioDaRaspagem}
                 ajusteDaMarca={ajusteDaMarca}
                 visualMode={visualMode}

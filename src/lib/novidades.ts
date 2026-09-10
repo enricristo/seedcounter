@@ -60,6 +60,12 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Separar sementes encostadas',
+        detalhe:
+          'Com a ferramenta de contorno, ao selecionar um contorno que tem cintura o aplicativo mostra uma linha tracejada onde separaria — e espera você decidir. O limiar se ajusta à espécie: semente alongada precisa de cintura mais funda para valer corte.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Achatar o fundo do scanner',
         detalhe:
           'Modela o gradiente de iluminação e o remove, em três modos: nivelar, realçar ou isolar. A segmentação por clique passa a parar na borda certa. A detecção automática e o laudo continuam recebendo a imagem original.',
