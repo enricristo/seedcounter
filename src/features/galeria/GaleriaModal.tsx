@@ -14,7 +14,7 @@
 // =============================================================================
 
 import React, { useMemo, useState } from 'react';
-import { X, Grid3x3, Layers, Trash2, RefreshCw, Scan } from 'lucide-react';
+import { X, Grid3x3, Layers, Trash2, RefreshCw, Scan, Wand2 } from 'lucide-react';
 import { ESPECIME } from '../../theme/specimen';
 import { montarGaleria, type ItemDaGaleria } from './recortes';
 import { recortarTodos, LADO_DA_MINIATURA } from './recortar';
@@ -39,6 +39,13 @@ interface GaleriaModalProps {
   onDeleteSegmentation: (id: number) => void;
   onToggleMarkClass?: (id: number) => void;
   onRemoveMark?: (id: number) => void;
+  /**
+   * Roda a onda a partir de cada marcação sem contorno.
+   * Ausente = botão oculto.
+   */
+  onSegmentarPendentes?: () => void;
+  /** Progresso do lote em curso. */
+  progresso?: { feitas: number; total: number } | null;
 }
 
 export function GaleriaModal({
@@ -51,6 +58,8 @@ export function GaleriaModal({
   onDeleteSegmentation,
   onToggleMarkClass,
   onRemoveMark,
+  onSegmentarPendentes,
+  progresso,
 }: GaleriaModalProps) {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [semFundo, setSemFundo] = useState(false);
@@ -125,6 +134,23 @@ export function GaleriaModal({
               {f.rotulo}
             </button>
           ))}
+
+          {/* A acao mora AQUI porque e aqui que as pendencias ja estao a vista:
+              a galeria mostra cada marcacao sem contorno como celula tracejada,
+              e o botao resolve exatamente a lista que a pessoa esta olhando. */}
+          {onSegmentarPendentes && semContorno > 0 && (
+            <button
+              onClick={onSegmentarPendentes}
+              disabled={!!progresso}
+              title="Roda a onda a partir de cada marcação sem contorno. A contagem não muda."
+              className="bg-accent text-accent-on hover:bg-accent-strong flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase transition-colors disabled:opacity-50"
+            >
+              <Wand2 size={13} />
+              {progresso
+                ? `${progresso.feitas}/${progresso.total}…`
+                : `Contornar ${semContorno}`}
+            </button>
+          )}
 
           <button
             onClick={() => setSemFundo((v) => !v)}

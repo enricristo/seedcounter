@@ -54,7 +54,7 @@ import {
   versaoVista,
   type Versao,
 } from './lib/novidades';
-import { envolver } from './features/galeria/recortes';
+import { envolver, pontoNoPoligono } from './features/galeria/recortes';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
@@ -525,7 +525,10 @@ export default function App() {
       addMark(x, y, tipo);
 
       const inicio = performance.now();
-      const r = segmentarNoCanvas(image, { x, y });
+      // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
+      // exatamente para a onda parar na borda certa. Passar a original aqui
+      // tornava o achatamento decorativo.
+      const r = segmentarNoCanvas(imagemDeTrabalho, { x, y });
       const ms = Math.round(performance.now() - inicio);
 
       if (!r) {
@@ -1398,6 +1401,89 @@ export default function App() {
     setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
   }, [corteProposto, contornoSelecionado, setYoloSegmentations]);
 
+  // --- Segmentacao em lote a partir das marcacoes ---------------------------
+
+  /**
+   * As marcacoes que ainda NAO tem contorno.
+   *
+   * Sao regioes ja identificadas por uma pessoa: ela disse "aqui tem uma
+   * semente" e falta so o contorno. E a mesma lista que a galeria mostra como
+   * "falta contornar".
+   */
+  const marcasSemContorno = useMemo(() => {
+    const visiveis = yoloSegmentations.filter((s) => s.visible !== false);
+    return marks.filter((m) => !visiveis.some((s) => pontoNoPoligono(m.x, m.y, s.polygon_points)));
+  }, [marks, yoloSegmentations]);
+
+  const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
+    null
+  );
+
+  /**
+   * Roda a onda a partir de cada marcacao sem contorno.
+   *
+   * O trabalho ja foi feito pela pessoa quando ela marcou: o clique diz ONDE ha
+   * semente, e a onda so precisa medir a borda. E por isso que isto e barato e
+   * confiavel de um jeito que "detectar tudo do zero" nunca e.
+   *
+   * TRES REGRAS QUE NAO PODEM CAIR:
+   *
+   * 1. A CONTAGEM NAO MUDA. Nenhuma marcacao e criada nem apagada aqui — so
+   *    contornos sao acrescentados. Se o lote errasse e criasse marcacao, o
+   *    numero do laudo mudaria por causa de um botao de conveniencia.
+   * 2. CONTORNO DUVIDOSO NAO ENTRA. A mesma regra do clique avulso: o contorno
+   *    vira area e medida no CSV, e um numero errado e pior que numero nenhum.
+   * 3. CEDE A TELA. Duzentas ondas seguidas travariam o navegador sem dizer
+   *    nada; o laco solta o fio a cada poucas sementes e mostra o progresso.
+   */
+  const handleSegmentarPendentes = useCallback(async () => {
+    if (!imagemDeTrabalho || marcasSemContorno.length === 0) return;
+
+    const pendentes = [...marcasSemContorno];
+    setSegmentandoLote({ feitas: 0, total: pendentes.length });
+
+    let medidas = 0;
+    let escaparam = 0;
+
+    for (let i = 0; i < pendentes.length; i++) {
+      const marca = pendentes[i];
+      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+
+      if (r && !r.tocouBorda) {
+        const { width, height } = calculateSeedDimensions(r.contorno);
+        appendYoloSegmentation({
+          id: Date.now() + i,
+          category: marca.type,
+          class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+          confidence: 1,
+          polygon_points: r.contorno,
+          visible: true,
+          width,
+          height,
+          origem: 'clique',
+        });
+        medidas++;
+      } else {
+        escaparam++;
+      }
+
+      if (i % 4 === 3) {
+        setSegmentandoLote({ feitas: i + 1, total: pendentes.length });
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+
+    setSegmentandoLote(null);
+    setRecadoDaOnda({
+      tom: escaparam > 0 ? 'aviso' : 'ok',
+      texto:
+        `${medidas} de ${pendentes.length} contornos medidos.` +
+        (escaparam > 0
+          ? ` ${escaparam} ${escaparam === 1 ? 'ficou' : 'ficaram'} sem contorno — a onda escapou. A contagem não mudou.`
+          : ' A contagem não mudou.'),
+    });
+  }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
+
   const handleRaspar = useCallback(
     (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
       const fonte = imagemDeTrabalho;
@@ -2003,6 +2089,8 @@ export default function App() {
         onDeleteSegmentation={deleteSegmentation}
         onToggleMarkClass={handleToggleMarkClass}
         onRemoveMark={removeMark}
+        onSegmentarPendentes={handleSegmentarPendentes}
+        progresso={segmentandoLote}
       />
 
       <IdentificacaoModal

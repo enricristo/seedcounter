@@ -60,6 +60,18 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Contornar tudo que já foi marcado',
+        detalhe:
+          'Na galeria, um botão roda a onda a partir de cada marcação que ainda não tem contorno. Você já disse onde está a semente; a onda só mede a borda. A contagem NÃO muda — só contornos são acrescentados, e o que sai duvidoso fica de fora.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Alvo de calibração por espécie',
+        detalhe:
+          'O painel de calibração mostra quanto a semente daquela espécie deveria medir, quantos pixels tem um objeto típico da imagem, e quanto isso dá na escala informada. Com um botão para partir da escala que a espécie sugere.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Separar sementes encostadas',
         detalhe:
           'Com a ferramenta de contorno, ao selecionar um contorno que tem cintura o aplicativo mostra uma linha tracejada onde separaria — e espera você decidir. O limiar se ajusta à espécie: semente alongada precisa de cintura mais funda para valer corte.',

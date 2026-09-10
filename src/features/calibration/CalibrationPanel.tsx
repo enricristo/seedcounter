@@ -19,7 +19,7 @@ import {
   type CalibrationData,
   type LengthUnit,
 } from '../../lib/calibration';
-import { conferirEscala } from '../../lib/normas/tamanhos-de-semente';
+import { acharPorNome, conferirEscala } from '../../lib/normas/tamanhos-de-semente';
 
 interface CalibrationPanelProps {
   /** Escala atual (µm/px). */
@@ -41,6 +41,11 @@ interface CalibrationPanelProps {
 }
 
 const METHODS: CalibrationMethod[] = ['dpi', 'reference', 'stage_micrometer', 'manual'];
+
+/** Numero com virgula decimal — e documento brasileiro. */
+function virgula(v: number, casas = 2): string {
+  return v.toFixed(casas).replace(/\.?0+$/, '').replace('.', ',');
+}
 
 export function CalibrationPanel({
   umPerPixel,
@@ -77,6 +82,32 @@ export function CalibrationPanel({
   // A conferência por espécie pega o que `validateScale` deixa passar: informar
   // centímetro onde era milímetro produz uma escala dentro da faixa plausível,
   // e só o tamanho esperado da semente denuncia.
+  /**
+   * O ALVO: quanto um objeto tipico desta imagem deveria medir.
+   *
+   * Sai da tabela de tamanhos da especie declarada. E o numero que transforma
+   * calibrar de "informe um valor" em "confira se bate" — a pessoa passa a ter
+   * contra o que comparar, em vez de aceitar o que o campo disser.
+   */
+  const alvo = useMemo(() => {
+    const referencia = acharPorNome(especie);
+    if (!referencia) return null;
+
+    const emPixels =
+      comprimentoTipicoEmPixels && comprimentoTipicoEmPixels > 0
+        ? comprimentoTipicoEmPixels
+        : null;
+
+    return {
+      referencia,
+      // A escala que faria o objeto medido cair no meio da faixa da especie.
+      escalaIdeal: emPixels
+        ? ((referencia.minimo + referencia.maximo) / 2 / emPixels) * 1000
+        : null,
+      emPixels,
+    };
+  }, [especie, comprimentoTipicoEmPixels]);
+
   const conferencia = useMemo(
     () => conferirEscala(comprimentoTipicoEmPixels ?? 0, computed, especie),
     [comprimentoTipicoEmPixels, computed, especie]
@@ -279,6 +310,51 @@ export function CalibrationPanel({
           <p className="text-[11px] text-accent">
             Resultado: <strong>{computed.toFixed(3)} µm/px</strong>
           </p>
+        </div>
+      )}
+
+      {alvo && (
+        <div className="border-line bg-surface-2 space-y-1 rounded-lg border p-2.5">
+          <p className="text-ink-3 text-[10px] font-bold tracking-wide uppercase">
+            Alvo para {alvo.referencia.nomeComum.toLowerCase()}
+          </p>
+          <p className="text-ink-1 font-mono text-[12px] tabular-nums">
+            {virgula(alvo.referencia.minimo)} a {virgula(alvo.referencia.maximo)} mm
+            <span className="text-ink-3 ml-1.5 font-sans text-[10px]">de comprimento</span>
+          </p>
+          {alvo.emPixels ? (
+            <>
+              <p className="text-ink-3 text-[10px] leading-snug">
+                Um objeto típico desta imagem tem {Math.round(alvo.emPixels)} px.
+                {computed > 0 && conferencia.comprimentoImplicado !== undefined && (
+                  <>
+                    {' '}
+                    Nesta escala isso dá{' '}
+                    <strong className="text-ink-2">
+                      {virgula(conferencia.comprimentoImplicado)} mm
+                    </strong>
+                    .
+                  </>
+                )}
+              </p>
+              {alvo.escalaIdeal && (
+                <button
+                  onClick={() => {
+                    setMethod('manual');
+                    setManualValue(Number(alvo.escalaIdeal!.toFixed(2)));
+                  }}
+                  title="Chute informado: assume que o objeto medido tem o tamanho médio da espécie"
+                  className="border-line text-ink-2 hover:border-accent hover:text-accent mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px] font-bold tracking-wide uppercase transition-colors"
+                >
+                  Partir de {virgula(alvo.escalaIdeal)} µm/px
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="text-ink-3 text-[10px] leading-snug">
+              Segmente ao menos três objetos para o aplicativo comparar com este alvo.
+            </p>
+          )}
         </div>
       )}
 
