@@ -5,7 +5,19 @@
 
 import { useState, useCallback, useEffect } from 'react';
 
-export type ToolId = 'viable' | 'inviable' | 'onda' | 'contorno' | 'eraser' | 'pan';
+export type ToolId = 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'eraser' | 'pan';
+
+/**
+ * A que grupo a ferramenta pertence. A barra separa os grupos com um fio.
+ *
+ *   classe       o que a marca SIGNIFICA — viavel, inviavel. Cor do especime.
+ *   instrumento  o que faz a MEDIDA — onda, ajuste, desenho, borracha. Acento.
+ *   navegacao    mover-se pela imagem sem tocar nela.
+ *
+ * Nao e so organizacao visual: e a separacao de linguagens do sistema. Uma
+ * ferramenta de classe pinta com a cor da marca; uma de instrumento nunca.
+ */
+export type GrupoDeFerramenta = 'classe' | 'instrumento' | 'navegacao';
 
 export interface ToolDefinition {
   id: ToolId;
@@ -13,6 +25,7 @@ export interface ToolDefinition {
   /** Tecla de atalho (minúscula). */
   shortcut: string;
   hint: string;
+  grupo: GrupoDeFerramenta;
 }
 
 export const TOOLS: ToolDefinition[] = [
@@ -21,12 +34,14 @@ export const TOOLS: ToolDefinition[] = [
     label: 'Marcar viável',
     shortcut: 'v',
     hint: 'Clique para marcar sementes viáveis',
+    grupo: 'classe',
   },
   {
     id: 'inviable',
     label: 'Marcar inviável',
     shortcut: 'i',
     hint: 'Clique para marcar sementes inviáveis',
+    grupo: 'classe',
   },
   {
     // A onda marca E contorna no mesmo gesto: o clique é a identidade da
@@ -35,6 +50,7 @@ export const TOOLS: ToolDefinition[] = [
     label: 'Segmentar por clique',
     shortcut: 's',
     hint: 'Clique numa semente: a onda cresce até a borda e mede o contorno',
+    grupo: 'instrumento',
   },
   {
     // Ajustar o que a onda ja produziu. Um contorno errado nao precisa ser
@@ -43,14 +59,31 @@ export const TOOLS: ToolDefinition[] = [
     label: 'Ajustar contorno',
     shortcut: 'c',
     hint: 'Clique num contorno para selecionar; arraste os pontos, ou raspe a borda (Shift acrescenta)',
+    grupo: 'instrumento',
+  },
+  {
+    // Para quando a onda falha de vez: fundo igual a semente, semente
+    // translucida, borda que nao existe na imagem. A pessoa desenha o que ve.
+    id: 'desenho',
+    label: 'Desenhar contorno',
+    shortcut: 'p',
+    hint: 'Clique para colocar vértices; duplo clique fecha o polígono; Esc cancela',
+    grupo: 'instrumento',
   },
   {
     id: 'eraser',
     label: 'Borracha',
     shortcut: 'e',
     hint: 'Clique ou arraste para apagar marcações',
+    grupo: 'instrumento',
   },
-  { id: 'pan', label: 'Mover imagem', shortcut: 'h', hint: 'Arraste para navegar pela imagem' },
+  {
+    id: 'pan',
+    label: 'Mover imagem',
+    shortcut: 'h',
+    hint: 'Arraste para navegar pela imagem',
+    grupo: 'navegacao',
+  },
 ];
 
 export function useTools() {

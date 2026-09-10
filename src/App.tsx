@@ -108,6 +108,17 @@ function downloadBlob(content: string, filename: string, contentType: string) {
   baixarArquivo(content, filename, contentType);
 }
 
+/** Centro de massa dos vertices. Suficiente para posicionar uma marca. */
+function centroide(pontos: [number, number][]): [number, number] {
+  let sx = 0;
+  let sy = 0;
+  for (const [x, y] of pontos) {
+    sx += x;
+    sy += y;
+  }
+  return [sx / pontos.length, sy / pontos.length];
+}
+
 // Render marks overlay helper for the canvas context
 function renderMarksToContext(
   ctx: CanvasRenderingContext2D,
@@ -534,7 +545,7 @@ export default function App() {
   const segmentarComOnda = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
       if (!imagemDeTrabalho) return;
-      addMark(x, y, tipo);
+      const marcaId = addMark(x, y, tipo);
 
       const inicio = performance.now();
       // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
@@ -578,6 +589,7 @@ export default function App() {
         height,
         // A marcação criada por este mesmo clique é quem conta a semente.
         origem: 'clique',
+        marcaId,
       });
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
@@ -1399,8 +1411,27 @@ export default function App() {
 
     const [a, b] = corteProposto.partes;
     const base = Date.now();
+
+    // A CONTAGEM PRECISA SUBIR EM UM. Um contorno de clique nao conta — quem
+    // conta e a marca. Cortar em dois sem criar a segunda marca deixaria duas
+    // sementes com uma contagem so, e o numero do laudo ficaria ERRADO para
+    // baixo. Entao: a marca original fica com a metade que a contem, e a outra
+    // metade ganha uma marca nova no proprio centroide.
+    const marcaOriginal = alvo.marcaId != null ? marcasRef.current.find((m) => m.id === alvo.marcaId) : undefined;
+    const contemOriginal = (pontos: [number, number][]) =>
+      !!marcaOriginal && pontoNoPoligono(marcaOriginal.x, marcaOriginal.y, pontos);
+
     const filhas = [a, b].map((pontos, i) => {
       const { width, height } = calculateSeedDimensions(pontos);
+      let marcaId = alvo.marcaId;
+      if (alvo.origem === 'clique') {
+        if (contemOriginal(pontos)) {
+          marcaId = marcaOriginal!.id;
+        } else {
+          const [cx, cy] = centroide(pontos);
+          marcaId = addMark(cx, cy, alvo.category);
+        }
+      }
       return {
         ...alvo,
         id: base + i,
@@ -1408,6 +1439,7 @@ export default function App() {
         width,
         height,
         edited: true,
+        marcaId,
       };
     });
 
@@ -1417,7 +1449,7 @@ export default function App() {
     ]);
     setContornoSelecionado(null);
     setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
-  }, [corteProposto, contornoSelecionado, setYoloSegmentations]);
+  }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
 
   // --- Segmentacao em lote a partir das marcacoes ---------------------------
 
@@ -1488,6 +1520,7 @@ export default function App() {
         width,
         height,
         origem: 'clique',
+        marcaId: marca.id,
       });
       setRecadoDaOnda({ tom: 'ok', texto: 'Contorno medido.' });
     },
@@ -1520,6 +1553,7 @@ export default function App() {
           width,
           height,
           origem: 'clique',
+          marcaId: marca.id,
         });
         medidas++;
       } else {
@@ -1544,6 +1578,52 @@ export default function App() {
           : ' A contagem não mudou.'),
     });
   }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
+
+  /**
+   * Poligono desenhado a mao.
+   *
+   * Se ha uma marca sem contorno DENTRO do que foi desenhado, o poligono e
+   * dela — a pessoa marcou primeiro e desenhou depois, que e o fluxo natural.
+   * Se nao ha, cria a marca no centroide: desenhar um contorno E dizer que ali
+   * tem uma semente.
+   */
+  const handleDesenhoConcluido = useCallback(
+    (pontos: [number, number][]) => {
+      const visiveis = segmentacoesRef.current.filter((s) => s.visible !== false);
+      const orfa = marcasRef.current.find(
+        (m) =>
+          pontoNoPoligono(m.x, m.y, pontos) &&
+          !visiveis.some((s) => s.marcaId === m.id || pontoNoPoligono(m.x, m.y, s.polygon_points))
+      );
+
+      const tipo = orfa?.type ?? activeClassification;
+      let marcaId = orfa?.id;
+      if (marcaId == null) {
+        const [cx, cy] = centroide(pontos);
+        marcaId = addMark(cx, cy, tipo);
+      }
+
+      const { width, height } = calculateSeedDimensions(pontos);
+      appendYoloSegmentation({
+        id: Date.now(),
+        category: tipo,
+        class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        confidence: 1,
+        polygon_points: pontos,
+        visible: true,
+        width,
+        height,
+        edited: true,
+        origem: 'clique',
+        marcaId,
+      });
+      setRecadoDaOnda({
+        tom: 'ok',
+        texto: orfa ? 'Contorno desenhado e vinculado à marcação.' : 'Contorno desenhado.',
+      });
+    },
+    [activeClassification, addMark, appendYoloSegmentation]
+  );
 
   const handleRaspar = useCallback(
     (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
@@ -1615,9 +1695,18 @@ export default function App() {
   // Fase F — borracha: remove todas as marcações dentro do raio.
   const handleEraseArea = useCallback(
     (x: number, y: number, radius: number) => {
-      setMarks((prev) => prev.filter((m) => Math.hypot(m.x - x, m.y - y) > radius));
+      // A borracha de area apaga marcas — e os contornos vinculados a elas,
+      // pela mesma regra de `removeMark`: contorno de semente que nao existe
+      // seria medida de nada.
+      const apagadas = marcasRef.current
+        .filter((m) => Math.hypot(m.x - x, m.y - y) <= radius)
+        .map((m) => m.id);
+      if (apagadas.length === 0) return;
+      const alvo = new Set(apagadas);
+      setMarks((prev) => prev.filter((m) => !alvo.has(m.id)));
+      setYoloSegmentations((prev) => prev.filter((s) => s.marcaId == null || !alvo.has(s.marcaId)));
     },
-    [setMarks]
+    [setMarks, setYoloSegmentations]
   );
 
   // Fase E — insere os pontos confirmados da detecção assistida.
@@ -1907,6 +1996,7 @@ export default function App() {
                 onRemoverVertice={handleRemoverVertice}
                 onRaspar={handleRaspar}
                 linhaDeCorte={corteProposto?.linha ?? null}
+                onDesenhoConcluido={handleDesenhoConcluido}
                 raioDaRaspagem={raioDaRaspagem}
                 ajusteDaMarca={ajusteDaMarca}
                 visualMode={visualMode}

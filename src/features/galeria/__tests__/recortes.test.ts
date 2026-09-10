@@ -226,3 +226,28 @@ describe('montarGaleria', () => {
     });
   });
 });
+
+describe('vinculo explicito marca <-> contorno', () => {
+  it('marca VINCULADA nao aparece como pendente, mesmo fora do poligono', () => {
+    // Depois de mover um vertice ou cortar, a marca pode ficar fora do
+    // poligono geometricamente. O vinculo e que diz de quem ele e.
+    const seg = { ...quadrado(1, 100, 100, 60), marcaId: 7 };
+    const itens = montarGaleria([marca(7, 900, 700)], [seg], CENA);
+    expect(itens.filter((i) => i.tipo === 'ponto')).toHaveLength(0);
+  });
+
+  it('contorno vinculado a OUTRA marca nao adota a que caiu dentro', () => {
+    // Dois poligonos que se sobrepoem: sem o vinculo, a mesma marca cairia
+    // dentro dos dois. Com o vinculo, cada contorno sabe de quem e.
+    const seg = { ...quadrado(1, 100, 100, 60), marcaId: 7 };
+    const itens = montarGaleria([marca(7, 900, 700), marca(8, 130, 130)], [seg], CENA);
+    const pendentes = itens.filter((i) => i.tipo === 'ponto');
+    expect(pendentes).toHaveLength(1);
+    expect(pendentes[0].tipo === 'ponto' && pendentes[0].marca.id).toBe(8);
+  });
+
+  it('dado ANTIGO sem marcaId continua funcionando pelo ponto-no-poligono', () => {
+    const itens = montarGaleria([marca(1, 130, 130)], [quadrado(1, 100, 100, 60)], CENA);
+    expect(itens.filter((i) => i.tipo === 'ponto')).toHaveLength(0);
+  });
+});

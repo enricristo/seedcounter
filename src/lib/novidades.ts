@@ -60,6 +60,23 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Desenhar contorno à mão (tecla P)',
+        detalhe:
+          'Para quando a onda falha de vez. Clique coloca vértice, duplo clique ou clicar no primeiro vértice fecha, Esc cancela. Se desenhar em volta de uma marcação sem contorno, o polígono é dela; senão, cria a marcação no centro.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Cada contorno sabe de qual marcação é',
+        detalhe:
+          'O vínculo entre ponto e polígono passou a ser explícito. Separar um contorno em dois agora cria a segunda marcação — antes a contagem ficava um a menos. Apagar uma marcação apaga o contorno dela.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Barra de ferramentas em grupos',
+        detalhe: 'Classe · instrumento · navegação · visão, separados por um fio.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Conta opcional, que lembra a sua bancada',
         detalhe:
           'Entrar com Google guarda espécie, escala e nome entre máquinas. Nada além disso sobe: sessão, imagem e laudo continuam só na sua máquina. Sem conta configurada, o botão nem aparece.',

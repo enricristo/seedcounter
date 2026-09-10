@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Mark, YoloSegmentation } from '../../types';
 import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
@@ -36,7 +36,7 @@ interface MarkingCanvasProps {
   /** Prévia da detecção assistida (Fase E). */
   detectionPreview?: DetectionPreview | null;
   /** Ferramenta ativa (Fase F — editor). */
-  activeTool?: 'viable' | 'inviable' | 'onda' | 'contorno' | 'eraser' | 'pan';
+  activeTool?: 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'eraser' | 'pan';
   /** Raio da borracha, em pixels da imagem. */
   eraserRadius?: number;
   /** Remove uma marcação específica (clique direto nela). */
@@ -83,6 +83,8 @@ interface MarkingCanvasProps {
   raioDaRaspagem?: number;
   /** Linha de corte proposta para o contorno selecionado. */
   linhaDeCorte?: [[number, number], [number, number]] | null;
+  /** Poligono desenhado a mao, fechado. Em pixels da imagem. */
+  onDesenhoConcluido?: (pontos: [number, number][]) => void;
 }
 
 export function MarkingCanvas({
@@ -121,6 +123,7 @@ export function MarkingCanvas({
   onRaspar,
   raioDaRaspagem = 14,
   linhaDeCorte,
+  onDesenhoConcluido,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
 
@@ -138,6 +141,33 @@ export function MarkingCanvas({
   } | null>(null);
 
   const editandoContorno = activeTool === 'contorno';
+  const desenhando = activeTool === 'desenho';
+
+  /** Vertices do poligono em construcao, em pixels da imagem. */
+  const [desenho, setDesenho] = useState<[number, number][]>([]);
+
+  // Trocar de ferramenta descarta o desenho pela metade. Um poligono aberto
+  // sem ferramenta para fecha-lo seria um estado de que nao se sai.
+  useEffect(() => {
+    if (!desenhando) setDesenho([]);
+  }, [desenhando]);
+
+  // Esc cancela. E a unica saida sem fechar, e precisa existir: sem ela a
+  // pessoa que errou o primeiro clique teria de trocar de ferramenta.
+  useEffect(() => {
+    if (!desenhando) return;
+    const ao = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDesenho([]);
+    };
+    window.addEventListener('keydown', ao);
+    return () => window.removeEventListener('keydown', ao);
+  }, [desenhando]);
+
+  /** Fecha o poligono se ele tem forma; senao, so limpa. */
+  const fecharDesenho = () => {
+    if (desenho.length >= 3) onDesenhoConcluido?.(desenho);
+    setDesenho([]);
+  };
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [hoveredMarkId, setHoveredMarkId] = useState<number | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
@@ -348,7 +378,34 @@ export function MarkingCanvas({
       {/* Underlying Canvas for image and manual marks */}
       <canvas
         ref={canvasRef}
-        onClick={onCanvasClick}
+        onClick={(e) => {
+          if (desenhando) {
+            const pos = toImageCoords(e);
+            if (!pos) return;
+            // Clicar perto do PRIMEIRO vertice fecha: e o gesto natural de
+            // "voltei ao comeco", e nao exige saber que duplo clique existe.
+            const primeiro = desenho[0];
+            const raioDeFecho = Math.max(6, image.width / 150);
+            if (
+              primeiro &&
+              desenho.length >= 3 &&
+              Math.hypot(pos.x - primeiro[0], pos.y - primeiro[1]) < raioDeFecho
+            ) {
+              fecharDesenho();
+              return;
+            }
+            setDesenho((d) => [...d, [pos.x, pos.y]]);
+            return;
+          }
+          onCanvasClick(e);
+        }}
+        onDoubleClick={(e) => {
+          if (!desenhando) return;
+          e.preventDefault();
+          // O duplo clique ja colocou um vertice no primeiro clique; o segundo
+          // clique do par cairia em cima dele. Fecha sem duplicar.
+          fecharDesenho();
+        }}
         onMouseDown={(e) => {
           if (e.button === 2) onCanvasClick(e as any);
         }}
@@ -721,6 +778,67 @@ export function MarkingCanvas({
                 />
               );
             })}
+        </svg>
+      )}
+
+      {/* O poligono em construcao. Aparece so na ferramenta de desenho: os
+          vertices ja colocados, o fio entre eles, e uma linha elastica ate o
+          cursor mostrando onde o proximo cairia. O primeiro vertice e maior:
+          e o alvo para fechar. */}
+      {desenhando && desenho.length > 0 && (
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full select-none"
+          viewBox={`0 0 ${image.width} ${image.height}`}
+          style={{ width: '100%', height: '100%', zIndex: 9 }}
+        >
+          {(() => {
+            const traco = Math.max(1.5, image.width / 400);
+            const raio = Math.max(3, image.width / 220);
+            const cor = ESPECIME.tool;
+            const caminho = desenho.map(([x, y]) => `${x},${y}`).join(' ');
+            return (
+              <g>
+                {/* Halo escuro sob o fio, para sobreviver a lamina clara. */}
+                <polyline
+                  points={caminho}
+                  fill="none"
+                  stroke={ESPECIME.halo}
+                  strokeWidth={traco * 2.2}
+                  strokeLinejoin="round"
+                />
+                <polyline
+                  points={caminho}
+                  fill="none"
+                  stroke={cor}
+                  strokeWidth={traco}
+                  strokeLinejoin="round"
+                />
+                {cursorPos && desenho.length > 0 && (
+                  <line
+                    x1={desenho[desenho.length - 1][0]}
+                    y1={desenho[desenho.length - 1][1]}
+                    x2={cursorPos.x}
+                    y2={cursorPos.y}
+                    stroke={cor}
+                    strokeWidth={traco}
+                    strokeDasharray={`${traco * 3},${traco * 2}`}
+                    opacity={0.7}
+                  />
+                )}
+                {desenho.map(([x, y], i) => (
+                  <circle
+                    key={i}
+                    cx={x}
+                    cy={y}
+                    r={i === 0 ? raio * 1.6 : raio}
+                    fill={i === 0 ? cor : ESPECIME.halo}
+                    stroke={cor}
+                    strokeWidth={traco * 0.8}
+                  />
+                ))}
+              </g>
+            );
+          })()}
         </svg>
       )}
 
