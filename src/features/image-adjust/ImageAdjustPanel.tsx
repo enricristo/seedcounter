@@ -4,7 +4,8 @@
 // =============================================================================
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { SlidersHorizontal, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { SlidersHorizontal, RotateCcw, Eye, EyeOff, Layers, Undo2, AlertTriangle } from 'lucide-react';
+import type { ModoDeAchatamento } from '../../lib/achatar-fundo';
 import {
   NEUTRAL_ADJUSTMENTS,
   ADJUSTMENT_PRESETS,
@@ -21,7 +22,36 @@ interface ImageAdjustPanelProps {
   /** Liga/desliga a aplicação sem perder os valores configurados. */
   enabled: boolean;
   onToggleEnabled: () => void;
+
+  // --- Achatar o fundo ---
+  /** Aplica o achatamento. Ausente = controle oculto. */
+  onAchatarFundo?: (modo: ModoDeAchatamento) => void;
+  onDesfazerFundo?: () => void;
+  /** O fundo já está achatado? */
+  fundoAchatado?: boolean;
+  /** Estimando o modelo agora. */
+  achatando?: boolean;
+  /** O modelo não mereceu confiança — mostrar com ressalva. */
+  fundoIncerto?: boolean;
 }
+
+const MODOS: { id: ModoDeAchatamento; rotulo: string; dica: string }[] = [
+  {
+    id: 'corrigir',
+    rotulo: 'Nivelar',
+    dica: 'Tira o gradiente de iluminação. Nada é apagado — só nivelado.',
+  },
+  {
+    id: 'realcar',
+    rotulo: 'Realçar',
+    dica: 'Nivela e estica o contraste do que sobrou.',
+  },
+  {
+    id: 'isolar',
+    rotulo: 'Isolar',
+    dica: 'Pinta de branco tudo que o modelo diz ser fundo ou sombra. Destrutivo.',
+  },
+];
 
 /** Desenha o histograma de luminância como área preenchida. */
 function HistogramView({ hist }: { hist: Histogram | null }) {
@@ -110,6 +140,11 @@ export function ImageAdjustPanel({
   onChange,
   enabled,
   onToggleEnabled,
+  onAchatarFundo,
+  onDesfazerFundo,
+  fundoAchatado,
+  achatando,
+  fundoIncerto,
 }: ImageAdjustPanelProps) {
   const [hist, setHist] = useState<Histogram | null>(null);
 
@@ -284,6 +319,59 @@ export function ImageAdjustPanel({
         >
           <RotateCcw size={13} /> Restaurar original
         </button>
+      )}
+
+      {onAchatarFundo && (
+        <div className="border-line space-y-2 border-t pt-3">
+          <div className="flex items-center gap-1.5">
+            <Layers size={13} className="text-accent shrink-0" />
+            <h4 className="text-ink-2 text-[11px] font-bold tracking-wide uppercase">
+              Achatar o fundo
+            </h4>
+          </div>
+
+          <p className="text-ink-3 text-[10px] leading-snug">
+            Modela o gradiente de iluminação do scanner e o remove. Ajuda a segmentação por
+            clique a parar na borda certa.
+          </p>
+
+          {fundoAchatado ? (
+            <>
+              {fundoIncerto && (
+                <p className="flex items-start gap-1.5 text-[10px] leading-snug text-amber-700 dark:text-amber-400">
+                  <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                  O modelo do fundo ficou incerto — pouca área de fundo, ou fundo com textura.
+                  Confira o resultado antes de confiar nele.
+                </p>
+              )}
+              <button
+                onClick={onDesfazerFundo}
+                className="border-line text-ink-2 hover:bg-surface-2 flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+              >
+                <Undo2 size={13} /> Voltar ao fundo original
+              </button>
+            </>
+          ) : (
+            <div className="flex gap-1.5">
+              {MODOS.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => onAchatarFundo(m.id)}
+                  disabled={achatando || !image}
+                  title={m.dica}
+                  className="border-line text-ink-2 hover:border-accent hover:text-accent flex-1 rounded-lg border px-2 py-2 text-[10px] font-bold tracking-wide uppercase transition-colors disabled:opacity-40"
+                >
+                  {achatando ? '…' : m.rotulo}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <p className="text-ink-3 text-[10px] leading-snug">
+            Serve à segmentação e ao olho. A detecção automática e o laudo continuam recebendo a
+            imagem original.
+          </p>
+        </div>
       )}
 
       <p className="text-[10px] text-ink-3 leading-relaxed">

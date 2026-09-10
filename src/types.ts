@@ -4,6 +4,13 @@
 // Baseado nas publicações do Prof. Nelson Barbosa Machado Neto e Profa. Ceci Castilho Custódio
 // =============================================================================
 
+import type { IdentificacaoDaAmostra } from './lib/normas/identificacao';
+import type {
+  ClasseDeSemente,
+  Contagens,
+  RegistroDeEscarificacao,
+} from './lib/normas/classes-de-semente';
+
 // ---------------------------------------------------------------------------
 // Marking & Segmentation
 // ---------------------------------------------------------------------------
@@ -13,6 +20,18 @@ export interface Mark {
   y: number;
   type: 'viable' | 'inviable';
   id: number;
+  /**
+   * A classe fina do teste de germinacao — normal, anormal, dura, dormente,
+   * morta, vazia — quando o protocolo a exige.
+   *
+   * MORA NA MARCA, NAO NO CONTORNO, e e uma SUBCLASSE, nao uma troca de
+   * `type`. Viavel/inviavel continua mandando na cor e na contagem, porque e o
+   * que a imagem mostra. Dormente e dura nao se distinguem numa foto: sao
+   * determinacao de bancada, atribuidas pela pessoa na galeria. Guardar aqui
+   * e o que permite o protocolo de forrageira consolidar os numeros a partir
+   * do que foi classificado, em vez de um contador digitado a parte.
+   */
+  subclasse?: ClasseDeSemente;
 }
 
 export interface YoloSegmentation {
@@ -25,6 +44,31 @@ export interface YoloSegmentation {
   edited?: boolean;
   width?: number; // PCA computed width (px)
   height?: number; // PCA computed height (px)
+  /**
+   * De onde veio este contorno.
+   *
+   * 'modelo' (ou ausente) — proposto por detecção. Conta como uma semente,
+   *   porque não existe marcação manual correspondente.
+   * 'clique' — a pessoa clicou na semente e a onda mediu o contorno. NÃO conta
+   *   como semente: quem já conta é a marcação criada pelo mesmo clique.
+   *   Contar os dois somaria a mesma semente duas vezes.
+   *
+   * É também a primeira peça do registro de curadoria: saber quem propôs cada
+   * objeto é pré-requisito para medir se a máquina está ajudando.
+   */
+  origem?: 'modelo' | 'clique';
+  /**
+   * A marcacao a que este contorno pertence.
+   *
+   * O vinculo era IMPLICITO — "a marca que cai dentro do poligono" — e
+   * implicito quebra: ao cortar um contorno em dois, a marca fica de um lado e
+   * o outro lado vira um contorno sem dono; se dois poligonos se sobrepoem, a
+   * mesma marca cai dentro dos dois. Com o id, cada contorno sabe de quem e.
+   *
+   * Ausente em contorno de modelo (que nao veio de marca) e em dado antigo —
+   * nesses casos a galeria ainda usa o ponto-no-poligono como reserva.
+   */
+  marcaId?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +103,35 @@ export interface Metadata {
   useDifferential?: boolean;
   umPerPixel?: number; // Spatial calibration: micrometers per pixel
   imageSource?: ImageSource; // Image acquisition source
+  /**
+   * A amostra como o Boletim de Análise de Sementes a identifica.
+   *
+   * Os campos acima são de PESQUISA — projeto, tratamento, placa, quadrante
+   * agrupam repetições de um ensaio, e é disso que um pesquisador precisa. O
+   * boletim pede outra coisa: identificar um LOTE, com espécie em nome
+   * científico, cultivar do RNC, safra, categoria e quem amostrou sob qual
+   * RENASEM. São dois vocabulários, e forçar um no outro estraga os dois.
+   *
+   * Por isso entra ao lado, e OPCIONAL: quem usa o aplicativo para pesquisa
+   * nunca preenche; quem vai emitir laudo preenche, e aí `conferirParaEmissao`
+   * sabe dizer o que ainda falta.
+   */
+  amostra?: IdentificacaoDaAmostra;
+
+  /**
+   * O protocolo do teste de germinação, quando há um.
+   *
+   * As marcações na imagem continuam viável/inviável — dormente e dura não se
+   * distinguem numa foto. A classificação fina é determinação de BANCADA, e o
+   * que o aplicativo faz é registrar os contadores e aplicar a regra que muda
+   * o número: espigueta vazia sai do denominador, e dormência acima de 5% pede
+   * tetrazólio.
+   */
+  protocolo?: 'simples' | 'germinacao' | 'forrageira';
+  /** Contagem por classe, feita na bancada. Só faz sentido com protocolo. */
+  contagensPorClasse?: Contagens;
+  /** Superação de dormência aplicada ao lote, quando houve. */
+  escarificacao?: RegistroDeEscarificacao;
 }
 
 // ---------------------------------------------------------------------------

@@ -9,12 +9,36 @@
 // =============================================================================
 
 import React from 'react';
-import { Circle, XCircle, Eraser, Hand, Ruler } from 'lucide-react';
+import {
+  Circle,
+  XCircle,
+  Eraser,
+  Hand,
+  Ruler,
+  Waves,
+  Eye,
+  EyeOff,
+  Grid3x3,
+  Spline,
+  PenTool,
+} from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
+import { descrever, type Mascara } from '../../features/mascara/mascara';
+import { AJUSTE_MAXIMO, AJUSTE_MINIMO } from '../../lib/escala-da-marca';
+
+/** Icone de cada estado da mascara. O disco vazado e "so pontos". */
+const ICONE_DA_MASCARA: Record<Mascara, React.ElementType> = {
+  tudo: Eye,
+  pontos: Circle,
+  nada: EyeOff,
+};
 
 const ICONS: Record<ToolId, React.ElementType> = {
   viable: Circle,
   inviable: XCircle,
+  onda: Waves,
+  contorno: Spline,
+  desenho: PenTool,
   eraser: Eraser,
   pan: Hand,
 };
@@ -24,6 +48,13 @@ const ACTIVE_STYLES: Record<ToolId, string> = {
   // viavel, anel vazado para inviavel — a forma repete o que a cor diz.
   viable: 'bg-[var(--color-ov-viable)] border-[var(--color-ov-viable)] text-[#101719]',
   inviable: 'border-2 border-[var(--color-ov-inviable)] text-[var(--color-ov-inviable)]',
+  // A onda é instrumento, não classe: ela mede o contorno da semente que a
+  // ferramenta de classe já escolheu. Por isso acento, e não ciano/magenta.
+  onda: 'bg-accent border-accent text-accent-on',
+  // Ajuste de contorno tambem e instrumento: ele nao classifica, corrige a
+  // medida que a onda ja fez.
+  contorno: 'bg-accent border-accent text-accent-on',
+  desenho: 'bg-accent border-accent text-accent-on',
   // Instrumento, não espécime.
   eraser: 'bg-danger border-danger text-white',
   pan: 'bg-accent border-accent text-accent-on',
@@ -39,6 +70,19 @@ interface ToolbarProps {
   /** Réguas nas bordas ligadas? */
   showRulers?: boolean;
   onToggleRulers?: () => void;
+  /** Estado da mascara de anotacao. Ausente = botao oculto. */
+  mascara?: Mascara;
+  onCiclarMascara?: () => void;
+  /** Abre a galeria de objetos. Ausente = botao oculto. */
+  onAbrirGaleria?: () => void;
+  /** Quantos objetos ha, para o distintivo da galeria. */
+  totalDeObjetos?: number;
+  /** Multiplicador do tamanho da marca. Ausente = controle oculto. */
+  ajusteDaMarca?: number;
+  onAjusteDaMarcaChange?: (v: number) => void;
+  /** Raio do traço da borracha de contorno. */
+  raioDaRaspagem?: number;
+  onRaioDaRaspagemChange?: (v: number) => void;
 }
 
 const INATIVO = 'border-transparent text-ink-2 hover:bg-surface-2 hover:text-ink-1';
@@ -51,33 +95,51 @@ export function Toolbar({
   isTemporary,
   showRulers,
   onToggleRulers,
+  mascara,
+  onCiclarMascara,
+  onAbrirGaleria,
+  totalDeObjetos = 0,
+  ajusteDaMarca,
+  onAjusteDaMarcaChange,
+  raioDaRaspagem,
+  onRaioDaRaspagemChange,
 }: ToolbarProps) {
+  const IconeDaMascara = mascara ? ICONE_DA_MASCARA[mascara] : Eye;
   return (
     <div className="border-line bg-surface-1/95 rounded-panel absolute top-1/2 left-3 z-20 flex -translate-y-1/2 flex-col gap-1.5 border p-1.5 shadow-xl backdrop-blur">
-      {TOOLS.map((tool) => {
+      {TOOLS.map((tool, i) => {
         const Icon = ICONS[tool.id];
         const isActive = activeTool === tool.id;
+        // Um fio entre grupos. E a separacao de linguagens do sistema tornada
+        // visivel: classe pinta com a cor da marca; instrumento, nunca.
+        const mudouDeGrupo = i > 0 && TOOLS[i - 1].grupo !== tool.grupo;
         return (
-          <button
-            key={tool.id}
-            onClick={() => onSelect(tool.id)}
-            title={`${tool.label} (${tool.shortcut.toUpperCase()}) — ${tool.hint}`}
-            aria-label={tool.label}
-            aria-pressed={isActive}
-            className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
-              isActive ? ACTIVE_STYLES[tool.id] : INATIVO
-            }`}
-          >
-            <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
-            <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
-              {tool.shortcut}
-            </span>
-            {isActive && isTemporary && tool.id === 'eraser' && (
-              <span className="ring-danger absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white ring-2" />
-            )}
-          </button>
+          <React.Fragment key={tool.id}>
+            {mudouDeGrupo && <div className="bg-line mx-auto my-0.5 h-px w-6" aria-hidden="true" />}
+            <button
+              onClick={() => onSelect(tool.id)}
+              title={`${tool.label} (${tool.shortcut.toUpperCase()}) — ${tool.hint}`}
+              aria-label={tool.label}
+              aria-pressed={isActive}
+              className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
+                isActive ? ACTIVE_STYLES[tool.id] : INATIVO
+              }`}
+            >
+              <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+              <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
+                {tool.shortcut}
+              </span>
+              {isActive && isTemporary && tool.id === 'eraser' && (
+                <span className="ring-danger absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white ring-2" />
+              )}
+            </button>
+          </React.Fragment>
         );
       })}
+
+      {/* Fio antes do grupo de visao (reguas, mascara, galeria): nao e
+          ferramenta de marcar nem de mover — e de VER. */}
+      <div className="bg-line mx-auto my-0.5 h-px w-6" aria-hidden="true" />
 
       {onToggleRulers && (
         <button
@@ -91,6 +153,84 @@ export function Toolbar({
         >
           <Ruler size={20} strokeWidth={1.75} aria-hidden="true" />
         </button>
+      )}
+
+      {mascara && onCiclarMascara && (
+        <button
+          onClick={onCiclarMascara}
+          title={`${descrever(mascara).explicacao} (M)`}
+          aria-label={`Máscara: ${descrever(mascara).rotulo}. Pressione para alternar.`}
+          aria-pressed={mascara !== 'tudo'}
+          className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
+            mascara !== 'tudo' ? 'bg-accent border-accent text-accent-on' : INATIVO
+          }`}
+        >
+          <IconeDaMascara size={20} strokeWidth={1.75} aria-hidden="true" />
+          <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
+            m
+          </span>
+        </button>
+      )}
+
+      {onAbrirGaleria && (
+        <button
+          onClick={onAbrirGaleria}
+          title="Ver todos os objetos lado a lado (G)"
+          aria-label="Abrir galeria de objetos"
+          className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${INATIVO}`}
+        >
+          <Grid3x3 size={20} strokeWidth={1.75} aria-hidden="true" />
+          {totalDeObjetos > 0 && (
+            <span className="bg-accent text-accent-on absolute -top-1 -right-1 min-w-4 rounded-full px-1 text-[9px] leading-4 font-bold tabular-nums">
+              {totalDeObjetos > 99 ? '99+' : totalDeObjetos}
+            </span>
+          )}
+          <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
+            g
+          </span>
+        </button>
+      )}
+
+      {ajusteDaMarca !== undefined &&
+        onAjusteDaMarcaChange &&
+        (activeTool === 'viable' || activeTool === 'inviable') && (
+          <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+            <input
+              type="range"
+              min={AJUSTE_MINIMO}
+              max={AJUSTE_MAXIMO}
+              step={0.1}
+              value={ajusteDaMarca}
+              onChange={(e) => onAjusteDaMarcaChange(Number(e.target.value))}
+              title="Tamanho do ponto na imagem"
+              aria-label="Tamanho do ponto"
+              className="accent-accent w-10"
+              style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+            />
+            <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
+              {ajusteDaMarca.toFixed(1)}x
+            </p>
+          </div>
+        )}
+
+      {activeTool === 'contorno' && raioDaRaspagem !== undefined && onRaioDaRaspagemChange && (
+        <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+          <input
+            type="range"
+            min={4}
+            max={60}
+            step={2}
+            value={raioDaRaspagem}
+            onChange={(e) => onRaioDaRaspagemChange(Number(e.target.value))}
+            title="Espessura do traço que raspa a borda"
+            aria-label="Espessura do traço"
+            className="accent-accent w-10"
+            style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+          />
+          <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
+            {raioDaRaspagem}
+          </p>
+        </div>
       )}
 
       {activeTool === 'eraser' && (

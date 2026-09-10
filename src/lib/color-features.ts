@@ -24,9 +24,24 @@
 // fácil: medir quão vermelho está o núcleo.
 //
 // Daí a escolha do que medir. O eixo a* do CIELAB é o eixo verde–vermelho, e
-// é a medida direta do que o critério de anotação descreve em palavras
-// ("núcleo com qualquer grau de vermelho → viável"). Com ele, a regra deixa
-// de ser subjetiva e vira número auditável.
+// mede diretamente a coloração pelo formazan.
+//
+// RESSALVA IMPORTANTE, e ela limita o que este módulo pode afirmar.
+//
+// A RAS 2025, Cap. 5, diz textualmente que é "a POSIÇÃO e o TAMANHO das áreas
+// necrosadas, e NÃO NECESSARIAMENTE a intensidade da coloração" que determinam
+// se a semente é viável — e que as diferenças de cor "devem estar associadas à
+// FIRMEZA DOS TECIDOS", que nenhuma imagem 2D captura.
+//
+// Ou seja: o a* é INSUMO, não veredito. Ele responde "quanto corou"; a norma
+// pergunta "onde a lesão está em relação às estruturas essenciais, e qual a
+// extensão dela". Um classificador treinado só em intensidade de vermelho
+// aprende a coisa errada, e falha exatamente na fronteira entre viável e
+// inviável — que é onde a decisão tem consequência.
+//
+// O que falta para fechar o critério: segmentar o embrião e as estruturas
+// essenciais, localizar as lesões em relação a elas, e medir extensão
+// relativa. Ver docs/superpowers/specs/2026-09-08-norma-e-pratica-de-laboratorio.md
 //
 // As 20 características abaixo são as mesmas do conjunto de cor do AIseed —
 // média e desvio de R, G, B, H, S, V, L*, a*, b* e cinza — para que os dois

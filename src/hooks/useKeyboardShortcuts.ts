@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 interface KeyboardShortcutsProps {
   onUndo: () => void;
+  onRedo: () => void;
   onSetVisualMode: (mode: 'dots' | 'numbers') => void;
   onNextImage: () => void;
   onPrevImage: () => void;
@@ -12,6 +13,10 @@ interface KeyboardShortcutsProps {
   onSaveSession: () => void;
   onOpenExport: () => void;
   onToggleTheme: () => void;
+  /** Cicla a mascara de anotacao (tudo -> so pontos -> nada). */
+  onCiclarMascara: () => void;
+  /** Abre a galeria de objetos. */
+  onAbrirGaleria: () => void;
   hasImage: boolean;
   hasNextImage: boolean;
   hasPrevImage: boolean;
@@ -19,6 +24,7 @@ interface KeyboardShortcutsProps {
 
 export function useKeyboardShortcuts({
   onUndo,
+  onRedo,
   onSetVisualMode,
   onNextImage,
   onPrevImage,
@@ -29,6 +35,8 @@ export function useKeyboardShortcuts({
   onSaveSession,
   onOpenExport,
   onToggleTheme,
+  onCiclarMascara,
+  onAbrirGaleria,
   hasImage,
   hasNextImage,
   hasPrevImage,
@@ -45,9 +53,17 @@ export function useKeyboardShortcuts({
 
       // Ctrl/Meta shortcuts are always allowed or checked carefully
       if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === 'z') {
+        // Desfazer/refazer sao do CAMPO quando ha um campo com foco: Ctrl+Z
+        // nas Observacoes tem que desfazer o texto, nao a ultima marca.
+        if (!isTyping && e.key.toLowerCase() === 'z') {
           e.preventDefault();
-          onUndo();
+          if (e.shiftKey) onRedo();
+          else onUndo();
+          return;
+        }
+        if (!isTyping && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          onRedo();
           return;
         }
         if (e.key.toLowerCase() === 's') {
@@ -95,6 +111,17 @@ export function useKeyboardShortcuts({
           e.preventDefault();
           onToggleTheme();
           break;
+        case 'm':
+          // Alternar a mascara precisa ser mais rapido que a duvida: com o
+          // overlay ligado nao da para julgar se o contorno esta sobre uma
+          // semente ou sobre uma sombra.
+          e.preventDefault();
+          if (hasImage) onCiclarMascara();
+          break;
+        case 'g':
+          e.preventDefault();
+          if (hasImage) onAbrirGaleria();
+          break;
         case ' ':
           // Spacebar: next image if we have image queue
           if (hasNextImage) {
@@ -120,6 +147,7 @@ export function useKeyboardShortcuts({
     };
   }, [
     onUndo,
+    onRedo,
     onSetVisualMode,
     onNextImage,
     onPrevImage,
@@ -128,6 +156,8 @@ export function useKeyboardShortcuts({
     onZoomOut,
     onResetZoom,
     onSaveSession,
+    onCiclarMascara,
+    onAbrirGaleria,
     onOpenExport,
     onToggleTheme,
     hasImage,

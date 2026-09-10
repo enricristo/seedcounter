@@ -19,6 +19,7 @@ import {
   type CalibrationData,
   type LengthUnit,
 } from '../../lib/calibration';
+import { TAMANHOS, acharPorNome, conferirEscala } from '../../lib/normas/tamanhos-de-semente';
 
 interface CalibrationPanelProps {
   /** Escala atual (µm/px). */
@@ -31,9 +32,29 @@ interface CalibrationPanelProps {
   measuredPixels?: number;
   /** true enquanto o modo régua está ativo. */
   isMeasuring?: boolean;
+  /**
+   * Espécie declarada na amostra, e o comprimento típico de um objeto da
+   * imagem em pixels. Juntos permitem CONFERIR a escala, não só calculá-la.
+   */
+  especie?: string;
+  comprimentoTipicoEmPixels?: number;
+  /**
+   * Muda a espécie declarada. Ausente = seletor oculto.
+   *
+   * Mora AQUI, e não só na identificação para laudo, porque espécie é conceito
+   * de pesquisa antes de ser campo de boletim — e sem ela o alvo de calibração
+   * e o corte por concavidade ficam invisíveis para quem nunca ligou o modo
+   * laudo.
+   */
+  onEspecieChange?: (nomeCientifico: string | undefined) => void;
 }
 
 const METHODS: CalibrationMethod[] = ['dpi', 'reference', 'stage_micrometer', 'manual'];
+
+/** Numero com virgula decimal — e documento brasileiro. */
+function virgula(v: number, casas = 2): string {
+  return v.toFixed(casas).replace(/\.?0+$/, '').replace('.', ',');
+}
 
 export function CalibrationPanel({
   umPerPixel,
@@ -41,6 +62,9 @@ export function CalibrationPanel({
   onStartMeasure,
   measuredPixels,
   isMeasuring,
+  especie,
+  comprimentoTipicoEmPixels,
+  onEspecieChange,
 }: CalibrationPanelProps) {
   const [method, setMethod] = useState<CalibrationMethod>('dpi');
   const [dpi, setDpi] = useState(DEFAULT_LAB_DPI);
@@ -64,6 +88,40 @@ export function CalibrationPanel({
 
   const computed = useMemo(() => computeUmPerPixel(data), [data]);
   const warning = useMemo(() => validateScale(computed), [computed]);
+
+  // A conferência por espécie pega o que `validateScale` deixa passar: informar
+  // centímetro onde era milímetro produz uma escala dentro da faixa plausível,
+  // e só o tamanho esperado da semente denuncia.
+  /**
+   * O ALVO: quanto um objeto tipico desta imagem deveria medir.
+   *
+   * Sai da tabela de tamanhos da especie declarada. E o numero que transforma
+   * calibrar de "informe um valor" em "confira se bate" — a pessoa passa a ter
+   * contra o que comparar, em vez de aceitar o que o campo disser.
+   */
+  const alvo = useMemo(() => {
+    const referencia = acharPorNome(especie);
+    if (!referencia) return null;
+
+    const emPixels =
+      comprimentoTipicoEmPixels && comprimentoTipicoEmPixels > 0
+        ? comprimentoTipicoEmPixels
+        : null;
+
+    return {
+      referencia,
+      // A escala que faria o objeto medido cair no meio da faixa da especie.
+      escalaIdeal: emPixels
+        ? ((referencia.minimo + referencia.maximo) / 2 / emPixels) * 1000
+        : null,
+      emPixels,
+    };
+  }, [especie, comprimentoTipicoEmPixels]);
+
+  const conferencia = useMemo(
+    () => conferirEscala(comprimentoTipicoEmPixels ?? 0, computed, especie),
+    [comprimentoTipicoEmPixels, computed, especie]
+  );
   const needsMeasure = (method === 'reference' || method === 'stage_micrometer') && !measuredPixels;
 
   const handleApply = useCallback(() => {
@@ -261,6 +319,90 @@ export function CalibrationPanel({
         <div className="rounded-lg bg-accent-tint border border-accent/30 px-3 py-2">
           <p className="text-[11px] text-accent">
             Resultado: <strong>{computed.toFixed(3)} µm/px</strong>
+          </p>
+        </div>
+      )}
+
+      {onEspecieChange && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-ink-2 ml-1 text-[11px] font-semibold tracking-wide uppercase">
+            Espécie
+          </label>
+          <select
+            value={acharPorNome(especie)?.chave ?? ''}
+            onChange={(e) => {
+              const t = TAMANHOS.find((x) => x.chave === e.target.value);
+              onEspecieChange(t?.nomeCientifico);
+            }}
+            className="bg-surface-2 border-line focus:ring-accent/20 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:outline-none"
+          >
+            <option value="">Não declarada</option>
+            {TAMANHOS.map((t) => (
+              <option key={t.chave} value={t.chave}>
+                {t.nomeComum} — {t.nomeCientifico}
+              </option>
+            ))}
+          </select>
+          <p className="text-ink-3 ml-1 text-[10px] leading-snug">
+            Dá o alvo de tamanho para conferir a escala, e ajusta o corte de sementes encostadas
+            à forma da semente.
+          </p>
+        </div>
+      )}
+
+      {alvo && (
+        <div className="border-line bg-surface-2 space-y-1 rounded-lg border p-2.5">
+          <p className="text-ink-3 text-[10px] font-bold tracking-wide uppercase">
+            Alvo para {alvo.referencia.nomeComum.toLowerCase()}
+          </p>
+          <p className="text-ink-1 font-mono text-[12px] tabular-nums">
+            {virgula(alvo.referencia.minimo)} a {virgula(alvo.referencia.maximo)} mm
+            <span className="text-ink-3 ml-1.5 font-sans text-[10px]">de comprimento</span>
+          </p>
+          {alvo.emPixels ? (
+            <>
+              <p className="text-ink-3 text-[10px] leading-snug">
+                Um objeto típico desta imagem tem {Math.round(alvo.emPixels)} px.
+                {computed > 0 && conferencia.comprimentoImplicado !== undefined && (
+                  <>
+                    {' '}
+                    Nesta escala isso dá{' '}
+                    <strong className="text-ink-2">
+                      {virgula(conferencia.comprimentoImplicado)} mm
+                    </strong>
+                    .
+                  </>
+                )}
+              </p>
+              {alvo.escalaIdeal && (
+                <button
+                  onClick={() => {
+                    setMethod('manual');
+                    setManualValue(Number(alvo.escalaIdeal!.toFixed(2)));
+                  }}
+                  title="Chute informado: assume que o objeto medido tem o tamanho médio da espécie"
+                  className="border-line text-ink-2 hover:border-accent hover:text-accent mt-1 w-full rounded-lg border px-2 py-1.5 text-[10px] font-bold tracking-wide uppercase transition-colors"
+                >
+                  Partir de {virgula(alvo.escalaIdeal)} µm/px
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="text-ink-3 text-[10px] leading-snug">
+              Segmente ao menos três objetos para o aplicativo comparar com este alvo.
+            </p>
+          )}
+        </div>
+      )}
+
+      {conferencia.veredicto === 'suspeita' && (
+        <div className="flex items-start gap-1.5 rounded-lg border border-amber-300 bg-amber-50 p-2 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <AlertTriangle
+            size={12}
+            className="mt-0.5 shrink-0 text-amber-700 dark:text-amber-400"
+          />
+          <p className="text-[10px] leading-snug text-amber-800 dark:text-amber-300">
+            {conferencia.recado}
           </p>
         </div>
       )}

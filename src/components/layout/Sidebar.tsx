@@ -34,6 +34,8 @@ interface SidebarProps {
   onOpenRoi?: () => void;
   onCarregarExemplo?: (preset: PresetDeCena) => void;
   exemploCarregando?: PresetDeCena | null;
+  /** Abre a identificação normativa (BAS/BASO). Ausente = botão oculto. */
+  onAbrirIdentificacao?: () => void;
 
   // --- Painéis opcionais, agrupados por etapa do fluxo ---
   /** Etapa 1 — ajuste de imagem. */
@@ -70,6 +72,7 @@ export function Sidebar({
   onOpenRoi,
   onCarregarExemplo,
   exemploCarregando,
+  onAbrirIdentificacao,
   adjustSlot,
   calibrationSlot,
   detectionSlot,
@@ -140,7 +143,11 @@ export function Sidebar({
 
         <hr className="border-neutral-100 dark:border-zinc-800" />
 
-        <MetadataForm metadata={metadata} updateMetadata={updateMetadata} />
+        <MetadataForm
+          metadata={metadata}
+          updateMetadata={updateMetadata}
+          onAbrirIdentificacao={onAbrirIdentificacao}
+        />
 
         <hr className="border-neutral-100 dark:border-zinc-800" />
 

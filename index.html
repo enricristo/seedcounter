@@ -28,6 +28,167 @@
     <title>Contador de Sementes</title>
   </head>
   <body>
+    <!-- =====================================================================
+         Tela de abertura.
+
+         Fica no HTML, e nao num componente React, por um motivo simples: ela
+         precisa aparecer ANTES de o JavaScript ser baixado e interpretado. Um
+         splash escrito em React so pinta depois do bundle, ou seja, exatamente
+         depois do momento em que ele seria util.
+
+         A animacao e A ONDA: aneis crescendo de um ponto central, que e o
+         algoritmo que define o produto. O carregamento mostra o que o
+         aplicativo faz, em vez de um rodinha generica.
+
+         Removida por src/main.tsx assim que o React monta.
+         ===================================================================== -->
+    <div id="abertura" role="status" aria-label="Carregando o SeedCounter">
+      <div class="abertura-onda" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <b></b>
+      </div>
+      <p class="abertura-nome">SeedCounter</p>
+      <p class="abertura-sub">Contagem de sementes assistida por imagem</p>
+      <div class="abertura-grupos">
+        <img src="/logo-gpeorq.png" alt="GPEOrq" />
+        <img src="/logo-gpsem.png" alt="GPSEM" />
+      </div>
+      <p class="abertura-inst">GPEOrq &middot; GPSEM &mdash; Unoeste</p>
+    </div>
+
+    <style>
+      #abertura {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        background: #101719;
+        color: #e6edef;
+        font-family: Archivo, system-ui, -apple-system, sans-serif;
+        transition: opacity 380ms ease;
+      }
+      #abertura.saindo {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* A onda: tres aneis partindo do centro, defasados. */
+      .abertura-onda {
+        position: relative;
+        width: 108px;
+        height: 108px;
+        margin-bottom: 26px;
+      }
+      .abertura-onda span,
+      .abertura-onda b {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .abertura-onda span {
+        width: 108px;
+        height: 108px;
+        border: 2px solid #3fb4c4;
+        opacity: 0;
+        animation: abertura-crescer 2.1s cubic-bezier(0.22, 0.7, 0.3, 1) infinite;
+      }
+      .abertura-onda span:nth-child(2) {
+        animation-delay: 0.7s;
+      }
+      .abertura-onda span:nth-child(3) {
+        animation-delay: 1.4s;
+      }
+      /* O nucleo: a semente de onde a onda parte. */
+      .abertura-onda b {
+        width: 17px;
+        height: 22px;
+        background: #3fb4c4;
+        border-radius: 50% 50% 48% 48% / 58% 58% 42% 42%;
+        box-shadow: 0 0 22px rgba(63, 180, 196, 0.5);
+        animation: abertura-pulsar 2.1s ease-in-out infinite;
+      }
+
+      @keyframes abertura-crescer {
+        0% {
+          width: 20px;
+          height: 20px;
+          opacity: 0;
+        }
+        12% {
+          opacity: 0.85;
+        }
+        100% {
+          width: 108px;
+          height: 108px;
+          opacity: 0;
+        }
+      }
+      @keyframes abertura-pulsar {
+        0%,
+        100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.13);
+        }
+      }
+
+      .abertura-nome {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .abertura-sub {
+        margin: 7px 0 0;
+        font-size: 11.5px;
+        color: #7f9195;
+      }
+      .abertura-grupos {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-top: 40px;
+      }
+      .abertura-grupos img {
+        height: 40px;
+        width: auto;
+        /* Os logotipos foram feitos para fundo claro. Sobre o fundo escuro da
+           abertura eles ficariam com halo branco recortado, entao entram com
+           opacidade reduzida, como marca d'agua institucional. */
+        opacity: 0.82;
+      }
+      .abertura-inst {
+        margin: 12px 0 0;
+        font-size: 9.5px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: #5d6d71;
+      }
+
+      /* Quem pediu menos movimento recebe a marca parada, nao a tela em branco. */
+      @media (prefers-reduced-motion: reduce) {
+        .abertura-onda span {
+          animation: none;
+          opacity: 0.28;
+        }
+        .abertura-onda span:nth-child(2),
+        .abertura-onda span:nth-child(3) {
+          display: none;
+        }
+        .abertura-onda b {
+          animation: none;
+        }
+      }
+    </style>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

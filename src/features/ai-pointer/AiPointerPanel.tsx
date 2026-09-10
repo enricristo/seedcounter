@@ -4,6 +4,7 @@
 // =============================================================================
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { atualizarProgresso, iniciarAtividade } from '../atividade/atividade';
 import {
   Brain,
   Check,
@@ -129,12 +130,19 @@ export function AiPointerPanel({
     setIsRunning(true);
     setError(null);
     setProgress(null);
+    // O YOLO no navegador leva de segundos a dezenas de segundos numa
+    // digitalizacao grande. O painel ja mostra progresso, mas o rodape e o que
+    // a pessoa ve quando rolou a barra lateral para outro lugar.
+    const encerrar = iniciarAtividade('yolo', 'Detectando sementes…');
     try {
       const result = await detectWithYolo(image, {
         confThreshold: confidence / 100,
         withMasks: withMorphometry,
         roi: regiao ?? undefined,
-        onProgress: (done, total) => setProgress({ done, total }),
+        onProgress: (done, total) => {
+          setProgress({ done, total });
+          if (total > 0) atualizarProgresso('yolo', done / total);
+        },
       });
       setDetections(result);
     } catch (err) {
@@ -148,6 +156,7 @@ export function AiPointerPanel({
             : `Falha ao executar o modelo: ${msg.slice(0, 120)}`
       );
     } finally {
+      encerrar();
       setIsRunning(false);
       setProgress(null);
     }
@@ -266,6 +275,15 @@ export function AiPointerPanel({
           Para pesquisa, use a instalação do laboratório, que carrega os pesos em precisão total.
         </p>
       )}
+
+      {/* A pessoa precisa saber que o ajuste de imagem NÃO chega aqui, senão
+          mexe no brilho esperando melhorar a detecção e não entende o que
+          aconteceu. */}
+      <p className="text-[10px] text-ink-3 leading-relaxed">
+        Roda sempre sobre a <strong>imagem original</strong>. Os ajustes de brilho, contraste e
+        saturação não chegam ao modelo — ele foi treinado em digitalização crua, e alterar a entrada
+        piora o resultado em vez de melhorar.
+      </p>
 
       {/* Modelo ausente */}
       {modelPresent === false && (

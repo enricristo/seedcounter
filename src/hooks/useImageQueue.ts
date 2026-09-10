@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { iniciarAtividade } from '../features/atividade/atividade';
 import { ehTiff } from '../lib/image-crop';
 
 interface UseImageQueueProps {
@@ -28,10 +29,15 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
       setFilename(file.name);
       setLoadError(null);
 
+      // Uma digitalizacao de scanner leva segundos para decodificar, e sem isto
+      // a tela fica parada sem sinal — indistinguivel de travada.
+      const encerrar = iniciarAtividade('imagem', `Abrindo ${file.name}…`);
+
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
+          encerrar();
           setImage(img);
           if (onImageLoaded) {
             onImageLoaded(img, file);
@@ -39,11 +45,13 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
         };
         // Qualquer arquivo corrompido ou em formato não suportado cai aqui.
         img.onerror = () => {
+          encerrar();
           setLoadError(`Não foi possível abrir "${file.name}". O arquivo pode estar corrompido.`);
         };
         img.src = event.target?.result as string;
       };
       reader.onerror = () => {
+        encerrar();
         setLoadError(`Falha ao ler "${file.name}".`);
       };
       reader.readAsDataURL(file);

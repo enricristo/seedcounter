@@ -44,13 +44,48 @@ import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
 import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
+import { IdentificacaoModal } from './features/normas';
+import { GaleriaModal } from './features/galeria';
+import { NovidadesModal } from './features/novidades';
+import { BotaoDeConta, useConta } from './features/conta';
+import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
+import { BarraDeAtividade } from './features/atividade/BarraDeAtividade';
+import {
+  decidirAbertura,
+  marcarVersaoComoVista,
+  versaoAtual,
+  versaoVista,
+  type Versao,
+} from './lib/novidades';
+import { envolver } from './features/galeria/recortes';
+import {
+  inserirVertice,
+  moverVerticeSuave,
+  pontoNoPoligono,
+  raioDeInfluencia,
+} from './lib/edicao-de-contorno';
+import { ajustarContorno, type Pincelada } from './lib/borracha';
+import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
+import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
+import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
+import { acharPorNome } from './lib/normas/tamanhos-de-semente';
+import {
+  ESTADO_INICIAL as MASCARA_INICIAL,
+  mostraContornos,
+  mostraPontos,
+  proxima as proximaMascara,
+  type Mascara,
+} from './features/mascara';
+import { useLaboratorio } from './hooks/useLaboratorio';
 import { carregarExemplo } from './features/demo/exemplos';
+import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
 import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
 
 // Utils
+import { contarObjetos } from './lib/contagem';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
 import type { Regiao } from './lib/region';
@@ -61,7 +96,7 @@ import {
   toCssFilter,
   type ImageAdjustments,
 } from './lib/image-adjust';
-import { generatePDFReport, generateBatchPDFReport } from './lib/pdf-generator';
+import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
 
 // Types
@@ -69,6 +104,7 @@ import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './ty
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
+import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
 
 // Delega para src/lib/download.ts. A versão anterior criava a âncora sem
 // anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
@@ -78,12 +114,31 @@ function downloadBlob(content: string, filename: string, contentType: string) {
   baixarArquivo(content, filename, contentType);
 }
 
+/** Centro de massa dos vertices. Suficiente para posicionar uma marca. */
+function centroide(pontos: [number, number][]): [number, number] {
+  let sx = 0;
+  let sy = 0;
+  for (const [x, y] of pontos) {
+    sx += x;
+    sy += y;
+  }
+  return [sx / pontos.length, sy / pontos.length];
+}
+
 // Render marks overlay helper for the canvas context
 function renderMarksToContext(
   ctx: CanvasRenderingContext2D,
   marks: Mark[],
-  mode: 'dots' | 'numbers'
+  mode: 'dots' | 'numbers',
+  larguraDaImagem: number,
+  ajusteDaMarca = AJUSTE_PADRAO
 ) {
+  // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
+  // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
+  // tela. Agora acompanha a imagem, como o alvo de clique sempre acompanhou.
+  const raio = raioDaMarca(larguraDaImagem, ajusteDaMarca);
+  const traco = espessuraNaImagem(larguraDaImagem, 1.5);
+
   let viableCounter = 0;
   let inviableCounter = 0;
 
@@ -99,31 +154,32 @@ function renderMarksToContext(
 
     if (mode === 'dots') {
       // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
-      desenharMarca(ctx, mark.type, mark.x, mark.y, 4.5);
+      desenharMarca(ctx, mark.type, mark.x, mark.y, raio);
     } else {
       // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
       // vazada. A redundancia vira um anel externo escuro so no inviavel.
       const cor = corDoEspecime(mark.type);
+      const raioDoIndice = raio * 1.8;
       ctx.beginPath();
-      ctx.arc(mark.x, mark.y, 8, 0, Math.PI * 2);
+      ctx.arc(mark.x, mark.y, raioDoIndice, 0, Math.PI * 2);
       ctx.fillStyle = cor;
       ctx.fill();
       ctx.strokeStyle = ESPECIME.halo;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = traco;
       ctx.stroke();
 
       if (mark.type === 'inviable') {
         ctx.beginPath();
-        ctx.arc(mark.x, mark.y, 10.5, 0, Math.PI * 2);
+        ctx.arc(mark.x, mark.y, raioDoIndice * 1.3, 0, Math.PI * 2);
         ctx.strokeStyle = cor;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = traco;
         ctx.stroke();
       }
 
       // Tinta escura sobre ciano e magenta, que sao claros: texto branco
       // sumiria.
       ctx.fillStyle = '#101719';
-      ctx.font = 'bold 9px monospace';
+      ctx.font = `bold ${corpoDaFonte(raioDoIndice)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(num.toString(), mark.x, mark.y + 0.5);
@@ -148,6 +204,7 @@ export default function App() {
   const isCameraEnabled = useFeatureFlag('cameraCapture');
   const isDetectionEnabled = useFeatureFlag('assistedDetection');
   const isAiPointerEnabled = useFeatureFlag('aiPointer');
+  const isModoLaudoEnabled = useFeatureFlag('modoLaudo');
   const isSplitEnabled = useFeatureFlag('splitScan');
   const isRoiEnabled = useFeatureFlag('circularRoi');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -155,6 +212,41 @@ export default function App() {
 
   // Calibração — modo régua e última distância medida
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
+  const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
+  const { laboratorio } = useLaboratorio();
+  const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
+  const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
+  const [contornoSelecionado, setContornoSelecionado] = useState<number | null>(null);
+  const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
+
+  /**
+   * A imagem com o fundo nivelado.
+   *
+   * Fica SEPARADA de `image`, que continua sendo a original. A onda e a
+   * borracha leem esta; o YOLO e o laudo leem a original — o modelo foi
+   * treinado nela, e foto processada nao e a chapa.
+   */
+  const [fundoAchatado, setFundoAchatado] = useState<HTMLImageElement | null>(null);
+  const [fundoIncerto, setFundoIncerto] = useState(false);
+  const [achatando, setAchatando] = useState(false);
+
+  const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
+
+  // Notas de versao: abre sozinha so quando a versao avancou desde a ultima
+  // visita. Na primeira visita registra em silencio — quem abre o aplicativo
+  // pela primeira vez quer contar sementes, nao ler o historico.
+  const [novidades, setNovidades] = useState<{ aberto: boolean; versoes: Versao[] }>({
+    aberto: false,
+    versoes: [],
+  });
+
+  useEffect(() => {
+    const atual = versaoAtual()?.numero ?? __APP_VERSION__;
+    const { abrir, versoes } = decidirAbertura(atual, versaoVista());
+    if (abrir) setNovidades({ aberto: true, versoes });
+    marcarVersaoComoVista(atual);
+  }, []);
+  const ciclarMascara = useCallback(() => setMascara((m) => proximaMascara(m)), []);
   const [showRulers, setShowRulers] = useState(true);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
   const [adjustEnabled, setAdjustEnabled] = useState(true);
@@ -223,16 +315,45 @@ export default function App() {
     setYoloSegmentations,
     segmentsVisible,
     addMark,
-    undoMark,
     removeMark,
+    removerMarcas,
+    setSubclasse,
     addYoloSegmentations,
+    appendYoloSegmentation,
     toggleSegmentationClass,
     deleteSegmentation,
     resetAllAnnotations,
+    desfazer,
+    refazer,
+    podeDesfazer,
+    podeRefazer,
+    abrirGesto,
+    fecharGesto,
+    carregar,
   } = useMarks();
+  // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
+  // maior lado dos contornos ja segmentados. E o que permite conferir se a
+  // escala informada faz sentido para a especie declarada.
+  const comprimentoTipicoEmPixels = useMemo(() => {
+    const lados = yoloSegmentations
+      .filter((s) => s.visible !== false)
+      .map((s) => {
+        const caixa = envolver(s.polygon_points);
+        return caixa ? Math.max(caixa.largura, caixa.altura) : 0;
+      })
+      .filter((l) => l > 0)
+      .sort((a, b) => a - b);
+    if (lados.length < 3) return undefined;
+    const meio = Math.floor(lados.length / 2);
+    return lados.length % 2 === 0 ? (lados[meio - 1] + lados[meio]) / 2 : lados[meio];
+  }, [yoloSegmentations]);
 
   // Metadata sample inputs
   const { metadata, setMetadata, updateMetadata } = useMetadata();
+
+  // A conta e opcional e so lembra a bancada. Sem VITE_GOOGLE_CLIENT_ID o botao
+  // nem aparece; o resto do aplicativo nao sabe que ela existe.
+  const conta = useConta(metadata, setMetadata);
 
   // Sessions CRUD history
   const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
@@ -308,13 +429,10 @@ export default function App() {
       const chave = chaveDaImagem(file);
       chaveAtual.current = chave;
 
+      // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
+      // pode desfazer o que se fez na anterior.
       const guardado = anotacoesPorImagem.current.get(chave);
-      if (guardado) {
-        setMarks(guardado.marks);
-        setYoloSegmentations(guardado.yoloSegmentations);
-      } else {
-        resetAllAnnotations();
-      }
+      carregar(guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {});
 
       if (containerRef.current) {
         const container = containerRef.current;
@@ -322,6 +440,15 @@ export default function App() {
       }
     },
   });
+  /**
+   * A imagem que a SEGMENTACAO le.
+   *
+   * Fundo achatado quando existe; original caso contrario. A onda e a borracha
+   * decidem fronteira por diferenca de cor, e sao exatamente elas que ganham
+   * com o gradiente removido.
+   */
+  const imagemDeTrabalho = fundoAchatado ?? image;
+
 
   useEffect(() => {
     marcasRef.current = marks;
@@ -331,50 +458,19 @@ export default function App() {
     segmentacoesRef.current = yoloSegmentations;
   }, [yoloSegmentations]);
 
-  useKeyboardShortcuts({
-    onUndo: undoMark,
-    onSetVisualMode: setVisualMode,
-    onNextImage: handleNextImage,
-    onPrevImage: handlePrevImage,
-    onTogglePanning: togglePanningMode,
-    onZoomIn: zoomIn,
-    onZoomOut: zoomOut,
-    onResetZoom: () => {
-      if (containerRef.current && image) {
-        fitToScreen(
-          containerRef.current.clientWidth,
-          containerRef.current.clientHeight,
-          image.width,
-          image.height
-        );
-      } else {
-        resetZoom();
-      }
-    },
-    onSaveSession: () => saveCurrentSession(true),
-    onOpenExport: () => setIsExportModalOpen(true),
-    onToggleTheme: toggleTheme,
-    hasImage: !!image,
-    hasNextImage: imageQueue.length > 0 && currentImageIndex < imageQueue.length - 1,
-    hasPrevImage: imageQueue.length > 0 && currentImageIndex > 0,
-  });
+  // A regra vive em `lib/contagem.ts`, com teste: é o número que o aplicativo
+  // existe para produzir, e já quebrou uma vez estando solto aqui.
+  const contagem = contarObjetos(marks, yoloSegmentations);
+  const viableCount = contagem.viaveis;
 
-  // Derived counts
-  const manualViable = marks.filter((m) => m.type === 'viable').length;
-  const yoloViable = yoloSegmentations.filter(
-    (s) => s.category === 'viable' && s.visible !== false
-  ).length;
-  const viableCount = manualViable + yoloViable;
+  // Cálculo diferencial: quem conhece o total semeado marca só as viáveis, e
+  // as inviáveis saem por subtração.
+  const usaDiferencial =
+    !!metadata.useDifferential && !!metadata.baselineCount && metadata.baselineCount > 0;
 
-  const manualInviable = marks.filter((m) => m.type === 'inviable').length;
-  const yoloInviable = yoloSegmentations.filter(
-    (s) => s.category === 'inviable' && s.visible !== false
-  ).length;
-
-  const inviableCount =
-    metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
-      ? Math.max(0, metadata.baselineCount - viableCount)
-      : manualInviable + yoloInviable;
+  const inviableCount = usaDiferencial
+    ? Math.max(0, (metadata.baselineCount ?? 0) - viableCount)
+    : contagem.inviaveis;
 
   const totalCount =
     metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
@@ -387,7 +483,8 @@ export default function App() {
   // Re-draw Canvas markings
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !image) return;
+    const base = imagemDeTrabalho;
+    if (!canvas || !base) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -395,21 +492,24 @@ export default function App() {
     // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw base image
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    // A imagem de TRABALHO, nao a original. Foi o defeito relatado como "ta
+    // igual": o achatamento chegava a onda e a borracha, mas o canvas
+    // continuava pintando a original — a pessoa nao tinha como ver o que a
+    // onda estava vendo.
+    ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode);
-  }, [image, marks, visualMode]);
+    renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca);
+  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca]);
 
   useEffect(() => {
-    if (image && canvasRef.current) {
+    if (imagemDeTrabalho && canvasRef.current) {
       const canvas = canvasRef.current;
-      canvas.width = image.width;
-      canvas.height = image.height;
+      canvas.width = imagemDeTrabalho.width;
+      canvas.height = imagemDeTrabalho.height;
       drawCanvas();
     }
-  }, [image, drawCanvas, marks, visualMode]);
+  }, [imagemDeTrabalho, drawCanvas, marks, visualMode]);
 
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -433,8 +533,81 @@ export default function App() {
     const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
     const type = shouldInvert ? (baseType === 'viable' ? 'inviable' : 'viable') : baseType;
 
+    if (activeTool === 'onda') {
+      segmentarComOnda(x, y, type);
+      return;
+    }
+
     addMark(x, y, type);
   };
+
+  /**
+   * Segmentação por clique.
+   *
+   * A marcação é criada SEMPRE, mesmo quando o contorno não sai confiável: o
+   * ponto clicado é a identidade e a localização da semente, e a contagem não
+   * pode depender de o algoritmo ter acertado a borda. Quem contou foi a
+   * pessoa.
+   *
+   * O contorno, esse sim, só entra quando dá para confiar. Contorno errado não
+   * é um detalhe estético — ele vira área, comprimento e largura no CSV, e um
+   * número errado é pior que número nenhum.
+   */
+  const segmentarComOnda = useCallback(
+    (x: number, y: number, tipo: 'viable' | 'inviable') => {
+      if (!imagemDeTrabalho) return;
+      const marcaId = addMark(x, y, tipo);
+
+      const inicio = performance.now();
+      // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
+      // exatamente para a onda parar na borda certa. Passar a original aqui
+      // tornava o achatamento decorativo.
+      const r = segmentarNoCanvas(imagemDeTrabalho, { x, y });
+      const ms = Math.round(performance.now() - inicio);
+
+      if (!r) {
+        setRecadoDaOnda({ tom: 'aviso', texto: 'Não foi possível ler os pixels desta imagem.' });
+        return;
+      }
+
+      if (r.tocouBorda) {
+        setRecadoDaOnda({
+          tom: 'aviso',
+          texto: 'Contagem registrada, sem contorno: a onda escapou. Clique mais para dentro da semente.', // prettier-ignore
+        });
+        return;
+      }
+
+      const area = metadata.umPerPixel
+        ? `${((r.areaPx * metadata.umPerPixel ** 2) / 1e6).toFixed(3)} mm²`
+        : `${r.areaPx} px`;
+
+      // Comprimento e largura pelos EIXOS PRINCIPAIS do contorno, e nao pela
+      // caixa alinhada aos eixos da imagem: uma semente deitada na diagonal tem
+      // caixa quase quadrada, e a caixa mediria a diagonal em vez da semente.
+      // A PCA gira o objeto ate ele deitar, e ai mede.
+      const { width, height } = calculateSeedDimensions(r.contorno);
+
+      appendYoloSegmentation({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        category: tipo,
+        class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        // Não é probabilidade de modelo: foi a pessoa que apontou a semente.
+        confidence: 1,
+        polygon_points: r.contorno,
+        visible: true,
+        width,
+        height,
+        // A marcação criada por este mesmo clique é quem conta a semente.
+        origem: 'clique',
+        marcaId,
+      // Marca e contorno sairam do MESMO clique: um Ctrl+Z tira os dois.
+      }, { fundir: true });
+
+      setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
+    },
+    [imagemDeTrabalho, addMark, appendYoloSegmentation, metadata.umPerPixel]
+  );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
   // Preserva o histórico, os experimentos e a identificação do trabalho
@@ -500,8 +673,7 @@ export default function App() {
 
     setMetadata(session.metadata);
     setFilename(session.filename);
-    setMarks(session.marks || []);
-    setYoloSegmentations(session.yoloSegmentations || []);
+    carregar({ marks: session.marks, segmentacoes: session.yoloSegmentations });
 
     // Restore image if available
     if (session.imageData) {
@@ -587,18 +759,15 @@ export default function App() {
           // 3. Check if it is a single SeedCounter session JSON
           if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
             if (parsed.metadata) setMetadata(parsed.metadata);
-            if (parsed.marks) setMarks(parsed.marks);
-            if (parsed.yoloSegmentations) {
-              const mapped = parsed.yoloSegmentations.map((seg: any) => {
-                const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
-                return {
-                  ...seg,
-                  width: seg.width ?? width,
-                  height: seg.height ?? height,
-                };
-              });
-              addYoloSegmentations(mapped);
-            }
+            const mapped = (parsed.yoloSegmentations ?? []).map((seg: any) => {
+              const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
+              return {
+                ...seg,
+                width: seg.width ?? width,
+                height: seg.height ?? height,
+              };
+            });
+            carregar({ marks: parsed.marks ?? [], segmentacoes: mapped });
             if (parsed.filename) setFilename(parsed.filename);
             alert('Sessão importada com sucesso!');
             return;
@@ -612,7 +781,7 @@ export default function App() {
       };
       reader.readAsText(file);
     },
-    [addYoloSegmentations, importSessions, setMetadata, setMarks, setFilename]
+    [addYoloSegmentations, carregar, importSessions, setMetadata, setFilename]
   );
 
   // Drag & drop hook
@@ -834,7 +1003,7 @@ export default function App() {
     }
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode);
+    renderMarksToContext(ctx, marks, visualMode, image.width, ajusteDaMarca);
 
     // Summary Box
     const padding = 20;
@@ -892,25 +1061,35 @@ export default function App() {
     }, 'image/png');
   };
 
-  const handleExportPDF = () => {
-    generatePDFReport({
+  const handleExportPDF = async () => {
+    const r = await comAtividade('pdf', 'Gerando o laudo…', () =>
+      exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
       metadata,
       viableCount,
       inviableCount,
-      totalCount: viableCount + inviableCount,
-      viablePercent,
-      inviablePercent,
       marks,
       yoloSegmentations,
-      canvasElement: canvasRef.current,
       imageElement: image,
       visualMode,
-    });
+      laboratorio,
+      versaoDoApp: `v${__APP_VERSION__}`,
+      commitDoBuild: __BUILD_COMMIT__,
+      })
+    );
+    if (!r.ok && r.erro) alert(r.erro);
   };
 
-  const handleExportHistoryBatchPDF = () => {
-    generateBatchPDFReport(sessions, visualMode);
+  const handleExportHistoryBatchPDF = async () => {
+    const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
+      exportarLaudosEmLote(sessions, {
+        visualMode,
+        laboratorio,
+        versaoDoApp: `v${__APP_VERSION__}`,
+        commitDoBuild: __BUILD_COMMIT__,
+      })
+    );
+    if (!r.ok && r.erro) alert(r.erro);
   };
 
   const handleExportHistoryCSV = () => {
@@ -990,6 +1169,20 @@ export default function App() {
     [loadFiles, updateMetadata]
   );
 
+  /** Última resposta da onda, mostrada junto ao canvas. */
+  const [recadoDaOnda, setRecadoDaOnda] = useState<{
+    tom: 'ok' | 'aviso';
+    texto: string;
+  } | null>(null);
+
+  // O recado some sozinho. Aviso que fica para sempre deixa de ser lido, e o
+  // seguinte perde a chance de ser notado.
+  useEffect(() => {
+    if (!recadoDaOnda) return;
+    const t = setTimeout(() => setRecadoDaOnda(null), recadoDaOnda.tom === 'ok' ? 2500 : 5000);
+    return () => clearTimeout(t);
+  }, [recadoDaOnda]);
+
   // Cena de exemplo: entra pela mesma porta que qualquer imagem, para exercitar
   // o fluxo real — fila, contagem, medida, exportação — e não um caminho
   // paralelo que só funciona na demonstração.
@@ -1063,12 +1256,23 @@ export default function App() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [image, setZoomLevel]);
 
-  // Imagem com os ajustes aplicados. Serve de entrada para a detecção —
-  // a imagem original permanece intacta para exibição e medidas.
+  // Imagem com os ajustes aplicados.
+  //
+  // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
+  // detalhe. No clássico o ajuste é controle: a pessoa regula o limiar e vê o
+  // efeito na hora. No modelo é sabotagem silenciosa — a rede foi treinada em
+  // digitalização crua, e brilho, contraste ou saturação empurram a entrada
+  // para fora da distribuição de treino sem que nada na tela diga que foi isso
+  // que degradou o resultado.
+  //
+  // Escala de cinza é o caso extremo: colapsa a entrada no plano R=G=B, onde
+  // todo filtro que codifica diferença entre canais produz exatamente zero.
+  // Não é deslocamento recuperável, é informação destruída.
   const adjustedSource = useMemo(() => {
-    if (!image || !adjustEnabled || isNeutral(adjustments)) return image;
-    return applyAdjustments(image, adjustments) ?? image;
-  }, [image, adjustments, adjustEnabled]);
+    const base = imagemDeTrabalho;
+    if (!base || !adjustEnabled || isNeutral(adjustments)) return base;
+    return applyAdjustments(base, adjustments) ?? base;
+  }, [imagemDeTrabalho, adjustments, adjustEnabled]);
 
   // Filtro CSS para a prévia instantânea no canvas.
   const canvasFilter = useMemo(
@@ -1083,6 +1287,469 @@ export default function App() {
   }, []);
 
   // Fase F — clicar numa marcação inverte a classe (viável ↔ inviável).
+  // --- Ajuste de contorno -------------------------------------------------
+
+  /**
+   * O arraste de vertice em curso: o poligono COMO ESTAVA quando o gesto
+   * comecou, e o raio de influencia calculado nele.
+   *
+   * Cada movimento do mouse e recalculado a partir do original, nao do
+   * resultado do movimento anterior. Aplicar sobre o deformado derivava: o
+   * raio vem do perimetro, o perimetro cresce com o puxao, e dez passos de
+   * 4 px nao chegavam onde um passo de 40 chega.
+   */
+  const arrasteDeVertice = useRef<{
+    id: number;
+    indice: number;
+    original: [number, number][];
+    raio: number;
+  } | null>(null);
+
+  /**
+   * Move um vertice, levando os vizinhos junto (arraste suave), e remede.
+   *
+   * Contínuo: o canvas abre um gesto no mousedown e fecha no mouseup, e cada
+   * movimento entre os dois substitui o anterior no historico. Ctrl+Z volta
+   * para ANTES do arraste, nao para o penultimo pixel.
+   *
+   * `rigido` (Shift) move so o vertice — para o ajuste fino de um ponto que
+   * ficou fora depois de um puxao suave.
+   */
+  const handleMoverVertice = useCallback(
+    (id: number, indice: number, x: number, y: number, rigido = false) => {
+      let a = arrasteDeVertice.current;
+      if (!a || a.id !== id || a.indice !== indice) {
+        const seg = segmentacoesRef.current.find((s) => s.id === id);
+        if (!seg) return;
+        a = { id, indice, original: seg.polygon_points, raio: raioDeInfluencia(seg.polygon_points) };
+        arrasteDeVertice.current = a;
+      }
+      const original = a.original;
+      const raio = rigido ? 0 : a.raio;
+      setYoloSegmentations(
+        (antes) =>
+          antes.map((seg) => {
+            if (seg.id !== id) return seg;
+            const pontos = moverVerticeSuave(original, indice, [x, y], raio);
+            const { width, height } = calculateSeedDimensions(pontos);
+            return { ...seg, polygon_points: pontos, edited: true, width, height };
+          }),
+        { continuo: true }
+      );
+    },
+    [setYoloSegmentations]
+  );
+
+  /** Fecha o gesto no historico e esquece o original do arraste. */
+  const handleFimDeGesto = useCallback(() => {
+    arrasteDeVertice.current = null;
+    fecharGesto();
+  }, [fecharGesto]);
+
+  /**
+   * Insere um vertice numa aresta — e o gesto de "clicar na borda para
+   * puxar dali". Continuo porque o canvas ja arrasta o vertice novo no mesmo
+   * gesto: insercao e arraste sao um passo so no historico.
+   */
+  const handleInserirVertice = useCallback(
+    (id: number, aresta: number, x: number, y: number) => {
+      setYoloSegmentations(
+        (antes) =>
+          antes.map((seg) => {
+            if (seg.id !== id) return seg;
+            const pontos = inserirVertice(seg.polygon_points, aresta, [x, y]);
+            const { width, height } = calculateSeedDimensions(pontos);
+            return { ...seg, polygon_points: pontos, edited: true, width, height };
+          }),
+        { continuo: true }
+      );
+    },
+    [setYoloSegmentations]
+  );
+
+  const handleRemoverVertice = useCallback(
+    (id: number, indice: number) => {
+      setYoloSegmentations((antes) =>
+        antes.map((seg) => {
+          if (seg.id !== id || seg.polygon_points.length <= 3) return seg;
+          const pontos = seg.polygon_points.filter((_, i) => i !== indice);
+          const { width, height } = calculateSeedDimensions(pontos);
+          return { ...seg, polygon_points: pontos, edited: true, width, height };
+        })
+      );
+    },
+    [setYoloSegmentations]
+  );
+
+  /**
+   * O traco da borracha, resolvido pelo caminho de menor esforco no gradiente.
+   *
+   * A imagem lida e a ORIGINAL, nao a ajustada: o gradiente que interessa e o
+   * da evidencia, e um realce de contraste move a borda aparente sem mover a
+   * semente.
+   */
+  const handleAchatarFundo = useCallback(
+    async (modo: ModoDeAchatamento) => {
+      if (!image) return;
+      setAchatando(true);
+      const encerrar = iniciarAtividade('fundo', 'Modelando o fundo…');
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.drawImage(image, 0, 0);
+        const dados = ctx.getImageData(0, 0, image.width, image.height);
+
+        const r = achatarFundo(
+          { data: dados.data, width: image.width, height: image.height },
+          { modo }
+        );
+
+        if (!r) {
+          setRecadoDaOnda({
+            tom: 'aviso',
+            texto: 'Não foi possível modelar o fundo desta imagem.',
+          });
+          return;
+        }
+
+        // Devolve os pixels ao canvas e cria a imagem de trabalho.
+        ctx.putImageData(new ImageData(r.imagem.data, r.imagem.width, r.imagem.height), 0, 0);
+        const nova = new Image();
+        await new Promise<void>((resolve) => {
+          nova.onload = () => resolve();
+          nova.onerror = () => resolve();
+          nova.src = canvas.toDataURL('image/png');
+        });
+
+        setFundoAchatado(nova);
+        setFundoIncerto(r.incerto);
+        setRecadoDaOnda({
+          tom: r.incerto ? 'aviso' : 'ok',
+          texto: r.incerto
+            ? 'Fundo achatado, mas o modelo ficou incerto — confira antes de confiar.'
+            : 'Fundo achatado. A detecção automática continua usando a imagem original.',
+        });
+      } finally {
+        encerrar();
+        setAchatando(false);
+      }
+    },
+    [image]
+  );
+
+  const handleDesfazerFundo = useCallback(() => {
+    setFundoAchatado(null);
+    setFundoIncerto(false);
+  }, []);
+
+  /**
+   * O corte proposto para o contorno selecionado, ou nulo quando nao ha cintura.
+   *
+   * A OPCAO DEPENDE DA ESPECIE, e isso veio de medicao. Dois discos que mal se
+   * tocam produzem cintura de apenas 0,248 do raio equivalente; duas sementes
+   * alongadas produzem 0,852. Usar o limiar de semente redonda numa orquideia
+   * cortaria a semente sadia ao meio — a profundidade mediana dela ja e 0,199.
+   */
+  const corteProposto = useMemo(() => {
+    if (activeTool !== 'contorno' || contornoSelecionado == null) return null;
+    const alvo = yoloSegmentations.find((s) => s.id === contornoSelecionado);
+    if (!alvo || alvo.visible === false) return null;
+
+    const especie =
+      metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
+    const referencia = acharPorNome(especie);
+    const ehAlongada = (referencia?.razaoMinima ?? 0) >= 2;
+
+    return proporCorte(alvo.polygon_points, ehAlongada ? CORTE_PARA_SEMENTE_ALONGADA : {});
+  }, [activeTool, contornoSelecionado, yoloSegmentations, metadata.amostra]);
+
+  /**
+   * Aplica o corte: um contorno vira dois.
+   *
+   * As duas metades herdam a classe do original e sao remedidas por PCA — uma
+   * metade com as dimensoes do todo descreveria um contorno que nao existe.
+   * A marca de `edited` fica nas duas: elas nao vieram do modelo.
+   */
+  const handleAplicarCorte = useCallback(() => {
+    if (!corteProposto || contornoSelecionado == null) return;
+    const alvo = segmentacoesRef.current.find((s) => s.id === contornoSelecionado);
+    if (!alvo) return;
+
+    const [a, b] = corteProposto.partes;
+    const base = Date.now();
+
+    // A CONTAGEM PRECISA SUBIR EM UM. Um contorno de clique nao conta — quem
+    // conta e a marca. Cortar em dois sem criar a segunda marca deixaria duas
+    // sementes com uma contagem so, e o numero do laudo ficaria ERRADO para
+    // baixo. Entao: a marca original fica com a metade que a contem, e a outra
+    // metade ganha uma marca nova no proprio centroide.
+    const marcaOriginal = alvo.marcaId != null ? marcasRef.current.find((m) => m.id === alvo.marcaId) : undefined;
+    const contemOriginal = (pontos: [number, number][]) =>
+      !!marcaOriginal && pontoNoPoligono(marcaOriginal.x, marcaOriginal.y, pontos);
+
+    let criouMarca = false;
+    const filhas = [a, b].map((pontos, i) => {
+      const { width, height } = calculateSeedDimensions(pontos);
+      let marcaId = alvo.marcaId;
+      if (alvo.origem === 'clique') {
+        if (contemOriginal(pontos)) {
+          marcaId = marcaOriginal!.id;
+        } else {
+          const [cx, cy] = centroide(pontos);
+          marcaId = addMark(cx, cy, alvo.category);
+          criouMarca = true;
+        }
+      }
+      return {
+        ...alvo,
+        id: base + i,
+        polygon_points: pontos,
+        width,
+        height,
+        edited: true,
+        marcaId,
+      };
+    });
+
+    // O corte e UM gesto: a marca nova e as duas metades voltam juntas.
+    setYoloSegmentations(
+      (antes) => [...antes.filter((s) => s.id !== contornoSelecionado), ...filhas],
+      { fundir: criouMarca }
+    );
+    setContornoSelecionado(null);
+    setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
+  }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
+
+  // --- Segmentacao em lote a partir das marcacoes ---------------------------
+
+  /**
+   * As marcacoes que ainda NAO tem contorno.
+   *
+   * Sao regioes ja identificadas por uma pessoa: ela disse "aqui tem uma
+   * semente" e falta so o contorno. E a mesma lista que a galeria mostra como
+   * "falta contornar".
+   */
+  const marcasSemContorno = useMemo(() => {
+    const visiveis = yoloSegmentations.filter((s) => s.visible !== false);
+    return marks.filter((m) => !visiveis.some((s) => pontoNoPoligono(m.x, m.y, s.polygon_points)));
+  }, [marks, yoloSegmentations]);
+
+  const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
+    null
+  );
+
+  /**
+   * Roda a onda a partir de cada marcacao sem contorno.
+   *
+   * O trabalho ja foi feito pela pessoa quando ela marcou: o clique diz ONDE ha
+   * semente, e a onda so precisa medir a borda. E por isso que isto e barato e
+   * confiavel de um jeito que "detectar tudo do zero" nunca e.
+   *
+   * TRES REGRAS QUE NAO PODEM CAIR:
+   *
+   * 1. A CONTAGEM NAO MUDA. Nenhuma marcacao e criada nem apagada aqui — so
+   *    contornos sao acrescentados. Se o lote errasse e criasse marcacao, o
+   *    numero do laudo mudaria por causa de um botao de conveniencia.
+   * 2. CONTORNO DUVIDOSO NAO ENTRA. A mesma regra do clique avulso: o contorno
+   *    vira area e medida no CSV, e um numero errado e pior que numero nenhum.
+   * 3. CEDE A TELA. Duzentas ondas seguidas travariam o navegador sem dizer
+   *    nada; o laco solta o fio a cada poucas sementes e mostra o progresso.
+   */
+  /**
+   * Contorna UMA marcacao, escolhida na galeria.
+   *
+   * Existe ao lado do lote porque sao gestos diferentes: o lote e "confio,
+   * resolve tudo"; este e "quero ver o que a onda faz NESTA aqui". Serve para
+   * conferir uma semente duvidosa antes de mandar o lote, e para o caso em que
+   * so uma ficou de fora.
+   */
+  const handleSegmentarUma = useCallback(
+    (marcaId: number) => {
+      if (!imagemDeTrabalho) return;
+      const marca = marks.find((m) => m.id === marcaId);
+      if (!marca) return;
+
+      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+      if (!r || r.tocouBorda) {
+        setRecadoDaOnda({
+          tom: 'aviso',
+          texto: 'A onda escapou nesta marcação — sem contorno. Tente ajustar o fundo ou o ponto.',
+        });
+        return;
+      }
+
+      const { width, height } = calculateSeedDimensions(r.contorno);
+      appendYoloSegmentation({
+        id: Date.now(),
+        category: marca.type,
+        class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+        confidence: 1,
+        polygon_points: r.contorno,
+        visible: true,
+        width,
+        height,
+        origem: 'clique',
+        marcaId: marca.id,
+      });
+      setRecadoDaOnda({ tom: 'ok', texto: 'Contorno medido.' });
+    },
+    [imagemDeTrabalho, marks, appendYoloSegmentation]
+  );
+
+  const handleSegmentarPendentes = useCallback(async () => {
+    if (!imagemDeTrabalho || marcasSemContorno.length === 0) return;
+
+    const pendentes = [...marcasSemContorno];
+    setSegmentandoLote({ feitas: 0, total: pendentes.length });
+    const encerrar = iniciarAtividade('lote', `Contornando ${pendentes.length} marcações…`);
+
+    let medidas = 0;
+    let escaparam = 0;
+
+    for (let i = 0; i < pendentes.length; i++) {
+      const marca = pendentes[i];
+      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+
+      if (r && !r.tocouBorda) {
+        const { width, height } = calculateSeedDimensions(r.contorno);
+        appendYoloSegmentation(
+          {
+            id: Date.now() + i,
+            category: marca.type,
+            class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+            confidence: 1,
+            polygon_points: r.contorno,
+            visible: true,
+            width,
+            height,
+            origem: 'clique',
+            marcaId: marca.id,
+          },
+          // O lote e um pedido so; Ctrl+Z desfaz o lote, nao um contorno.
+          { fundir: medidas > 0 }
+        );
+        medidas++;
+      } else {
+        escaparam++;
+      }
+
+      if (i % 4 === 3) {
+        setSegmentandoLote({ feitas: i + 1, total: pendentes.length });
+        atualizarProgresso('lote', (i + 1) / pendentes.length);
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+
+    encerrar();
+    setSegmentandoLote(null);
+    setRecadoDaOnda({
+      tom: escaparam > 0 ? 'aviso' : 'ok',
+      texto:
+        `${medidas} de ${pendentes.length} contornos medidos.` +
+        (escaparam > 0
+          ? ` ${escaparam} ${escaparam === 1 ? 'ficou' : 'ficaram'} sem contorno — a onda escapou. A contagem não mudou.`
+          : ' A contagem não mudou.'),
+    });
+  }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
+
+  /**
+   * Poligono desenhado a mao.
+   *
+   * Se ha uma marca sem contorno DENTRO do que foi desenhado, o poligono e
+   * dela — a pessoa marcou primeiro e desenhou depois, que e o fluxo natural.
+   * Se nao ha, cria a marca no centroide: desenhar um contorno E dizer que ali
+   * tem uma semente.
+   */
+  const handleDesenhoConcluido = useCallback(
+    (pontos: [number, number][]) => {
+      const visiveis = segmentacoesRef.current.filter((s) => s.visible !== false);
+      const orfa = marcasRef.current.find(
+        (m) =>
+          pontoNoPoligono(m.x, m.y, pontos) &&
+          !visiveis.some((s) => s.marcaId === m.id || pontoNoPoligono(m.x, m.y, s.polygon_points))
+      );
+
+      const tipo = orfa?.type ?? activeClassification;
+      let marcaId = orfa?.id;
+      if (marcaId == null) {
+        const [cx, cy] = centroide(pontos);
+        marcaId = addMark(cx, cy, tipo);
+      }
+
+      const { width, height } = calculateSeedDimensions(pontos);
+      appendYoloSegmentation({
+        id: Date.now(),
+        category: tipo,
+        class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        confidence: 1,
+        polygon_points: pontos,
+        visible: true,
+        width,
+        height,
+        edited: true,
+        origem: 'clique',
+        marcaId,
+      // Se a marca nasceu neste desenho, cai junto com ele no Ctrl+Z.
+      }, { fundir: orfa == null });
+      setRecadoDaOnda({
+        tom: 'ok',
+        texto: orfa ? 'Contorno desenhado e vinculado à marcação.' : 'Contorno desenhado.',
+      });
+    },
+    [activeClassification, addMark, appendYoloSegmentation]
+  );
+
+  const handleRaspar = useCallback(
+    (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
+      const fonte = imagemDeTrabalho;
+      if (!fonte) return;
+      const alvo = segmentacoesRef.current.find((s) => s.id === id);
+      if (!alvo) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = fonte.width;
+      canvas.height = fonte.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.drawImage(fonte, 0, 0);
+      const dados = ctx.getImageData(0, 0, fonte.width, fonte.height);
+
+      const r = ajustarContorno(
+        { data: dados.data, width: fonte.width, height: fonte.height },
+        alvo.polygon_points,
+        pinceladas,
+        acrescentar ? 'acrescentar' : 'remover'
+      );
+
+      if (!r) {
+        // Devolver o contorno igual em silencio faria a pessoa achar que a
+        // ferramenta nao funciona. Dizer o motivo e o minimo.
+        setRecadoDaOnda({
+          tom: 'aviso',
+          texto: 'O traço não encostou na borda deste contorno — nada foi alterado.',
+        });
+        return;
+      }
+
+      const { width, height } = calculateSeedDimensions(r.contorno);
+      setYoloSegmentations((antes) =>
+        antes.map((seg) =>
+          seg.id === id
+            ? { ...seg, polygon_points: r.contorno, edited: true, width, height }
+            : seg
+        )
+      );
+      setRecadoDaOnda({
+        tom: 'ok',
+        texto: `Contorno reassentado — ${r.verticesRefeitos} ${r.verticesRefeitos === 1 ? 'ponto refeito' : 'pontos refeitos'}`,
+      });
+    },
+    [imagemDeTrabalho, setYoloSegmentations]
+  );
+
   const handleToggleMarkClass = useCallback(
     (id: number) => {
       setMarks((prev) =>
@@ -1095,9 +1762,10 @@ export default function App() {
   );
 
   // Fase F — arrastar reposiciona a marcação (correção fina da detecção).
+  // Contínuo: o arraste inteiro é um passo do histórico.
   const handleMoveMark = useCallback(
     (id: number, x: number, y: number) => {
-      setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, x, y } : m)));
+      setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, x, y } : m)), { continuo: true });
     },
     [setMarks]
   );
@@ -1105,9 +1773,17 @@ export default function App() {
   // Fase F — borracha: remove todas as marcações dentro do raio.
   const handleEraseArea = useCallback(
     (x: number, y: number, radius: number) => {
-      setMarks((prev) => prev.filter((m) => Math.hypot(m.x - x, m.y - y) > radius));
+      // A borracha de area apaga marcas — e os contornos vinculados a elas,
+      // pela mesma regra de `removeMark`: contorno de semente que nao existe
+      // seria medida de nada.
+      // Continuo: uma passada da borracha e um passo, por mais marcas que
+      // ela leve. Cada uma delas volta com o contorno no Ctrl+Z.
+      const apagadas = marcasRef.current
+        .filter((m) => Math.hypot(m.x - x, m.y - y) <= radius)
+        .map((m) => m.id);
+      removerMarcas(apagadas, { continuo: true });
     },
-    [setMarks]
+    [removerMarcas]
   );
 
   // Fase E — insere os pontos confirmados da detecção assistida.
@@ -1139,7 +1815,8 @@ export default function App() {
   }, [yoloSegmentations]);
 
   useKeyboardShortcuts({
-    onUndo: undoMark,
+    onUndo: desfazer,
+    onRedo: refazer,
     onSetVisualMode: setVisualMode,
     onNextImage: handleNextImage,
     onPrevImage: handlePrevImage,
@@ -1150,6 +1827,8 @@ export default function App() {
     onSaveSession: () => saveCurrentSession(false),
     onOpenExport: () => setIsExportModalOpen(true),
     onToggleTheme: toggleTheme,
+    onCiclarMascara: ciclarMascara,
+    onAbrirGaleria: () => setIsGaleriaOpen(true),
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
     hasPrevImage: currentImageIndex > 0,
@@ -1163,8 +1842,11 @@ export default function App() {
         toggleTheme={toggleTheme}
         sessionsCount={sessions.length}
         openHistory={() => setIsHistoryModalOpen(true)}
-        onUndo={undoMark}
-        undoDisabled={marks.length === 0}
+        contaSlot={conta.disponivel ? <BotaoDeConta conta={conta} /> : undefined}
+        onUndo={desfazer}
+        undoDisabled={!podeDesfazer}
+        onRedo={refazer}
+        redoDisabled={!podeRefazer}
         onReset={() => setIsResetConfirmOpen(true)}
         resetDisabled={
           marks.length === 0 &&
@@ -1226,6 +1908,9 @@ export default function App() {
             onOpenRoi={isRoiEnabled && image ? () => setIsRoiOpen(true) : undefined}
             onCarregarExemplo={handleCarregarExemplo}
             exemploCarregando={exemploCarregando}
+            onAbrirIdentificacao={
+              isModoLaudoEnabled ? () => setIsIdentificacaoOpen(true) : undefined
+            }
             calibrationSummary={
               metadata.umPerPixel && metadata.umPerPixel > 0
                 ? `${metadata.umPerPixel.toFixed(2)} µm/px`
@@ -1239,6 +1924,11 @@ export default function App() {
                 onChange={setAdjustments}
                 enabled={adjustEnabled}
                 onToggleEnabled={() => setAdjustEnabled((v) => !v)}
+                onAchatarFundo={handleAchatarFundo}
+                onDesfazerFundo={handleDesfazerFundo}
+                fundoAchatado={!!fundoAchatado}
+                achatando={achatando}
+                fundoIncerto={fundoIncerto}
               />
             }
             calibrationSlot={
@@ -1251,6 +1941,19 @@ export default function App() {
                 }}
                 measuredPixels={measuredPixels}
                 isMeasuring={isMeasuring}
+                especie={
+                  metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum
+                }
+                comprimentoTipicoEmPixels={comprimentoTipicoEmPixels}
+                onEspecieChange={(nome) =>
+                  updateMetadata('amostra', {
+                    ...(metadata.amostra ?? {}),
+                    especieNomeCientifico: nome,
+                    // O nome comum acompanha, para o boletim nao ficar com um
+                    // e sem o outro.
+                    especieNomeComum: nome ? acharPorNome(nome)?.nomeComum : undefined,
+                  })
+                }
               />
             }
             detectionSlot={
@@ -1258,7 +1961,8 @@ export default function App() {
                 <div className="space-y-5">
                   {isAiPointerEnabled && (
                     <AiPointerPanel
-                      image={adjustedSource}
+                      // A ORIGINAL, sempre: é nela que o modelo foi treinado.
+                      image={image}
                       marks={marks}
                       onAddMarks={handleAddDetectedMarks}
                       onPreviewChange={setDetectionPreview}
@@ -1306,14 +2010,78 @@ export default function App() {
                 isTemporary={isToolTemporary}
                 showRulers={showRulers}
                 onToggleRulers={() => setShowRulers((v) => !v)}
+                mascara={mascara}
+                onCiclarMascara={ciclarMascara}
+                onAbrirGaleria={() => setIsGaleriaOpen(true)}
+                totalDeObjetos={marks.length + yoloSegmentations.length}
+                ajusteDaMarca={ajusteDaMarca}
+                onAjusteDaMarcaChange={setAjusteDaMarca}
+                raioDaRaspagem={raioDaRaspagem}
+                onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
+            )}
+            {/* O corte proposto. Fica sobre a imagem, ao lado da linha
+                tracejada que ele vai aplicar — decidir olhando a proposta e o
+                que permite RECUSAR, e recusar importa mais que aceitar:
+                cortar por engano vira duas sementes onde havia uma. */}
+            {corteProposto && (
+              <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
+                <div className="min-w-0">
+                  <p className="text-ink-1 text-xs font-bold">Cintura encontrada</p>
+                  <p className="text-ink-3 text-[10px] leading-snug">
+                    O contorno parece conter duas sementes. A linha tracejada mostra onde
+                    separar.
+                  </p>
+                </div>
+                <button
+                  onClick={handleAplicarCorte}
+                  className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                >
+                  Separar
+                </button>
+                <button
+                  onClick={() => setContornoSelecionado(null)}
+                  aria-label="Manter como está"
+                  className="border-line text-ink-2 hover:bg-surface-2 shrink-0 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                >
+                  Manter
+                </button>
+              </div>
+            )}
+
+            {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
+                acabou de clicar, e não numa barra distante. */}
+            {!corteProposto && recadoDaOnda && (
+              <div
+                className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
+                  recadoDaOnda.tom === 'ok'
+                    ? 'border-accent bg-accent-tint text-accent'
+                    : 'border-warn bg-warn/15 text-ink-1'
+                }`}
+                role="status"
+              >
+                {recadoDaOnda.texto}
+              </div>
             )}
             {image && (
               <MarkingCanvas
-                image={image}
+                image={imagemDeTrabalho ?? image}
                 marks={marks}
                 yoloSegmentations={yoloSegmentations}
-                segmentsVisible={segmentsVisible}
+                mostrarContornos={mostraContornos(mascara)}
+                mostrarPontos={mostraPontos(mascara)}
+                contornoSelecionado={contornoSelecionado}
+                onSelecionarContorno={setContornoSelecionado}
+                onMoverVertice={handleMoverVertice}
+                onInserirVertice={handleInserirVertice}
+                onRemoverVertice={handleRemoverVertice}
+                onRaspar={handleRaspar}
+                onInicioDeGesto={abrirGesto}
+                onFimDeGesto={handleFimDeGesto}
+                linhaDeCorte={corteProposto?.linha ?? null}
+                onDesenhoConcluido={handleDesenhoConcluido}
+                raioDaRaspagem={raioDaRaspagem}
+                ajusteDaMarca={ajusteDaMarca}
                 visualMode={visualMode}
                 zoomLevel={zoomLevel}
                 isPanningMode={isPanningMode}
@@ -1390,7 +2158,17 @@ export default function App() {
 
       {/* 5. Footer Status Bar */}
       {currentView === 'counter' && (
-        <Footer filename={filename} imageWidth={image?.width} imageHeight={image?.height} />
+        <Footer
+          filename={filename}
+          imageWidth={image?.width}
+          imageHeight={image?.height}
+          onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+          bancada={{
+            especie: metadata.amostra?.especieNomeCientifico,
+            umPerPixel: metadata.umPerPixel,
+            protocolo: metadata.protocolo,
+          }}
+        />
       )}
 
       {/* 6. Drag Drop file upload overlay */}
@@ -1543,6 +2321,39 @@ export default function App() {
 
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+
+      <BarraDeAtividade />
+      <AvisoDeAtualizacao />
+
+      <NovidadesModal
+        isOpen={novidades.aberto}
+        onClose={() => setNovidades((n) => ({ ...n, aberto: false }))}
+        versoes={novidades.versoes}
+      />
+
+      <GaleriaModal
+        isOpen={isGaleriaOpen}
+        onClose={() => setIsGaleriaOpen(false)}
+        image={image}
+        marks={marks}
+        yoloSegmentations={yoloSegmentations}
+        onToggleSegmentationClass={toggleSegmentationClass}
+        onDeleteSegmentation={deleteSegmentation}
+        onToggleMarkClass={handleToggleMarkClass}
+        onRemoveMark={removeMark}
+        onSegmentarPendentes={handleSegmentarPendentes}
+        onSegmentarUma={handleSegmentarUma}
+        progresso={segmentandoLote}
+        protocolo={metadata.protocolo}
+        onSubclasse={setSubclasse}
+      />
+
+      <IdentificacaoModal
+        isOpen={isIdentificacaoOpen}
+        onClose={() => setIsIdentificacaoOpen(false)}
+        metadata={metadata}
+        updateMetadata={updateMetadata}
+      />
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />

@@ -1,4 +1,5 @@
 import React from 'react';
+import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 
 interface FooterProps {
   filename?: string;
@@ -6,6 +7,14 @@ interface FooterProps {
   imageHeight?: number;
   /** Sobrescreve a versão do build. Normalmente não é passado. */
   version?: string;
+  /** Abre as notas de versão. Ausente = o número fica só informativo. */
+  onAbrirNovidades?: () => void;
+  /**
+   * As condicoes de medicao: especie declarada e escala. Ficam no meio do
+   * rodape porque sao o contexto que toda medida carrega — e porque o meio
+   * estava vazio.
+   */
+  bancada?: { especie?: string; umPerPixel?: number; protocolo?: string };
 }
 
 const LOGOS = [
@@ -23,7 +32,14 @@ const LOGOS = [
   },
 ];
 
-export function Footer({ filename, imageWidth, imageHeight, version }: FooterProps) {
+export function Footer({
+  filename,
+  imageWidth,
+  imageHeight,
+  version,
+  onAbrirNovidades,
+  bancada,
+}: FooterProps) {
   // A versão vem do build, não de uma constante que alguém precisa lembrar de
   // atualizar. __APP_VERSION__ sai do package.json e __BUILD_COMMIT__ do git,
   // então cada publicação se identifica sozinha — e um relatório exportado
@@ -47,7 +63,34 @@ export function Footer({ filename, imageWidth, imageHeight, version }: FooterPro
             {filename} {imageWidth && imageHeight && `• ${imageWidth}×${imageHeight}px`}
           </div>
         )}
+        {/* O que esta em curso. Some quando nao ha nada — e a excecao
+            deliberada ao ponto estatico acima: aqui o movimento SIGNIFICA
+            alguma coisa, e para quando ela termina. */}
+        <div className="border-line border-l pl-3 empty:hidden">
+          <IndicadorDeAtividade />
+        </div>
       </div>
+
+      {/* As condicoes de medicao, no centro. E o contexto que toda medida
+          carrega; sem ele, "285 px" nao diz nada. Some quando nao ha nada
+          declarado, em vez de mostrar "—" tres vezes. */}
+      {bancada && (bancada.especie || bancada.umPerPixel) && (
+        <div className="text-ink-3 hidden items-center gap-3 text-[10px] font-bold tracking-wide uppercase lg:flex">
+          {bancada.especie && (
+            <span>
+              <span className="text-ink-2 normal-case italic">{bancada.especie}</span>
+            </span>
+          )}
+          {bancada.umPerPixel && bancada.umPerPixel > 0 && (
+            <span className="border-line border-l pl-3 font-mono normal-case tabular-nums">
+              {bancada.umPerPixel.toFixed(2).replace('.', ',')} µm/px
+            </span>
+          )}
+          {bancada.protocolo && bancada.protocolo !== 'simples' && (
+            <span className="border-line border-l pl-3">{bancada.protocolo}</span>
+          )}
+        </div>
+      )}
 
       {/* Créditos e filiação. As logos vieram do cabeçalho: aqui elas ficam
           ao lado do texto que já as nomeava, em vez de disputar espaço com a
@@ -108,13 +151,24 @@ export function Footer({ filename, imageWidth, imageHeight, version }: FooterPro
             {' • '}Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
           </div>
         </div>
-        <div
-          className="bg-surface-2 text-ink-2 border-line rounded-control border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider tabular-nums"
-          title={`Compilado em ${__BUILD_DATE__} · commit ${__BUILD_COMMIT__}`}
+        {/* O numero da versao e o gancho para as notas: e onde as pessoas ja
+            olham quando querem saber "o que mudou?". A afordancia entra em
+            cromo neutro — borda e foco — porque ciano e magenta significam
+            viavel e inviavel em toda a interface. */}
+        <button
+          type="button"
+          onClick={onAbrirNovidades}
+          disabled={!onAbrirNovidades}
+          title={
+            onAbrirNovidades
+              ? `Ver o que mudou · compilado em ${__BUILD_DATE__} · commit ${__BUILD_COMMIT__}`
+              : `Compilado em ${__BUILD_DATE__} · commit ${__BUILD_COMMIT__}`
+          }
+          className="bg-surface-2 text-ink-2 border-line rounded-control focus-visible:ring-accent/40 border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider tabular-nums transition-colors enabled:cursor-pointer enabled:hover:border-accent enabled:hover:text-accent focus-visible:ring-2 focus-visible:outline-none"
         >
           {versaoExibida}
           <span className="text-ink-3 ml-1 font-normal">{__BUILD_COMMIT__}</span>
-        </div>
+        </button>
       </div>
     </footer>
   );

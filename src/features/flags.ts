@@ -16,6 +16,7 @@ export type FeatureKey =
   | 'assistedDetection' // Phase E — Classic CV assisted detection
   | 'splitScan' // Fase G — Divisão de digitalização em pedaços
   | 'circularRoi' // Fase G — Recorte circular do campo da ocular
+  | 'modoLaudo' // Fase H — Identificação e campos normativos (BAS/BASO)
   | 'debugPanel'; // Dev — Feature flags debug panel
 
 export interface FeatureFlag {
@@ -107,6 +108,20 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
     phase: 'Fase G',
     description:
       'Delimita o campo circular da ocular e recorta — corta o entorno escuro e restringe a detecção',
+  },
+  {
+    // Experimental de propósito, e a honestidade importa aqui: hoje esta frente
+    // só COLETA a identificação que o boletim exige e avisa o que falta. Ela
+    // ainda NÃO emite um BAS válido — faltam as tolerâncias como bloqueio, o
+    // PMS completo e o laudo em si. Ligar por padrão sugeriria uma conformidade
+    // que o aplicativo ainda não tem.
+    key: 'modoLaudo',
+    label: 'Modo Laudo (BAS/BASO)',
+    defaultEnabled: false,
+    stable: false,
+    phase: 'Fase H',
+    description:
+      'Coleta a identificação do laboratório e da amostra que o Boletim de Análise de Sementes exige, e aponta os campos obrigatórios ainda em branco',
   },
   {
     key: 'debugPanel',

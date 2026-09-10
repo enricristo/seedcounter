@@ -57,7 +57,7 @@ Réguas nas bordas do canvas exibem as unidades reais e acompanham o zoom.
 ### Contagem e classificação
 - Ferramentas em barra flutuante: marcar viável, marcar inviável, borracha com raio ajustável, mover imagem
 - Arrastar reposiciona uma marcação; `Ctrl`+clique inverte a classe
-- Atalhos: `V` viável · `I` inviável · `X` inverter · `E` borracha · `H` mover · `Alt` borracha temporária · `[ ]` tamanho
+- Atalhos: `V` viável · `I` inviável · `S` segmentar por clique · `X` inverter · `E` borracha · `H` mover · `Alt` borracha temporária · `[ ]` tamanho
 
 ### Segmentação por clique
 
@@ -65,7 +65,7 @@ Clicar numa semente faz uma frente de onda crescer a partir daquele ponto, em CI
 
 Por que isso importa: **não depende de espécie nem de modelo treinado**. Funciona em soja, orquídea e forrageira do mesmo jeito, porque é geometria e cor. E o clique é a própria curadoria — a pessoa escolhe onde, o algoritmo responde o quê.
 
-O ponto clicado é a identidade e a localização da semente, não só o gatilho: ele permanece mesmo que a segmentação seja refeita.
+Um clique marca e contorna no mesmo gesto (tecla `S`). A **marcação é criada sempre**, mesmo quando o contorno não sai confiável — o ponto clicado é a identidade e a localização da semente, e a contagem não pode depender de o algoritmo ter acertado a borda. O contorno só entra quando dá para confiar: contorno errado vira área e comprimento no CSV, e número errado é pior que número nenhum.
 
 ### Trabalhar com imagens grandes
 - **Divisão de digitalização** — fatia a folha do scanner em N pedaços e envia todos para a fila
@@ -134,7 +134,7 @@ Dele saem o pré-condicionamento em sacarose (necessário porque a semente de or
 
 O padrão de calibração do aplicativo (HP Scanjet G2710) é o mesmo scanner do artigo.
 
-Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensaios exigem e o que o aplicativo faz ou ainda não faz, está em [`docs/superpowers/specs/`](docs/superpowers/specs/).
+Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensaios exigem e o que o aplicativo faz ou ainda não faz, está em [`docs/superpowers/specs/`](docs/superpowers/specs/). O catálogo dos conjuntos de imagem usados na validação — o que cada um responde e o que **não** responde — está em [`docs/datasets/`](docs/datasets/).
 
 ## Versões
 
@@ -171,7 +171,7 @@ docker compose --profile dev up             # desenvolvimento
 docker compose --profile prod up --build    # build de produção
 ```
 
-Detalhes em [`docs/DOCKER.md`](docs/DOCKER.md).
+Detalhes em [`docs/DOCKER.md`](docs/DOCKER.md). Para implantação e uso offline, [`docs/README-DEPLOY.md`](docs/README-DEPLOY.md).
 
 ### Modelo de detecção (opcional)
 
