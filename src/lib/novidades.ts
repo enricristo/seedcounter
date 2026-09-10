@@ -153,6 +153,18 @@ export const VERSOES: Versao[] = [
         detalhe: 'Medidos pelos eixos principais (PCA), não pela caixa alinhada à imagem.',
       },
       { tipo: 'melhorado', titulo: 'Tela de abertura com a identidade dos grupos' },
+      {
+        tipo: 'melhorado',
+        titulo: 'O rodapé diz o que está em curso',
+        detalhe:
+          'Abrindo imagem, detectando, modelando o fundo, contornando em lote, gerando o laudo — tudo se anuncia no rodapé, com progresso quando há como saber. Tela parada sem sinal era indistinguível de tela travada.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Espécie direto no painel de calibração',
+        detalhe:
+          'Não precisa mais ligar o modo laudo. Escolher a espécie mostra o alvo de tamanho e ajusta o corte de sementes encostadas à forma dela.',
+      },
     ],
   },
 ];
