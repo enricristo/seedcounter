@@ -119,6 +119,12 @@ export const VERSOES: Versao[] = [
       },
       {
         tipo: 'novo',
+        titulo: 'Conta opcional, que lembra a sua bancada',
+        detalhe:
+          'Entrar com Google guarda espécie, escala e nome entre máquinas. Nada além disso sobe: sessão, imagem e laudo continuam só na sua máquina. Sem conta configurada, o botão nem aparece.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Contornar tudo que já foi marcado',
         detalhe:
           'Na galeria, um botão roda a onda a partir de cada marcação que ainda não tem contorno. Você já disse onde está a semente; a onda só mede a borda. A contagem NÃO muda — só contornos são acrescentados, e o que sai duvidoso fica de fora.',
