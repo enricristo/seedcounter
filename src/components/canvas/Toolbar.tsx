@@ -20,6 +20,7 @@ import {
   EyeOff,
   Grid3x3,
   Spline,
+  PenTool,
 } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 import { descrever, type Mascara } from '../../features/mascara/mascara';
@@ -37,6 +38,7 @@ const ICONS: Record<ToolId, React.ElementType> = {
   inviable: XCircle,
   onda: Waves,
   contorno: Spline,
+  desenho: PenTool,
   eraser: Eraser,
   pan: Hand,
 };
@@ -52,6 +54,7 @@ const ACTIVE_STYLES: Record<ToolId, string> = {
   // Ajuste de contorno tambem e instrumento: ele nao classifica, corrige a
   // medida que a onda ja fez.
   contorno: 'bg-accent border-accent text-accent-on',
+  desenho: 'bg-accent border-accent text-accent-on',
   // Instrumento, não espécime.
   eraser: 'bg-danger border-danger text-white',
   pan: 'bg-accent border-accent text-accent-on',
@@ -104,30 +107,39 @@ export function Toolbar({
   const IconeDaMascara = mascara ? ICONE_DA_MASCARA[mascara] : Eye;
   return (
     <div className="border-line bg-surface-1/95 rounded-panel absolute top-1/2 left-3 z-20 flex -translate-y-1/2 flex-col gap-1.5 border p-1.5 shadow-xl backdrop-blur">
-      {TOOLS.map((tool) => {
+      {TOOLS.map((tool, i) => {
         const Icon = ICONS[tool.id];
         const isActive = activeTool === tool.id;
+        // Um fio entre grupos. E a separacao de linguagens do sistema tornada
+        // visivel: classe pinta com a cor da marca; instrumento, nunca.
+        const mudouDeGrupo = i > 0 && TOOLS[i - 1].grupo !== tool.grupo;
         return (
-          <button
-            key={tool.id}
-            onClick={() => onSelect(tool.id)}
-            title={`${tool.label} (${tool.shortcut.toUpperCase()}) — ${tool.hint}`}
-            aria-label={tool.label}
-            aria-pressed={isActive}
-            className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
-              isActive ? ACTIVE_STYLES[tool.id] : INATIVO
-            }`}
-          >
-            <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
-            <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
-              {tool.shortcut}
-            </span>
-            {isActive && isTemporary && tool.id === 'eraser' && (
-              <span className="ring-danger absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white ring-2" />
-            )}
-          </button>
+          <React.Fragment key={tool.id}>
+            {mudouDeGrupo && <div className="bg-line mx-auto my-0.5 h-px w-6" aria-hidden="true" />}
+            <button
+              onClick={() => onSelect(tool.id)}
+              title={`${tool.label} (${tool.shortcut.toUpperCase()}) — ${tool.hint}`}
+              aria-label={tool.label}
+              aria-pressed={isActive}
+              className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
+                isActive ? ACTIVE_STYLES[tool.id] : INATIVO
+              }`}
+            >
+              <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+              <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold uppercase opacity-60">
+                {tool.shortcut}
+              </span>
+              {isActive && isTemporary && tool.id === 'eraser' && (
+                <span className="ring-danger absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white ring-2" />
+              )}
+            </button>
+          </React.Fragment>
         );
       })}
+
+      {/* Fio antes do grupo de visao (reguas, mascara, galeria): nao e
+          ferramenta de marcar nem de mover — e de VER. */}
+      <div className="bg-line mx-auto my-0.5 h-px w-6" aria-hidden="true" />
 
       {onToggleRulers && (
         <button

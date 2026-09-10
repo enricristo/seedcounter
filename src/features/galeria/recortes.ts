@@ -195,8 +195,20 @@ export function montarGaleria(
   return itens;
 }
 
+/**
+ * A marca ja tem contorno?
+ *
+ * Primeiro pelo VINCULO EXPLICITO (`marcaId`), que e o que vale. O ponto-no-
+ * poligono fica como reserva para contorno de modelo e para dado gravado antes
+ * de o vinculo existir — sem a reserva, toda sessao antiga apareceria com
+ * todas as marcas "faltando contornar".
+ */
 function dentroDeAlgumContorno(marca: Mark, segmentacoes: YoloSegmentation[]): boolean {
-  return segmentacoes.some((s) => pontoNoPoligono(marca.x, marca.y, s.polygon_points));
+  return segmentacoes.some(
+    (s) =>
+      s.marcaId === marca.id ||
+      (s.marcaId == null && pontoNoPoligono(marca.x, marca.y, s.polygon_points))
+  );
 }
 
 /**

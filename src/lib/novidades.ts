@@ -60,6 +60,23 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Desenhar contorno à mão (tecla P)',
+        detalhe:
+          'Para quando a onda falha de vez. Clique coloca vértice, duplo clique ou clicar no primeiro vértice fecha, Esc cancela. Se desenhar em volta de uma marcação sem contorno, o polígono é dela; senão, cria a marcação no centro.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Cada contorno sabe de qual marcação é',
+        detalhe:
+          'O vínculo entre ponto e polígono passou a ser explícito. Separar um contorno em dois agora cria a segunda marcação — antes a contagem ficava um a menos. Apagar uma marcação apaga o contorno dela.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Barra de ferramentas em grupos',
+        detalhe: 'Classe · instrumento · navegação · visão, separados por um fio.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Contornar tudo que já foi marcado',
         detalhe:
           'Na galeria, um botão roda a onda a partir de cada marcação que ainda não tem contorno. Você já disse onde está a semente; a onda só mede a borda. A contagem NÃO muda — só contornos são acrescentados, e o que sai duvidoso fica de fora.',

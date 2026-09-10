@@ -41,6 +41,18 @@ export interface YoloSegmentation {
    * objeto é pré-requisito para medir se a máquina está ajudando.
    */
   origem?: 'modelo' | 'clique';
+  /**
+   * A marcacao a que este contorno pertence.
+   *
+   * O vinculo era IMPLICITO — "a marca que cai dentro do poligono" — e
+   * implicito quebra: ao cortar um contorno em dois, a marca fica de um lado e
+   * o outro lado vira um contorno sem dono; se dois poligonos se sobrepoem, a
+   * mesma marca cai dentro dos dois. Com o id, cada contorno sabe de quem e.
+   *
+   * Ausente em contorno de modelo (que nao veio de marca) e em dado antigo —
+   * nesses casos a galeria ainda usa o ponto-no-poligono como reserva.
+   */
+  marcaId?: number;
 }
 
 // ---------------------------------------------------------------------------
