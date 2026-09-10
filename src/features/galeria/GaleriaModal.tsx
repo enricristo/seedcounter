@@ -44,6 +44,8 @@ interface GaleriaModalProps {
    * Ausente = botão oculto.
    */
   onSegmentarPendentes?: () => void;
+  /** Roda a onda numa marcacao so — para conferir antes do lote. */
+  onSegmentarUma?: (marcaId: number) => void;
   /** Progresso do lote em curso. */
   progresso?: { feitas: number; total: number } | null;
 }
@@ -59,6 +61,7 @@ export function GaleriaModal({
   onToggleMarkClass,
   onRemoveMark,
   onSegmentarPendentes,
+  onSegmentarUma,
   progresso,
 }: GaleriaModalProps) {
   const [filtro, setFiltro] = useState<Filtro>('todos');
@@ -196,6 +199,11 @@ export function GaleriaModal({
                       ? onDeleteSegmentation(item.segmentacao.id)
                       : onRemoveMark?.(item.marca.id)
                   }
+                  onContornar={
+                    item.tipo === 'ponto' && onSegmentarUma
+                      ? () => onSegmentarUma(item.marca.id)
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -222,12 +230,15 @@ function Celula({
   miniatura,
   onAlternarClasse,
   onRemover,
+  onContornar,
 }: {
   item: ItemDaGaleria;
   indice: number;
   miniatura?: string;
   onAlternarClasse: () => void;
   onRemover: () => void;
+  /** So nas celulas sem contorno. */
+  onContornar?: () => void;
 }) {
   const viavel = item.categoria === 'viable';
   const cor = viavel ? ESPECIME.viable : ESPECIME.inviable;
@@ -279,6 +290,17 @@ function Celula({
       )}
 
       <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        {onContornar && (
+          <button
+            type="button"
+            onClick={onContornar}
+            aria-label="Contornar esta"
+            title="Roda a onda so nesta marcacao"
+            className="rounded bg-black/62 p-1 text-white hover:bg-accent"
+          >
+            <Wand2 size={12} />
+          </button>
+        )}
         <button
           type="button"
           onClick={onAlternarClasse}

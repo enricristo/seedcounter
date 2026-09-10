@@ -188,3 +188,19 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-ink-3;
 }
+
+/* Barra de atividade indeterminada: um trecho que corre da esquerda para a
+   direita enquanto algo esta em curso e nao ha como saber quanto falta. */
+@keyframes correr {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+@layer utilities {
+  .animate-correr {
+    animation: correr 1.4s ease-in-out infinite;
+  }
+}
