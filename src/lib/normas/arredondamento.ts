@@ -215,3 +215,29 @@ function mapear(
 export function fecha100(f: FracoesDeGerminacao): boolean {
   return somar(f) === 100;
 }
+
+// ---------------------------------------------------------------------------
+// Duas fracoes complementares
+// ---------------------------------------------------------------------------
+
+/**
+ * Duas porcentagens complementares que somam EXATAMENTE 100.
+ *
+ * E o caso do laudo de contagem: viaveis e inviaveis. Arredondar cada uma por
+ * conta propria produz 33,4 + 66,7 = 100,1 — e um boletim que nao fecha 100
+ * perde a confianca do analista em trinta segundos.
+ *
+ * A regra segue o mesmo principio da germinacao: a fracao PRINCIPAL mantem o
+ * proprio arredondamento, e o complemento absorve. A principal e a que o
+ * comprador le primeiro; e ela que nao pode se mover por artefato.
+ */
+export function fecharDuas(
+  principal: number,
+  total: number,
+  casas = 1
+): { principal: number; complemento: number } | null {
+  if (!Number.isFinite(principal) || !Number.isFinite(total) || total <= 0) return null;
+  const p = arredondar((principal / total) * 100, casas);
+  const c = arredondar(100 - p, casas);
+  return { principal: p, complemento: c };
+}

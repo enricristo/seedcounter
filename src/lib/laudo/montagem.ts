@@ -37,6 +37,7 @@ import {
 } from '../normas/identificacao';
 import { descrever, type VersaoDaNorma } from '../normas/versao';
 import { formatar, medido } from '../normas/valor-de-boletim';
+import { fecharDuas } from '../normas/arredondamento';
 import type { Metadata } from '../../types';
 
 /** O que se escreve onde não há valor. Nunca espaço em branco. */
@@ -188,6 +189,11 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
 
   const pendencias = conferirParaEmissao(laboratorio, amostra);
   const especie: EspecieDeDocumento = pendencias.length === 0 ? 'boletim' : 'relatorio';
+
+  // As duas porcentagens FECHAM 100,0 por construção: a principal mantém o
+  // próprio arredondamento e o complemento absorve. Arredondar cada uma por
+  // conta própria imprimia 33,4 + 66,7 = 100,1.
+  const fechadas = fecharDuas(viableCount, total);
   const ehBoletim = especie === 'boletim';
 
   return {
@@ -228,13 +234,13 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
       {
         rotulo: 'Viáveis',
         contagem: viableCount,
-        porcentagem: porcentagem(viableCount, total),
+        porcentagem: fechadas ? formatar(medido(fechadas.principal), 1) + ' %' : AUSENTE,
         papel: 'viavel',
       },
       {
         rotulo: 'Inviáveis',
         contagem: inviableCount,
-        porcentagem: porcentagem(inviableCount, total),
+        porcentagem: fechadas ? formatar(medido(fechadas.complemento), 1) + ' %' : AUSENTE,
         papel: 'inviavel',
       },
       { rotulo: 'Total', contagem: total, papel: 'total' },

@@ -161,6 +161,36 @@ describe('resultados', () => {
     expect(doc.resultados[2].porcentagem).toBeUndefined();
   });
 
+  it('as duas porcentagens FECHAM 100,0 — sempre', () => {
+    // Arredondar cada uma por conta própria imprimia 33,4 + 66,7 = 100,1.
+    // A norma exige que feche, e um boletim que não fecha perde a confiança
+    // do analista em trinta segundos.
+    const casos: [number, number][] = [
+      [1, 2],
+      [2, 1],
+      [1, 3],
+      [2, 3],
+      [667, 333],
+      [1, 6],
+      [5, 6],
+      [184, 16],
+      [7, 9],
+    ];
+    for (const [v, i] of casos) {
+      const doc = entrada({ viableCount: v, inviableCount: i });
+      const ler = (t: string) => Number(t.replace(' %', '').replace(',', '.'));
+      const soma = ler(doc.resultados[0].porcentagem!) + ler(doc.resultados[1].porcentagem!);
+      expect(soma, `${v}/${i}`).toBeCloseTo(100, 9);
+    }
+  });
+
+  it('a fração PRINCIPAL mantém o próprio arredondamento', () => {
+    // 1 de 3 = 33,333… → 33,3. É o complemento que absorve (66,7), não ela.
+    const doc = entrada({ viableCount: 1, inviableCount: 2 });
+    expect(doc.resultados[0].porcentagem).toBe('33,3 %');
+    expect(doc.resultados[1].porcentagem).toBe('66,7 %');
+  });
+
   it('amostra vazia não vira NaN', () => {
     const doc = entrada({ viableCount: 0, inviableCount: 0 });
     expect(doc.resultados[0].porcentagem).toBe(AUSENTE);

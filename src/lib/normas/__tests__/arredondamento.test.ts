@@ -12,6 +12,7 @@ import {
   arredondarGerminacao,
   arredondarPureza,
   fecha100,
+  fecharDuas,
   type FracoesDeGerminacao,
 } from '../arredondamento';
 
@@ -138,5 +139,28 @@ describe('pureza — uma decimal somando 100,0', () => {
     // (0.25).toFixed(1) devolve '0.2'.
     const r = arredondarPureza({ puras: 99.65, outrasSementes: 0.25, inerte: 0.1 });
     expect(r.valores.outrasSementes).toBe(0.3);
+  });
+});
+
+describe('fecharDuas', () => {
+  it('as duas somam exatamente 100 em qualquer proporcao', () => {
+    for (let v = 0; v <= 30; v++) {
+      for (let i = 0; i <= 30; i++) {
+        if (v + i === 0) continue;
+        const r = fecharDuas(v, v + i)!;
+        expect(r.principal + r.complemento, `${v}/${i}`).toBeCloseTo(100, 9);
+      }
+    }
+  });
+
+  it('o caso que motivou: 1 de 3', () => {
+    const r = fecharDuas(1, 3)!;
+    expect(r.principal).toBe(33.3);
+    expect(r.complemento).toBe(66.7);
+  });
+
+  it('total zero devolve nulo, nao NaN', () => {
+    expect(fecharDuas(0, 0)).toBeNull();
+    expect(fecharDuas(5, NaN)).toBeNull();
   });
 });
