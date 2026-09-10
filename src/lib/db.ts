@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { Session, Metadata, Experiment } from '../types';
 import type { IdentificacaoDoLaboratorio } from './normas/identificacao';
+import type { TelemetryQueueRecord } from './telemetry/types';
 
 /**
  * O laboratório, guardado como registro único.
@@ -23,6 +24,7 @@ export class SeedCounterDB extends Dexie {
   metadataStore!: Table<{ id: string; data: Metadata }, string>;
   experiments!: Table<Experiment, string>;
   laboratorio!: Table<RegistroDoLaboratorio, string>;
+  telemetryQueue!: Table<TelemetryQueueRecord, string>;
 
   constructor() {
     super('SeedCounterDB');
@@ -59,6 +61,15 @@ export class SeedCounterDB extends Dexie {
       metadataStore: 'id',
       experiments: 'id, createdAt, species, responsible',
       laboratorio: 'id',
+    });
+
+    // v5 — telemetria assíncrona (outbox offline)
+    this.version(5).stores({
+      sessions: 'id, date, experimentId, treatmentId',
+      metadataStore: 'id',
+      experiments: 'id, createdAt, species, responsible',
+      laboratorio: 'id',
+      telemetryQueue: 'id, status, createdAt, retryCount',
     });
   }
 }
