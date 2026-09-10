@@ -5,6 +5,7 @@
 // =============================================================================
 
 import type { IdentificacaoDaAmostra } from './lib/normas/identificacao';
+import type { Contagens, RegistroDeEscarificacao } from './lib/normas/classes-de-semente';
 
 // ---------------------------------------------------------------------------
 // Marking & Segmentation
@@ -88,6 +89,21 @@ export interface Metadata {
    * sabe dizer o que ainda falta.
    */
   amostra?: IdentificacaoDaAmostra;
+
+  /**
+   * O protocolo do teste de germinação, quando há um.
+   *
+   * As marcações na imagem continuam viável/inviável — dormente e dura não se
+   * distinguem numa foto. A classificação fina é determinação de BANCADA, e o
+   * que o aplicativo faz é registrar os contadores e aplicar a regra que muda
+   * o número: espigueta vazia sai do denominador, e dormência acima de 5% pede
+   * tetrazólio.
+   */
+  protocolo?: 'simples' | 'germinacao' | 'forrageira';
+  /** Contagem por classe, feita na bancada. Só faz sentido com protocolo. */
+  contagensPorClasse?: Contagens;
+  /** Superação de dormência aplicada ao lote, quando houve. */
+  escarificacao?: RegistroDeEscarificacao;
 }
 
 // ---------------------------------------------------------------------------

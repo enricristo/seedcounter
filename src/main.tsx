@@ -8,8 +8,25 @@ import App from './App.tsx';
 import './index.css';
 
 // Register PWA Service Worker for offline support
+//
+// NAO recarrega sozinho quando ha versao nova. Recarregar no meio de uma
+// contagem apagaria marcacoes nao salvas — o pior momento possivel para um
+// "atualizacao disponivel". Em vez disso, avisa e deixa a pessoa escolher
+// quando. O aviso e a resposta a "fiz deploy e continuo vendo a versao velha":
+// o service worker cacheia o bundle, e sem isto so Ctrl+Shift+R resolvia.
+let atualizarSW: ((recarregar?: boolean) => Promise<void>) | null = null;
 if ('serviceWorker' in navigator) {
-  registerSW({ immediate: true });
+  atualizarSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      window.dispatchEvent(new CustomEvent('seedcounter:nova-versao'));
+    },
+  });
+}
+
+/** Aplica a atualizacao pendente e recarrega. Chamado pelo aviso na interface. */
+export function aplicarAtualizacao() {
+  return atualizarSW?.(true);
 }
 
 /**

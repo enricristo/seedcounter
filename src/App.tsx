@@ -47,6 +47,7 @@ import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
+import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
 import {
   decidirAbertura,
   marcarVersaoComoVista,
@@ -1714,6 +1715,15 @@ export default function App() {
                   metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum
                 }
                 comprimentoTipicoEmPixels={comprimentoTipicoEmPixels}
+                onEspecieChange={(nome) =>
+                  updateMetadata('amostra', {
+                    ...(metadata.amostra ?? {}),
+                    especieNomeCientifico: nome,
+                    // O nome comum acompanha, para o boletim nao ficar com um
+                    // e sem o outro.
+                    especieNomeComum: nome ? acharPorNome(nome)?.nomeComum : undefined,
+                  })
+                }
               />
             }
             detectionSlot={
@@ -2072,6 +2082,8 @@ export default function App() {
 
       {/* Painel visível de funcionalidades */}
       <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+
+      <AvisoDeAtualizacao />
 
       <NovidadesModal
         isOpen={novidades.aberto}

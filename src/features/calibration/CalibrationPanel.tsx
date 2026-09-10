@@ -19,7 +19,7 @@ import {
   type CalibrationData,
   type LengthUnit,
 } from '../../lib/calibration';
-import { acharPorNome, conferirEscala } from '../../lib/normas/tamanhos-de-semente';
+import { TAMANHOS, acharPorNome, conferirEscala } from '../../lib/normas/tamanhos-de-semente';
 
 interface CalibrationPanelProps {
   /** Escala atual (µm/px). */
@@ -38,6 +38,15 @@ interface CalibrationPanelProps {
    */
   especie?: string;
   comprimentoTipicoEmPixels?: number;
+  /**
+   * Muda a espécie declarada. Ausente = seletor oculto.
+   *
+   * Mora AQUI, e não só na identificação para laudo, porque espécie é conceito
+   * de pesquisa antes de ser campo de boletim — e sem ela o alvo de calibração
+   * e o corte por concavidade ficam invisíveis para quem nunca ligou o modo
+   * laudo.
+   */
+  onEspecieChange?: (nomeCientifico: string | undefined) => void;
 }
 
 const METHODS: CalibrationMethod[] = ['dpi', 'reference', 'stage_micrometer', 'manual'];
@@ -55,6 +64,7 @@ export function CalibrationPanel({
   isMeasuring,
   especie,
   comprimentoTipicoEmPixels,
+  onEspecieChange,
 }: CalibrationPanelProps) {
   const [method, setMethod] = useState<CalibrationMethod>('dpi');
   const [dpi, setDpi] = useState(DEFAULT_LAB_DPI);
@@ -309,6 +319,33 @@ export function CalibrationPanel({
         <div className="rounded-lg bg-accent-tint border border-accent/30 px-3 py-2">
           <p className="text-[11px] text-accent">
             Resultado: <strong>{computed.toFixed(3)} µm/px</strong>
+          </p>
+        </div>
+      )}
+
+      {onEspecieChange && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-ink-2 ml-1 text-[11px] font-semibold tracking-wide uppercase">
+            Espécie
+          </label>
+          <select
+            value={acharPorNome(especie)?.chave ?? ''}
+            onChange={(e) => {
+              const t = TAMANHOS.find((x) => x.chave === e.target.value);
+              onEspecieChange(t?.nomeCientifico);
+            }}
+            className="bg-surface-2 border-line focus:ring-accent/20 focus:border-accent w-full rounded-lg border px-3 py-2 text-sm transition-all focus:outline-none"
+          >
+            <option value="">Não declarada</option>
+            {TAMANHOS.map((t) => (
+              <option key={t.chave} value={t.chave}>
+                {t.nomeComum} — {t.nomeCientifico}
+              </option>
+            ))}
+          </select>
+          <p className="text-ink-3 ml-1 text-[10px] leading-snug">
+            Dá o alvo de tamanho para conferir a escala, e ajusta o corte de sementes encostadas
+            à forma da semente.
           </p>
         </div>
       )}

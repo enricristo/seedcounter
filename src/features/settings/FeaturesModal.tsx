@@ -16,7 +16,7 @@ interface FeaturesModalProps {
   version?: string;
 }
 
-export function FeaturesModal({ isOpen, onClose, version = 'v3.0.0-beta' }: FeaturesModalProps) {
+export function FeaturesModal({ isOpen, onClose, version = `v${__APP_VERSION__}` }: FeaturesModalProps) {
   const { flags, toggle, reset } = useFeatureFlags();
 
   if (!isOpen) return null;
