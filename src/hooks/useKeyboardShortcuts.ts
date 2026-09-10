@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 interface KeyboardShortcutsProps {
   onUndo: () => void;
+  onRedo: () => void;
   onSetVisualMode: (mode: 'dots' | 'numbers') => void;
   onNextImage: () => void;
   onPrevImage: () => void;
@@ -23,6 +24,7 @@ interface KeyboardShortcutsProps {
 
 export function useKeyboardShortcuts({
   onUndo,
+  onRedo,
   onSetVisualMode,
   onNextImage,
   onPrevImage,
@@ -51,9 +53,17 @@ export function useKeyboardShortcuts({
 
       // Ctrl/Meta shortcuts are always allowed or checked carefully
       if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === 'z') {
+        // Desfazer/refazer sao do CAMPO quando ha um campo com foco: Ctrl+Z
+        // nas Observacoes tem que desfazer o texto, nao a ultima marca.
+        if (!isTyping && e.key.toLowerCase() === 'z') {
           e.preventDefault();
-          onUndo();
+          if (e.shiftKey) onRedo();
+          else onUndo();
+          return;
+        }
+        if (!isTyping && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          onRedo();
           return;
         }
         if (e.key.toLowerCase() === 's') {
@@ -137,6 +147,7 @@ export function useKeyboardShortcuts({
     };
   }, [
     onUndo,
+    onRedo,
     onSetVisualMode,
     onNextImage,
     onPrevImage,

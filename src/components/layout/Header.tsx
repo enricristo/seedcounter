@@ -4,6 +4,7 @@ import {
   Moon,
   History,
   Undo2,
+  Redo2,
   Eraser,
   Save,
   Download,
@@ -23,6 +24,8 @@ interface HeaderProps {
   contaSlot?: React.ReactNode;
   onUndo: () => void;
   undoDisabled: boolean;
+  onRedo: () => void;
+  redoDisabled: boolean;
   onReset: () => void;
   resetDisabled: boolean;
   hasImageQueue: boolean;
@@ -101,6 +104,8 @@ export function Header({
   contaSlot,
   onUndo,
   undoDisabled,
+  onRedo,
+  redoDisabled,
   onReset,
   resetDisabled,
   hasImageQueue,
@@ -266,10 +271,22 @@ export function Header({
                 onClick={onUndo}
                 disabled={undoDisabled}
                 className={botaoIcone}
-                title="Desfazer último ponto (Ctrl+Z)"
-                aria-label="Desfazer último ponto"
+                title="Desfazer (Ctrl+Z)"
+                aria-label="Desfazer"
               >
                 <Undo2 size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
+            )}
+
+            {currentView === 'counter' && (
+              <button
+                onClick={onRedo}
+                disabled={redoDisabled}
+                className={botaoIcone}
+                title="Refazer (Ctrl+Shift+Z ou Ctrl+Y)"
+                aria-label="Refazer"
+              >
+                <Redo2 size={16} strokeWidth={2} aria-hidden="true" />
               </button>
             )}
 

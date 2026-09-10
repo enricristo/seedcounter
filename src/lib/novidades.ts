@@ -54,6 +54,42 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.3.0',
+    data: '2026-09-10',
+    titulo: 'Desfazer de verdade, e o contorno na mão',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Desfazer e refazer para tudo (Ctrl+Z · Ctrl+Shift+Z)',
+        detalhe:
+          'Antes o Ctrl+Z só tirava a última marcação — um contorno apagado por engano não voltava. Agora cada gesto é um passo: marcação, contorno, arraste, corte, lote. O que caiu junto volta junto: apagar uma marcação leva o contorno dela, e um Ctrl+Z devolve os dois. Refazer com Ctrl+Shift+Z ou Ctrl+Y, ou pelos botões no cabeçalho.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Ajustar contorno (C): alças que se pegam',
+        detalhe:
+          'Puxar um vértice leva os vizinhos junto, com decaimento — corrige uma barriga do contorno num gesto, em vez de um espinho por vértice (Shift move só o vértice). As alças têm o mesmo tamanho em qualquer zoom e o arraste não escapa quando o cursor sai da alça. Clicar na borda cria um vértice ali e já sai arrastando; duplo clique ou Ctrl+clique numa alça remove. A alça acende antes do clique para dizer o que ele vai fazer.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Raspar a borda só funcionava começando em cima de uma marcação',
+        detalhe:
+          'A camada que ouvia o mouse não estava ligada na ferramenta de contorno. Agora o traço começa em qualquer ponto do contorno selecionado.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Ctrl+Z num campo de texto desfazia uma marcação',
+        detalhe: 'Dentro das Observações, Ctrl+Z desfaz o texto, como em qualquer editor.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Instruções de uso completas',
+        detalhe:
+          'A ajuda da barra lateral passou a listar todas as ferramentas — onda, ajuste, desenho, máscara, galeria — com os gestos de cada uma. Um teste confere que nenhum atalho fica de fora.',
+      },
+    ],
+  },
+  {
     numero: '3.2.0',
     data: '2026-09-09',
     titulo: 'Curadoria, escala e laudo',

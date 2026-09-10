@@ -20,6 +20,7 @@
 // tamanho de uma semente ali.
 // =============================================================================
 
+import { pontoNoPoligono } from '../../lib/edicao-de-contorno';
 import type { Mark, YoloSegmentation } from '../../types';
 
 export interface Caixa {
@@ -211,21 +212,6 @@ function dentroDeAlgumContorno(marca: Mark, segmentacoes: YoloSegmentation[]): b
   );
 }
 
-/**
- * Ponto dentro do polígono, por cruzamento de raio.
- *
- * O `!==` entre as duas comparações de y é o que conta cada aresta uma vez só
- * quando o raio passa exatamente por um vértice.
- */
-export function pontoNoPoligono(x: number, y: number, pontos: [number, number][]): boolean {
-  if (!pontos || pontos.length < 3) return false;
-
-  let dentro = false;
-  for (let i = 0, j = pontos.length - 1; i < pontos.length; j = i++) {
-    const [xi, yi] = pontos[i];
-    const [xj, yj] = pontos[j];
-    const cruza = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (cruza) dentro = !dentro;
-  }
-  return dentro;
-}
+// A geometria mora na lib, onde a edicao de contorno tambem a usa. Fica
+// reexportada aqui para quem ja importava da galeria.
+export { pontoNoPoligono } from '../../lib/edicao-de-contorno';
