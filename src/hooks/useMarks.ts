@@ -46,6 +46,11 @@ export function useMarks() {
     [removerContornosDe]
   );
 
+  /** Atribui (ou limpa, com undefined) a classe fina de uma marca. */
+  const setSubclasse = useCallback((id: number, subclasse: Mark['subclasse']) => {
+    setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, subclasse } : m)));
+  }, []);
+
   const resetMarks = useCallback(() => {
     setMarks([]);
   }, []);
@@ -120,6 +125,7 @@ export function useMarks() {
     addMark,
     undoMark,
     removeMark,
+    setSubclasse,
     resetMarks,
 
     // YOLO

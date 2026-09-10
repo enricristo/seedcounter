@@ -5,7 +5,11 @@
 // =============================================================================
 
 import type { IdentificacaoDaAmostra } from './lib/normas/identificacao';
-import type { Contagens, RegistroDeEscarificacao } from './lib/normas/classes-de-semente';
+import type {
+  ClasseDeSemente,
+  Contagens,
+  RegistroDeEscarificacao,
+} from './lib/normas/classes-de-semente';
 
 // ---------------------------------------------------------------------------
 // Marking & Segmentation
@@ -16,6 +20,18 @@ export interface Mark {
   y: number;
   type: 'viable' | 'inviable';
   id: number;
+  /**
+   * A classe fina do teste de germinacao — normal, anormal, dura, dormente,
+   * morta, vazia — quando o protocolo a exige.
+   *
+   * MORA NA MARCA, NAO NO CONTORNO, e e uma SUBCLASSE, nao uma troca de
+   * `type`. Viavel/inviavel continua mandando na cor e na contagem, porque e o
+   * que a imagem mostra. Dormente e dura nao se distinguem numa foto: sao
+   * determinacao de bancada, atribuidas pela pessoa na galeria. Guardar aqui
+   * e o que permite o protocolo de forrageira consolidar os numeros a partir
+   * do que foi classificado, em vez de um contador digitado a parte.
+   */
+  subclasse?: ClasseDeSemente;
 }
 
 export interface YoloSegmentation {

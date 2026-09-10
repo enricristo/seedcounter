@@ -293,3 +293,54 @@ export function descreverEscarificacao(r: RegistroDeEscarificacao | undefined): 
   const extra = r.observacao?.trim() ? ` ${r.observacao.trim()}` : '';
   return `Superação de dormência por escarificação: ${ESCARIFICACAO[r.metodo]}${duracao}.${extra}`;
 }
+
+// ---------------------------------------------------------------------------
+// Das marcas para as contagens
+// ---------------------------------------------------------------------------
+
+/** O minimo de uma marca que este modulo precisa ler. */
+export interface MarcaClassificavel {
+  type: 'viable' | 'inviable';
+  subclasse?: ClasseDeSemente;
+}
+
+/**
+ * Conta as marcas por classe do protocolo.
+ *
+ * A REGRA DE QUEM NAO FOI CLASSIFICADO. Uma marca sem subclasse nao e ignorada
+ * — ela cai na classe que o `type` implica: viavel vira `normal`, inviavel
+ * vira `morta`. E o que faz o protocolo simples continuar funcionando sem
+ * ninguem classificar nada, e o que faz uma sessao meio classificada ainda
+ * somar 100%.
+ *
+ * O preco disso e dito em `naoClassificadas`: quem esta em protocolo de
+ * forrageira e ve "40 nao classificadas" sabe que 40 inviaveis foram contadas
+ * como mortas por falta de classificacao — e nao por decisao.
+ */
+export function contarPorClasse(
+  marcas: MarcaClassificavel[],
+  protocolo: Protocolo
+): { contagens: Contagens; naoClassificadas: number } {
+  const contagens: Contagens = {};
+  let naoClassificadas = 0;
+
+  for (const m of marcas) {
+    let classe: ClasseDeSemente;
+    if (m.subclasse && protocolo.classes.includes(m.subclasse)) {
+      classe = m.subclasse;
+    } else {
+      classe = m.type === 'viable' ? 'normal' : 'morta';
+      // So conta como "nao classificada" quando o protocolo tem classe fina
+      // para dar: no protocolo simples nao ha o que classificar.
+      if (protocolo.classes.length > 2) naoClassificadas++;
+    }
+    contagens[classe] = (contagens[classe] ?? 0) + 1;
+  }
+
+  return { contagens, naoClassificadas };
+}
+
+/** O protocolo pela chave, com o simples como reserva. */
+export function protocoloPorChave(chave: string | undefined): Protocolo {
+  return (chave && PROTOCOLOS[chave]) || PROTOCOLOS.simples;
+}

@@ -60,6 +60,12 @@ export const VERSOES: Versao[] = [
     mudancas: [
       {
         tipo: 'novo',
+        titulo: 'Classes de germinação, com o denominador certo',
+        detalhe:
+          'Escolha o protocolo (germinação ou forrageira) na barra lateral e classifique cada semente na galeria: normal, anormal, dura, dormente, morta, vazia. Espigueta vazia sai do denominador — é a regra da RAS, e muda o número. Dormência a partir de 5% pede tetrazólio, e o laudo já leva isso para Observações.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Desenhar contorno à mão (tecla P)',
         detalhe:
           'Para quando a onda falha de vez. Clique coloca vértice, duplo clique ou clicar no primeiro vértice fecha, Esc cancela. Se desenhar em volta de uma marcação sem contorno, o polígono é dela; senão, cria a marcação no centro.',

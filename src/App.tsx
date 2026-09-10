@@ -311,6 +311,7 @@ export default function App() {
     addMark,
     undoMark,
     removeMark,
+    setSubclasse,
     addYoloSegmentations,
     appendYoloSegmentation,
     toggleSegmentationClass,
@@ -2261,6 +2262,8 @@ export default function App() {
         onSegmentarPendentes={handleSegmentarPendentes}
         onSegmentarUma={handleSegmentarUma}
         progresso={segmentandoLote}
+        protocolo={metadata.protocolo}
+        onSubclasse={setSubclasse}
       />
 
       <IdentificacaoModal

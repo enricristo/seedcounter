@@ -87,6 +87,7 @@ export async function exportarLaudo(op: OpcoesDeExportacao): Promise<ResultadoDa
       versaoDoApp: op.versaoDoApp,
       commitDoBuild: op.commitDoBuild,
       umPerPixel: op.metadata.umPerPixel,
+      marcas: op.marks,
       ...contarProcedencia(segmentacoes),
     });
 
@@ -150,6 +151,7 @@ export async function exportarLaudosEmLote(
         versaoDoApp: op.versaoDoApp,
         commitDoBuild: op.commitDoBuild,
         umPerPixel: sessao.metadata.umPerPixel,
+        marcas: sessao.marks,
         ...contarProcedencia(segmentacoes),
       });
 

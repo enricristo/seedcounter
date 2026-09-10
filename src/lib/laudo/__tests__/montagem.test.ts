@@ -318,3 +318,65 @@ describe('nome do arquivo', () => {
     }
   });
 });
+
+describe('protocolo de germinacao no laudo', () => {
+  const marcasForrageira = [
+    ...Array.from({ length: 240 }, () => ({ type: 'viable' as const })),
+    ...Array.from({ length: 80 }, () => ({ type: 'inviable' as const, subclasse: 'vazia' as const })),
+    ...Array.from({ length: 20 }, () => ({ type: 'inviable' as const, subclasse: 'dormente' as const })),
+    ...Array.from({ length: 60 }, () => ({ type: 'inviable' as const, subclasse: 'morta' as const })),
+  ];
+
+  it('no protocolo simples NAO ha bloco de germinacao — repetiria os cartoes', () => {
+    const doc = entrada({ marcas: marcasForrageira });
+    expect(doc.blocos.find((b) => b.titulo === 'Teste de germinacao')).toBeUndefined();
+  });
+
+  it('na forrageira o bloco sai com o DENOMINADOR certo', () => {
+    // 400 unidades, 80 vazias -> 320 sementes. 240 normais = 75%, nao 60%.
+    const doc = entrada({
+      metadata: { ...METADATA_BASE, protocolo: 'forrageira' },
+      marcas: marcasForrageira,
+    });
+    const bloco = doc.blocos.find((b) => b.titulo === 'Teste de germinacao')!;
+    expect(bloco).toBeDefined();
+    expect(bloco.campos.find((c) => c.rotulo === 'Sementes examinadas')!.valor).toBe('320');
+    expect(bloco.campos.find((c) => c.rotulo === 'Unidades vazias')!.valor).toMatch(/^80/);
+    expect(bloco.campos.find((c) => c.rotulo === 'Plântula normal')!.valor).toMatch(/75%$/);
+  });
+
+  it('as porcentagens do bloco SOMAM 100', () => {
+    const doc = entrada({
+      metadata: { ...METADATA_BASE, protocolo: 'forrageira' },
+      marcas: marcasForrageira,
+    });
+    const bloco = doc.blocos.find((b) => b.titulo === 'Teste de germinacao')!;
+    const soma = bloco.campos
+      .map((c) => /—\s+(\d+)%$/.exec(c.valor))
+      .filter(Boolean)
+      .reduce((t, m) => t + Number(m![1]), 0);
+    expect(soma).toBe(100);
+  });
+
+  it('leva para Observacoes o que a IN 40/2010 manda declarar', () => {
+    const doc = entrada({
+      metadata: {
+        ...METADATA_BASE,
+        protocolo: 'forrageira',
+        escarificacao: { metodo: 'acido-sulfurico', duracaoMin: 15 },
+      },
+      marcas: marcasForrageira,
+    });
+    expect(doc.observacoes).toMatch(/material inerte/);
+    expect(doc.observacoes).toMatch(/tetrazólio/i); // 20/320 = 6,25% >= 5%
+    expect(doc.observacoes).toMatch(/Ácido sulfúrico/);
+  });
+
+  it('diz quantas ficaram sem classificar', () => {
+    const doc = entrada({
+      metadata: { ...METADATA_BASE, protocolo: 'forrageira' },
+      marcas: [{ type: 'inviable' }, { type: 'inviable', subclasse: 'dura' }],
+    });
+    expect(doc.observacoes).toMatch(/1 semente contada pela classe implicita/);
+  });
+});
