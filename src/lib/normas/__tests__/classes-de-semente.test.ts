@@ -13,8 +13,10 @@ import {
   LIMIAR_DE_DORMENCIA,
   PROTOCOLOS,
   consolidar,
+  contarPorClasse,
   descreverEscarificacao,
   exigeTetrazolio,
+  protocoloPorChave,
 } from '../classes-de-semente';
 
 describe('o denominador', () => {
@@ -136,5 +138,67 @@ describe('escarificacao', () => {
   it('sem escarificacao nao gera texto', () => {
     expect(descreverEscarificacao(undefined)).toBe('');
     expect(descreverEscarificacao({ metodo: 'nenhuma' })).toBe('');
+  });
+});
+
+describe('contarPorClasse — das marcas para o protocolo', () => {
+  it('marca sem subclasse cai na classe que o tipo implica', () => {
+    // Viavel -> normal, inviavel -> morta. E o que faz o protocolo simples
+    // funcionar sem ninguem classificar nada.
+    const r = contarPorClasse(
+      [{ type: 'viable' }, { type: 'viable' }, { type: 'inviable' }],
+      PROTOCOLOS.simples
+    );
+    expect(r.contagens).toEqual({ normal: 2, morta: 1 });
+    expect(r.naoClassificadas).toBe(0);
+  });
+
+  it('subclasse atribuida vence o tipo', () => {
+    const r = contarPorClasse(
+      [
+        { type: 'inviable', subclasse: 'dormente' },
+        { type: 'inviable', subclasse: 'vazia' },
+        { type: 'viable', subclasse: 'anormal' },
+      ],
+      PROTOCOLOS.forrageira
+    );
+    expect(r.contagens).toEqual({ dormente: 1, vazia: 1, anormal: 1 });
+  });
+
+  it('DIZ quantas ficaram sem classificar num protocolo fino', () => {
+    // Quem ve "40 nao classificadas" sabe que 40 inviaveis viraram mortas por
+    // falta de classificacao, nao por decisao.
+    const r = contarPorClasse(
+      [{ type: 'inviable' }, { type: 'inviable', subclasse: 'dura' }],
+      PROTOCOLOS.forrageira
+    );
+    expect(r.naoClassificadas).toBe(1);
+    expect(r.contagens.morta).toBe(1);
+    expect(r.contagens.dura).toBe(1);
+  });
+
+  it('subclasse que o protocolo nao tem e tratada como nao classificada', () => {
+    // 'vazia' nao existe no protocolo de germinacao comum.
+    const r = contarPorClasse([{ type: 'inviable', subclasse: 'vazia' }], PROTOCOLOS.germinacao);
+    expect(r.contagens.morta).toBe(1);
+    expect(r.naoClassificadas).toBe(1);
+  });
+
+  it('fecha o circuito: marcas -> contagens -> consolidar', () => {
+    const marcas = [
+      ...Array.from({ length: 240 }, () => ({ type: 'viable' as const })),
+      ...Array.from({ length: 80 }, () => ({ type: 'inviable' as const, subclasse: 'vazia' as const })),
+      ...Array.from({ length: 30 }, () => ({ type: 'inviable' as const, subclasse: 'morta' as const })),
+    ];
+    const { contagens } = contarPorClasse(marcas, PROTOCOLOS.forrageira);
+    const c = consolidar(contagens, PROTOCOLOS.forrageira);
+    expect(c.denominador).toBe(270);
+    expect(c.germinacao).toBeCloseTo((240 / 270) * 100, 5);
+  });
+
+  it('chave desconhecida cai no simples', () => {
+    expect(protocoloPorChave('invent').chave).toBe('simples');
+    expect(protocoloPorChave(undefined).chave).toBe('simples');
+    expect(protocoloPorChave('forrageira').chave).toBe('forrageira');
   });
 });

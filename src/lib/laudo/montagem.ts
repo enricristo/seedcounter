@@ -37,7 +37,15 @@ import {
 } from '../normas/identificacao';
 import { descrever, type VersaoDaNorma } from '../normas/versao';
 import { formatar, medido } from '../normas/valor-de-boletim';
-import { fecharDuas } from '../normas/arredondamento';
+import { fecharDuas, arredondarGerminacao } from '../normas/arredondamento';
+import {
+  CLASSES,
+  consolidar,
+  contarPorClasse,
+  descreverEscarificacao,
+  protocoloPorChave,
+  type MarcaClassificavel,
+} from '../normas/classes-de-semente';
 import type { Metadata } from '../../types';
 
 /** O que se escreve onde não há valor. Nunca espaço em branco. */
@@ -112,6 +120,11 @@ export interface EntradaDoLaudo {
   contornosDoModelo?: number;
   /** Quantos vieram de clique da pessoa. */
   contornosDoClique?: number;
+  /**
+   * As marcas, para o protocolo de germinacao consolidar por classe.
+   * Ausente = o laudo fica so com viavel/inviavel.
+   */
+  marcas?: MarcaClassificavel[];
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +195,7 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
     umPerPixel,
     contornosDoModelo,
     contornosDoClique,
+    marcas,
   } = entrada;
 
   const amostra: IdentificacaoDaAmostra = metadata.amostra ?? {};
@@ -194,6 +208,12 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
   // próprio arredondamento e o complemento absorve. Arredondar cada uma por
   // conta própria imprimia 33,4 + 66,7 = 100,1.
   const fechadas = fecharDuas(viableCount, total);
+
+  // O protocolo de germinacao, quando ha um com classes finas. Sai das MARCAS
+  // classificadas na galeria, e os avisos que ele produz (espigueta vazia fora
+  // do denominador, tetrazolio obrigatorio, escarificacao) vao para
+  // Observacoes — que e onde a IN 40/2010 manda declarar.
+  const germinacao = montarGerminacao(metadata, marcas);
   const ehBoletim = especie === 'boletim';
 
   return {
@@ -228,7 +248,11 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
           ],
         },
 
-    blocos: [montarBlocoDaAmostra(amostra, ehBoletim), montarBlocoDaPesquisa(metadata, filename)],
+    blocos: [
+      montarBlocoDaAmostra(amostra, ehBoletim),
+      montarBlocoDaPesquisa(metadata, filename),
+      ...(germinacao ? [germinacao.bloco] : []),
+    ],
 
     resultados: [
       {
@@ -246,7 +270,7 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
       { rotulo: 'Total', contagem: total, papel: 'total' },
     ],
 
-    observacoes: montarObservacoes(metadata, especie, norma),
+    observacoes: montarObservacoes(metadata, especie, norma, germinacao?.observacoes ?? []),
 
     rastreabilidade: montarRastreabilidade({
       versaoDoApp,
@@ -325,13 +349,73 @@ function montarBlocoDaPesquisa(metadata: Metadata, filename: string): Bloco {
   return { titulo: 'Contexto do ensaio', campos: campos.filter((c) => c.valor !== AUSENTE) };
 }
 
+/**
+ * O bloco de germinacao por classe, e o que ele manda para Observacoes.
+ *
+ * Devolve `null` no protocolo simples: ali viavel/inviavel ja e o resultado, e
+ * um bloco "normal 92 / morta 8" repetiria o que os cartoes ja dizem.
+ */
+function montarGerminacao(
+  metadata: Metadata,
+  marcas: MarcaClassificavel[] | undefined
+): { bloco: Bloco; observacoes: string[] } | null {
+  const protocolo = protocoloPorChave(metadata.protocolo);
+  if (protocolo.classes.length <= 2 || !marcas || marcas.length === 0) return null;
+
+  const { contagens, naoClassificadas } = contarPorClasse(marcas, protocolo);
+  const c = consolidar(contagens, protocolo);
+  if (c.denominador <= 0) return null;
+
+  // Inteiros que somam 100, com o desempate da norma. E o mesmo modulo que
+  // fecha a pureza: o boletim nao pode somar 99.
+  const fechado = arredondarGerminacao({
+    normais: c.porcentagens.normal ?? 0,
+    anormais: c.porcentagens.anormal ?? 0,
+    duras: c.porcentagens.dura ?? 0,
+    dormentes: c.porcentagens.dormente ?? 0,
+    mortas: c.porcentagens.morta ?? 0,
+  }).valores;
+
+  const campos: Campo[] = [
+    { rotulo: 'Protocolo', valor: protocolo.nome },
+    { rotulo: 'Sementes examinadas', valor: String(c.denominador) },
+  ];
+  if (c.unidadesExaminadas !== c.denominador) {
+    campos.push({
+      rotulo: 'Unidades vazias',
+      valor: `${contagens.vazia ?? 0} (inerte, fora do denominador)`,
+    });
+  }
+  const linha = (rotulo: string, n: number | undefined, pct: number) =>
+    campos.push({ rotulo, valor: `${n ?? 0}  —  ${pct}%` });
+  linha(CLASSES.normal.rotulo, contagens.normal, fechado.normais);
+  if (protocolo.classes.includes('anormal')) linha(CLASSES.anormal.rotulo, contagens.anormal, fechado.anormais);
+  if (protocolo.classes.includes('dura')) linha(CLASSES.dura.rotulo, contagens.dura, fechado.duras);
+  if (protocolo.classes.includes('dormente')) linha(CLASSES.dormente.rotulo, contagens.dormente, fechado.dormentes);
+  linha(CLASSES.morta.rotulo, contagens.morta, fechado.mortas);
+
+  const observacoes = c.avisos.map((a) => a.textoParaObservacoes).filter((t) => t.length > 0);
+  const esc = descreverEscarificacao(metadata.escarificacao);
+  if (esc) observacoes.push(esc);
+  if (naoClassificadas > 0) {
+    observacoes.push(
+      `${naoClassificadas} ${naoClassificadas === 1 ? 'semente contada' : 'sementes contadas'} pela classe ` +
+        'implicita (viavel como normal, inviavel como morta) por nao ter classificacao fina atribuida.'
+    );
+  }
+
+  return { bloco: { titulo: 'Teste de germinacao', campos }, observacoes };
+}
+
 function montarObservacoes(
   metadata: Metadata,
   especie: EspecieDeDocumento,
-  norma?: VersaoDaNorma
+  norma?: VersaoDaNorma,
+  doProtocolo: string[] = []
 ): string {
   const partes: string[] = [];
   if (metadata.notes?.trim()) partes.push(metadata.notes.trim());
+  partes.push(...doProtocolo);
 
   // A IN 40/2010 manda declarar em Observações a metodologia de toda
   // determinação sem método na RAS. Contagem de sementes por imagem é

@@ -19,6 +19,14 @@ import { ESPECIME } from '../../theme/specimen';
 import { montarGaleria, type ItemDaGaleria } from './recortes';
 import { recortarTodos, LADO_DA_MINIATURA } from './recortar';
 import type { Mark, YoloSegmentation } from '../../types';
+import {
+  CLASSES,
+  consolidar,
+  contarPorClasse,
+  protocoloPorChave,
+  type ClasseDeSemente,
+  type Protocolo,
+} from '../../lib/normas/classes-de-semente';
 
 type Filtro = 'todos' | 'viable' | 'inviable' | 'sem-contorno';
 
@@ -48,6 +56,12 @@ interface GaleriaModalProps {
   onSegmentarUma?: (marcaId: number) => void;
   /** Progresso do lote em curso. */
   progresso?: { feitas: number; total: number } | null;
+  /**
+   * O protocolo de germinacao em vigor. Com classes finas, cada celula ganha o
+   * seletor de subclasse e o rodape mostra a consolidacao.
+   */
+  protocolo?: string;
+  onSubclasse?: (marcaId: number, subclasse: ClasseDeSemente | undefined) => void;
 }
 
 export function GaleriaModal({
@@ -63,6 +77,8 @@ export function GaleriaModal({
   onSegmentarPendentes,
   onSegmentarUma,
   progresso,
+  protocolo: chaveDoProtocolo,
+  onSubclasse,
 }: GaleriaModalProps) {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [semFundo, setSemFundo] = useState(false);
@@ -81,6 +97,17 @@ export function GaleriaModal({
     if (!isOpen || !image || itens.length === 0) return new Map<string, string>();
     return recortarTodos(image, itens, { semFundo });
   }, [isOpen, image, itens, semFundo]);
+
+  const protocolo = protocoloPorChave(chaveDoProtocolo);
+  const classificaFino = protocolo.classes.length > 2 && !!onSubclasse;
+
+  // A consolidacao sai das MARCAS, nao de um contador digitado: cada marca
+  // classificada na galeria vira um numero aqui, na hora.
+  const consolidacao = useMemo(() => {
+    if (!classificaFino) return null;
+    const { contagens, naoClassificadas } = contarPorClasse(marks, protocolo);
+    return { ...consolidar(contagens, protocolo), naoClassificadas };
+  }, [classificaFino, marks, protocolo]);
 
   if (!isOpen) return null;
 
@@ -204,17 +231,48 @@ export function GaleriaModal({
                       ? () => onSegmentarUma(item.marca.id)
                       : undefined
                   }
+                  protocolo={classificaFino ? protocolo : undefined}
+                  marca={marcaDoItem(item, marks)}
+                  onSubclasse={onSubclasse}
                 />
               ))}
             </div>
           )}
         </div>
 
-        <div className="border-t border-line px-5 py-3">
+        <div className="border-t border-line px-5 py-3 space-y-2">
+          {consolidacao && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+              <span className="text-ink-1 font-bold">
+                Germinação{' '}
+                <span className="font-mono tabular-nums">
+                  {consolidacao.germinacao.toFixed(1).replace('.', ',')}%
+                </span>
+              </span>
+              <span className="text-ink-3">
+                sobre {consolidacao.denominador} sementes
+                {consolidacao.unidadesExaminadas !== consolidacao.denominador &&
+                  ` (${consolidacao.unidadesExaminadas} unidades examinadas)`}
+              </span>
+              {consolidacao.naoClassificadas > 0 && (
+                <span className="text-warn font-semibold">
+                  {consolidacao.naoClassificadas} sem classificar — contadas pelo tipo
+                </span>
+              )}
+              {consolidacao.avisos
+                .filter((a) => a.tipo === 'tetrazolio-obrigatorio')
+                .map((a) => (
+                  <span key={a.tipo} className="text-warn font-semibold">
+                    {a.texto}
+                  </span>
+                ))}
+            </div>
+          )}
           <p className="text-[11px] leading-snug text-ink-3">
             <Layers size={11} className="mr-1 inline" />
-            As células com borda tracejada são marcações <strong>sem contorno</strong> — a região
-            já está identificada, falta segmentar. Clique numa célula para inverter a classe.
+            {classificaFino
+              ? 'Escolha a classe de cada semente no seletor da célula. Sem escolha, viável conta como normal e inviável como morta.'
+              : 'As células com borda tracejada são marcações sem contorno — a região já está identificada, falta segmentar. Clique numa célula para inverter a classe.'}
           </p>
         </div>
       </div>
@@ -224,6 +282,13 @@ export function GaleriaModal({
 
 // ---------------------------------------------------------------------------
 
+/** A marca que um item representa: a propria, ou a vinculada ao contorno. */
+function marcaDoItem(item: ItemDaGaleria, marks: Mark[]): Mark | undefined {
+  if (item.tipo === 'ponto') return item.marca;
+  const id = item.segmentacao.marcaId;
+  return id == null ? undefined : marks.find((m) => m.id === id);
+}
+
 function Celula({
   item,
   indice,
@@ -231,6 +296,9 @@ function Celula({
   onAlternarClasse,
   onRemover,
   onContornar,
+  protocolo,
+  marca,
+  onSubclasse,
 }: {
   item: ItemDaGaleria;
   indice: number;
@@ -239,6 +307,10 @@ function Celula({
   onRemover: () => void;
   /** So nas celulas sem contorno. */
   onContornar?: () => void;
+  /** Presente quando ha classe fina para atribuir. */
+  protocolo?: Protocolo;
+  marca?: Mark;
+  onSubclasse?: (marcaId: number, subclasse: ClasseDeSemente | undefined) => void;
 }) {
   const viavel = item.categoria === 'viable';
   const cor = viavel ? ESPECIME.viable : ESPECIME.inviable;
@@ -280,13 +352,39 @@ function Celula({
         {indice}
       </span>
 
-      {semContorno && (
+      {semContorno && !protocolo && (
         <span
           className="pointer-events-none absolute bottom-1.5 left-1.5 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
           style={{ background: 'rgba(0,0,0,0.62)', color: cor }}
         >
           falta contornar
         </span>
+      )}
+
+      {/* A classe fina. Um select, e nao teclas, porque a galeria e uma grade
+          de dezenas de celulas e "qual esta com foco" nao e visivel. O select
+          e o proprio rotulo do estado. */}
+      {protocolo && marca && onSubclasse && (
+        <select
+          value={marca.subclasse ?? ''}
+          onChange={(e) =>
+            onSubclasse(marca.id, (e.target.value || undefined) as ClasseDeSemente | undefined)
+          }
+          onClick={(e) => e.stopPropagation()}
+          title="Classe do teste de germinacao"
+          className="absolute right-1.5 bottom-1.5 left-1.5 rounded border-0 px-1 py-0.5 text-[10px] font-semibold"
+          style={{
+            background: 'rgba(0,0,0,0.72)',
+            color: marca.subclasse ? cor : 'rgba(255,255,255,0.7)',
+          }}
+        >
+          <option value="">{viavel ? 'normal (pelo tipo)' : 'morta (pelo tipo)'}</option>
+          {protocolo.classes.map((c) => (
+            <option key={c} value={c}>
+              {CLASSES[c].rotulo}
+            </option>
+          ))}
+        </select>
       )}
 
       <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
