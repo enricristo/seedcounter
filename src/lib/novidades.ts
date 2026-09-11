@@ -87,6 +87,18 @@ export const VERSOES: Versao[] = [
         detalhe:
           'A ajuda da barra lateral passou a listar todas as ferramentas — onda, ajuste, desenho, máscara, galeria — com os gestos de cada uma. Um teste confere que nenhum atalho fica de fora.',
       },
+      {
+        tipo: 'novo',
+        titulo: 'Classificar cada semente por subclasse, direto na galeria',
+        detalhe:
+          'Normal, anormal, dura, dormente, morta ou vazia — um seletor em cada célula, sem mexer no que já conta como viável/inviável na imagem. O rodapé da galeria consolida a germinação na hora e avisa quantas sementes ainda faltam classificar; o laudo ganha um bloco "Teste de germinação" com a contagem e a porcentagem por classe.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Uso anônimo do aplicativo passou a ser medido',
+        detalhe:
+          'Estatística de acesso (Google Analytics), para saber quais partes do aplicativo são realmente usadas. Imagem, sessão e laudo continuam só na sua máquina — isso não muda.',
+      },
     ],
   },
   {
@@ -230,6 +242,229 @@ export const VERSOES: Versao[] = [
         detalhe:
           'Não precisa mais ligar o modo laudo. Escolher a espécie mostra o alvo de tamanho e ajusta o corte de sementes encostadas à forma dela.',
       },
+    ],
+  },
+  {
+    numero: '3.1.0',
+    data: '2026-09-08',
+    titulo: 'Medidas em milímetro, e a segmentação por clique',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Segmentação por clique (a "onda")',
+        detalhe:
+          'Tecla S: clique numa semente e o contorno cresce sozinho até a borda, sem precisar de modelo nem de espécie treinados. A marcação sempre conta, mesmo quando a onda não encontra uma borda confiável — nesse caso o aviso pede para clicar mais para dentro da semente. Corrigido no caminho: doze cliques estavam sendo contados como vinte e quatro sementes, porque a marcação e o contorno do mesmo clique somavam em dobro.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Medidas em milímetro, e cor por objeto',
+        detalhe:
+          'Comprimento, largura e área agora saem em mm além de pixel, na tela e na exportação. Corrigido junto: o casamento entre marcação e contorno falhava em imagens de resolução alta ("não está encontrando nada") — a tolerância passa a acompanhar o tamanho do objeto, em vez de um raio fixo em pixels.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Comparação longitudinal com eixo de tempo configurável',
+        detalhe:
+          'Dias após plantio (germinação) ou dias de armazenamento (forrageira) — cada um mostra só os índices que fazem sentido para ele, em vez de calcular velocidade de germinação sobre uma curva de deterioração.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Cenas de exemplo e ensaios simulados',
+        detalhe:
+          'Para experimentar contagem, medida e estatística sem ter uma imagem própria à mão. Sempre identificados como demonstração — nunca entram como sessão real.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Região desenhada com o mouse restringe os dois motores de detecção',
+        detalhe:
+          'Antes só o detector clássico aceitava a região; a IA sempre varria a imagem inteira. Agora os dois respeitam o retângulo, e o painel mostra quantas janelas vai rodar antes de começar.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Tela branca ao abrir o aplicativo em produção',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Comparação de médias quebrava com poucas repetições',
+        detalhe:
+          'Um ensaio com 3 ou 4 repetições era declarado "não normal" por um erro de cálculo, e escolher Tukey travava a análise inteira.',
+      },
+    ],
+  },
+  {
+    numero: '3.0.0',
+    data: '2026-09-03',
+    titulo: 'Identidade visual Bancada Óptica, e três perdas de dados corrigidas',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Novo visual: Bancada Óptica',
+        detalhe:
+          'Tipografia própria (Archivo e IBM Plex Mono) e uma paleta de cores consistente em todo o aplicativo — cabeçalho, rodapé, ferramentas, zoom e exportação redesenhados.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'O botão de tema (sol/lua) não tinha efeito nenhum na tela',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Tema claro ficou difícil de ler depois do novo visual',
+        detalhe: 'Contraste de texto pequeno ajustado para o mínimo legível.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Ícone do aplicativo instalado (PWA) não funcionava',
+        detalhe:
+          'O navegador recusava o ícone para o prompt de instalação. Corrigido, com uma marca própria — e o pacote instalável ficou bem mais leve.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'A marca do ícone tinha um fundo sólido feio atrás dela',
+        detalhe: 'Agora é transparente.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Trocar de imagem na fila apagava a contagem da imagem anterior',
+        detalhe: 'Sem aviso e sem como desfazer. Agora cada imagem guarda a sua própria contagem.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Clicar numa marcação para arrastar podia trocar viável por inviável sem querer',
+        detalhe: 'Agora troca com Ctrl+clique; o clique simples fica livre para arrastar.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Exportações saíam com nome ilegível, e o que a pessoa digitava podia se perder',
+        detalhe:
+          'O nome do arquivo agora traz projeto, tratamento, placa e data; e preencher os campos rapidamente não derruba mais uma letra digitada antes.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Dividir uma digitalização em vários pedaços, e recortar o campo circular',
+        detalhe:
+          'Uma folha de scanner com várias sub-amostras é fatiada e entra direto na fila. Fotos por lupa têm o campo circular da ocular recortado automaticamente, descartando o entorno escuro.',
+      },
+    ],
+  },
+  {
+    numero: '2.1.0',
+    data: '2026-09-03',
+    titulo: 'Classificação incerta, e exportar para treinar IA',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Terceira opção de classificação: "incerto"',
+        detalhe:
+          'Além de viável e inviável, para quando a imagem não deixa decidir. O resumo de resultados foi redesenhado para mostrar as três.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Exportar dataset para treinar IA (YOLO) sai do experimental',
+        detalhe: 'Fica ligado por padrão — empacota as anotações que você já fez.',
+      },
+    ],
+  },
+  {
+    numero: '2.0.0',
+    data: '2026-08-23',
+    titulo: 'Remoção de fundo, e o fluxo em etapas',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Remover o fundo da imagem',
+        detalhe: 'Com limiar que se adapta à imagem, em vez de um valor fixo.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Sementes encostadas eram separadas do jeito errado',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Interface reorganizada em etapas',
+        detalhe: 'Abrir, ajustar, contar, exportar — cada etapa dobrável, em vez de tudo aberto de uma vez.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Uma falha de build travava a instalação do aplicativo (PWA)',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Detecção assistida parou de funcionar, e foi reconstruída',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'O modelo de IA só carrega quando é realmente usado',
+        detalhe: 'Quem não usa a detecção assistida nem baixa o modelo — o aplicativo abre mais rápido.',
+      },
+    ],
+  },
+  {
+    numero: '1.0.0',
+    data: '2026-08-19',
+    titulo: 'Câmera, detecção assistida e calibração',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Capturar direto da câmera',
+        detalhe: 'Celular ou lupa digital, sem precisar passar pelo scanner primeiro.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Detecção assistida por IA',
+        detalhe:
+          'Um modelo (AI Pointer) sugere onde estão as sementes, para revisar em vez de marcar uma por uma.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Correções na detecção assistida',
+        detalhe: 'Menos sugestões fora do lugar.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Calibração espacial por vários métodos',
+        detalhe: 'Régua na tela e arraste de pontos, além da entrada manual.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Morfometria',
+        detalhe: 'Comprimento, largura e outras medidas de forma de cada semente.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Painel de funcionalidades',
+        detalhe: 'Para ver o que o aplicativo sabe fazer, num só lugar.',
+      },
+      { tipo: 'melhorado', titulo: 'Réguas no canvas, e créditos do projeto atualizados' },
+    ],
+  },
+  {
+    numero: '0.2.0',
+    data: '2026-05-20',
+    titulo: 'Modo Diferencial, e aplicativo instalável',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Modo Diferencial',
+        detalhe: 'Compara a contagem atual com uma contagem anterior salva da mesma placa.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Aplicativo instalável (PWA)',
+        detalhe: 'Funciona sem precisar abrir o navegador toda vez.',
+      },
+      { tipo: 'melhorado', titulo: 'Informações de créditos atualizadas' },
+      { tipo: 'corrigido', titulo: 'Importar uma sessão do histórico falhava' },
+    ],
+  },
+  {
+    numero: '0.1.0',
+    data: '2026-05-13',
+    titulo: 'Primeira versão',
+    mudancas: [
+      { tipo: 'novo', titulo: 'Primeira versão do contador de sementes por clique' },
+      { tipo: 'novo', titulo: 'Aplicativo em português' },
+      { tipo: 'novo', titulo: 'Alternar entre tema claro e escuro' },
+      { tipo: 'novo', titulo: 'Modo de navegação por arraste (panning) na imagem' },
     ],
   },
 ];

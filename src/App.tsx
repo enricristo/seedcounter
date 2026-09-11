@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
+import { Ruler } from 'lucide-react';
 
 // Components
 import { Header } from './components/layout/Header';
@@ -47,7 +48,19 @@ import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
-import { BotaoDeConta, useConta } from './features/conta';
+import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
+import { useEasterEggs, Florescer, tocarMarca } from './features/easter';
+import {
+  CartaoDeSugestao,
+  sugerir,
+  lerDispensadas,
+  dispensar,
+  type EstadoParaSugestao,
+  type AcaoDeSugestao,
+} from './features/sugestoes';
+import { PainelDeMorfometria, resumir } from './features/morfometria';
+import { lerPreferencia, gravarPreferencia, CHAVE_SUGESTOES } from './features/settings/preferencias';
+import { conferirForma } from './lib/normas/tamanhos-de-semente';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
 import { BarraDeAtividade } from './features/atividade/BarraDeAtividade';
 import {
@@ -231,6 +244,12 @@ export default function App() {
   const [achatando, setAchatando] = useState(false);
 
   const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
+
+  // Easter eggs: `semente` liga o tic ao marcar, `orquidea` floresce. O gancho
+  // tem o proprio ouvinte de teclado e nao passa por useKeyboardShortcuts —
+  // easter egg nao se anuncia na ajuda.
+  const { florescendo, encerrarFlorescer, recado: recadoDoEaster } = useEasterEggs();
+
 
   // Notas de versao: abre sozinha so quando a versao avancou desde a ultima
   // visita. Na primeira visita registra em silencio — quem abre o aplicativo
@@ -448,6 +467,25 @@ export default function App() {
    * com o gradiente removido.
    */
   const imagemDeTrabalho = fundoAchatado ?? image;
+  /**
+   * Quando esta imagem foi gravada pela ultima vez — para a sugestao de salvar
+   * saber se ja passou tempo demais. Zera ao trocar de imagem.
+   */
+  const [ultimaGravacao, setUltimaGravacao] = useState<number | null>(null);
+
+  /**
+   * O painel de medidas flutua sobre a area morta ao lado da imagem.
+   *
+   * Flutuar, e nao ocupar coluna: numa digitalizacao panoramica nao sobra
+   * area morta nenhuma, e uma coluna fixa empurraria a imagem para caber.
+   * Por isso ele e recolhivel, e o recolhimento e lembrado.
+   */
+  const [painelDeMedidasAberto, setPainelDeMedidasAberto] = useState<boolean>(() =>
+    lerPreferencia('sc:painelDeMedidas', true)
+  );
+  useEffect(() => {
+    setUltimaGravacao(null);
+  }, [filename]);
 
 
   useEffect(() => {
@@ -538,7 +576,7 @@ export default function App() {
       return;
     }
 
-    addMark(x, y, type);
+    marcarComSom(x, y, type);
   };
 
   /**
@@ -553,10 +591,26 @@ export default function App() {
    * é um detalhe estético — ele vira área, comprimento e largura no CSV, e um
    * número errado é pior que número nenhum.
    */
+  /**
+   * Marca E toca — quando o som esta ligado.
+   *
+   * `tocarMarca` ja confere a preferencia por dentro e cria o AudioContext so
+   * neste gesto (politica de autoplay), entao chamar sempre e seguro: sem
+   * preferencia ligada, silencio.
+   */
+  const marcarComSom = useCallback(
+    (x: number, y: number, tipo: 'viable' | 'inviable') => {
+      const id = addMark(x, y, tipo);
+      tocarMarca(tipo);
+      return id;
+    },
+    [addMark]
+  );
+
   const segmentarComOnda = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
       if (!imagemDeTrabalho) return;
-      const marcaId = addMark(x, y, tipo);
+      const marcaId = marcarComSom(x, y, tipo);
 
       const inicio = performance.now();
       // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
@@ -606,7 +660,7 @@ export default function App() {
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
     },
-    [imagemDeTrabalho, addMark, appendYoloSegmentation, metadata.umPerPixel]
+    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -654,6 +708,7 @@ export default function App() {
       imageData: imageDataStr,
     };
     addSession(newSession);
+    setUltimaGravacao(Date.now());
     if (!silent) {
       alert('Sessão salva com sucesso no histórico local!');
     }
@@ -1537,6 +1592,98 @@ export default function App() {
     return marks.filter((m) => !visiveis.some((s) => pontoNoPoligono(m.x, m.y, s.polygon_points)));
   }, [marks, yoloSegmentations]);
 
+  // --- Sugestoes contextuais e morfometria ao vivo --------------------------
+
+  const especieDeclarada =
+    metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
+
+  /**
+   * O resumo de morfometria, derivado a cada mudanca.
+   *
+   * Sem `imageData` de proposito: o painel nao usa cor, so forma, e ler os
+   * pixels da imagem a cada marca seria desperdicio.
+   */
+  const resumoDeMorfometria = useMemo(() => {
+    if (!image) return null;
+    const rows = buildMeasurements({ marks, segmentations: yoloSegmentations, metadata, filename });
+    return resumir(rows, metadata.umPerPixel);
+  }, [image, marks, yoloSegmentations, metadata, filename]);
+
+  /** Quantos contornos tem forma incompativel com a especie declarada. */
+  const contornosComFormaSuspeita = useMemo(() => {
+    if (!especieDeclarada) return 0;
+    let n = 0;
+    for (const seg of yoloSegmentations) {
+      if (seg.visible === false || !seg.width || !seg.height) continue;
+      const v = conferirForma(seg.width, seg.height, especieDeclarada).veredicto;
+      if (v === 'alongado-demais' || v === 'redondo-demais') n++;
+    }
+    return n;
+  }, [yoloSegmentations, especieDeclarada]);
+
+  /**
+   * A sugestao da vez — no maximo uma.
+   *
+   * A preferencia e lida a cada calculo, e nao guardada em estado: desligar nas
+   * configuracoes tem de calar o cartao no proximo render, sem recarregar.
+   */
+  const sugestaoAtual = useMemo(() => {
+    if (!lerPreferencia(CHAVE_SUGESTOES, true)) return null;
+    const estado: EstadoParaSugestao = {
+      temImagem: !!image,
+      chaveDaImagem: image ? filename || 'imagem' : null,
+      totalDeMarcas: marks.length,
+      marcasSemContorno: marcasSemContorno.length,
+      totalDeContornos: yoloSegmentations.filter((s) => s.visible !== false).length,
+      umPerPixel: metadata.umPerPixel,
+      especie: especieDeclarada,
+      comprimentoTipicoEmPixels,
+      contornosComFormaSuspeita,
+      minutosDesdeUltimaGravacao:
+        ultimaGravacao === null ? null : (Date.now() - ultimaGravacao) / 60000,
+      protocoloExigeTetrazolio: false,
+    };
+    return sugerir(estado, lerDispensadas(estado.chaveDaImagem));
+  }, [
+    image,
+    filename,
+    marks.length,
+    marcasSemContorno.length,
+    yoloSegmentations,
+    metadata.umPerPixel,
+    especieDeclarada,
+    comprimentoTipicoEmPixels,
+    contornosComFormaSuspeita,
+    ultimaGravacao,
+  ]);
+
+  /** Cada acao de sugestao dispara a MESMA coisa que o botao ou a tecla ja disparam. */
+  const handleAcaoDeSugestao = useCallback(
+    (acao: AcaoDeSugestao) => {
+      switch (acao) {
+        case 'abrir-galeria':
+          setIsGaleriaOpen(true);
+          break;
+        case 'abrir-calibracao':
+          setActiveTool('viable');
+          document.getElementById('etapa-calibracao')?.scrollIntoView({ behavior: 'smooth' });
+          break;
+        case 'ferramenta-contorno':
+          setActiveTool('contorno');
+          break;
+        case 'salvar-sessao':
+          saveCurrentSession(false);
+          break;
+        case 'abrir-identificacao':
+          setIsIdentificacaoOpen(true);
+          break;
+      }
+    },
+    // saveCurrentSession e funcao comum (nao memoizada) e le refs por dentro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
     null
   );
@@ -1842,7 +1989,22 @@ export default function App() {
         toggleTheme={toggleTheme}
         sessionsCount={sessions.length}
         openHistory={() => setIsHistoryModalOpen(true)}
-        contaSlot={conta.disponivel ? <BotaoDeConta conta={conta} /> : undefined}
+        contaSlot={
+          conta.disponivel ? (
+            <BotaoDeConta
+              conta={conta}
+              metadata={metadata}
+              onAplicarBancada={() => {
+                if (conta.preferenciaSincronizada) {
+                  setMetadata((prev) => aplicarPreferencia(prev, conta.preferenciaSincronizada!));
+                }
+              }}
+              onAbrirConfiguracoes={() => setIsFeaturesOpen(true)}
+              onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+            />
+          ) : undefined
+        }
+        onImportSession={() => importInputRef.current?.click()}
         onUndo={desfazer}
         undoDisabled={!podeDesfazer}
         onRedo={refazer}
@@ -2019,6 +2181,33 @@ export default function App() {
                 raioDaRaspagem={raioDaRaspagem}
                 onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
+            )}
+
+            {/* Medidas ao vivo, no espaco ao lado da imagem. */}
+            {image && (
+              <div className="absolute top-3 right-3 z-20 w-[280px] max-w-[42vw]">
+                {painelDeMedidasAberto ? (
+                  <PainelDeMorfometria
+                    resumo={resumoDeMorfometria}
+                    especie={especieDeclarada}
+                    onFechar={() => {
+                      setPainelDeMedidasAberto(false);
+                      gravarPreferencia('sc:painelDeMedidas', false);
+                    }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => {
+                      setPainelDeMedidasAberto(true);
+                      gravarPreferencia('sc:painelDeMedidas', true);
+                    }}
+                    title="Mostrar as medidas desta imagem"
+                    className="border-line bg-surface-1/95 text-ink-2 hover:border-accent hover:text-accent focus-visible:ring-accent/40 rounded-panel ml-auto flex items-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-bold tracking-wide uppercase shadow-lg backdrop-blur transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <Ruler size={12} /> Medidas
+                  </button>
+                )}
+              </div>
             )}
             {/* O corte proposto. Fica sobre a imagem, ao lado da linha
                 tracejada que ele vai aplicar — decidir olhando a proposta e o
@@ -2320,10 +2509,33 @@ export default function App() {
       </AnimatePresence>
 
       {/* Painel visível de funcionalidades */}
-      <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+      <FeaturesModal
+        isOpen={isFeaturesOpen}
+        onClose={() => setIsFeaturesOpen(false)}
+        onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+      />
 
       <BarraDeAtividade />
       <AvisoDeAtualizacao />
+
+      <CartaoDeSugestao
+        sugestao={sugestaoAtual}
+        onAcao={handleAcaoDeSugestao}
+        onDispensar={(sug) =>
+          dispensar(sug.id, sug.escopoDaDispensa, image ? filename || 'imagem' : null)
+        }
+      />
+
+      <Florescer ativo={florescendo} onFim={encerrarFlorescer} />
+
+      {recadoDoEaster && (
+        <div
+          role="status"
+          className="border-line bg-surface-1 text-ink-1 rounded-panel fixed bottom-16 left-1/2 z-40 -translate-x-1/2 border px-4 py-2 text-xs font-semibold shadow-xl"
+        >
+          {recadoDoEaster}
+        </div>
+      )}
 
       <NovidadesModal
         isOpen={novidades.aberto}

@@ -55,6 +55,16 @@ export interface Conta {
   sair: () => Promise<void>;
   /** Estado da última sincronização, para a interface dizer o que houve. */
   sincronizacao: 'ocioso' | 'carregando' | 'gravando' | 'erro';
+  /**
+   * O que a conta tem guardado agora — não os metadados desta máquina.
+   *
+   * `null` até o primeiro carregamento bem-sucedido (ou depois de sair). É
+   * contra ISTO que a interface compara `extrairPreferencia(metadata)` para
+   * saber se vale oferecer "aplicar a bancada agora".
+   */
+  preferenciaSincronizada: PreferenciaDeBancada | null;
+  /** Quando a última sincronização (leitura ou gravação) terminou bem. `null` = nunca. */
+  sincronizadoEm: number | null;
 }
 
 export function useConta(
@@ -64,6 +74,9 @@ export function useConta(
   const disponivel = contaDisponivel();
   const [estado, setEstado] = useState<AuthState>(() => gisClient.getState());
   const [sincronizacao, setSincronizacao] = useState<Conta['sincronizacao']>('ocioso');
+  const [preferenciaSincronizada, setPreferenciaSincronizada] =
+    useState<PreferenciaDeBancada | null>(null);
+  const [sincronizadoEm, setSincronizadoEm] = useState<number | null>(null);
 
   // O que o servidor tem, para não gravar de volta o que acabou de vir dele.
   const noServidor = useRef<PreferenciaDeBancada | null>(null);
@@ -75,6 +88,8 @@ export function useConta(
   useEffect(() => {
     if (!estado.isAuthenticated) {
       noServidor.current = null;
+      setPreferenciaSincronizada(null);
+      setSincronizadoEm(null);
       return;
     }
     let cancelado = false;
@@ -86,8 +101,10 @@ export function useConta(
         if (cancelado) return;
         const p = lerPreferencia(bruto);
         noServidor.current = p;
+        setPreferenciaSincronizada(p);
         setMetadata((prev) => aplicarPreferencia(prev, p));
         setSincronizacao('ocioso');
+        setSincronizadoEm(Date.now());
       })
       .catch(() => {
         // Sem servidor a conta continua "entrada"; só não sincroniza. O app
@@ -115,7 +132,9 @@ export function useConta(
         // tipado dele. A copia e o que satisfaz a assinatura de indice.
         await gisClient.syncPreferences({ ...atual });
         noServidor.current = atual;
+        setPreferenciaSincronizada(atual);
         setSincronizacao('ocioso');
+        setSincronizadoEm(Date.now());
       } catch {
         setSincronizacao('erro');
       }
@@ -164,7 +183,17 @@ export function useConta(
     window.google?.accounts?.id?.disableAutoSelect();
     await gisClient.signOut();
     noServidor.current = null;
+    setPreferenciaSincronizada(null);
+    setSincronizadoEm(null);
   }, []);
 
-  return { disponivel, estado, montarBotao, sair, sincronizacao };
+  return {
+    disponivel,
+    estado,
+    montarBotao,
+    sair,
+    sincronizacao,
+    preferenciaSincronizada,
+    sincronizadoEm,
+  };
 }

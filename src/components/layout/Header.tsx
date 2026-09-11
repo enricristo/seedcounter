@@ -7,6 +7,7 @@ import {
   Redo2,
   Eraser,
   Save,
+  FolderInput,
   Download,
   Calendar,
   BarChart4,
@@ -34,6 +35,14 @@ interface HeaderProps {
   onPrevImage: () => void;
   onNextImage: () => void;
   onSaveSession: () => void;
+  /**
+   * Importar sessao (JSON). Ausente = botao oculto.
+   *
+   * Mora aqui, e nao na barra lateral, porque e I/O de sessao — o mesmo grupo
+   * de Salvar e Exportar. Na lateral ele ficava ao lado de "carregar amostras",
+   * que e carregar IMAGEM, e as duas acoes se confundiam.
+   */
+  onImportSession?: () => void;
   onExport: () => void;
   hasImage: boolean;
 
@@ -114,6 +123,7 @@ export function Header({
   onPrevImage,
   onNextImage,
   onSaveSession,
+  onImportSession,
   onExport,
   hasImage,
 
@@ -235,7 +245,7 @@ export function Header({
           {onOpenFeatures && (
             <button
               onClick={onOpenFeatures}
-              className={`${botaoIcone} hover:border-accent hover:text-accent`}
+              className={`${botaoIcone} hover:border-accent hover:text-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40`}
               title="Funcionalidades e recursos experimentais"
               aria-label="Funcionalidades e recursos experimentais"
             >
@@ -326,6 +336,17 @@ export function Header({
                   Próxima
                 </button>
               </div>
+            )}
+
+            {currentView === 'counter' && onImportSession && (
+              <button
+                onClick={onImportSession}
+                title="Abre uma sessão salva em JSON — imagem, marcações e contornos"
+                className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 focus-visible:ring-accent/40 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all focus-visible:ring-2 focus-visible:outline-none"
+              >
+                <FolderInput size={16} strokeWidth={2} aria-hidden="true" />
+                <span>Importar</span>
+              </button>
             )}
 
             {currentView === 'counter' && (

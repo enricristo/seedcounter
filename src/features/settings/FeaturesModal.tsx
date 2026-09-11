@@ -4,20 +4,56 @@
 // versão de teste descubra e ative os recursos experimentais sem atalho oculto.
 // =============================================================================
 
-import React from 'react';
-import { X, Sparkles, RotateCcw, FlaskConical, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  X,
+  Sparkles,
+  RotateCcw,
+  FlaskConical,
+  CheckCircle2,
+  SlidersHorizontal,
+  Info,
+} from 'lucide-react';
 import { useFeatureFlags } from '../../context/FeatureFlagContext';
 import { FEATURE_REGISTRY } from '../flags';
 import { DemoDataPanel } from '../demo';
+import { CHAVE_SOM, CHAVE_SUGESTOES, gravarPreferencia, lerPreferencia } from './preferencias';
 
 interface FeaturesModalProps {
   isOpen: boolean;
   onClose: () => void;
   version?: string;
+  /** Abre "O que mudou", a partir da seção Sobre. Ausente = o link some. */
+  onAbrirNovidades?: () => void;
 }
 
-export function FeaturesModal({ isOpen, onClose, version = `v${__APP_VERSION__}` }: FeaturesModalProps) {
+export function FeaturesModal({
+  isOpen,
+  onClose,
+  version = `v${__APP_VERSION__}`,
+  onAbrirNovidades,
+}: FeaturesModalProps) {
   const { flags, toggle, reset } = useFeatureFlags();
+
+  // As preferências não passam pelo FeatureFlagContext: são só um par de
+  // chaves em localStorage (ver `preferencias.ts`), lidas uma vez ao montar.
+  // `sc:som` é a MESMA chave que `features/easter/som.ts` usa — este painel
+  // só escreve nela, não toca no áudio em si.
+  const [sugestoesLigadas, setSugestoesLigadas] = useState(() =>
+    lerPreferencia(CHAVE_SUGESTOES, true)
+  );
+  const [somAtivo, setSomAtivo] = useState(() => lerPreferencia(CHAVE_SOM, false));
+
+  const alternarSugestoes = () => {
+    const novo = !sugestoesLigadas;
+    setSugestoesLigadas(novo);
+    gravarPreferencia(CHAVE_SUGESTOES, novo);
+  };
+  const alternarSom = () => {
+    const novo = !somAtivo;
+    setSomAtivo(novo);
+    gravarPreferencia(CHAVE_SOM, novo);
+  };
 
   if (!isOpen) return null;
 
@@ -27,13 +63,13 @@ export function FeaturesModal({ isOpen, onClose, version = `v${__APP_VERSION__}`
   const renderFlag = (flag: (typeof FEATURE_REGISTRY)[number]) => (
     <label
       key={flag.key}
-      className="flex items-start gap-3 p-3 rounded-xl border border-line hover:bg-surface-2 cursor-pointer transition-colors"
+      className="flex items-start gap-3 p-3 rounded-xl border border-line hover:border-accent hover:bg-surface-2 cursor-pointer transition-colors"
     >
       <input
         type="checkbox"
         checked={flags[flag.key]}
         onChange={() => toggle(flag.key)}
-        className="mt-0.5 accent-accent w-4 h-4 shrink-0"
+        className="mt-0.5 accent-accent w-4 h-4 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       />
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -76,7 +112,7 @@ export function FeaturesModal({ isOpen, onClose, version = `v${__APP_VERSION__}`
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="p-1.5 rounded-lg text-ink-3 hover:text-ink-2 hover:bg-surface-2 transition-colors"
+            className="p-1.5 rounded-lg text-ink-3 hover:text-ink-2 hover:bg-surface-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             <X size={18} />
           </button>
@@ -119,42 +155,104 @@ export function FeaturesModal({ isOpen, onClose, version = `v${__APP_VERSION__}`
 
           <button
             onClick={reset}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-line text-ink-2 hover:bg-surface-2 text-[11px] font-bold uppercase tracking-wide transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-line text-ink-2 hover:bg-surface-2 text-[11px] font-bold uppercase tracking-wide transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             <RotateCcw size={14} /> Restaurar padrões
           </button>
 
-          {/* Créditos */}
-          <div className="pt-3 border-t border-line space-y-1">
-            <p className="text-[10px] text-ink-3">
-              Desenvolvido por <strong>Enrico S. Ambrosio</strong> — Matemático, graduando em
-              Agronomia
-            </p>
-            <p className="text-[10px] text-ink-3">
-              <a href="mailto:enrico.ambrosio@unesp.br" className="text-accent hover:underline">
-                enrico.ambrosio@unesp.br
-              </a>
-            </p>
-            <p className="text-[10px] text-ink-3">
-              GPEOrq / GPSEM — Unoeste ·{' '}
-              <a
-                href="https://www.instagram.com/gpeorq"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline"
-              >
-                @gpeorq
-              </a>
-              {' · '}
-              <a
-                href="https://www.instagram.com/gpsem_2000/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline"
-              >
-                @gpsem_2000
-              </a>
-            </p>
+          {/* Preferências — dois controles que salvam direto em localStorage,
+              fora do FeatureFlagContext: não são recursos a habilitar, são
+              gosto de interação, e por isso vivem numa seção à parte. */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <SlidersHorizontal size={13} className="text-ink-3" />
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                Preferências
+              </h3>
+            </div>
+            <div className="space-y-1.5">
+              <label className="flex items-start gap-3 p-3 rounded-xl border border-line hover:border-accent hover:bg-surface-2 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={sugestoesLigadas}
+                  onChange={alternarSugestoes}
+                  className="mt-0.5 accent-accent w-4 h-4 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                />
+                <div className="min-w-0">
+                  <span className="text-sm font-bold text-ink-1">Sugestões contextuais</span>
+                  <p className="text-[11px] text-ink-3 mt-0.5 leading-snug">
+                    Um cartão discreto com a próxima ação útil.
+                  </p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-3 rounded-xl border border-line hover:border-accent hover:bg-surface-2 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={somAtivo}
+                  onChange={alternarSom}
+                  className="mt-0.5 accent-accent w-4 h-4 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                />
+                <div className="min-w-0">
+                  <span className="text-sm font-bold text-ink-1">Som ao marcar</span>
+                  <p className="text-[11px] text-ink-3 mt-0.5 leading-snug">
+                    Um tic curto a cada semente marcada.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Sobre */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Info size={13} className="text-ink-3" />
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-3">Sobre</h3>
+            </div>
+            <div className="rounded-xl border border-line p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[11px] text-ink-2">
+                  v{__APP_VERSION__}
+                  <span className="text-ink-3 font-normal"> · {__BUILD_COMMIT__}</span>
+                </span>
+                {onAbrirNovidades && (
+                  <button
+                    onClick={onAbrirNovidades}
+                    className="text-accent hover:underline text-[10px] font-bold uppercase tracking-wide cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-control"
+                  >
+                    O que mudou
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-ink-3">
+                Desenvolvido por <strong>Enrico S. Ambrosio</strong> — Matemático, graduando em
+                Agronomia
+              </p>
+              <p className="text-[10px] text-ink-3">
+                <a href="mailto:enrico.ambrosio@unesp.br" className="text-accent hover:underline">
+                  enrico.ambrosio@unesp.br
+                </a>
+              </p>
+              <p className="text-[10px] text-ink-3">
+                GPEOrq / GPSEM — Unoeste ·{' '}
+                <a
+                  href="https://www.instagram.com/gpeorq"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  @gpeorq
+                </a>
+                {' · '}
+                <a
+                  href="https://www.instagram.com/gpsem_2000/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  @gpsem_2000
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>

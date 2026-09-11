@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, FolderUp, Camera, Grid3x3, Crosshair, Sparkles } from 'lucide-react';
+import { Upload, Camera, Grid3x3, Crosshair, Sparkles } from 'lucide-react';
 // Do módulo específico, NÃO do barril: o barril reexporta o DemoDataPanel, que
 // puxa o demo-store e com ele o Dexie para dentro da barra lateral.
 import { EXEMPLOS } from '../../features/demo/exemplos';
@@ -100,14 +100,9 @@ export function ImageActions({
           </button>
         )}
 
-        {/* Import Session Button */}
-        <button
-          onClick={() => importInputRef.current?.click()}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-surface-2 hover:bg-surface-2 rounded-xl border border-line hover:border-line transition-all text-ink-2 hover:text-ink-1 font-bold group"
-        >
-          <FolderUp size={17} className="text-ink-3 group-hover:text-ink-2 transition-colors" />
-          <span className="text-xs uppercase tracking-wide">Importar Sessão (JSON)</span>
-        </button>
+        {/* O botao de importar sessao subiu para o cabecalho, junto de Salvar e
+            Exportar — e I/O de sessao, nao de imagem. O input escondido fica
+            aqui porque e quem tem a ref; o cabecalho so dispara o clique. */}
         <input
           type="file"
           ref={importInputRef}
