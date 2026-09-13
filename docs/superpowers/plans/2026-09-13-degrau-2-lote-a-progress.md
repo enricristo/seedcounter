@@ -4,8 +4,8 @@ Plano: `2026-09-13-degrau-2-lote-a.md`. Cada agente acrescenta a linha da sua ta
 
 | task | commit | status | nota |
 |---|---|---|---|
-| A0 soja medida | — | pendente | |
-| A1 TIFF | — | pendente | |
+| A0 soja medida | (doc, sem código) | feito | `docs/datasets/medicao-limiar-populacao-soja.md`. 20 digitalizações (seed 42, 7/7/6 entre variedades), 2.114 sementes avaliáveis; falso alarme 0,0% (mediana e média) nos três limiares — absoluto, população e irregular. Ramo 1 da regra de decisão: "população é o default para toda forma; presets absolutos viram referência", nada muda no código. Sem OpenCV/skimage disponíveis, contorno extraído por traçado de borda próprio (Moore-neighbor tracing), validado contra quadrado e círculo sintéticos antes de rodar no conjunto real. Desvio documentado: dataset não amarra instância a digitalização por nome de arquivo (ao contrário do que o plano supunha); "digitalização" foi aproximada por blocos contíguos do tamanho real de cada variedade (30/45/47) — ver nota de desvio no próprio doc. |
+| A1 TIFF | (ver `git log --oneline -1 -- src/lib/tiff.ts`) | feito, falta teste humano no navegador | 5/5 testes de `tiff.test.ts`, 795 no total (as 4 falhas de `synthetic-scene.test.ts` são da A2, em andamento por outro agente); tsc e eslint limpos nos arquivos tocados (só o warning pré-existente de `exhaustive-deps` em `handlePrevImage`, linha não tocada). `@types/utif` não foi preciso: `tsconfig.json` não tem `noImplicitAny`/`strict`, então `import UTIF from 'utif'` compila sem tipos. `toRGBA8` reduz 16→8 pegando o byte alto de cada amostra (`data[off+2*i+1]`, ver `UTIF.js` linha 1010): 0→0, 0x8000→128, 0xFFFF→255, exatamente como o teste espera — nenhum ajuste na asserção. Desvio no teste: o `tiffMinimo` do plano gravava `BitsPerSample` com 1 valor só; `UTIF.toRGBA8` usa `t258.length` (não `SamplesPerPixel`) para saber quantos canais tem o pixel RGB, então o teste de 8 bits RGB falhava (tudo zero) até o fixture passar a gravar uma entrada de `BitsPerSample` por amostra (offset fora do IFD quando não cabe inline) — comportamento confirmado contra o próprio `UTIF.encodeImage`, que sempre grava `t258:[8,8,8,8]`; fixture corrigido, não a asserção. Verificação humana no navegador **pendente** (instrução do Enrico: sem Playwright neste lote) — roteiro abaixo. |
 | A2 cena: rótulos, contorno, comporCena | — | pendente | |
 | A4 fixtures reais | — | pendente | depende da A2 |
 | A3 ensaio ao carregar | — | pendente | espera Task 8 do Degrau 1 (Task 7 fechou em f5d7a32) |
@@ -14,4 +14,34 @@ Plano: `2026-09-13-degrau-2-lote-a.md`. Cada agente acrescenta a linha da sua ta
 
 ## Medições registradas
 
-(falta: falso alarme na soja — absoluto × população; duração de cada receita do ensaio; números dos fixtures reais)
+- **Falso alarme de `limiaresDaPopulacao` na soja indonésia (Task A0):**
+  20 digitalizações amostradas (seed 42, balanceadas 7 Anjasmoro / 7 Dega /
+  6 Grobogan), 2.114 sementes avaliáveis. Neste conjunto as sementes nunca
+  se tocam (dispostas em grade à mão), então a fração acusada por qualquer
+  limiar é diretamente o falso alarme.
+  - absoluto (`PADROES`): mediana **0,0%**, média **0,0%**
+  - população (`limiaresDaPopulacao`): mediana **0,0%**, média **0,0%**
+  - `LIMIARES_DE_CONTORNO_IRREGULAR` (só registro): mediana **0,0%**, média **0,0%**
+  - solidez: p5 0,990 · p50 0,992 · p95 0,994 — margem grande acima de
+    qualquer um dos três limiares (o mais apertado, o da população, ficou em
+    ~0,956–0,958).
+  - decisão: ramo 1 da regra do plano — população é o default para toda
+    forma; nada muda no código. Detalhe completo, tabela lado a lado com a
+    orquídea e a nota de desvio (dataset não amarra instância a
+    digitalização por nome de arquivo) em
+    `docs/datasets/medicao-limiar-populacao-soja.md`.
+  - script: `medir_limiar_populacao_soja.py` (scratchpad da sessão; não
+    commitado — medição ad-hoc de checkpoint, não parte do código do produto)
+
+(falta: duração de cada receita do ensaio; números dos fixtures reais)
+
+## A1 TIFF — roteiro para o Enrico testar no navegador
+
+Gerados a partir de `public/icon-512.png` (512×512) com Python/PIL, no scratchpad da sessão
+`C:/Users/ambro/AppData/Local/Temp/claude/c--Users-ambro-Documents-seedcounter-git/091b39a2-879d-44af-93c7-a1c8c6e9dab3/scratchpad/`:
+`teste-8bits-rgb.tif` (RGB 8 bits), `teste-16bits.tif` (`mode='I;16'`, 16 bits) e `invalido.tif` (texto renomeado).
+Sanidade já conferida por script Node ad-hoc: `decodificarTiff` abre os dois primeiros (512×512, pixels não-zero) e devolve `null` para o inválido — falta só o navegador.
+
+1. `npm run dev`, abrir `http://localhost:3000/`, arrastar `teste-8bits-rgb.tif` para a área de carregar imagem — esperado: a imagem aparece (o ícone do app em 512×512), sem mensagem de erro nem console vermelho; testar a onda (tecla `S`, clicar num ponto de contraste do ícone) e ver se ela produz um contorno.
+2. Repetir com `teste-16bits.tif` — esperado: mesma imagem, agora em cinza (é escala de cinza 16 bits), abre igual, sem tela em branco nem exceção no console.
+3. Arrastar `invalido.tif` — esperado: mensagem de erro do tipo `Não foi possível abrir "invalido.tif" (...)`, nunca silêncio (sem imagem e sem aviso).
