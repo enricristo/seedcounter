@@ -8,6 +8,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { ImageViewport } from './components/canvas/ImageViewport';
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
+import { SeedInspector } from './components/canvas/SeedInspector';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
@@ -1609,6 +1610,31 @@ export default function App() {
     return resumir(rows, metadata.umPerPixel);
   }, [image, marks, yoloSegmentations, metadata, filename]);
 
+  /**
+   * Contorno selecionado atualmente ativo para inspeção biométrica e espectral.
+   */
+  const segmentacaoAtiva = useMemo(() => {
+    if (contornoSelecionado == null) return null;
+    return (
+      yoloSegmentations.find((s) => s.id === contornoSelecionado && s.visible !== false) ?? null
+    );
+  }, [contornoSelecionado, yoloSegmentations]);
+
+  /**
+   * O inspetor pede para ver o corte: seleciona e mostra a linha. NUNCA aplica.
+   *
+   * A regra do corte e mostrar a proposta e esperar a pessoa decidir — cortar
+   * por engano vira duas sementes onde havia uma, e o numero do laudo sobe.
+   * Aplicar continua sendo so o botao Separar.
+   */
+  const handleProposeCut = useCallback(
+    (id: number) => {
+      setActiveTool('contorno');
+      setContornoSelecionado(id);
+    },
+    [setActiveTool]
+  );
+
   /** Quantos contornos tem forma incompativel com a especie declarada. */
   const contornosComFormaSuspeita = useMemo(() => {
     if (!especieDeclarada) return 0;
@@ -2252,6 +2278,21 @@ export default function App() {
                 {recadoDaOnda.texto}
               </div>
             )}
+            {/* Inspetor de Semente: janela lateral flutuante com morfometria, CIELAB e priors */}
+            {segmentacaoAtiva && image && (
+              <SeedInspector
+                segmentation={segmentacaoAtiva}
+                image={imagemDeTrabalho ?? image}
+                umPerPixel={metadata.umPerPixel}
+                medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                especieId={especieDeclarada}
+                onToggleClass={toggleSegmentationClass}
+                onDelete={deleteSegmentation}
+                onProposeCut={handleProposeCut}
+                onClose={() => setContornoSelecionado(null)}
+              />
+            )}
+
             {image && (
               <MarkingCanvas
                 image={imagemDeTrabalho ?? image}
