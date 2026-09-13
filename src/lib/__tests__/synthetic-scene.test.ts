@@ -239,9 +239,12 @@ describe('rotulos e contorno', () => {
   // acima do piso de 95% do teste. Note também: com `lado: 600` e sementes
   // deste tamanho, a amostragem por rejeição nunca chega a colocar as 20
   // pedidas (o espaçamento mínimo entre centros é grande demais para a área
-  // livre) — o teste avalia a fração sobre o que de fato coube, não sobre 20.
+  // livre) — e um "95%" sobre 4 sementes não é medida. Por isso a cena usa
+  // lado 1600 (no do preset, 1100, cabem 11), e o teste exige que pelo
+  // menos 15 tenham cabido antes de calcular a fração.
   it('a onda recupera ≥ 95% das sementes com IoU > 0,8 no preset soja', () => {
-    const cena = gerarCenaSintetica('soja', { semente: 5, quantidade: 20, lado: 600 });
+    const cena = gerarCenaSintetica('soja', { semente: 5, quantidade: 20, lado: 1600 });
+    expect(cena.sementes.length).toBeGreaterThanOrEqual(15);
     let bons = 0;
     for (const s of cena.sementes) {
       const r = segmentarPorClique(cena.imagem, { x: s.x, y: s.y }, { janela: 320 });
