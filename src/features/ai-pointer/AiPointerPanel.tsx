@@ -15,7 +15,6 @@ import {
   SquareDashedMousePointer,
 } from 'lucide-react';
 import {
-  detectWithYolo,
   isModelAvailable,
   resolveBestModel,
   DEFAULT_MODEL_URL,
@@ -23,6 +22,7 @@ import {
   type YoloDetection,
   type ModelQuality,
 } from '../../lib/yolo-onnx';
+import { detectarNoWorker } from '../../lib/yolo-worker-client';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
 import { contarJanelas, limitarRegiao, type Regiao } from '../../lib/region';
 import { formatLengthDual, formatAreaDual } from '../../lib/calibration';
@@ -136,7 +136,23 @@ export function AiPointerPanel({
     // a pessoa ve quando rolou a barra lateral para outro lugar.
     const encerrar = iniciarAtividade('yolo', 'Detectando sementes…');
     try {
-      const result = await detectWithYolo(image, {
+      // A inferencia roda num worker (Task 7): o arraste e o zoom nao travam
+      // mais enquanto o modelo processa. So ImageData atravessa a fronteira
+      // de thread, entao os pixels sao lidos aqui, uma vez, antes de
+      // despachar — detectarNoWorker cai sozinha para esta mesma thread se o
+      // worker nao existir ou falhar.
+      const w = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
+      const h = image instanceof HTMLImageElement ? image.naturalHeight : image.height;
+      const canvasLeitura = document.createElement('canvas');
+      canvasLeitura.width = w;
+      canvasLeitura.height = h;
+      const ctxLeitura = canvasLeitura.getContext('2d', { willReadFrequently: true });
+      if (!ctxLeitura) throw new Error('Canvas 2D não disponível para ler a imagem.');
+      ctxLeitura.drawImage(image, 0, 0);
+      const dadosDaImagem = ctxLeitura.getImageData(0, 0, w, h);
+
+      const inicioDaMedicao = performance.now();
+      const result = await detectarNoWorker(dadosDaImagem, {
         confThreshold: confidence / 100,
         withMasks: withMorphometry,
         roi: regiao ?? undefined,
@@ -145,6 +161,9 @@ export function AiPointerPanel({
           if (total > 0) atualizarProgresso('yolo', done / total);
         },
       });
+      console.info(
+        `[yolo] inferência: ${(performance.now() - inicioDaMedicao).toFixed(0)} ms, ${result.length} objetos`
+      );
       setDetections(result);
     } catch (err) {
       console.error('[AI Pointer] falha na inferência:', err);
