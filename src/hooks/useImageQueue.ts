@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { iniciarAtividade } from '../features/atividade/atividade';
 import { ehTiff } from '../lib/image-crop';
+import { decodificarTiff } from '../lib/tiff';
 
 interface UseImageQueueProps {
   onImageLoaded?: (img: HTMLImageElement, file: File) => void;
@@ -16,13 +17,54 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
 
   const loadImageFromFile = useCallback(
     (file: File) => {
-      // TIFF passa no filtro image/* mas nenhum navegador o decodifica: sem
-      // esta guarda, o img.onload nunca dispara e a tela fica em silêncio,
-      // sem imagem e sem erro.
+      // TIFF passa no filtro image/* mas nenhum navegador o decodifica.
+      // Scanner de laboratório grava TIFF (8/16 bits, com ou sem LZW), então
+      // decodificamos aqui com `utif` e entregamos o mesmo <img> do PNG —
+      // nada abaixo do carregador precisa saber de onde a imagem veio.
       if (ehTiff(file)) {
-        setLoadError(
-          `"${file.name}" está em TIFF, que o navegador não abre. Converta para JPG ou PNG antes de carregar.`
-        );
+        setFilename(file.name);
+        setLoadError(null);
+        const encerrar = iniciarAtividade('imagem', `Abrindo ${file.name}…`);
+        file
+          .arrayBuffer()
+          .then((buffer) => {
+            const dec = decodificarTiff(buffer);
+            if (!dec) throw new Error('não é um TIFF que este leitor entenda');
+            const canvas = document.createElement('canvas');
+            canvas.width = dec.width;
+            canvas.height = dec.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('canvas indisponível');
+            ctx.putImageData(new ImageData(dec.rgba, dec.width, dec.height), 0, 0);
+            // Blob + object URL em vez de data URL: uma digitalização de 6800
+            // px viraria uma string de dezenas de MB só para virar imagem.
+            return new Promise<HTMLImageElement>((resolve, reject) => {
+              canvas.toBlob((blob) => {
+                if (!blob) { reject(new Error('não foi possível converter')); return; }
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem inválida')); };
+                img.src = url;
+              }, 'image/png');
+            }).then((img) => {
+              if (dec.paginas > 1) {
+                // Aviso, não erro: a primeira página abriu.
+                setLoadError(`"${file.name}" tem ${dec.paginas} páginas; foi aberta a primeira.`);
+              }
+              return img;
+            });
+          })
+          .then((img) => {
+            encerrar();
+            setImage(img);
+            onImageLoaded?.(img, file);
+          })
+          .catch((e: unknown) => {
+            encerrar();
+            const motivo = e instanceof Error ? e.message : 'erro desconhecido';
+            setLoadError(`Não foi possível abrir "${file.name}" (${motivo}). Converta para PNG e tente de novo.`);
+          });
         return;
       }
 
@@ -61,7 +103,10 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
 
   const loadFiles = useCallback(
     (files: File[]) => {
-      const validFiles = files.filter((f) => f.type.startsWith('image/'));
+      // Windows às vezes entrega TIFF com `type` vazio (o navegador não
+      // reconhece a extensão); sem o `ehTiff(f)` o arquivo cairia fora do
+      // filtro antes mesmo de chegar na guarda que sabe decodificá-lo.
+      const validFiles = files.filter((f) => f.type.startsWith('image/') || ehTiff(f));
       if (validFiles.length > 0) {
         setImageQueue(validFiles);
         setCurrentImageIndex(0);
