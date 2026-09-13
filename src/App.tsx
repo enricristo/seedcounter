@@ -100,6 +100,7 @@ import { RoiModal } from './features/roi';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
+import { limiaresDaPopulacao } from './lib/aglomerado';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
 import type { Regiao } from './lib/region';
@@ -1621,6 +1622,20 @@ export default function App() {
   }, [contornoSelecionado, yoloSegmentations]);
 
   /**
+   * Limiares de aglomerado derivados DESTA imagem.
+   *
+   * Substitui os presets por espécie: o que a maioria dos contornos da cena
+   * tem é a referência, e o par é o outlier. Com menos de 8 contornos não há
+   * população — cai no padrão.
+   */
+  const limiaresDaCena = useMemo(() => {
+    const contornos = yoloSegmentations
+      .filter((s) => s.visible !== false)
+      .map((s) => s.polygon_points);
+    return limiaresDaPopulacao(contornos) ?? undefined;
+  }, [yoloSegmentations]);
+
+  /**
    * O inspetor pede para ver o corte: seleciona e mostra a linha. NUNCA aplica.
    *
    * A regra do corte e mostrar a proposta e esperar a pessoa decidir — cortar
@@ -2285,6 +2300,7 @@ export default function App() {
                 image={imagemDeTrabalho ?? image}
                 umPerPixel={metadata.umPerPixel}
                 medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                limiares={limiaresDaCena}
                 especieId={especieDeclarada}
                 onToggleClass={toggleSegmentationClass}
                 onDelete={deleteSegmentation}

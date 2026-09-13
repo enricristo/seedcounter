@@ -18,7 +18,12 @@ import {
   Layers,
 } from 'lucide-react';
 import type { YoloSegmentation } from '../../types';
-import { areaDoPoligono, fechoConvexo, analisarContorno } from '../../lib/aglomerado';
+import {
+  areaDoPoligono,
+  fechoConvexo,
+  analisarContorno,
+  type LimiaresDeAglomerado,
+} from '../../lib/aglomerado';
 import { extrairCaracteristicasDeCor, type CaracteristicasDeCor } from '../../lib/color-features';
 import { compararComPerfil } from '../../lib/priors-morfometricos';
 
@@ -27,6 +32,8 @@ interface SeedInspectorProps {
   image: HTMLImageElement;
   umPerPixel?: number;
   medianaDaCena?: number;
+  /** Limiares de aglomerado derivados da população desta cena — ver aglomerado.ts. */
+  limiares?: LimiaresDeAglomerado;
   especieId?: string;
   onToggleClass?: (id: number) => void;
   onDelete?: (id: number) => void;
@@ -39,6 +46,7 @@ export function SeedInspector({
   image,
   umPerPixel,
   medianaDaCena,
+  limiares,
   especieId,
   onToggleClass,
   onDelete,
@@ -208,9 +216,12 @@ export function SeedInspector({
   }, [segmentation, image]);
 
   // 4. Veredito de aglomerado — relativo à população da cena, quem decide é aglomerado.ts
+  //    `limiares` vem derivado desta imagem (limiaresDaPopulacao, calculado no App); sem
+  //    população suficiente (menos de 8 contornos) o App passa undefined e analisarContorno
+  //    cai no padrão calibrado para contorno liso.
   const sinais = useMemo(
-    () => analisarContorno(segmentation.polygon_points, medianaDaCena ?? NaN),
-    [segmentation.polygon_points, medianaDaCena]
+    () => analisarContorno(segmentation.polygon_points, medianaDaCena ?? NaN, limiares),
+    [segmentation.polygon_points, medianaDaCena, limiares]
   );
 
   // 5. Comparação com a literatura — referência para orientar o olho, nunca veredito
