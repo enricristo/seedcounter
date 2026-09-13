@@ -87,14 +87,17 @@ Os conjuntos abaixo foram baixados e organizados na pasta `datasets/` para trein
 
 | Conjunto | Cultura / Alvo | Formato / Anotação | Quantidade | Origem & Licença |
 |---|---|---|---|---|
+| `Sementes de Orquideas` | Orquídeas (*Epidendrum*) | YOLOv8 Bounding Boxes (`data.yaml`, labels `.txt`) | 772 imagens / 738 labels | [Roboflow Universe](https://universe.roboflow.com/sementes-de-orqudea/sementes-de-orquideas/dataset/8) (CC BY 4.0) — **Classes: viável e inviável por Tetrazólio** |
+| `Seed dataset` | 88 espécies botânicas (forrageiras, daninhas, cereais) | Imagens macro (192×272) em fundo preto + Excel | 4.496 imagens | [Nature Scientific Data 2024](https://doi.org/10.1038/s41597-024-03176-5) / [Figshare](https://doi.org/10.6084/m9.figshare.24552394.v1) |
 | `lucasiturriago-seeds` | Sementes em geral | Máscaras binárias semânticas (512×512) | 2.807 imagens (5.614 máscaras) | [Kaggle](https://www.kaggle.com/datasets/lucasiturriago/seeds) (CC BY-SA 4.0) |
 | `seed detect.v3i.yolov8` | Semente de trigo | YOLOv8 Bounding Boxes (`.txt` + `data.yaml`) | 113 imagens | [Roboflow Universe](https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet) (CC BY 4.0) |
 | `wheat quality detection.v2i.multiclass` | Trigo (qualidade/sanidade) | CSV multiclasse (*bad seed*, *healthy seed*, *impurity*) | 7.217 imagens | [Roboflow Universe](https://universe.roboflow.com/first-pijnk/wheat-quality-detection) (Public Domain) |
 | `wheat seed classification.v2i.multiclass` | Trigo (classificação) | CSV multiclasse (*bad seed*, *healthy seed*, *impurity*) | 538 imagens | [Roboflow Universe](https://universe.roboflow.com/bcd-hhv9y/wheat-seed-classification) (CC BY 4.0) |
 | `rice.v1i.multiclass` | Arroz, impurezas e pragas | CSV multiclasse (12 classes: grãos, cascas, *Sitophilus*, daninhas) | 591 imagens | [Roboflow Universe](https://universe.roboflow.com/test-rzp49/rice-te3lx) (CC BY 4.0) |
 | `peanuts.v2-release.multiclass` | Amendoim (sanidade) | CSV multiclasse (*with mold*, *without mold*) | 387 imagens | [Roboflow 100](https://universe.roboflow.com/roboflow-100/peanuts-sd4kf) (CC BY 4.0) |
+| `images/` e `nelson_phd_...` | Digitalizações de bancada / Doutorado Nelson | Scans brutos, TIFs, recortes analisados e relatórios CSV | ~1.126 imagens | Digitalizações reais do laboratório (tetrazólio e grumos de sementes encostadas) |
 
-Consulte o guia completo em [`datasets/README.md`](../../../datasets/README.md) para detalhes de pipeline de treino e métricas.
+Consulte o guia completo em [`datasets/README.md`](../../../datasets/README.md) para detalhes de pipeline de treino, métricas e comandos Kaggle CLI para baixar modelos como `lucasiturriago/yolov11m-seeds`.
 
 ### 3.1 O que conferir em cada um antes de usar
 
