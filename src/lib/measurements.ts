@@ -12,6 +12,7 @@
 // =============================================================================
 
 import { calculateSeedDimensions } from './pca-utils';
+import { feret } from './feret';
 import type { Mark, YoloSegmentation, Metadata } from '../types';
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
 
@@ -42,6 +43,14 @@ export interface SeedMeasurement {
   comprimentoMm?: number;
   larguraMm?: number;
   areaMm2?: number;
+  /**
+   * Feret maximo e minimo — a medida do paquimetro e da peneira comercial.
+   * Em px sempre; em mm quando calibrado.
+   */
+  feretMaxPx?: number;
+  feretMinPx?: number;
+  feretMaxMm?: number;
+  feretMinMm?: number;
   /** Razão de aspecto (comprimento / largura). */
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
@@ -240,6 +249,18 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
           : undefined;
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
 
+      // Feret: a medida do paquimetro e da peneira comercial (UBS classifica
+      // por fenda/redonda em mm). Diverge da PCA em contorno assimetrico.
+      const f = feret(poly);
+      if (f) {
+        row.feretMaxPx = f.maximo;
+        row.feretMinPx = f.minimo;
+        if (umPerPixel && umPerPixel > 0) {
+          row.feretMaxMm = (f.maximo * umPerPixel) / 1000;
+          row.feretMinMm = (f.minimo * umPerPixel) / 1000;
+        }
+      }
+
       // Cor dentro do contorno, quando os pixels estão disponíveis.
       if (imageData) {
         const cor = extrairCaracteristicasDeCor(imageData, poly, colorSampling);
@@ -309,6 +330,10 @@ const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'comprimentoMm', label: 'comprimento_mm' },
   { key: 'larguraMm', label: 'largura_mm' },
   { key: 'areaMm2', label: 'area_mm2' },
+  { key: 'feretMaxPx', label: 'feret_max_px' },
+  { key: 'feretMinPx', label: 'feret_min_px' },
+  { key: 'feretMaxMm', label: 'feret_max_mm' },
+  { key: 'feretMinMm', label: 'feret_min_mm' },
   { key: 'rMean', label: 'r_mean' },
   { key: 'rStd', label: 'r_std' },
   { key: 'gMean', label: 'g_mean' },

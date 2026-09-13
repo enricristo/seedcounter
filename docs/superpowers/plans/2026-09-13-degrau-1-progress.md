@@ -10,7 +10,7 @@ retomar sem reconstruir contexto. Plano: `2026-09-13-degrau-1-fundacao-medida.md
 | 3. Feret | pendente | | | |
 | 4. limiar relativo a populacao | pendente | | | |
 | 5. criterio do modelo visivel | pendente | | | |
-| 6. taxonomia como caminho | pendente | | | |
+| 6. taxonomia como caminho | feito | a5837ea | agente | 782 testes (isolado); suite completa teve 1 falha transitoria em challenger.test.ts (nao e meu arquivo, passou ao rodar isolado e ao repetir a suite completa) |
 | 7. worker ONNX | pendente | | | precisa de teste manual |
 | 8. spike do radial | pendente | | | precisa de cronometragem |
 
