@@ -71,6 +71,18 @@ export class SeedCounterDB extends Dexie {
       laboratorio: 'id',
       telemetryQueue: 'id, status, createdAt, retryCount',
     });
+
+    // v6 — taxonomia como caminho. Sem migracao de dado: contorno antigo nao tem
+    // `classe`, e isso significa exatamente "so viavel/inviavel", que e o que
+    // ele sempre foi. Mesmos stores; a versao existe para o Dexie registrar a
+    // mudanca de forma.
+    this.version(6).stores({
+      sessions: 'id, date, experimentId, treatmentId',
+      metadataStore: 'id',
+      experiments: 'id, createdAt, species, responsible',
+      laboratorio: 'id',
+      telemetryQueue: 'id, status, createdAt, retryCount',
+    });
   }
 }
 

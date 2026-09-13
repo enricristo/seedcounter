@@ -58,6 +58,11 @@ export interface YoloSegmentation {
    */
   origem?: 'modelo' | 'clique';
   /**
+   * Caminho taxonomico: ['anormal', 'danificada']. A raiz e uma das classes de
+   * germinacao. Ausente = so a categoria viavel/inviavel de sempre.
+   */
+  classe?: string[];
+  /**
    * A marcacao a que este contorno pertence.
    *
    * O vinculo era IMPLICITO — "a marca que cai dentro do poligono" — e
