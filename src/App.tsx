@@ -101,6 +101,7 @@ import { RoiModal } from './features/roi';
 // Utils
 import { contarObjetos } from './lib/contagem';
 import { limiaresDaPopulacao } from './lib/aglomerado';
+import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
 import type { Regiao } from './lib/region';
@@ -222,6 +223,9 @@ export default function App() {
   const isModoLaudoEnabled = useFeatureFlag('modoLaudo');
   const isSplitEnabled = useFeatureFlag('splitScan');
   const isRoiEnabled = useFeatureFlag('circularRoi');
+  // Spike (Tarefa 8, Degrau 1): desligada por padrao. So muda o botao direito
+  // no canvas quando ligada — ver `MarkingCanvas` e `flags.ts`.
+  const isMenuRadialEnabled = useFeatureFlag('menuRadial');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
 
@@ -1650,6 +1654,27 @@ export default function App() {
     [setActiveTool]
   );
 
+  /**
+   * O spike do menu radial (Tarefa 8, Degrau 1): classifica pela DIRECAO do
+   * arraste do botao direito sobre um contorno, sem sair do canvas.
+   *
+   * As opcoes sao as seis raizes de TAXONOMIA — a classe fina do teste de
+   * germinacao (`ClasseDeSemente`). A classificacao cai na MARCA vinculada ao
+   * contorno, pelo mesmo `setSubclasse` que a galeria ja usa: nao existe um
+   * segundo lugar para gravar classe so porque o gesto e outro.
+   *
+   * Um contorno de MODELO sem marca vinculada (`marcaId` nulo) nao tem onde
+   * gravar — o gesto termina em silencio, como um clique que nao achou alvo.
+   */
+  const handleClassificarRadial = useCallback(
+    (segId: number, chave: string) => {
+      const seg = segmentacoesRef.current.find((s) => s.id === segId);
+      if (!seg || seg.marcaId == null) return;
+      setSubclasse(seg.marcaId, chave as ClasseDeSemente);
+    },
+    [setSubclasse]
+  );
+
   /** Quantos contornos tem forma incompativel com a especie declarada. */
   const contornosComFormaSuspeita = useMemo(() => {
     if (!especieDeclarada) return 0;
@@ -2353,6 +2378,8 @@ export default function App() {
                   setRegiaoDeDeteccao(r);
                   setSelecionandoRegiao(false);
                 }}
+                menuRadialAtivo={isMenuRadialEnabled}
+                onClassificarRadial={handleClassificarRadial}
               />
             )}
           </ImageViewport>

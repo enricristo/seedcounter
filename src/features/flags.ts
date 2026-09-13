@@ -17,6 +17,7 @@ export type FeatureKey =
   | 'splitScan' // Fase G — Divisão de digitalização em pedaços
   | 'circularRoi' // Fase G — Recorte circular do campo da ocular
   | 'modoLaudo' // Fase H — Identificação e campos normativos (BAS/BASO)
+  | 'menuRadial' // Spike — classificar pela direção do arraste do botão direito
   | 'debugPanel'; // Dev — Feature flags debug panel
 
 export interface FeatureFlag {
@@ -122,6 +123,18 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
     phase: 'Fase H',
     description:
       'Coleta a identificação do laboratório e da amostra que o Boletim de Análise de Sementes exige, e aponta os campos obrigatórios ainda em branco',
+  },
+  {
+    // Spike, nao produto: o criterio de promocao e medido, nao opinado —
+    // cronometrar 20 classificacoes pelo radial contra 20 pela tecla X (mesma
+    // imagem). Se o radial nao for mais rapido, ele fica atras desta flag
+    // para sempre, e isso e um resultado, nao um fracasso.
+    key: 'menuRadial',
+    label: 'Menu radial (spike)',
+    defaultEnabled: false,
+    stable: false,
+    phase: 'Spike',
+    description: 'Segure o botão direito sobre um contorno e arraste para classificar. Experimento de velocidade.',
   },
   {
     key: 'debugPanel',

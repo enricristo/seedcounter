@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Mark, YoloSegmentation } from '../../types';
 import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
@@ -14,6 +14,18 @@ import {
   verticeMaisProximo,
   type Ponto,
 } from '../../lib/edicao-de-contorno';
+import { TAXONOMIA } from '../../lib/normas/taxonomia';
+import { fatiaDoAngulo } from '../../features/radial/geometria';
+import { MenuRadial, type OpcaoRadial } from '../../features/radial/MenuRadial';
+
+/**
+ * Opcoes do spike do menu radial (Tarefa 8): as raizes de TAXONOMIA, que sao
+ * exatamente as classes do teste de germinacao. Seis fatias.
+ */
+const OPCOES_RADIAIS: OpcaoRadial[] = TAXONOMIA.map((no) => ({
+  chave: no.chave,
+  rotulo: no.rotulo,
+}));
 
 /**
  * O que está sob o cursor na ferramenta de contorno. É o que o realce e o
@@ -134,6 +146,20 @@ interface MarkingCanvasProps {
   linhaDeCorte?: [[number, number], [number, number]] | null;
   /** Poligono desenhado a mao, fechado. Em pixels da imagem. */
   onDesenhoConcluido?: (pontos: [number, number][]) => void;
+
+  // --- Spike do menu radial (Tarefa 8 — atrás de flag, ver `flags.ts`) ---
+  /**
+   * A flag `menuRadial` está ligada? Com ela desligada, nada no botão
+   * direito muda: continua apagando o contorno, como sempre fez.
+   */
+  menuRadialAtivo?: boolean;
+  /**
+   * O gesto terminou fora da zona morta: `id` é o contorno sob o qual o
+   * botão direito desceu, `chave` é a raiz de TAXONOMIA escolhida pela
+   * direção do arraste. Quem aplica a classificação é App — passa por
+   * `useMarks`, como qualquer outra mutação de classe.
+   */
+  onClassificarRadial?: (id: number, chave: string) => void;
 }
 
 export function MarkingCanvas({
@@ -176,8 +202,62 @@ export function MarkingCanvas({
   raioDaRaspagem = 14,
   linhaDeCorte,
   onDesenhoConcluido,
+  menuRadialAtivo = false,
+  onClassificarRadial,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
+
+  // --- Spike do menu radial (Tarefa 8) ---
+  /**
+   * O gesto em curso: `id` do contorno sob o qual o botão direito desceu, e
+   * `origem` em coordenadas de TELA (clientX/clientY) — o menu é `fixed` e
+   * não precisa saber de zoom nem de rolagem. Existe só enquanto o botão
+   * segue pressionado; `null` quando não há gesto radial em curso.
+   */
+  const [gestoRadial, setGestoRadial] = useState<{
+    id: number;
+    origem: { x: number; y: number };
+  } | null>(null);
+  /** Posição atual do ponteiro durante o gesto — só para o desenho do menu. */
+  const [atualRadial, setAtualRadial] = useState<{ x: number; y: number } | null>(null);
+  /**
+   * Mesma posição, em ref: o `mouseup` lê o ATUAL, não o que o closure do
+   * efeito capturou quando o gesto começou — sem isso a fatia seria sempre
+   * calculada com `atual = null` e o gesto nunca escolheria nada.
+   */
+  const atualRadialRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Os listeners vivem no `window`, não num handler de elemento: o arraste do
+  // botão direito sai da área do polígono (e às vezes do próprio canvas) o
+  // tempo todo, e o gesto não pode se perder por isso. O efeito só liga
+  // quando um gesto começa e desliga quando termina — a dependência é a
+  // referência de `gestoRadial`, que só muda nesses dois momentos.
+  useEffect(() => {
+    if (!gestoRadial) return;
+    const aoMover = (e: MouseEvent) => {
+      const p = { x: e.clientX, y: e.clientY };
+      atualRadialRef.current = p;
+      setAtualRadial(p);
+    };
+    const aoSoltar = (e: MouseEvent) => {
+      const p = atualRadialRef.current ?? { x: e.clientX, y: e.clientY };
+      const dx = p.x - gestoRadial.origem.x;
+      const dy = p.y - gestoRadial.origem.y;
+      const fatia = fatiaDoAngulo(dx, dy, OPCOES_RADIAIS.length);
+      // `null` é soltar no centro — cancela em silêncio, como o clique no
+      // vazio da ferramenta de contorno.
+      if (fatia != null) onClassificarRadial?.(gestoRadial.id, OPCOES_RADIAIS[fatia].chave);
+      setGestoRadial(null);
+      setAtualRadial(null);
+      atualRadialRef.current = null;
+    };
+    window.addEventListener('mousemove', aoMover);
+    window.addEventListener('mouseup', aoSoltar);
+    return () => {
+      window.removeEventListener('mousemove', aoMover);
+      window.removeEventListener('mouseup', aoSoltar);
+    };
+  }, [gestoRadial, onClassificarRadial]);
 
   // --- Ajuste de contorno ---
   /**
@@ -574,6 +654,12 @@ export function MarkingCanvas({
       style={{
         width: `${image.width * zoomLevel}px`,
         height: `${image.height * zoomLevel}px`,
+      }}
+      onContextMenu={(e) => {
+        // Só suprime o menu do navegador quando o spike está ligado — com a
+        // flag desligada, o botão direito continua se comportando como
+        // sempre: nada aqui muda.
+        if (menuRadialAtivo) e.preventDefault();
       }}
     >
       {/* Underlying Canvas for image and manual marks */}
@@ -981,10 +1067,19 @@ export function MarkingCanvas({
                   // das outras ferramentas.
                   onClick={(e) => handlePolygonClick(e, seg)}
                   onMouseDown={(e) => {
-                    if (e.button === 2) {
-                      e.preventDefault();
-                      handlePolygonClick(e, seg);
+                    if (e.button !== 2) return;
+                    e.preventDefault();
+                    // Com a flag ligada, o botão direito muda de sentido:
+                    // segurar e arrastar classifica em vez de apagar. Com a
+                    // flag desligada este ramo nem existe — nada muda.
+                    if (menuRadialAtivo) {
+                      const origem = { x: e.clientX, y: e.clientY };
+                      setGestoRadial({ id: seg.id, origem });
+                      setAtualRadial(origem);
+                      atualRadialRef.current = origem;
+                      return;
                     }
+                    handlePolygonClick(e, seg);
                   }}
                   onMouseMove={(e) => handlePolygonMouseMove(e, seg)}
                   onMouseLeave={handlePolygonMouseLeave}
@@ -1241,6 +1336,11 @@ export function MarkingCanvas({
             </div>
           </div>
         </div>
+      )}
+
+      {/* O menu radial do spike — só existe enquanto o gesto está em curso. */}
+      {menuRadialAtivo && gestoRadial && (
+        <MenuRadial origem={gestoRadial.origem} atual={atualRadial} opcoes={OPCOES_RADIAIS} />
       )}
     </div>
   );
