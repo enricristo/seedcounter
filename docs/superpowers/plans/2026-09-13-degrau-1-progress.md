@@ -12,7 +12,7 @@ retomar sem reconstruir contexto. Plano: `2026-09-13-degrau-1-fundacao-medida.md
 | 5. criterio do modelo visivel | feito | 60a14ad | agente | 782 testes, tsc e eslint limpos nos 3 arquivos; commit MISTO com a Tarefa 1 por corrida de `git add` concorrente — outro agente rodou `git commit` enquanto meus 3 arquivos ja estavam staged; conteudo integro (ver `git show --stat 60a14ad`), so a mensagem do commit e a da Tarefa 1 |
 | 6. taxonomia como caminho | feito | a5837ea (feature); 1584bf5 (docs) | agente | 782 testes (isolado); suite completa teve 1 falha transitoria em challenger.test.ts (nao e meu arquivo, passou ao rodar isolado e ao repetir a suite completa). O commit de docs 1584bf5 saiu MISTO com `src/lib/feret.ts`, `src/lib/measurements.ts` e seus testes (Tarefa 3) por corrida de `git add` concorrente — eu so tinha adicionado o progress.md, mas outro agente ja tinha esses arquivos staged quando rodei `git commit`; conteudo integro (ver `git show --stat 1584bf5`), so a mensagem/atribuicao do commit e a de docs da Tarefa 6, nao a de feat da Tarefa 3 |
 | 7. worker ONNX | feito | f5d7a32 | agente | 785 testes, tsc e eslint limpos nos 4 arquivos (App.tsx nao precisou ser tocado — a chamada mora em `AiPointerPanel.tsx`); build gera `dist/assets/yolo.worker-Cf-deA18.js` (6.31 kB) como chunk separado. Verificado de verdade no Chromium via Playwright (nao so vitest, que nao roda worker): dois defeitos reais so apareceram rodando — `onProgress` (funcao) lancava DataCloneError no primeiro `postMessage`, e dentro do worker o caminho relativo do modelo resolvia contra a URL do PROPRIO SCRIPT do worker (nao da pagina), entao o ONNX Runtime recebia o HTML de fallback do Vite e falhava com "protobuf parsing failed". Os dois foram corrigidos (progresso por mensagem `tipo:'progresso'` separada; `document.baseURI` mandado no pedido e usado para resolver `models/...` dentro do worker). Por causa do segundo defeito, a ImageData deixou de ser transferida (so clonada) — sem isso, cair para o fallback DEPOIS que o worker ja aceitou a mensagem quebraria com `InvalidStateError: source data has been detached` (tambem medido, tambem corrigido) |
-| 8. spike do radial | pendente | | | precisa de cronometragem |
+| 8. spike do radial | feito (codigo) | 0a1d05f | agente | 798 testes na suite completa (2 falhas transitorias, nenhuma nos meus arquivos: `synthetic-scene.test.ts` — nao e meu arquivo, timeout de 5s, listado como fora do meu escopo — e `challenger.test.ts`, a mesma falha transitoria ja registrada na Tarefa 6; isolado, `geometria.test.ts` passa 3/3); tsc e eslint limpos nos 4 arquivos tocados (so os 3 warnings pre-existentes em App.tsx/MarkingCanvas.tsx, sem relacao); `npm run build` limpo. Adaptacao: o plano supunha `onContextMenu` num polígono; no codigo real o botao direito ja tinha `onMouseDown` proprio no polígono (apagava o contorno) — o gesto radial passou a ramificar dali (`menuRadialAtivo` desvia para o gesto ANTES de chamar `handlePolygonClick`), e o `onContextMenu` (so `preventDefault` com a flag ligada) foi para o `<div>` raiz do componente, que recebe o evento por bolha de qualquer filho. A classificacao escrita e a subclasse da MARCA vinculada ao contorno (`seg.marcaId`), via `setSubclasse` — nao existe ainda um setter para `YoloSegmentation.classe` (caminho da Tarefa 6) no `useMarks`, e reaproveitar `setSubclasse` evita abrir uma segunda porta de mutacao so para o spike. Falta a cronometragem: e do humano, roteiro abaixo. Ressalva registrada: com a ferramenta `contorno` ou `eraser` ativa, a camada interativa (zIndex 8, `pointer-events:auto`) cobre o polígono (zIndex 5) inteiro e intercepta o botao direito antes dele chegar — o gesto radial so funciona com uma ferramenta de marcacao (viavel/inviavel) ativa, que e o caso do roteiro de cronometragem |
 
 ## Medicoes registradas
 
@@ -70,7 +70,20 @@ retomar sem reconstruir contexto. Plano: `2026-09-13-degrau-1-fundacao-medida.md
    commit, a inferencia rodava na thread principal e o arraste engasgava
    pelo tempo inteiro da deteccao.
 
-(falta: tempo radial x tecla X — Tarefa 8)
+## Roteiro para o humano cronometrar o radial (Tarefa 8)
+
+1. `npm run dev`, ligar a flag "Menu radial (spike)" no frasco do cabecalho
+   (Ctrl+Shift+D abre o painel de debug se o frasco nao estiver visivel) — com
+   a flag desligada nada muda, o botao direito continua so apagando o contorno.
+2. O gesto: com uma ferramenta de marcacao ativa (`V`/`I`), segurar o botao
+   direito sobre um contorno e arrastar numa direcao; soltar longe do centro
+   classifica na raiz de TAXONOMIA daquela direcao, soltar perto do centro
+   cancela. Comparar contra a tecla `X` (inverte viavel/inviavel) + clique.
+3. Cronometrar 20 classificacoes pelo radial e 20 pela tecla `X`, na mesma
+   imagem, com `performance.now()` ou cronometro — total de cada, nao por
+   clique.
+4. Critério: se o radial não for mais rápido, a flag fica desligada por
+   padrão e o spike não avança — registrar aqui os dois tempos e a decisão.
 
 ## Bloqueios
 
