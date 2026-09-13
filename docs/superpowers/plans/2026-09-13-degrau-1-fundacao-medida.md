@@ -22,6 +22,7 @@
 - **Testes em ambiente node**: módulo de `src/lib/` não toca DOM, `localStorage` nem `Image`.
 - **Nenhuma dependência nova.** `package.json` não muda.
 - **Antes de cada commit:** `npx vitest run`, `npx tsc --noEmit`, `npx eslint <arquivos tocados> --ext .ts,.tsx`. Falhou, não commita.
+- **Commit SEMPRE com pathspec explícito:** `git commit -m "..." -- <arquivos da tarefa>`. Motivo, aprendido nesta rodada: `git commit` sem caminhos commita o índice inteiro, inclusive o que OUTRO agente tinha staged — os arquivos da Task 5 foram varridos para dentro do commit da Task 1. O `--` com os caminhos ignora o resto do índice. Vale também para o `progress.md`.
 - **Mensagem de commit em português, explicando o porquê**, no estilo do `git log` do projeto. Termina com `Co-Authored-By: Claude <noreply@anthropic.com>`.
 - **Não tocar em `src/App.tsx` fora dos trechos que a tarefa nomeia.** Outras tarefas tocam nele; edição cirúrgica.
 
