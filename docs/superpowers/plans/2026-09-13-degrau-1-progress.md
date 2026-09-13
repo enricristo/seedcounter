@@ -11,7 +11,7 @@ retomar sem reconstruir contexto. Plano: `2026-09-13-degrau-1-fundacao-medida.md
 | 4. limiar relativo a populacao | feito | b75e384 | agente | 785 testes, tsc e eslint limpos nos 4 arquivos (so os 3 warnings pre-existentes em App.tsx, sem relacao); nenhuma constante precisou ser ajustada — K_DA_POPULACAO=3,5 e os pisos MAD_MINIMO_SOLIDEZ=0,01/MAD_MINIMO_PROFUNDIDADE=0,02 do plano passaram nos quatro cenarios (lisa: par pego e isoladas passam; irregular: isoladas nao acusadas; irregular+par: par pego; populacao pequena: nulo) de primeira. `LIMIARES_DE_CONTORNO_IRREGULAR` nao estava em uso no App (so em aglomerado.ts e seu teste), entao nao houve o que remover — so acrescentar `limiaresDaCena` (useMemo) e a prop `limiares` no SeedInspector. Checkpoint feito: script Python (nao existia um pronto no repo para adaptar — escrito do zero espelhando a geometria de aglomerado.ts) mediu falso alarme em 14 imagens reais do conjunto de orquidea (de 20 amostradas; 6 tinham menos de 8 contornos), mediana 13,2%, media 10,8% — bem abaixo dos padroes absolutos (78%/40%), mas acima do preset `LIMIARES_DE_CONTORNO_IRREGULAR` calibrado especificamente (5,8%/8,4%), como esperado de um limiar generico por cena |
 | 5. criterio do modelo visivel | feito | 60a14ad | agente | 782 testes, tsc e eslint limpos nos 3 arquivos; commit MISTO com a Tarefa 1 por corrida de `git add` concorrente — outro agente rodou `git commit` enquanto meus 3 arquivos ja estavam staged; conteudo integro (ver `git show --stat 60a14ad`), so a mensagem do commit e a da Tarefa 1 |
 | 6. taxonomia como caminho | feito | a5837ea (feature); 1584bf5 (docs) | agente | 782 testes (isolado); suite completa teve 1 falha transitoria em challenger.test.ts (nao e meu arquivo, passou ao rodar isolado e ao repetir a suite completa). O commit de docs 1584bf5 saiu MISTO com `src/lib/feret.ts`, `src/lib/measurements.ts` e seus testes (Tarefa 3) por corrida de `git add` concorrente — eu so tinha adicionado o progress.md, mas outro agente ja tinha esses arquivos staged quando rodei `git commit`; conteudo integro (ver `git show --stat 1584bf5`), so a mensagem/atribuicao do commit e a de docs da Tarefa 6, nao a de feat da Tarefa 3 |
-| 7. worker ONNX | pendente | | | precisa de teste manual |
+| 7. worker ONNX | feito | f5d7a32 | agente | 785 testes, tsc e eslint limpos nos 4 arquivos (App.tsx nao precisou ser tocado — a chamada mora em `AiPointerPanel.tsx`); build gera `dist/assets/yolo.worker-Cf-deA18.js` (6.31 kB) como chunk separado. Verificado de verdade no Chromium via Playwright (nao so vitest, que nao roda worker): dois defeitos reais so apareceram rodando — `onProgress` (funcao) lancava DataCloneError no primeiro `postMessage`, e dentro do worker o caminho relativo do modelo resolvia contra a URL do PROPRIO SCRIPT do worker (nao da pagina), entao o ONNX Runtime recebia o HTML de fallback do Vite e falhava com "protobuf parsing failed". Os dois foram corrigidos (progresso por mensagem `tipo:'progresso'` separada; `document.baseURI` mandado no pedido e usado para resolver `models/...` dentro do worker). Por causa do segundo defeito, a ImageData deixou de ser transferida (so clonada) — sem isso, cair para o fallback DEPOIS que o worker ja aceitou a mensagem quebraria com `InvalidStateError: source data has been detached` (tambem medido, tambem corrigido) |
 | 8. spike do radial | pendente | | | precisa de cronometragem |
 
 ## Medicoes registradas
@@ -41,7 +41,36 @@ retomar sem reconstruir contexto. Plano: `2026-09-13-degrau-1-fundacao-medida.md
   - script: `medir_limiar_populacao.py` (scratchpad da sessao; nao commitado —
     e uma medicao ad-hoc de checkpoint, nao parte do codigo do produto)
 
-(falta: duracao da inferencia antes/depois do worker; tempo radial x tecla X)
+- **Duracao da inferencia via worker (Tarefa 7), medida com `performance.now()`
+  no cliente, Chromium (Playwright), `npm run dev`, exemplos simulados do
+  proprio app:**
+  - Soja (960x960, 4 janelas), modelo fp32 carregando pela primeira vez nesta
+    sessao do worker (carga fria do modelo + WASM): **8268 ms**, 0 deteccoes —
+    o modelo foi treinado em semente de orquidea, near-zero e esperado nessa
+    cena sintetica desenhada por codigo, nao e sinal de regressao.
+  - Orquidea TZ, modelo ja em cache no worker (mesma sessao, segunda chamada):
+    **815 ms**, 56 deteccoes — confirma que o pipeline completo (tiling,
+    tensor, NMS, mascara) roda corretamente de ponta a ponta dentro do
+    worker, nao so que ele "responde".
+  - Nao ha uma medicao "antes" comparavel isolando so a thread principal
+    nesta sessao (a versao pre-worker foi substituida antes de medir); o que
+    ficou registrado e que o worker em si funciona e devolve os numeros
+    certos — o ganho qualitativo (arraste nao trava mais) fica para o roteiro
+    de arraste abaixo, que precisa de um humano.
+
+## Roteiro para o humano testar o arraste (3 linhas)
+
+1. `npm run dev`, carregar o exemplo "Soja" (ou uma digitalizacao real
+   grande), ligar a flag "AI Pointer (Beta)" no frasco do cabecalho se ainda
+   nao estiver ligada, abrir "3 Detectar automaticamente" e clicar "Detectar
+   com IA".
+2. Enquanto a barra mostrar "Analisando X/Y…", arrastar a imagem no canvas
+   (clique e arraste, ou roda do mouse para zoom).
+3. Esperado: arraste e zoom respondem imediatamente, sem travar — antes deste
+   commit, a inferencia rodava na thread principal e o arraste engasgava
+   pelo tempo inteiro da deteccao.
+
+(falta: tempo radial x tecla X — Tarefa 8)
 
 ## Bloqueios
 
