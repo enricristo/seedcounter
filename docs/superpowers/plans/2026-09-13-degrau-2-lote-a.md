@@ -36,7 +36,7 @@ Iguais ao Degrau 1, com duas mudanças marcadas:
 ## Estado inicial e paralelismo
 
 - `develop`, 785+ testes, Task 7 (worker ONNX) em andamento por outro agente — ela edita `src/lib/yolo-onnx.ts`, `src/workers/yolo.worker.ts`, `src/lib/yolo-worker-client.ts`, `src/App.tsx`, `AiPointerPanel.tsx`, `progress.md`. **Não toque nesses arquivos.**
-- Ordem: **A0, A1, A2 em paralelo agora** (arquivos disjuntos) → **A4** (depois da A2) → Task 8 do Degrau 1 → **A3** (depois que ninguém mais está em `App.tsx`).
+- Ordem: **A0, A1, A2 em paralelo agora** (arquivos disjuntos) → **A4** (depois da A2) e **A5a** (quando o Enrico indicar a imagem de orquídea) → Task 8 do Degrau 1 → **A3** e **A5b** (depois que ninguém mais está em `App.tsx`).
 - Tracker deste lote: `docs/superpowers/plans/2026-09-13-degrau-2-lote-a-progress.md` — cada tarefa acrescenta a sua linha ao terminar, com pathspec.
 
 ---
@@ -916,6 +916,85 @@ Co-Authored-By: Claude <noreply@anthropic.com>" -- scripts/gerar-fixtures-reais.
 
 ---
 
+### Task A5: Exemplos reais embutidos no app — imagem, metadados, verdade carregável
+
+**Pedido (Enrico, 13/09):** "temos muita coisa boa no dataset; usa o README e já deixa embedado para carregar facilmente no app". Hoje os botões de exemplo (`src/features/demo/exemplos.ts`, `ImageActions.tsx`) só geram cena sintética.
+
+**Regra que o README dos datasets já impõe e que esta tarefa respeita:** imagem de terceiro não entra no repositório sem licença clara. Filtro por origem:
+- **Orquídea (GPEOrq/GPSEM):** material do próprio grupo → entra, com o Enrico indicando qual imagem pode ser pública.
+- **Soja (Mendeley, `c733bjz4m3`):** entra **só** se a licença na página for CC BY (ou mais permissiva); a atribuição vai no app, ao lado da imagem. Sem confirmação de licença, o exemplo de soja fica de fora e o README diz por quê.
+- **Roboflow/Kaggle:** cada conjunto na sua licença; nenhum entra nesta tarefa.
+
+**Tamanho:** recorte ≤ 1024 px no maior lado, PNG (não JPEG — a borda é onde a segmentação decide), ≤ 1,5 MB cada, em `public/exemplos/` — carregado por `fetch` sob demanda, **nunca** importado no bundle.
+
+**Duas metades, porque a segunda mexe em `App.tsx`:**
+
+**A5a — assets, catálogo e carregador (agora, arquivos disjuntos):**
+- Create: `public/exemplos/<slug>.png` (+ `<slug>.verdade.json` quando houver verdade)
+- Create: `public/exemplos/README.md` — origem, licença, autor, escala, como o recorte foi feito (reuse `scripts/gerar-fixtures-reais.py` da A4 com um modo `--exemplo`, ou um script irmão `scripts/gerar-exemplos-reais.py`)
+- Create: `src/features/demo/exemplos-reais.ts`:
+
+```ts
+/**
+ * Exemplos REAIS embutidos: digitalizações do grupo (ou de terceiros com
+ * licença que permite), recortadas, com metadados e — quando há — a verdade.
+ *
+ * Ficam em public/exemplos/ e são buscadas sob demanda: uma imagem real de
+ * 1 MB no bundle atrasaria toda abertura do app por causa de um botão.
+ */
+export interface ExemploReal {
+  slug: string;
+  rotulo: string;
+  /** Uma frase: o que este exemplo mostra e o que ele não mostra. */
+  dica: string;
+  especieId?: string;
+  /** µm por pixel, quando a origem declara; ausente = sem escala. */
+  umPorPixel?: number;
+  origem: { fonte: string; licenca: string; atribuicao: string; url?: string };
+  /** Caminho relativo a public/. */
+  imagem: string;
+  /** Contornos de referência em coordenadas da imagem recortada, quando existem. */
+  verdade?: string;
+}
+
+export const EXEMPLOS_REAIS: ExemploReal[] = [
+  // preenchido pela tarefa com o que passou no filtro de licença
+];
+
+export interface VerdadeDoExemplo {
+  origem: 'mascara-de-instancia' | 'poligono-humano';
+  objetos: { id: number; poligono: [number, number][]; classe?: string }[];
+}
+
+/** Busca a imagem como File PNG, pronto para a fila de imagens. */
+export async function carregarExemploReal(ex: ExemploReal): Promise<{ arquivo: File; verdade: VerdadeDoExemplo | null }> {
+  const base = import.meta.env.BASE_URL ?? '/';
+  const r = await fetch(`${base}${ex.imagem}`);
+  if (!r.ok) throw new Error(`Exemplo "${ex.rotulo}" não encontrado (${r.status}).`);
+  const blob = await r.blob();
+  const arquivo = new File([blob], `${ex.slug}.png`, { type: 'image/png' });
+  let verdade: VerdadeDoExemplo | null = null;
+  if (ex.verdade) {
+    const v = await fetch(`${base}${ex.verdade}`);
+    if (v.ok) verdade = (await v.json()) as VerdadeDoExemplo;
+  }
+  return { arquivo, verdade };
+}
+```
+
+- Test: `src/features/demo/__tests__/exemplos-reais.test.ts` — para cada entrada de `EXEMPLOS_REAIS`: o arquivo existe em `public/` (fs), tem ≤ 1,5 MB, a licença não é vazia, e se há `verdade`, o JSON abre e todo polígono tem ≥ 3 pontos dentro da imagem (largura/altura lidas do cabeçalho PNG — 8 bytes de assinatura + IHDR — sem `pngjs` aqui, para o teste não depender da A4).
+- Commit A5a com pathspec.
+
+**A5b — ligar no app (depois da Task 8 do Degrau 1, `App.tsx` livre):**
+- Modify: `src/components/sidebar/ImageActions.tsx` — os botões de `EXEMPLOS_REAIS` ao lado dos sintéticos, rotulados "real"; ao lado, a atribuição em texto pequeno (`text-ink-3`).
+- Modify: `src/App.tsx` — um `handleCarregarExemploReal(ex)` ao lado do `carregarExemplo` que já existe (linha ~1252): chama `carregarExemploReal`, passa o `File` para `loadFiles([arquivo])`, grava `especieId` e `umPorPixel` nos metadados quando existem, e, se veio `verdade`, guarda em estado e mostra um botão **"Carregar referência"** que faz `addYoloSegmentations(...)` com os polígonos e `origem: 'referencia'`. Confira se `origem` aceita `'referencia'` em `src/types.ts` e `contornoRepresentaSemente` em `src/lib/contagem.ts`; se não, acrescente com comentário: referência é semente (conta), mas não é medição do app (o CSV deve marcar a origem).
+- A referência **nunca** carrega sozinha: a pessoa vê o app primeiro, depois compara.
+- Commit A5b com pathspec; linha A5 no progress.
+
+**Bloqueio declarado:** A5a precisa do Enrico dizer **qual imagem de orquídea do GPEOrq pode ser pública** e da **licença do Mendeley** conferida (o executor abre a página `https://data.mendeley.com/datasets/c733bjz4m3/3` e registra o texto da licença no README; se não conseguir abrir, deixa a soja de fora e diz).
+
+---
+
 ## Checkpoint final do lote
 
 - `npx vitest run` — 785 + testes novos (A1 ≈ 5, A2 ≈ 5, A3 ≈ 4, A4 = 4), zero falhas.
@@ -926,6 +1005,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>" -- scripts/gerar-fixtures-reais.
 
 ## Self-review do plano
 
-- Cobertura: 2.8 → A1; 2.13 → A2 (estendendo `synthetic-scene.ts`, que já existia) + A4 (fixtures reais, pedido do Enrico); 2.11 → A3; complemento da Task 4 → A0. 2.9/2.10/3.8 ficam de fora de propósito (motivo no cabeçalho).
+- Cobertura: 2.8 → A1; 2.13 → A2 (estendendo `synthetic-scene.ts`, que já existia) + A4 (fixtures reais, pedido do Enrico); 2.11 → A3; complemento da Task 4 → A0; exemplos reais no app (pedido do Enrico) → A5, com filtro de licença do README. 2.9/2.10/3.8 ficam de fora de propósito (motivo no cabeçalho).
 - Consistência de tipos: `Recorte.contorno` é `Ponto[]` de `aglomerado.ts`, o mesmo que `feret` e `analisarContorno` consomem; `DadosImagem` é o de `color-features.ts`, o mesmo que `segmentarPorClique` consome; `ResultadoDoEnsaio` é o que o painel recebe e o que `handleUsarEnsaio` desmonta.
 - Ponto de fragilidade admitido: A3 depende de assinaturas (`analisarContorno`, `feret`, `segmentarNoCanvas`) que o executor deve **conferir** antes de escrever — o plano diz isso em cada ponto.
