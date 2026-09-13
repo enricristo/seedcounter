@@ -39,6 +39,7 @@
 
 import type { DadosImagem } from './color-features';
 import { criarRng } from './rng';
+import type { Ponto } from './aglomerado';
 
 export type PresetDeCena = 'soja' | 'orquidea-tz' | 'forrageira';
 
@@ -58,6 +59,12 @@ export interface SementeSintetica {
   classe: ClasseSintetica;
   /** Verdade: pixels efetivamente pintados desta semente. */
   areaPx: number;
+  /**
+   * Contorno da elipse (64 pontos, coordenadas absolutas da cena). Verdade
+   * geométrica exata — existe para comparar contra o contorno que a onda
+   * devolve, sem depender do rótulo por pixel.
+   */
+  contorno: Ponto[];
 }
 
 export interface CenaSintetica {
@@ -68,6 +75,12 @@ export interface CenaSintetica {
   descricao: string;
   /** Escala declarada da cena, para a morfometria fazer sentido. */
   umPorPixel: number;
+  /**
+   * Verdade por pixel: 0 é fundo, senão o `id` da semente que pintou aquele
+   * pixel por último. É o que permite perguntar "a onda recuperou ESTE
+   * pixel?" em vez de só comparar área — máscara contra máscara, com IoU.
+   */
+  rotulos: Uint8Array;
 }
 
 export interface OpcoesDaCena {
@@ -168,6 +181,30 @@ function criarTela(lado: number, fundo: Cor, ruido: number, rng: () => number): 
     data[i * 4 + 3] = 255;
   }
   return { data, width: lado, height: lado };
+}
+
+/**
+ * Contorno paramétrico de uma elipse rotacionada, em coordenadas absolutas.
+ *
+ * 64 pontos é o mesmo grão que `traceContour`/`simplifyContour` costumam
+ * devolver para um objeto deste tamanho — o suficiente para IoU e Feret sem
+ * pesar a verdade da cena.
+ */
+function contornoDaElipse(cx: number, cy: number, a: number, b: number, angulo: number): Ponto[] {
+  const cosT = Math.cos(angulo);
+  const senT = Math.sin(angulo);
+  const N = 64;
+  const pontos: Ponto[] = [];
+  for (let i = 0; i < N; i++) {
+    const t = (i / N) * 2 * Math.PI;
+    const cosArco = Math.cos(t);
+    const senArco = Math.sin(t);
+    pontos.push([
+      cx + a * cosArco * cosT - b * senArco * senT,
+      cy + a * cosArco * senT + b * senArco * cosT,
+    ]);
+  }
+  return pontos;
 }
 
 /** Mistura `cor` sobre o pixel com peso `alfa`. */
@@ -387,15 +424,19 @@ export function gerarCenaSintetica(
     });
     if (colide) continue;
 
+    const angulo = rng() * Math.PI;
+    const cx = Math.round(x);
+    const cy = Math.round(y);
     sementes.push({
       id: sementes.length + 1,
-      x: Math.round(x),
-      y: Math.round(y),
+      x: cx,
+      y: cy,
       a,
       b,
-      angulo: rng() * Math.PI,
+      angulo,
       classe: rng() < fracaoViavel ? 'viable' : 'inviable',
       areaPx: 0,
+      contorno: contornoDaElipse(cx, cy, a, b, angulo),
     });
   }
 
@@ -407,8 +448,10 @@ export function gerarCenaSintetica(
   // --- Corpos, contando a área verdadeira de cada uma ---
   // O rótulo por pixel resolve a sobreposição: quando duas sementes dividem um
   // pixel, ele pertence à última desenhada, e a área de cada uma é o que de
-  // fato ficou visível — não a área geométrica da elipse.
-  const rotulo = new Int32Array(lado * lado);
+  // fato ficou visível — não a área geométrica da elipse. Uint8Array porque o
+  // `id` nunca passa de umas poucas centenas nestas cenas (o teto prático é a
+  // `quantidade` pedida, sempre bem abaixo de 255).
+  const rotulo = new Uint8Array(lado * lado);
   for (const s of sementes) {
     const contar = (x: number, y: number) => {
       rotulo[y * lado + x] = s.id;
@@ -428,7 +471,188 @@ export function gerarCenaSintetica(
     preset,
     descricao: p.descricao,
     umPorPixel: p.umPorPixel,
+    rotulos: rotulo,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Composição de recortes — a mesma verdade, sobre textura real
+// ---------------------------------------------------------------------------
+
+/** Um objeto pronto para colar: pixels, máscara e contorno em coordenadas locais. */
+export interface Recorte {
+  largura: number;
+  altura: number;
+  /** RGBA; só os canais RGB são usados — a máscara já diz onde colar. */
+  rgba: Uint8ClampedArray;
+  /** 1 dentro do objeto, coordenadas locais do recorte. */
+  mascara: Uint8Array;
+  /** Contorno fechado, coordenadas locais do recorte. */
+  contorno: Ponto[];
+  classe?: string;
+}
+
+export interface Caixa {
+  x: number;
+  y: number;
+  largura: number;
+  altura: number;
+}
+
+export interface ObjetoDaVerdade {
+  id: number;
+  caixa: Caixa;
+  /** Centro de massa dos pixels efetivamente colados (não o centro geométrico). */
+  centro: [number, number];
+  /** Contorno do recorte, traduzido para coordenadas absolutas da cena. */
+  contorno: Ponto[];
+  areaPx: number;
+  classe?: string;
+}
+
+export interface CenaComposta {
+  imagem: DadosImagem;
+  /** 0 fundo, senão o id do objeto — mesmo contrato de `CenaSintetica.rotulos`. */
+  rotulos: Uint8Array;
+  verdade: ObjetoDaVerdade[];
+  /** Recortes que não couberam dentro do teto de tentativas. */
+  naoColocados: number;
+}
+
+export interface OpcoesDeComposicao {
+  /** Semente do gerador de posições. A mesma semente dá a mesma composição. */
+  semente?: number;
+  /** Folga mínima, em pixels, entre as caixas de dois objetos. Padrão 2. */
+  margem?: number;
+  /** Tentativas de posição por recorte antes de desistir dele. Padrão 200. */
+  tentativas?: number;
+}
+
+/** Duas caixas colidem se não há folga de `margem` em nenhum dos dois eixos. */
+function caixasColidem(
+  x: number,
+  y: number,
+  largura: number,
+  altura: number,
+  b: Caixa,
+  margem: number
+): boolean {
+  return !(
+    x + largura + margem <= b.x ||
+    b.x + b.largura + margem <= x ||
+    y + altura + margem <= b.y ||
+    b.y + b.altura + margem <= y
+  );
+}
+
+/**
+ * Cola recortes arbitrários — reais, vindos da galeria ou de um fixture, ou
+ * sintéticos — sobre um fundo, com a mesma verdade por pixel que
+ * `gerarCenaSintetica` produz. Reusa `criarRng` e a mesma amostragem por
+ * rejeição do gerador principal (posição aleatória, rejeita por colisão de
+ * caixa), em vez de duplicar essa lógica.
+ *
+ * É o meio-termo entre a cena 100% sintética (verdade perfeita, textura
+ * falsa) e o fixture real (textura real, verdade marcada por humano): aqui a
+ * textura é real e a posição é exata, porque foi o próprio código que
+ * colocou. A esteira virtual do Degrau 3 é isto deslocado em x a cada quadro.
+ */
+export function comporCena(
+  fundo: DadosImagem,
+  recortes: Recorte[],
+  opcoes: OpcoesDeComposicao = {}
+): CenaComposta {
+  const rng = criarRng(opcoes.semente ?? 20260906);
+  const margem = opcoes.margem ?? 2;
+  const tentativasPorRecorte = opcoes.tentativas ?? 200;
+
+  const largura = fundo.width;
+  const altura = fundo.height;
+  // Cópia do fundo: `comporCena` não pode mutar a imagem de quem chamou.
+  const data =
+    fundo.data instanceof Uint8ClampedArray
+      ? Uint8ClampedArray.from(fundo.data)
+      : new Uint8ClampedArray(fundo.data);
+  const imagem: DadosImagem = { data, width: largura, height: altura };
+  const rotulos = new Uint8Array(largura * altura);
+
+  const verdade: ObjetoDaVerdade[] = [];
+  let naoColocados = 0;
+  let proximoId = 1;
+
+  for (const r of recortes) {
+    const maxX = largura - r.largura;
+    const maxY = altura - r.altura;
+    if (maxX < 0 || maxY < 0) {
+      // Recorte maior que a própria cena: não existe posição possível.
+      naoColocados++;
+      continue;
+    }
+
+    let colocado = false;
+    for (let tentativa = 0; tentativa < tentativasPorRecorte && !colocado; tentativa++) {
+      const x = Math.round(rng() * maxX);
+      const y = Math.round(rng() * maxY);
+      const colide = verdade.some((o) => caixasColidem(x, y, r.largura, r.altura, o.caixa, margem));
+      if (colide) continue;
+
+      const id = proximoId++;
+      let areaPx = 0;
+      let somaX = 0;
+      let somaY = 0;
+      for (let ly = 0; ly < r.altura; ly++) {
+        for (let lx = 0; lx < r.largura; lx++) {
+          const iLocal = ly * r.largura + lx;
+          if (!r.mascara[iLocal]) continue;
+          const gx = x + lx;
+          const gy = y + ly;
+          const iGlobal = gy * largura + gx;
+          const srcIdx = iLocal * 4;
+          const dstIdx = iGlobal * 4;
+          for (let c = 0; c < 3; c++) imagem.data[dstIdx + c] = r.rgba[srcIdx + c];
+          rotulos[iGlobal] = id;
+          areaPx++;
+          somaX += gx;
+          somaY += gy;
+        }
+      }
+
+      verdade.push({
+        id,
+        caixa: { x, y, largura: r.largura, altura: r.altura },
+        centro:
+          areaPx > 0 ? [somaX / areaPx, somaY / areaPx] : [x + r.largura / 2, y + r.altura / 2],
+        contorno: r.contorno.map(([px, py]) => [px + x, py + y] as Ponto),
+        areaPx,
+        classe: r.classe,
+      });
+      colocado = true;
+    }
+
+    if (!colocado) naoColocados++;
+  }
+
+  return { imagem, rotulos, verdade, naoColocados };
+}
+
+/**
+ * Interseção sobre união de duas máscaras binárias do mesmo tamanho.
+ *
+ * União vazia (as duas máscaras inteiramente zero) devolve 1: não há nada
+ * para errar, e 0 daria a impressão de discordância total onde não há
+ * discordância nenhuma.
+ */
+export function iouDeMascaras(a: Uint8Array, b: Uint8Array): number {
+  let inter = 0;
+  let uniao = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const av = a[i] !== 0;
+    const bv = b[i] !== 0;
+    if (av || bv) uniao++;
+    if (av && bv) inter++;
+  }
+  return uniao === 0 ? 1 : inter / uniao;
 }
 
 /** Resumo curto da verdade da cena, para a interface anunciar. */

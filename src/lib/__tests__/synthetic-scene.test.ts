@@ -12,8 +12,11 @@ import {
   AVISO_CENA,
   gerarCenaSintetica,
   resumirCena,
+  comporCena,
+  iouDeMascaras,
   type CenaSintetica,
   type PresetDeCena,
+  type Recorte,
 } from '../synthetic-scene';
 import { segmentarPorClique } from '../region-growing';
 import { rgbParaLab } from '../color-features';
@@ -198,5 +201,98 @@ describe('a cena serve para medir o erro da onda', () => {
     erros.sort((a, b) => a - b);
     const mediano = erros[Math.floor(erros.length / 2)];
     expect(Math.abs(mediano), `erro mediano ${(mediano * 100).toFixed(1)}%`).toBeLessThan(0.2);
+  });
+});
+
+describe('rotulos e contorno', () => {
+  it('cada semente aparece nos rótulos e o contorno é fechado em coordenadas absolutas', () => {
+    const cena = gerarCenaSintetica('soja', { semente: 3, quantidade: 12, lado: 400 });
+    expect(cena.rotulos.length).toBe(cena.imagem.width * cena.imagem.height);
+    const ids = new Set(cena.rotulos);
+    for (const s of cena.sementes) {
+      expect(ids.has(s.id)).toBe(true);
+      expect(s.contorno.length).toBeGreaterThanOrEqual(32);
+      for (const [x, y] of s.contorno) {
+        expect(Math.abs(x - s.x)).toBeLessThanOrEqual(s.a + 1);
+        expect(Math.abs(y - s.y)).toBeLessThanOrEqual(s.a + 1);
+      }
+    }
+    // A contagem de pixels rotulados bate com a areaPx que já era devolvida.
+    for (const s of cena.sementes) {
+      let n = 0;
+      for (const r of cena.rotulos) if (r === s.id) n++;
+      expect(n).toBe(s.areaPx);
+    }
+  });
+
+  // Investigação (`janela: 128` falhava com 0/4 recuperadas): o preset soja
+  // tem `a` ≈ 108 px, ±11% de dispersão — até ~120 px. Com `janela: 128` a
+  // meia-janela é 64, MENOR que o semieixo: a janela termina DENTRO da
+  // semente, antes de alcançar o fundo. A onda então lê a rampa de
+  // sombreamento interna da própria semente (a curvatura de `desenharSoja`,
+  // mais escura perto da borda) como se fosse a transição para o fundo, e
+  // para cedo — a máscara sai com ~53% da área verdadeira (IoU ~0,53, nunca
+  // > 0,8). Não é o algoritmo que erra; é a janela pequena demais para o
+  // objeto. Com `janela: 320` (meia-janela 160, folga de 40+ px além do
+  // semieixo maior) a onda alcança o fundo de verdade e recupera 100% das
+  // sementes em 10 sementes de rng testadas (`bons/total` sempre 1,0) — bem
+  // acima do piso de 95% do teste. Note também: com `lado: 600` e sementes
+  // deste tamanho, a amostragem por rejeição nunca chega a colocar as 20
+  // pedidas (o espaçamento mínimo entre centros é grande demais para a área
+  // livre) — o teste avalia a fração sobre o que de fato coube, não sobre 20.
+  it('a onda recupera ≥ 95% das sementes com IoU > 0,8 no preset soja', () => {
+    const cena = gerarCenaSintetica('soja', { semente: 5, quantidade: 20, lado: 600 });
+    let bons = 0;
+    for (const s of cena.sementes) {
+      const r = segmentarPorClique(cena.imagem, { x: s.x, y: s.y }, { janela: 320 });
+      if (!r || r.tocouBorda) continue;
+      const { x: jx, y: jy, w, h } = r.janela;
+      const verdade = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        verdade[y * w + x] = cena.rotulos[(jy + y) * cena.imagem.width + (jx + x)] === s.id ? 1 : 0;
+      }
+      if (iouDeMascaras(r.mascara, verdade) > 0.8) bons++;
+    }
+    expect(bons / cena.sementes.length).toBeGreaterThanOrEqual(0.95);
+  });
+});
+
+describe('comporCena', () => {
+  function quadrado(lado: number, cor: [number, number, number]): Recorte {
+    const rgba = new Uint8ClampedArray(lado * lado * 4);
+    const mascara = new Uint8Array(lado * lado).fill(1);
+    for (let i = 0; i < lado * lado; i++) { rgba[i * 4] = cor[0]; rgba[i * 4 + 1] = cor[1]; rgba[i * 4 + 2] = cor[2]; rgba[i * 4 + 3] = 255; }
+    return { largura: lado, altura: lado, rgba, mascara, contorno: [[0, 0], [lado, 0], [lado, lado], [0, lado]] };
+  }
+
+  it('coloca N recortes sem sobreposição, com rótulos e verdade consistentes', () => {
+    const fundo = gerarCenaSintetica('soja', { semente: 1, quantidade: 0, lado: 300 }).imagem;
+    const cena = comporCena(fundo, Array.from({ length: 15 }, () => quadrado(12, [220, 200, 150])), { semente: 2, margem: 3 });
+    expect(cena.verdade).toHaveLength(15);
+    expect(cena.naoColocados).toBe(0);
+    for (let i = 0; i < 15; i++) for (let j = i + 1; j < 15; j++) {
+      const a = cena.verdade[i].caixa, b = cena.verdade[j].caixa;
+      const separadas = a.x + a.largura <= b.x || b.x + b.largura <= a.x || a.y + a.altura <= b.y || b.y + b.altura <= a.y;
+      expect(separadas).toBe(true);
+    }
+    const ids = new Set(cena.rotulos);
+    for (const o of cena.verdade) { expect(ids.has(o.id)).toBe(true); expect(o.areaPx).toBe(144); }
+    expect(cena.rotulos[0]).toBe(0);
+  });
+
+  it('quando não cabe, devolve o que coube e conta os de fora', () => {
+    const fundo = gerarCenaSintetica('soja', { semente: 1, quantidade: 0, lado: 40 }).imagem;
+    const cena = comporCena(fundo, Array.from({ length: 4 }, () => quadrado(30, [200, 200, 200])), { semente: 3, tentativas: 50 });
+    expect(cena.verdade.length).toBeLessThan(4);
+    expect(cena.naoColocados).toBe(4 - cena.verdade.length);
+  });
+});
+
+describe('iouDeMascaras', () => {
+  it('iguais = 1, disjuntas = 0, metade = 1/3', () => {
+    const a = new Uint8Array([1, 1, 0, 0]);
+    expect(iouDeMascaras(a, a)).toBe(1);
+    expect(iouDeMascaras(a, new Uint8Array([0, 0, 1, 1]))).toBe(0);
+    expect(iouDeMascaras(a, new Uint8Array([1, 0, 1, 0]))).toBeCloseTo(1 / 3, 6);
   });
 });
