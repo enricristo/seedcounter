@@ -48,6 +48,10 @@ interface SidebarProps {
   calibrationSummary?: string;
   /** true quando ainda não há calibração (destaca a etapa). */
   needsCalibration?: boolean;
+  /** Indica se há imagem carregada no momento. */
+  hasImage?: boolean;
+  /** Oculta totalizadores na barra esquerda (quando exibidos na barra direita). */
+  hideCounters?: boolean;
 }
 
 export function Sidebar({
@@ -78,26 +82,42 @@ export function Sidebar({
   detectionSlot,
   calibrationSummary,
   needsCalibration,
+  hasImage = false,
+  hideCounters = false,
 }: SidebarProps) {
   return (
     <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-surface-1 flex flex-col shrink-0 overflow-y-auto custom-scrollbar transition-colors duration-300">
       <div className="flex flex-col p-4 gap-4 min-h-max">
-        {/* Resultado primeiro: é o produto do trabalho */}
-        <Counters
-          viableCount={viableCount}
-          inviableCount={inviableCount}
-          viablePercent={viablePercent}
-          inviablePercent={inviablePercent}
-          totalCount={totalCount}
-          visualMode={visualMode}
-          setVisualMode={setVisualMode}
-          activeClassification={activeClassification}
-          setActiveClassification={setActiveClassification}
-          plateId={metadata.plate}
-          sessions={sessions}
-        />
+        {/* Totalizadores (caso não estejam na barra lateral direita) */}
+        {!hideCounters && (
+          <Counters
+            viableCount={viableCount}
+            inviableCount={inviableCount}
+            viablePercent={viablePercent}
+            inviablePercent={inviablePercent}
+            totalCount={totalCount}
+            visualMode={visualMode}
+            setVisualMode={setVisualMode}
+            activeClassification={activeClassification}
+            setActiveClassification={setActiveClassification}
+            plateId={metadata.plate}
+            sessions={sessions}
+          />
+        )}
 
-        {/* Entrada de imagem — ação mais frequente depois de contar */}
+        {/* Mensagem de boas-vindas / início de fluxo quando sem imagem */}
+        {!hasImage && (
+          <div className="p-3 bg-surface-2 border border-line-soft rounded-xl text-xs space-y-1">
+            <div className="font-bold text-accent uppercase tracking-wider text-[10px]">
+              Entrada de Amostra
+            </div>
+            <div className="text-ink-2 leading-relaxed">
+              Carregue uma imagem de scanner, use a câmera ou selecione uma amostra de teste abaixo.
+            </div>
+          </div>
+        )}
+
+        {/* Entrada de imagem */}
         <ImageActions
           fileInputRef={fileInputRef}
           importInputRef={importInputRef}
@@ -110,28 +130,29 @@ export function Sidebar({
           exemploCarregando={exemploCarregando}
         />
 
-        {/* Etapas de preparo e análise — recolhidas por padrão */}
+        {/* Etapas de preparo e calibração: Calibração -> Detecção -> Ajuste de Imagem */}
         <div className="space-y-2">
-          {adjustSlot && (
-            <CollapsibleSection step={1} title="Preparar imagem">
-              {adjustSlot}
-            </CollapsibleSection>
-          )}
-
           {calibrationSlot && (
             <CollapsibleSection
-              step={2}
+              step={1}
               title="Calibrar escala"
               summary={calibrationSummary}
-              attention={needsCalibration}
+              attention={needsCalibration && hasImage}
+              defaultOpen={needsCalibration && hasImage}
             >
               {calibrationSlot}
             </CollapsibleSection>
           )}
 
           {detectionSlot && (
-            <CollapsibleSection step={3} title="Detectar automaticamente">
+            <CollapsibleSection step={2} title="Detectar automaticamente">
               {detectionSlot}
+            </CollapsibleSection>
+          )}
+
+          {adjustSlot && (
+            <CollapsibleSection step={3} title="Preparar imagem">
+              {adjustSlot}
             </CollapsibleSection>
           )}
         </div>

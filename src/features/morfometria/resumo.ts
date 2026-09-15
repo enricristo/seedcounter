@@ -109,6 +109,10 @@ export interface ResumoDeMorfometria {
   areaMm2: EstatisticaDeMedida | null;
   /** Comprimento/largura por objeto — invariante de escala, vale sem calibração. */
   razaoCL: EstatisticaDeMedida | null;
+  /** Circularidade (4πA / P²) por objeto — 1 = círculo perfeito. */
+  circularidade: EstatisticaDeMedida | null;
+  /** Solidez (Área / Fecho Convexo) por objeto — 1 = contorno perfeitamente convexo. */
+  solidez: EstatisticaDeMedida | null;
 }
 
 /** Extrai os valores finitos de um campo, um por linha. */
@@ -142,6 +146,8 @@ export function resumir(rows: SeedMeasurement[], umPerPixel?: number): ResumoDeM
   const comprimentoPxValores = coluna(rows, (r) => r.comprimentoPx);
   const larguraPxValores = coluna(rows, (r) => r.larguraPx);
   const areaPxValores = coluna(rows, (r) => r.areaPx);
+  const circularidadeValores = coluna(rows, (r) => r.circularidade);
+  const solidezValores = coluna(rows, (r) => r.solidez);
 
   // Razão por objeto: comprimento e largura da MESMA linha, não dois vetores
   // agregados separadamente e depois divididos.
@@ -184,5 +190,7 @@ export function resumir(rows: SeedMeasurement[], umPerPixel?: number): ResumoDeM
     larguraMm: calibrado ? estatistica(larguraMmValores) : null,
     areaMm2: calibrado ? estatistica(areaMmValores) : null,
     razaoCL: estatistica(razoesCL),
+    circularidade: estatistica(circularidadeValores),
+    solidez: estatistica(solidezValores),
   };
 }

@@ -6,6 +6,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Camera, X, RefreshCw, Check, RotateCcw, AlertCircle } from 'lucide-react';
 import { useCamera, isCameraSupported, isMobileDevice } from '../../hooks/useCamera';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ interface CameraModalProps {
 }
 
 export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const fallbackInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<{ url: string; file: File } | null>(null);
@@ -91,8 +94,14 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-3xl rounded-2xl border border-line bg-surface-1 shadow-2xl overflow-hidden">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-3xl rounded-2xl border border-line bg-surface-1 shadow-2xl overflow-hidden"
+      >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">
           <div className="flex items-center gap-2.5">

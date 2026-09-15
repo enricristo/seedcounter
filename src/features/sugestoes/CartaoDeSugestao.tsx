@@ -49,16 +49,26 @@ export function CartaoDeSugestao({ sugestao, onAcao, onDispensar }: CartaoDeSuge
 
   if (!sugestao) return null;
 
+  const handleDispensar = () => {
+    setVisivel(false);
+    onDispensar(sugestao);
+  };
+
+  const handleAcao = (id: AcaoDeSugestao) => {
+    setVisivel(false);
+    onAcao(id);
+  };
+
   return (
     <div
       key={sugestao.id}
       role="status"
       aria-live="polite"
       className={[
-        'fixed bottom-16 right-4 z-40 w-[340px] max-w-[calc(100vw-2rem)]',
+        'fixed bottom-14 right-4 sm:right-22 z-40 w-[340px] max-w-[calc(100vw-2rem)]',
         'rounded-xl border border-line bg-surface-1 p-4 shadow-xl',
         'transition-all duration-300 ease-out motion-reduce:transition-none',
-        visivel ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+        visivel ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none',
       ].join(' ')}
     >
       <div className="flex items-start gap-3">
@@ -71,16 +81,16 @@ export function CartaoDeSugestao({ sugestao, onAcao, onDispensar }: CartaoDeSuge
             {sugestao.acao && (
               <button
                 type="button"
-                onClick={() => onAcao(sugestao.acao!.id)}
-                className="rounded-lg bg-accent px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-accent-on transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                onClick={() => handleAcao(sugestao.acao!.id)}
+                className="rounded-lg bg-accent px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-accent-on transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
               >
                 {sugestao.acao.rotulo}
               </button>
             )}
             <button
               type="button"
-              onClick={() => onDispensar(sugestao)}
-              className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              onClick={handleDispensar}
+              className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 cursor-pointer"
             >
               Agora não
             </button>

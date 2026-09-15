@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { Mark, YoloSegmentation } from '../types';
+import type { Mark, YoloSegmentation, AnotacaoVisual } from '../types';
 import {
   abrirGesto as abrir,
   desfazer as voltar,
@@ -25,11 +25,12 @@ import {
 export interface Anotacoes {
   marks: Mark[];
   segmentacoes: YoloSegmentation[];
+  anotacoesVisuais: AnotacaoVisual[];
 }
 
 type Atualizacao<T> = T | ((antes: T) => T);
 
-const VAZIO: Anotacoes = { marks: [], segmentacoes: [] };
+const VAZIO: Anotacoes = { marks: [], segmentacoes: [], anotacoesVisuais: [] };
 
 function aplicar<T>(a: Atualizacao<T>, antes: T): T {
   return typeof a === 'function' ? (a as (x: T) => T)(antes) : a;
@@ -39,7 +40,7 @@ export function useMarks() {
   const [historico, setHistorico] = useState<Historico<Anotacoes>>(() => iniciar(VAZIO));
   const [segmentsVisible, setSegmentsVisible] = useState(true);
 
-  const { marks, segmentacoes: yoloSegmentations } = historico.presente;
+  const { marks, segmentacoes: yoloSegmentations, anotacoesVisuais } = historico.presente;
 
   /**
    * A única porta de mudança. Tudo que altera marca ou contorno passa aqui, e
@@ -71,6 +72,15 @@ export function useMarks() {
     [mutar]
   );
 
+  const setAnotacoesVisuais = useCallback(
+    (a: Atualizacao<AnotacaoVisual[]>, op?: OpcoesDeRegistro) =>
+      mutar((antes) => {
+        const av = aplicar(a, antes.anotacoesVisuais);
+        return av === antes.anotacoesVisuais ? antes : { ...antes, anotacoesVisuais: av };
+      }, op),
+    [mutar]
+  );
+
   // --- Histórico ------------------------------------------------------------
 
   const desfazer = useCallback(() => setHistorico(voltar), []);
@@ -89,6 +99,7 @@ export function useMarks() {
       recomecar({
         marks: a.marks ?? [],
         segmentacoes: a.segmentacoes ?? [],
+        anotacoesVisuais: a.anotacoesVisuais ?? [],
       })
     );
   }, []);
@@ -126,7 +137,7 @@ export function useMarks() {
         const segmentacoes = antes.segmentacoes.filter(
           (s) => s.marcaId == null || !alvo.has(s.marcaId)
         );
-        return { marks, segmentacoes };
+        return { ...antes, marks, segmentacoes };
       }, op);
     },
     [mutar]
@@ -200,7 +211,7 @@ export function useMarks() {
   /** Limpa tudo num passo só — e um passo que o Ctrl+Z devolve. */
   const resetAllAnnotations = useCallback(() => {
     mutar((antes) =>
-      antes.marks.length === 0 && antes.segmentacoes.length === 0 ? antes : VAZIO
+      antes.marks.length === 0 && antes.segmentacoes.length === 0 && antes.anotacoesVisuais.length === 0 ? antes : VAZIO
     );
     setSegmentsVisible(true);
   }, [mutar]);
@@ -213,6 +224,8 @@ export function useMarks() {
     setMarks,
     yoloSegmentations,
     setYoloSegmentations,
+    anotacoesVisuais,
+    setAnotacoesVisuais,
     segmentsVisible,
     setSegmentsVisible,
 

@@ -27,6 +27,7 @@ import {
   type Pendencia,
 } from '../../lib/normas/identificacao';
 import type { Metadata } from '../../types';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface IdentificacaoModalProps {
   isOpen: boolean;
@@ -41,6 +42,8 @@ export function IdentificacaoModal({
   metadata,
   updateMetadata,
 }: IdentificacaoModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const { laboratorio, atualizarCampo } = useLaboratorio();
   const amostra = metadata.amostra ?? {};
 

@@ -5,13 +5,19 @@ import { Ruler } from 'lucide-react';
 // Components
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { RightSidebar } from './components/layout/RightSidebar';
 import { Footer } from './components/layout/Footer';
 import { ImageViewport } from './components/canvas/ImageViewport';
+import { CalibrationRulerOverlay } from './components/canvas/overlays/CalibrationRulerOverlay';
+import { GhostSeedsOverlay } from './components/canvas/overlays/GhostSeedsOverlay';
+import { RegionSelectorOverlay } from './components/canvas/overlays/RegionSelectorOverlay';
+import { VisualAnnotationsOverlay } from './components/canvas/overlays/VisualAnnotationsOverlay';
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
 import { SeedInspector } from './components/canvas/SeedInspector';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
+import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
 // Modals
 import { ExportModal } from './components/modals/ExportModal';
@@ -60,6 +66,7 @@ import {
   type AcaoDeSugestao,
 } from './features/sugestoes';
 import { PainelDeMorfometria, resumir } from './features/morfometria';
+import { aplicarRegra, simularRegra, REGRAS_PADRAO, type RegraParametrica } from './features/morfometria/regras';
 import { lerPreferencia, gravarPreferencia, CHAVE_SUGESTOES } from './features/settings/preferencias';
 import { conferirForma } from './lib/normas/tamanhos-de-semente';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
@@ -284,30 +291,8 @@ export default function App() {
   const [regiaoDeDeteccao, setRegiaoDeDeteccao] = useState<Regiao | null>(null);
   const [selecionandoRegiao, setSelecionandoRegiao] = useState(false);
 
-  // Fase F — ferramentas de edição (marcar / borracha / mover)
-  const {
-    activeTool,
-    setActiveTool,
-    eraserRadius,
-    setEraserRadius,
-    isTemporary: isToolTemporary,
-  } = useTools();
-  const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
-
-  // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
-  const { toggle: toggleFlag } = useFeatureFlags();
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        toggleFlag('debugPanel');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleFlag]);
-
   // Modal Open states
+  const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -327,6 +312,52 @@ export default function App() {
   const [selectedPlateRunForEdit, setSelectedPlateRunForEdit] = useState<PlateRun | undefined>(
     undefined
   );
+  const [versaoDispensadas, setVersaoDispensadas] = useState(0);
+
+  // Fase 4: Regra Simulada State (Lifting State para evitar useEffect)
+  const [regraSelecionadaId, setRegraSelecionadaId] = useState<string>(REGRAS_PADRAO[0].id);
+  const [limiaresCustomizados, setLimiaresCustomizados] = useState<Record<string, number>>({
+    'regra-detritos': 5.0,
+    'regra-aglomerados': 0.90,
+    'regra-chocha': 0.65,
+  });
+
+  const isAnyModalOpen =
+    isExportModalOpen ||
+    isHistoryModalOpen ||
+    isYoloExportModalOpen ||
+    isExperimentModalOpen ||
+    isPlateRunModalOpen ||
+    isCameraOpen ||
+    isSplitOpen ||
+    isRoiOpen ||
+    isResetConfirmOpen ||
+    isFeaturesOpen ||
+    novidades.aberto ||
+    isGaleriaOpen ||
+    isIdentificacaoOpen;
+
+  // Fase F — ferramentas de edição (marcar / borracha / mover)
+  const {
+    activeTool,
+    setActiveTool,
+    eraserRadius,
+    setEraserRadius,
+    isTemporary: isToolTemporary,
+  } = useTools({ disabled: isAnyModalOpen });
+
+  // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
+  const { toggle: toggleFlag } = useFeatureFlags();
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        toggleFlag('debugPanel');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleFlag]);
 
   // Manual marking class toggle
   const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
@@ -337,6 +368,7 @@ export default function App() {
     marks,
     setMarks,
     yoloSegmentations,
+    anotacoesVisuais,
     setYoloSegmentations,
     segmentsVisible,
     addMark,
@@ -352,6 +384,7 @@ export default function App() {
     refazer,
     podeDesfazer,
     podeRefazer,
+    mutar,
     abrirGesto,
     fecharGesto,
     carregar,
@@ -558,8 +591,8 @@ export default function App() {
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanningMode) return;
-    // Borracha e "mover" não criam marcações (a borracha age na camada própria).
-    if (activeTool === 'eraser' || activeTool === 'pan') return;
+    // Ferramentas que não criam marcações.
+    if (activeTool === 'eraser' || activeTool === 'pan' || activeTool === 'cota' || activeTool === 'caixa') return;
     if (!image || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -576,6 +609,25 @@ export default function App() {
     const baseType = activeTool === 'inviable' ? 'inviable' : 'viable';
     const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
     const type = shouldInvert ? (baseType === 'viable' ? 'inviable' : 'viable') : baseType;
+
+    if (activeTool === 'chamada') {
+      const texto = prompt('Digite a anotação:');
+      if (texto) {
+        mutar((antes) => ({
+          ...antes,
+          anotacoesVisuais: [
+            ...(antes.anotacoesVisuais || []),
+            {
+              id: Date.now().toString(),
+              tipo: 'chamada',
+              p: [x, y],
+              texto,
+            },
+          ],
+        }));
+      }
+      return;
+    }
 
     if (activeTool === 'onda') {
       segmentarComOnda(x, y, type);
@@ -1604,16 +1656,89 @@ export default function App() {
     metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
 
   /**
+   * As medidas completas de cada semente da imagem.
+   */
+  const medicoesDeMorfometria = useMemo(() => {
+    if (!image) return [];
+    return buildMeasurements({ marks, segmentations: yoloSegmentations, metadata, filename });
+  }, [image, marks, yoloSegmentations, metadata, filename]);
+
+  const regraAjustada = useMemo(() => {
+    const base = REGRAS_PADRAO.find((r) => r.id === regraSelecionadaId) ?? REGRAS_PADRAO[0];
+    const limiar = limiaresCustomizados[base.id] ?? base.limiar;
+    let ativa = { ...base, limiar };
+    
+    // Se a regra usa mm² mas não está calibrado, usamos px² adaptado temporariamente
+    const calibrado = !!metadata.umPerPixel && metadata.umPerPixel > 0;
+    if (!calibrado && ativa.campo === 'areaMm2') {
+      ativa = {
+        ...ativa,
+        campo: 'areaPx' as const,
+        limiar: ativa.limiar * 100,
+      };
+    }
+    return ativa;
+  }, [regraSelecionadaId, limiaresCustomizados, metadata.umPerPixel]);
+
+  const sementesSimuladas = useMemo(() => {
+    if (medicoesDeMorfometria.length === 0) return [];
+    return simularRegra(medicoesDeMorfometria, regraAjustada);
+  }, [medicoesDeMorfometria, regraAjustada]);
+
+  /**
    * O resumo de morfometria, derivado a cada mudanca.
-   *
-   * Sem `imageData` de proposito: o painel nao usa cor, so forma, e ler os
-   * pixels da imagem a cada marca seria desperdicio.
    */
   const resumoDeMorfometria = useMemo(() => {
-    if (!image) return null;
-    const rows = buildMeasurements({ marks, segmentations: yoloSegmentations, metadata, filename });
-    return resumir(rows, metadata.umPerPixel);
-  }, [image, marks, yoloSegmentations, metadata, filename]);
+    if (!image || medicoesDeMorfometria.length === 0) return null;
+    return resumir(medicoesDeMorfometria, metadata.umPerPixel);
+  }, [image, medicoesDeMorfometria, metadata.umPerPixel]);
+
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
+    lerPreferencia('sc:painelDireitoRecolhido', false)
+  );
+
+  const handleToggleRightSidebar = useCallback(() => {
+    setIsRightSidebarCollapsed((prev) => {
+      const next = !prev;
+      gravarPreferencia('sc:painelDireitoRecolhido', next);
+      return next;
+    });
+  }, []);
+
+  const handleDestacarSementes = useCallback(
+    (ids: number[]) => {
+      if (ids.length > 0) {
+        setRecadoDaOnda({
+          tom: 'ok',
+          texto: `${ids.length} ${ids.length === 1 ? 'semente atendida' : 'sementes atendidas'}.`,
+        });
+        const primeiraMarca = marks[ids[0] - 1];
+        if (primeiraMarca) {
+          const seg = yoloSegmentations.find((s) => s.marcaId === primeiraMarca.id);
+          if (seg) setContornoSelecionado(seg.id);
+        }
+      }
+    },
+    [marks, yoloSegmentations]
+  );
+
+  const handleAplicarRegra = useCallback(
+    (regra: RegraParametrica) => {
+      mutar((antes) => {
+        const res = aplicarRegra(antes.marks, antes.segmentacoes, medicoesDeMorfometria, regra);
+        return {
+          ...antes,
+          marks: res.marks,
+          segmentacoes: res.segmentacoes,
+        };
+      });
+      setRecadoDaOnda({
+        tom: 'ok',
+        texto: `Regra "${regra.nome}" aplicada. Ctrl+Z para desfazer.`,
+      });
+    },
+    [mutar, medicoesDeMorfometria]
+  );
 
   /**
    * Contorno selecionado atualmente ativo para inspeção biométrica e espectral.
@@ -1721,11 +1846,13 @@ export default function App() {
     comprimentoTipicoEmPixels,
     contornosComFormaSuspeita,
     ultimaGravacao,
+    versaoDispensadas,
   ]);
 
   /** Cada acao de sugestao dispara a MESMA coisa que o botao ou a tecla ja disparam. */
   const handleAcaoDeSugestao = useCallback(
     (acao: AcaoDeSugestao) => {
+      setVersaoDispensadas((v) => v + 1);
       switch (acao) {
         case 'abrir-galeria':
           setIsGaleriaOpen(true);
@@ -1869,6 +1996,36 @@ export default function App() {
   }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
 
   /**
+   * Foca o canvas numa semente vinda da Galeria (zoom + pan centralizado + seleção de contorno).
+   */
+  const handleFocarNoCanvas = useCallback(
+    (coords: { x: number; y: number }, segmentacaoId?: number) => {
+      setIsGaleriaOpen(false);
+      if (segmentacaoId != null) {
+        setContornoSelecionado(segmentacaoId);
+        setActiveTool('contorno');
+      } else {
+        setActiveTool('onda');
+      }
+      const targetZoom = Math.max(zoomLevel, 2.8);
+      setZoomLevel(targetZoom);
+
+      setTimeout(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const targetScrollX = coords.x * targetZoom - container.clientWidth / 2;
+        const targetScrollY = coords.y * targetZoom - container.clientHeight / 2;
+        container.scrollTo({
+          left: Math.max(0, targetScrollX),
+          top: Math.max(0, targetScrollY),
+          behavior: 'smooth',
+        });
+      }, 80);
+    },
+    [zoomLevel, setZoomLevel, setActiveTool]
+  );
+
+  /**
    * Poligono desenhado a mao.
    *
    * Se ha uma marca sem contorno DENTRO do que foi desenhado, o poligono e
@@ -1995,8 +2152,31 @@ export default function App() {
         .filter((m) => Math.hypot(m.x - x, m.y - y) <= radius)
         .map((m) => m.id);
       removerMarcas(apagadas, { continuo: true });
+
+      // Também apaga anotações visuais (prancheta) que estiverem sob o cursor
+      mutar((antes) => {
+        if (!antes.anotacoesVisuais?.length) return antes;
+        const sobrou = antes.anotacoesVisuais.filter((av) => {
+          let cx, cy;
+          if (av.tipo === 'cota' || av.tipo === 'seta') {
+            cx = (av.p1[0] + av.p2[0]) / 2;
+            cy = (av.p1[1] + av.p2[1]) / 2;
+          } else if (av.tipo === 'caixa') {
+            cx = av.x + av.w / 2;
+            cy = av.y + av.h / 2;
+          } else if (av.tipo === 'chamada') {
+            cx = av.p[0];
+            cy = av.p[1];
+          } else {
+            return true;
+          }
+          return Math.hypot(cx - x, cy - y) > radius;
+        });
+        if (sobrou.length === antes.anotacoesVisuais.length) return antes;
+        return { ...antes, anotacoesVisuais: sobrou };
+      }, { continuo: true });
     },
-    [removerMarcas]
+    [removerMarcas, mutar]
   );
 
   // Fase E — insere os pontos confirmados da detecção assistida.
@@ -2045,6 +2225,7 @@ export default function App() {
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
     hasPrevImage: currentImageIndex > 0,
+    disabled: isAnyModalOpen,
   });
 
   return (
@@ -2145,6 +2326,8 @@ export default function App() {
                 : 'medidas em pixels'
             }
             needsCalibration={!metadata.umPerPixel || metadata.umPerPixel <= 0}
+            hasImage={!!image}
+            hideCounters={true}
             adjustSlot={
               <ImageAdjustPanel
                 image={image}
@@ -2217,18 +2400,151 @@ export default function App() {
             }
           />
 
-          {/* 3. Image viewport scroll and Zoom area */}
-          <ImageViewport
-            containerRef={containerRef}
-            image={image}
-            onBrowseFiles={handleBrowseFiles}
-            loadError={loadError}
-            isPanningMode={isPanningMode}
-            isDragging={isPanningDrag}
-            startDrag={startDrag}
-            handleDrag={handleDrag}
-            stopDrag={stopDrag}
-          >
+          {/* 3. Image viewport scroll and Zoom area with persistent floating overlays */}
+          <div className="relative flex-1 h-full overflow-hidden flex flex-col">
+            <ImageViewport
+              containerRef={containerRef}
+              image={image}
+              onBrowseFiles={handleBrowseFiles}
+              loadError={loadError}
+              isPanningMode={isPanningMode}
+              isDragging={isPanningDrag}
+              startDrag={startDrag}
+              handleDrag={handleDrag}
+              stopDrag={stopDrag}
+            >
+              {/* O corte proposto. Fica sobre a imagem, ao lado da linha tracejada */}
+              {corteProposto && (
+                <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
+                  <div className="min-w-0">
+                    <p className="text-ink-1 text-xs font-bold">Cintura encontrada</p>
+                    <p className="text-ink-3 text-[10px] leading-snug">
+                      O contorno parece conter duas sementes. A linha tracejada mostra onde
+                      separar.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAplicarCorte}
+                    className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Separar
+                  </button>
+                  <button
+                    onClick={() => setContornoSelecionado(null)}
+                    aria-label="Manter como está"
+                    className="border-line text-ink-2 hover:bg-surface-2 shrink-0 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Manter
+                  </button>
+                </div>
+              )}
+
+              {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa acabou de clicar */}
+              {!corteProposto && recadoDaOnda && (
+                <div
+                  className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
+                    recadoDaOnda.tom === 'ok'
+                      ? 'border-accent bg-accent-tint text-accent'
+                      : 'border-warn bg-warn/15 text-ink-1'
+                  }`}
+                  role="status"
+                >
+                  {recadoDaOnda.texto}
+                </div>
+              )}
+
+              {/* Inspetor de Semente: janela lateral flutuante com morfometria, CIELAB e priors */}
+              {segmentacaoAtiva && image && (
+                <SeedInspector
+                  segmentation={segmentacaoAtiva}
+                  image={imagemDeTrabalho ?? image}
+                  umPerPixel={metadata.umPerPixel}
+                  medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                  limiares={limiaresDaCena}
+                  especieId={especieDeclarada}
+                  onToggleClass={toggleSegmentationClass}
+                  onDelete={deleteSegmentation}
+                  onProposeCut={handleProposeCut}
+                  onClose={() => setContornoSelecionado(null)}
+                />
+              )}
+
+              {image && (
+                <MarkingCanvas
+                  image={imagemDeTrabalho ?? image}
+                  marks={marks}
+                  yoloSegmentations={yoloSegmentations}
+                  anotacoesVisuais={anotacoesVisuais}
+                  mostrarContornos={mostraContornos(mascara)}
+                  mostrarPontos={mostraPontos(mascara)}
+                  contornoSelecionado={contornoSelecionado}
+                  onSelecionarContorno={setContornoSelecionado}
+                  onMoverVertice={handleMoverVertice}
+                  onInserirVertice={handleInserirVertice}
+                  onRemoverVertice={handleRemoverVertice}
+                  onRaspar={handleRaspar}
+                  onInicioDeGesto={abrirGesto}
+                  onFimDeGesto={handleFimDeGesto}
+                  linhaDeCorte={corteProposto?.linha ?? null}
+                  onDesenhoConcluido={handleDesenhoConcluido}
+                  raioDaRaspagem={raioDaRaspagem}
+                  ajusteDaMarca={ajusteDaMarca}
+                  visualMode={visualMode}
+                  zoomLevel={zoomLevel}
+                  isPanningMode={isPanningMode}
+                  onCanvasClick={handleCanvasClick}
+                  canvasRef={canvasRef}
+                  onToggleSegmentationClass={toggleSegmentationClass}
+                  onDeleteSegmentation={deleteSegmentation}
+                  umPerPixel={metadata.umPerPixel}
+                  detectionPreview={detectionPreview}
+                  canvasFilter={canvasFilter}
+                  activeTool={activeTool}
+                  eraserRadius={eraserRadius}
+                  onRemoveMark={removeMark}
+                  onToggleMarkClass={handleToggleMarkClass}
+                  onMoveMark={handleMoveMark}
+                  onEraseArea={handleEraseArea}
+                  showRulers={showRulers}
+                  menuRadialAtivo={isMenuRadialEnabled}
+                  onClassificarRadial={handleClassificarRadial}
+                  sementesSimuladas={sementesSimuladas}
+                >
+                  {isMeasuring && <CalibrationRulerOverlay onMeasured={handleMeasured} />}
+                  
+                  {selecionandoRegiao && (
+                    <RegionSelectorOverlay
+                      selectedRegion={regiaoDeDeteccao}
+                      onRegionSelected={(r) => {
+                        setRegiaoDeDeteccao(r);
+                        setSelecionandoRegiao(false);
+                      }}
+                    />
+                  )}
+
+                  <VisualAnnotationsOverlay
+                    onAddAnotacaoVisual={(a) => {
+                      mutar((antes) => ({
+                        ...antes,
+                        anotacoesVisuais: [...(antes.anotacoesVisuais || []), a],
+                      }));
+                      setRecadoDaOnda({
+                        tom: 'ok',
+                        texto: 'Anotação adicionada à prancheta.',
+                      });
+                    }}
+                  />
+
+                  <GhostSeedsOverlay
+                    sementesSimuladas={sementesSimuladas}
+                    marks={marks}
+                    yoloSegmentations={yoloSegmentations}
+                  />
+                </MarkingCanvas>
+              )}
+            </ImageViewport>
+
+            {/* 4. Barra de Ferramentas — FIXA SOBRE O VIEWPORT (sempre acessível mesmo com muito zoom) */}
             {image && (
               <Toolbar
                 activeTool={activeTool}
@@ -2249,7 +2565,7 @@ export default function App() {
               />
             )}
 
-            {/* Medidas ao vivo, no espaco ao lado da imagem. */}
+            {/* Medidas ao vivo — FIXO SOBRE O VIEWPORT */}
             {image && (
               <div className="absolute top-3 right-3 z-20 w-[280px] max-w-[42vw]">
                 {painelDeMedidasAberto ? (
@@ -2275,126 +2591,48 @@ export default function App() {
                 )}
               </div>
             )}
-            {/* O corte proposto. Fica sobre a imagem, ao lado da linha
-                tracejada que ele vai aplicar — decidir olhando a proposta e o
-                que permite RECUSAR, e recusar importa mais que aceitar:
-                cortar por engano vira duas sementes onde havia uma. */}
-            {corteProposto && (
-              <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
-                <div className="min-w-0">
-                  <p className="text-ink-1 text-xs font-bold">Cintura encontrada</p>
-                  <p className="text-ink-3 text-[10px] leading-snug">
-                    O contorno parece conter duas sementes. A linha tracejada mostra onde
-                    separar.
-                  </p>
-                </div>
-                <button
-                  onClick={handleAplicarCorte}
-                  className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
-                >
-                  Separar
-                </button>
-                <button
-                  onClick={() => setContornoSelecionado(null)}
-                  aria-label="Manter como está"
-                  className="border-line text-ink-2 hover:bg-surface-2 shrink-0 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
-                >
-                  Manter
-                </button>
-              </div>
-            )}
 
-            {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
-                acabou de clicar, e não numa barra distante. */}
-            {!corteProposto && recadoDaOnda && (
-              <div
-                className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
-                  recadoDaOnda.tom === 'ok'
-                    ? 'border-accent bg-accent-tint text-accent'
-                    : 'border-warn bg-warn/15 text-ink-1'
-                }`}
-                role="status"
-              >
-                {recadoDaOnda.texto}
-              </div>
-            )}
-            {/* Inspetor de Semente: janela lateral flutuante com morfometria, CIELAB e priors */}
-            {segmentacaoAtiva && image && (
-              <SeedInspector
-                segmentation={segmentacaoAtiva}
-                image={imagemDeTrabalho ?? image}
-                umPerPixel={metadata.umPerPixel}
-                medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
-                limiares={limiaresDaCena}
-                especieId={especieDeclarada}
-                onToggleClass={toggleSegmentationClass}
-                onDelete={deleteSegmentation}
-                onProposeCut={handleProposeCut}
-                onClose={() => setContornoSelecionado(null)}
-              />
-            )}
-
+            {/* Floating Zoom and Panning controls — FIXO SOBRE O VIEWPORT */}
             {image && (
-              <MarkingCanvas
-                image={imagemDeTrabalho ?? image}
-                marks={marks}
-                yoloSegmentations={yoloSegmentations}
-                mostrarContornos={mostraContornos(mascara)}
-                mostrarPontos={mostraPontos(mascara)}
-                contornoSelecionado={contornoSelecionado}
-                onSelecionarContorno={setContornoSelecionado}
-                onMoverVertice={handleMoverVertice}
-                onInserirVertice={handleInserirVertice}
-                onRemoverVertice={handleRemoverVertice}
-                onRaspar={handleRaspar}
-                onInicioDeGesto={abrirGesto}
-                onFimDeGesto={handleFimDeGesto}
-                linhaDeCorte={corteProposto?.linha ?? null}
-                onDesenhoConcluido={handleDesenhoConcluido}
-                raioDaRaspagem={raioDaRaspagem}
-                ajusteDaMarca={ajusteDaMarca}
-                visualMode={visualMode}
-                zoomLevel={zoomLevel}
+              <ZoomControls
                 isPanningMode={isPanningMode}
-                onCanvasClick={handleCanvasClick}
-                canvasRef={canvasRef}
-                onToggleSegmentationClass={toggleSegmentationClass}
-                onDeleteSegmentation={deleteSegmentation}
-                umPerPixel={metadata.umPerPixel}
-                detectionPreview={detectionPreview}
-                canvasFilter={canvasFilter}
-                activeTool={activeTool}
-                eraserRadius={eraserRadius}
-                onRemoveMark={removeMark}
-                onToggleMarkClass={handleToggleMarkClass}
-                onMoveMark={handleMoveMark}
-                onEraseArea={handleEraseArea}
-                showRulers={showRulers}
-                isMeasuring={isMeasuring}
-                onMeasured={handleMeasured}
-                isSelectingRegion={selecionandoRegiao}
-                selectedRegion={regiaoDeDeteccao}
-                onRegionSelected={(r) => {
-                  setRegiaoDeDeteccao(r);
-                  setSelecionandoRegiao(false);
-                }}
-                menuRadialAtivo={isMenuRadialEnabled}
-                onClassificarRadial={handleClassificarRadial}
+                togglePanningMode={togglePanningMode}
+                zoomIn={zoomIn}
+                zoomOut={zoomOut}
+                zoomLevel={zoomLevel}
+                onFitToScreen={handleFitToScreen}
               />
             )}
-          </ImageViewport>
+          </div>
 
-          {/* 4. Floating Zoom and Panning controls */}
-          {image && (
-            <ZoomControls
-              isPanningMode={isPanningMode}
-              togglePanningMode={togglePanningMode}
-              zoomIn={zoomIn}
-              zoomOut={zoomOut}
-              zoomLevel={zoomLevel}
-              onFitToScreen={handleFitToScreen}
-            />
-          )}
+          {/* 3. Painel Lateral Direito — RESULTADOS E ANÁLISE BIOMÉTRICA */}
+          <RightSidebar
+            viableCount={viableCount}
+            inviableCount={inviableCount}
+            viablePercent={viablePercent}
+            inviablePercent={inviablePercent}
+            totalCount={totalCount}
+            visualMode={visualMode}
+            setVisualMode={setVisualMode}
+            activeClassification={activeClassification}
+            setActiveClassification={setActiveClassification}
+            plateId={metadata.plate}
+            sessions={sessions}
+            resumo={resumoDeMorfometria}
+            medicoes={medicoesDeMorfometria}
+            especie={especieDeclarada}
+            calibrado={!!metadata.umPerPixel && metadata.umPerPixel > 0}
+            onExport={() => setIsExportModalOpen(true)}
+            onDestacarSementes={handleDestacarSementes}
+            onAplicarRegra={handleAplicarRegra}
+            regraSelecionadaId={regraSelecionadaId}
+            limiaresCustomizados={limiaresCustomizados}
+            onRegraChange={setRegraSelecionadaId}
+            onLimiarChange={setLimiaresCustomizados}
+            isCollapsed={isRightSidebarCollapsed}
+            onToggleCollapse={handleToggleRightSidebar}
+            hasImage={!!image}
+          />
         </div>
       )}
 
@@ -2471,7 +2709,10 @@ export default function App() {
             exportAnnotatedImage={handleExportAnnotatedImage}
             exportPDF={handleExportPDF}
             isYoloExportEnabled={isYoloExportEnabled}
-            onOpenYoloExport={() => setIsYoloExportModalOpen(true)}
+            onOpenYoloExport={() => {
+              setIsExportModalOpen(false);
+              setIsYoloExportModalOpen(true);
+            }}
           />
         )}
       </AnimatePresence>
@@ -2596,7 +2837,10 @@ export default function App() {
       <FeaturesModal
         isOpen={isFeaturesOpen}
         onClose={() => setIsFeaturesOpen(false)}
-        onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+        onAbrirNovidades={() => {
+          setIsFeaturesOpen(false);
+          setNovidades({ aberto: true, versoes: [] });
+        }}
       />
 
       <BarraDeAtividade />
@@ -2605,9 +2849,10 @@ export default function App() {
       <CartaoDeSugestao
         sugestao={sugestaoAtual}
         onAcao={handleAcaoDeSugestao}
-        onDispensar={(sug) =>
-          dispensar(sug.id, sug.escopoDaDispensa, image ? filename || 'imagem' : null)
-        }
+        onDispensar={(sug) => {
+          dispensar(sug.id, sug.escopoDaDispensa, image ? filename || 'imagem' : null);
+          setVersaoDispensadas((v) => v + 1);
+        }}
       />
 
       <Florescer ativo={florescendo} onFim={encerrarFlorescer} />
@@ -2642,6 +2887,10 @@ export default function App() {
         progresso={segmentandoLote}
         protocolo={metadata.protocolo}
         onSubclasse={setSubclasse}
+        onFocarNoCanvas={handleFocarNoCanvas}
+        umPerPixel={metadata.umPerPixel}
+        medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+        limiares={limiaresDaCena}
       />
 
       <IdentificacaoModal
@@ -2653,6 +2902,9 @@ export default function App() {
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />
+
+      {/* 9. Cookie & Privacy Consent Banner */}
+      <CookieConsentBanner />
     </div>
   );
 }

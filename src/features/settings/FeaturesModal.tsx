@@ -18,6 +18,7 @@ import { useFeatureFlags } from '../../context/FeatureFlagContext';
 import { FEATURE_REGISTRY } from '../flags';
 import { DemoDataPanel } from '../demo';
 import { CHAVE_SOM, CHAVE_SUGESTOES, gravarPreferencia, lerPreferencia } from './preferencias';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface FeaturesModalProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export function FeaturesModal({
   version = `v${__APP_VERSION__}`,
   onAbrirNovidades,
 }: FeaturesModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const { flags, toggle, reset } = useFeatureFlags();
 
   // As preferências não passam pelo FeatureFlagContext: são só um par de

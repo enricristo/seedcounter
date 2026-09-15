@@ -20,6 +20,7 @@ interface KeyboardShortcutsProps {
   hasImage: boolean;
   hasNextImage: boolean;
   hasPrevImage: boolean;
+  disabled?: boolean;
 }
 
 export function useKeyboardShortcuts({
@@ -40,9 +41,12 @@ export function useKeyboardShortcuts({
   hasImage,
   hasNextImage,
   hasPrevImage,
+  disabled = false,
 }: KeyboardShortcutsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (disabled) return;
+
       // If user is focused on an input or textarea, skip single-key shortcuts
       const activeEl = document.activeElement;
       const isTyping =
@@ -163,5 +167,6 @@ export function useKeyboardShortcuts({
     hasImage,
     hasNextImage,
     hasPrevImage,
+    disabled,
   ]);
 }

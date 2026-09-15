@@ -140,6 +140,16 @@ export interface Metadata {
 }
 
 // ---------------------------------------------------------------------------
+// Metrological Clipboard (Anotações Visuais)
+// ---------------------------------------------------------------------------
+
+export type AnotacaoVisual =
+  | { id: string; tipo: 'cota'; p1: [number, number]; p2: [number, number] }
+  | { id: string; tipo: 'seta'; p1: [number, number]; p2: [number, number] }
+  | { id: string; tipo: 'caixa'; x: number; y: number; w: number; h: number; cor?: string }
+  | { id: string; tipo: 'chamada'; p: [number, number]; texto: string };
+
+// ---------------------------------------------------------------------------
 // Session (single counting event)
 // ---------------------------------------------------------------------------
 
@@ -152,6 +162,7 @@ export interface Session {
   metadata: Metadata;
   marks?: Mark[];
   yoloSegmentations?: YoloSegmentation[];
+  anotacoesVisuais?: AnotacaoVisual[];
   imageData?: string; // Base64 encoded image
   experimentId?: string; // Link to Experiment
   treatmentId?: string; // Link to Treatment

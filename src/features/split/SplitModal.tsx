@@ -21,6 +21,7 @@ import {
   nomeDaPeca,
   type Retangulo,
 } from '../../lib/image-crop';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface SplitModalProps {
   isOpen: boolean;
@@ -39,6 +40,8 @@ const PREVIA_MAX_ALTURA = 320;
 const MIN_REGIAO = 32;
 
 export function SplitModal({ isOpen, onClose, image, filename, onSplit }: SplitModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const [modo, setModo] = useState<Modo>('total');
   const [total, setTotal] = useState(12);
   const [colunas, setColunas] = useState(6);

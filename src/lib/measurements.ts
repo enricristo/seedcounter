@@ -13,6 +13,7 @@
 
 import { calculateSeedDimensions } from './pca-utils';
 import { feret } from './feret';
+import { fechoConvexo, areaDoPoligono } from './aglomerado';
 import type { Mark, YoloSegmentation, Metadata } from '../types';
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
 
@@ -55,6 +56,8 @@ export interface SeedMeasurement {
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
   circularidade?: number;
+  /** Solidez: área dividida pela área do fecho convexo — 1 = perfeitamente convexo. */
+  solidez?: number;
   /** Confiança do modelo, quando aplicável. */
   confianca?: number;
 
@@ -247,6 +250,9 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
         perim > 0
           ? Number(Math.min(1, (4 * Math.PI * area) / (perim * perim)).toFixed(3))
           : undefined;
+      const fc = fechoConvexo(poly as [number, number][]);
+      const areaFc = areaDoPoligono(fc);
+      row.solidez = areaFc > 0 ? Number(Math.min(1, area / areaFc).toFixed(3)) : undefined;
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
 
       // Feret: a medida do paquimetro e da peneira comercial (UBS classifica

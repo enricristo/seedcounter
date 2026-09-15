@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PlateViabilityChart } from '../charts/PlateViabilityChart';
 import { SessionTrendChart } from '../charts/SessionTrendChart';
 import type { Session } from '../../types';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -41,6 +42,8 @@ export function HistoryModal({
   onImportHistoryJSON,
   onLoadSession,
 }: HistoryModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const [activeChartTab, setActiveChartTab] = useState<'bar' | 'trend'>('bar');
 
   if (!isOpen) return null;
@@ -59,11 +62,15 @@ export function HistoryModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-8">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-8"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
+        onClick={(e) => e.stopPropagation()}
         className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-6.5xl h-full max-h-[85vh] overflow-hidden border border-line transition-all duration-300"
       >
         {/* Header bar */}

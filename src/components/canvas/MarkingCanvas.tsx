@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Mark, YoloSegmentation } from '../../types';
+import { CanvasProvider } from './overlays/CanvasContext';
 import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
 import { CanvasRulers } from './CanvasRulers';
@@ -69,6 +70,7 @@ interface MarkingCanvasProps {
   image: HTMLImageElement;
   marks: Mark[];
   yoloSegmentations: YoloSegmentation[];
+  anotacoesVisuais?: import('../../types').AnotacaoVisual[];
   /** Os contornos de segmentacao aparecem? (mascara) */
   mostrarContornos: boolean;
   /** As marcacoes aparecem? (mascara) */
@@ -86,7 +88,7 @@ interface MarkingCanvasProps {
   /** Prévia da detecção assistida (Fase E). */
   detectionPreview?: DetectionPreview | null;
   /** Ferramenta ativa (Fase F — editor). */
-  activeTool?: 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'eraser' | 'pan';
+  activeTool?: 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'eraser' | 'pan' | 'cota' | 'seta' | 'chamada' | 'caixa';
   /** Raio da borracha, em pixels da imagem. */
   eraserRadius?: number;
   /** Remove uma marcação específica (clique direto nela). */
@@ -160,12 +162,23 @@ interface MarkingCanvasProps {
    * `useMarks`, como qualquer outra mutação de classe.
    */
   onClassificarRadial?: (id: number, chave: string) => void;
+
+  // --- Prancheta Metrológica ---
+  onAddAnotacaoVisual?: (anotacao: import('../../types').AnotacaoVisual) => void;
+  
+  // --- Simulação de Regras em Lote (Data Flywheel) ---
+  /** Array de objectId (1-based index de marks) das sementes que atendem à regra ativa no painel */
+  sementesSimuladas?: number[];
+
+  // --- Composição ---
+  children?: React.ReactNode;
 }
 
 export function MarkingCanvas({
   image,
   marks,
   yoloSegmentations,
+  anotacoesVisuais = [],
   mostrarContornos,
   mostrarPontos,
   ajusteDaMarca = AJUSTE_PADRAO,
@@ -204,6 +217,9 @@ export function MarkingCanvas({
   onDesenhoConcluido,
   menuRadialAtivo = false,
   onClassificarRadial,
+  onAddAnotacaoVisual,
+  sementesSimuladas = [],
+  children,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
 
@@ -473,6 +489,18 @@ export function MarkingCanvas({
   const handleLayerPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
 
+    // Alt segurado ao clicar/arrastar no palco: borracha imediata
+    if (e.altKey && !editandoContorno) {
+      e.preventDefault();
+      e.stopPropagation();
+      onInicioDeGesto?.();
+      setIsErasing(true);
+      capturar(e);
+      const pos = toImageCoords(e);
+      if (pos && onEraseArea) onEraseArea(pos.x, pos.y, eraserRadius);
+      return;
+    }
+
     if (editandoContorno) {
       const pos = toImageCoords(e);
       if (!pos) return;
@@ -571,7 +599,18 @@ export function MarkingCanvas({
       setRulerEnd(null);
     } else {
       setRulerEnd(pos);
-      onMeasured?.(Math.hypot(pos.x - rulerStart.x, pos.y - rulerStart.y), rulerStart, pos);
+      if (isMeasuring) {
+        onMeasured?.(Math.hypot(pos.x - rulerStart.x, pos.y - rulerStart.y), rulerStart, pos);
+      } else if (activeTool === 'cota') {
+        onAddAnotacaoVisual?.({
+          id: Date.now().toString(),
+          tipo: 'cota',
+          p1: [rulerStart.x, rulerStart.y],
+          p2: [pos.x, pos.y],
+        });
+        setRulerStart(null);
+        setRulerEnd(null);
+      }
     }
   };
 
@@ -611,12 +650,28 @@ export function MarkingCanvas({
   const concluirRegiao = () => {
     // Arraste curto demais é clique com a mão trêmula, não seleção: descarta
     // em silêncio em vez de mandar o modelo rodar num retângulo de 3 px.
-    if (regiaoUtilizavel(regiaoEmConstrucao)) onRegionSelected?.(regiaoEmConstrucao);
+    if (regiaoUtilizavel(regiaoEmConstrucao)) {
+      if (isSelectingRegion) {
+        onRegionSelected?.(regiaoEmConstrucao);
+      } else if (activeTool === 'caixa') {
+        onAddAnotacaoVisual?.({
+          id: Date.now().toString(),
+          tipo: 'caixa',
+          x: regiaoEmConstrucao.x,
+          y: regiaoEmConstrucao.y,
+          w: regiaoEmConstrucao.width,
+          h: regiaoEmConstrucao.height,
+        });
+      }
+    }
     setArrasteInicio(null);
     setArrasteAtual(null);
   };
 
   const regiaoDesenhada = regiaoEmConstrucao ?? selectedRegion ?? null;
+
+  // --- Prancheta Metrológica ---
+  const [anotacaoInicio, setAnotacaoInicio] = useState<{ x: number; y: number } | null>(null);
 
   const handlePolygonMouseMove = (e: React.MouseEvent, seg: YoloSegmentation) => {
     if (isPanningMode) return;
@@ -635,12 +690,13 @@ export function MarkingCanvas({
     if (isPanningMode) return;
     e.stopPropagation(); // Avoid placing a manual mark when clicking a polygon
 
-    // Mesma regra da marcação manual: Ctrl inverte a classe, Shift/Alt e o
-    // botão direito apagam, clique simples não faz nada.
-    if (e.shiftKey || e.altKey || e.button === 2) {
+    // Shift/Alt apagam; botão direito ou Ctrl invertem a classe; clique simples seleciona para inspecionar/editar.
+    if (e.shiftKey || e.altKey) {
       onDeleteSegmentation(seg.id);
-    } else if (e.ctrlKey || e.metaKey) {
+    } else if (e.button === 2 || e.ctrlKey || e.metaKey) {
       onToggleSegmentationClass(seg.id);
+    } else {
+      onSelecionarContorno?.(seg.id);
     }
   };
 
@@ -649,20 +705,32 @@ export function MarkingCanvas({
   };
 
   return (
-    <div
-      className="relative bg-surface-1 shadow-2xl rounded-sm transition-all"
-      style={{
-        width: `${image.width * zoomLevel}px`,
-        height: `${image.height * zoomLevel}px`,
-      }}
-      onContextMenu={(e) => {
-        // Só suprime o menu do navegador quando o spike está ligado — com a
-        // flag desligada, o botão direito continua se comportando como
-        // sempre: nada aqui muda.
-        if (menuRadialAtivo) e.preventDefault();
+    <CanvasProvider
+      value={{
+        image,
+        zoomLevel,
+        activeTool,
+        isPanningMode,
+        umPerPixel,
+        toImageCoords,
+        naImagem,
       }}
     >
-      {/* Underlying Canvas for image and manual marks */}
+      <div
+        className="relative bg-surface-1 shadow-2xl rounded-sm transition-all"
+        style={{
+          width: `${image.width * zoomLevel}px`,
+          height: `${image.height * zoomLevel}px`,
+        }}
+        onContextMenu={(e) => {
+          // Só suprime o menu do navegador quando o spike está ligado — com a
+          // flag desligada, o botão direito continua se comportando como
+          // sempre: nada aqui muda.
+          if (menuRadialAtivo) e.preventDefault();
+        }}
+      >
+        {children}
+        {/* Underlying Canvas for image and manual marks */}
       <canvas
         ref={canvasRef}
         onClick={(e) => {
@@ -714,142 +782,7 @@ export function MarkingCanvas({
         />
       )}
 
-      {/* Régua de calibração — camada acima de tudo */}
-      {isMeasuring && (
-        <svg
-          className="absolute inset-0 w-full h-full"
-          viewBox={`0 0 ${image.width} ${image.height}`}
-          style={{ width: '100%', height: '100%', zIndex: 12, cursor: 'crosshair' }}
-          onClick={handleRulerClick}
-          onMouseMove={handleRulerMove}
-          onMouseLeave={() => setCursorPos(null)}
-        >
-          {/* Fundo semitransparente para destacar o modo de medição */}
-          <rect
-            x={0}
-            y={0}
-            width={image.width}
-            height={image.height}
-            fill="rgba(14,165,233,0.06)"
-          />
-
-          {/* Linha em construção (do primeiro ponto até o cursor) */}
-          {rulerStart && !rulerEnd && cursorPos && (
-            <line
-              x1={rulerStart.x}
-              y1={rulerStart.y}
-              x2={cursorPos.x}
-              y2={cursorPos.y}
-              stroke={ESPECIME.tool}
-              className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
-              strokeWidth={Math.max(2, image.width / 400)}
-              strokeDasharray={`${image.width / 100},${image.width / 150}`}
-            />
-          )}
-
-          {/* Linha final medida */}
-          {rulerStart && rulerEnd && (
-            <line
-              x1={rulerStart.x}
-              y1={rulerStart.y}
-              x2={rulerEnd.x}
-              y2={rulerEnd.y}
-              stroke={ESPECIME.tool}
-              className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
-              strokeWidth={Math.max(2, image.width / 400)}
-            />
-          )}
-
-          {/* Marcadores das extremidades */}
-          {[rulerStart, rulerEnd].map((p, i) =>
-            p ? (
-              <g key={i}>
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={Math.max(4, image.width / 220)}
-                  fill={ESPECIME.tool}
-                  className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
-                />
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={Math.max(8, image.width / 110)}
-                  fill="none"
-                  stroke={ESPECIME.tool}
-                  className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
-                  strokeWidth={Math.max(1, image.width / 800)}
-                  opacity={0.5}
-                />
-              </g>
-            ) : null
-          )}
-        </svg>
-      )}
-
-      {/* Região de detecção — camada de arraste, acima de tudo */}
-      {isSelectingRegion && (
-        <svg
-          className="absolute inset-0 w-full h-full"
-          viewBox={`0 0 ${image.width} ${image.height}`}
-          style={{ width: '100%', height: '100%', zIndex: 13, cursor: 'crosshair' }}
-          onMouseDown={iniciarRegiao}
-          onMouseMove={arrastarRegiao}
-          onMouseUp={concluirRegiao}
-          onMouseLeave={concluirRegiao}
-        >
-          {/* Escurece o que está FORA da região: o recorte é a informação, e
-              quatro retângulos ao redor mostram isso sem depender de máscara
-              SVG, que alguns navegadores rasterizam mal em zoom alto. */}
-          {regiaoDesenhada ? (
-            <>
-              <rect x={0} y={0} width={image.width} height={regiaoDesenhada.y} fill="rgba(0,0,0,0.45)" />
-              <rect
-                x={0}
-                y={regiaoDesenhada.y + regiaoDesenhada.height}
-                width={image.width}
-                height={Math.max(0, image.height - regiaoDesenhada.y - regiaoDesenhada.height)}
-                fill="rgba(0,0,0,0.45)"
-              />
-              <rect
-                x={0}
-                y={regiaoDesenhada.y}
-                width={regiaoDesenhada.x}
-                height={regiaoDesenhada.height}
-                fill="rgba(0,0,0,0.45)"
-              />
-              <rect
-                x={regiaoDesenhada.x + regiaoDesenhada.width}
-                y={regiaoDesenhada.y}
-                width={Math.max(0, image.width - regiaoDesenhada.x - regiaoDesenhada.width)}
-                height={regiaoDesenhada.height}
-                fill="rgba(0,0,0,0.45)"
-              />
-              <rect
-                x={regiaoDesenhada.x}
-                y={regiaoDesenhada.y}
-                width={regiaoDesenhada.width}
-                height={regiaoDesenhada.height}
-                fill="none"
-                stroke={ESPECIME.tool}
-                strokeWidth={Math.max(2, image.width / 500)}
-                strokeDasharray={`${image.width / 120},${image.width / 200}`}
-                className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]"
-              />
-            </>
-          ) : (
-            <rect
-              x={0}
-              y={0}
-              width={image.width}
-              height={image.height}
-              fill="rgba(0,0,0,0.25)"
-            />
-          )}
-        </svg>
-      )}
-
-      {/* Fase F — Camada interativa: hover nas marcações, borracha e a
+      {/* Overlays foram movidos para componentes filhos de Composition (App.tsx) */}      {/* Fase F — Camada interativa: hover nas marcações, borracha e a
           ferramenta de contorno. Na ferramenta de contorno ela captura TUDO:
           a versão anterior só capturava com a borracha ou arrastando marca,
           e o arraste de vértice perdia o mouse assim que saía da alça. */}
@@ -955,9 +888,14 @@ export function MarkingCanvas({
                   if (isEraser || e.shiftKey || e.altKey) {
                     onRemoveMark?.(mark.id);
                     setHoveredMarkId(null);
-                  } else if (e.ctrlKey || e.metaKey) {
+                  } else if (e.ctrlKey || e.metaKey || e.button === 2) {
                     onToggleMarkClass?.(mark.id);
                   }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggleMarkClass?.(mark.id);
                 }}
               />
             );
@@ -1080,6 +1018,11 @@ export function MarkingCanvas({
                       return;
                     }
                     handlePolygonClick(e, seg);
+                  }}
+                  onContextMenu={(e) => {
+                    if (menuRadialAtivo) return;
+                    e.preventDefault();
+                    e.stopPropagation();
                   }}
                   onMouseMove={(e) => handlePolygonMouseMove(e, seg)}
                   onMouseLeave={handlePolygonMouseLeave}
@@ -1297,6 +1240,124 @@ export function MarkingCanvas({
         </svg>
       )}
 
+      {/* Camada de Anotações Visuais (Prancheta Metrológica) */}
+      {anotacoesVisuais.length > 0 && (
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full select-none"
+          viewBox={`0 0 ${image.width} ${image.height}`}
+          style={{ width: '100%', height: '100%', zIndex: 10 }}
+        >
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill={ESPECIME.tool} />
+            </marker>
+          </defs>
+          {anotacoesVisuais.map((av) => {
+            if (av.tipo === 'seta') {
+              return (
+                <g key={av.id}>
+                  <line
+                    x1={av.p1[0]} y1={av.p1[1]}
+                    x2={av.p2[0]} y2={av.p2[1]}
+                    stroke={ESPECIME.halo} strokeWidth={Math.max(5, image.width / 200)}
+                  />
+                  <line
+                    x1={av.p1[0]} y1={av.p1[1]}
+                    x2={av.p2[0]} y2={av.p2[1]}
+                    stroke={ESPECIME.tool} strokeWidth={Math.max(3, image.width / 300)}
+                    markerEnd="url(#arrowhead)"
+                  />
+                  <circle cx={av.p1[0]} cy={av.p1[1]} r={Math.max(4, image.width / 220)} fill={ESPECIME.tool} className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]" />
+                </g>
+              );
+            }
+            if (av.tipo === 'cota') {
+              const dx = av.p2[0] - av.p1[0];
+              const dy = av.p2[1] - av.p1[1];
+              const dist = Math.hypot(dx, dy);
+              const cx = av.p1[0] + dx / 2;
+              const cy = av.p1[1] + dy / 2;
+              const texto = formatLengthDual(dist, umPerPixel);
+              
+              return (
+                <g key={av.id}>
+                  <line
+                    x1={av.p1[0]} y1={av.p1[1]}
+                    x2={av.p2[0]} y2={av.p2[1]}
+                    stroke={ESPECIME.halo} strokeWidth={Math.max(4, image.width / 200)}
+                    strokeDasharray={`${image.width / 100},${image.width / 150}`}
+                  />
+                  <line
+                    x1={av.p1[0]} y1={av.p1[1]}
+                    x2={av.p2[0]} y2={av.p2[1]}
+                    stroke={ESPECIME.tool} strokeWidth={Math.max(2, image.width / 400)}
+                    strokeDasharray={`${image.width / 100},${image.width / 150}`}
+                  />
+                  {[av.p1, av.p2].map((p, i) => (
+                    <g key={i}>
+                      <circle cx={p[0]} cy={p[1]} r={Math.max(4, image.width / 220)} fill={ESPECIME.tool} className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]" />
+                      <circle cx={p[0]} cy={p[1]} r={Math.max(8, image.width / 110)} fill="none" stroke={ESPECIME.tool} className="[filter:drop-shadow(0_0_2px_rgba(0,0,0,0.9))]" strokeWidth={Math.max(1, image.width / 800)} opacity={0.5} />
+                    </g>
+                  ))}
+                  {/* Fundo do texto */}
+                  <rect
+                    x={cx - (image.width / 24)} y={cy - (image.width / 60)}
+                    width={image.width / 12} height={image.width / 30}
+                    fill="rgba(0,0,0,0.7)" rx={4}
+                  />
+                  <text
+                    x={cx} y={cy}
+                    fill="white"
+                    fontSize={Math.max(12, image.width / 60)}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fontFamily="monospace"
+                  >
+                    {texto}
+                  </text>
+                </g>
+              );
+            }
+            if (av.tipo === 'caixa') {
+              return (
+                <rect
+                  key={av.id}
+                  x={av.x} y={av.y}
+                  width={av.w} height={av.h}
+                  fill="none"
+                  stroke={av.cor || ESPECIME.tool}
+                  strokeWidth={Math.max(2, image.width / 400)}
+                  strokeDasharray={`${image.width / 150},${image.width / 200}`}
+                />
+              );
+            }
+            if (av.tipo === 'chamada') {
+              return (
+                <g key={av.id}>
+                  <circle cx={av.p[0]} cy={av.p[1]} r={Math.max(4, image.width / 220)} fill={ESPECIME.tool} />
+                  <line
+                    x1={av.p[0]} y1={av.p[1]}
+                    x2={av.p[0] + (image.width / 20)} y2={av.p[1] - (image.width / 20)}
+                    stroke={ESPECIME.tool} strokeWidth={Math.max(2, image.width / 400)}
+                  />
+                  <text
+                    x={av.p[0] + (image.width / 20) + 5} y={av.p[1] - (image.width / 20)}
+                    fill="white"
+                    fontSize={Math.max(12, image.width / 60)}
+                    alignmentBaseline="middle"
+                    className="drop-shadow-md"
+                  >
+                    {av.texto}
+                  </text>
+                </g>
+              );
+            }
+            return null;
+          })}
+
+          {/* GhostSeedsOverlay movido para componente filho */}
+        </svg>
+      )}
+
       {/* Floating details tooltip on hover of YOLO polygons */}
       {hoveredSeg && (
         <div
@@ -1343,5 +1404,6 @@ export function MarkingCanvas({
         <MenuRadial origem={gestoRadial.origem} atual={atualRadial} opcoes={OPCOES_RADIAIS} />
       )}
     </div>
+    </CanvasProvider>
   );
 }

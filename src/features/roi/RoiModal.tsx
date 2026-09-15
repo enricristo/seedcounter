@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Crosshair, Loader2, Wand2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { detectarCampoCircular, recortarCirculo, type Circulo } from '../../lib/image-crop';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface RoiModalProps {
   isOpen: boolean;
@@ -60,6 +61,8 @@ function proporCirculo(image: HTMLImageElement): Circulo | null {
 }
 
 export function RoiModal({ isOpen, onClose, image, filename, onCrop }: RoiModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const [circulo, setCirculo] = useState<Circulo | null>(null);
   const [automatico, setAutomatico] = useState(false);
   const [ocupado, setOcupado] = useState(false);

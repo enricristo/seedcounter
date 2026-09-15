@@ -21,6 +21,9 @@ import {
   Grid3x3,
   Spline,
   PenTool,
+  Square,
+  MessageSquare,
+  ArrowUpRight,
 } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 import { descrever, type Mascara } from '../../features/mascara/mascara';
@@ -39,6 +42,10 @@ const ICONS: Record<ToolId, React.ElementType> = {
   onda: Waves,
   contorno: Spline,
   desenho: PenTool,
+  cota: Ruler,
+  seta: ArrowUpRight,
+  caixa: Square,
+  chamada: MessageSquare,
   eraser: Eraser,
   pan: Hand,
 };
@@ -55,6 +62,10 @@ const ACTIVE_STYLES: Record<ToolId, string> = {
   // medida que a onda ja fez.
   contorno: 'bg-accent border-accent text-accent-on',
   desenho: 'bg-accent border-accent text-accent-on',
+  cota: 'bg-accent border-accent text-accent-on',
+  seta: 'bg-accent border-accent text-accent-on',
+  caixa: 'bg-accent border-accent text-accent-on',
+  chamada: 'bg-accent border-accent text-accent-on',
   // Instrumento, não espécime.
   eraser: 'bg-danger border-danger text-white',
   pan: 'bg-accent border-accent text-accent-on',
