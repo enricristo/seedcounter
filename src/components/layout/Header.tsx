@@ -23,6 +23,8 @@ interface HeaderProps {
   openHistory: () => void;
   /** O botao da conta. Ausente = nada no lugar dele. */
   contaSlot?: React.ReactNode;
+  /** O chip de especie (C7), ao lado das abas. Ausente = nada no lugar dele. */
+  especieSlot?: React.ReactNode;
   onUndo: () => void;
   undoDisabled: boolean;
   onRedo: () => void;
@@ -111,6 +113,7 @@ export function Header({
   sessionsCount,
   openHistory,
   contaSlot,
+  especieSlot,
   onUndo,
   undoDisabled,
   onRedo,
@@ -222,6 +225,10 @@ export function Header({
               </button>
             )}
           </nav>
+
+          {/* Espécie da bancada (C7): logo depois das abas — é contexto de
+            navegação, não ferramenta, por isso mora na linha 1. */}
+          {especieSlot}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

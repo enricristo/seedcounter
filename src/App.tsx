@@ -123,6 +123,9 @@ import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
 import type { AnotacaoCarregada } from './features/datasets/anotacao';
 import { detectObjects, type DetectionOptions } from './lib/detect';
 import type { OpcoesDaOnda } from './lib/region-growing';
+import { ChipDeEspecie } from './components/layout/ChipDeEspecie';
+import { especieAtual, type EspecieConhecida } from './lib/normas/especies';
+import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
@@ -1976,6 +1979,63 @@ export default function App() {
     metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
 
   /**
+   * A espécie é o que mais configura a bancada: priors, receita do ensaio,
+   * protocolo, jeito de digitalizar. Por isso ela mora no cabeçalho, e
+   * escolhê-la PREENCHE o que dela decorre — sem decidir nada sozinha: o
+   * protocolo só é sugerido quando ainda não há um, e a calibração vira
+   * recado, nunca escala aplicada.
+   */
+  const especieDaBancada = useMemo(() => especieAtual(metadata), [metadata]);
+  /** Nomes que não estão nas tabelas: os já usados em sessões e as classes do dataset aberto. */
+  const especiesExtras = useMemo(() => {
+    const nomes = new Set<string>();
+    for (const sessao of sessions) {
+      const n = sessao.metadata?.amostra?.especieNomeComum || sessao.metadata?.amostra?.especieNomeCientifico;
+      if (n) nomes.add(n);
+    }
+    for (const c of metadata.dataset?.classesDaImagem ?? []) nomes.add(c);
+    return [...nomes];
+  }, [sessions, metadata.dataset]);
+
+  const handleEscolherEspecie = useCallback(
+    (especie: EspecieConhecida | { nomeComum: string }) => {
+      const conhecida = 'id' in especie ? especie : null;
+      setMetadata((prev) => ({
+        ...prev,
+        protocolo:
+          conhecida?.protocoloSugerido && (!prev.protocolo || prev.protocolo === 'simples')
+            ? conhecida.protocoloSugerido
+            : prev.protocolo,
+        amostra: {
+          ...prev.amostra,
+          especieNomeComum: especie.nomeComum,
+          especieNomeCientifico: conhecida?.nomeCientifico ?? prev.amostra?.especieNomeCientifico,
+        },
+      }));
+      // Jeito típico de digitalizar: só um recado. Calibrar por conta própria
+      // seria inventar escala — e escala inventada vira medida errada em mm.
+      const aq = conhecida?.aquisicaoTipica;
+      if (aq && !(metadata.umPerPixel && metadata.umPerPixel > 0)) {
+        const eq = EQUIPAMENTOS_DO_LABORATORIO.find((e) => e.id === aq.equipamentoId);
+        if (eq) {
+          setRecadoDaOnda({
+            tom: 'aviso',
+            texto: `${especie.nomeComum} costuma ser digitalizada em ${eq.nome}${aq.dpi ? ` a ${aq.dpi} DPI` : ''}. Calibre na Etapa 1 — o DPI do driver é declaração; a régua na imagem é a conferência.`,
+          });
+        }
+      }
+    },
+    [setMetadata, metadata.umPerPixel]
+  );
+
+  const handleLimparEspecie = useCallback(() => {
+    setMetadata((prev) => ({
+      ...prev,
+      amostra: { ...prev.amostra, especieNomeComum: undefined, especieNomeCientifico: undefined },
+    }));
+  }, [setMetadata]);
+
+  /**
    * As medidas completas de cada semente da imagem.
    */
   const medicoesDeMorfometria = useMemo(() => {
@@ -2665,6 +2725,15 @@ export default function App() {
         toggleTheme={toggleTheme}
         sessionsCount={sessions.length}
         openHistory={() => setIsHistoryModalOpen(true)}
+        especieSlot={
+          <ChipDeEspecie
+            atual={especieDaBancada}
+            cultivar={metadata.amostra?.cultivar}
+            extras={especiesExtras}
+            onEscolher={handleEscolherEspecie}
+            onLimpar={handleLimparEspecie}
+          />
+        }
         contaSlot={
           conta.disponivel ? (
             <BotaoDeConta
