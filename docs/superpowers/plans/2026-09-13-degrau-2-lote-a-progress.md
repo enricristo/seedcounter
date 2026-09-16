@@ -66,6 +66,17 @@ Sanidade já conferida por script Node ad-hoc: `decodificarTiff` abre os dois pr
 7. Na seção "Remover fundo" do Encontrar, confira que o número muda sozinho conforme a mediana de área muda (é "2 × o raio esperado"); clique "Auto" depois de arrastar manualmente para conferir que ele volta a seguir a mediana.
 8. Na seção "Fundo" no topo do painel, confira a frase ("Fundo claro, objeto escuro" ou o inverso) e clique "Inverter" — a proposta deve rodar de novo com a polaridade trocada.
 
+## C1 — roteiro para o Enrico
+
+1. Abra 3 imagens reais na fila (arraste os 3 arquivos juntos, ou use "Exemplos" mais de uma vez — qualquer jeito que deixe `imageQueue` com 3 itens). Na lateral direita, abra a aba **Lote** (ícone de camadas, ao lado de Datasets).
+2. Em "Fonte", confira que **Fila de imagens** já vem selecionada (as outras duas — Regiões, Pasta — mostram "indisponível" quando não há imagem aberta ou pasta aberta, e ficam desabilitadas até isso mudar). Em "Receita", escolha **Padrão**.
+3. Clique **Rodar**. Acompanhe "Processando 1/3", "2/3", "3/3" — cada imagem é decodificada, localizada e a onda roda ponto a ponto, uma imagem de cada vez (não em paralelo).
+4. Confira a tabela: uma linha por imagem, com contagem/viáveis/inviáveis/suspeitos/duração. Se alguma imagem falhar (arquivo corrompido, por exemplo), a linha dela mostra o erro em vez dos números, e as outras linhas continuam normais — o lote não para por causa de uma imagem ruim.
+5. Clique **Exportar CSV** — confira que o arquivo baixado abre no Excel com `;` separando colunas e vírgula decimal nos números (não ponto).
+6. Clique **Aceitar** numa única linha — a linha vira "aceita" (não pode aceitar de novo). Abra o histórico de sessões (ícone de relógio) e confira que apareceu uma sessão nova com o nome daquela imagem, a contagem batendo com a linha da tabela, e a miniatura da imagem. Abra a sessão e confira, no formulário de metadados (ou exportando), que `metadata.receita.id` é `"padrao"`.
+7. Teste **Parar**: rode de novo com mais imagens na fila (ou uma pasta grande do explorador) e clique Parar no meio — a tabela deve conter só as imagens processadas até ali, sem travar a aba.
+8. Teste a fonte **Regiões da digitalização atual**: abra uma digitalização de scanner (uma imagem grande), mude "Pedaços" para, por exemplo, 6, e rode — a tabela deve ter 6 linhas, uma por região recortada.
+
 ## Ponto de parada — 2026-09-13, fim do crédito
 
 - Fechadas: A0 (c7c4406), A1 (a2f83dd), A2 (25d85d3 + 80b9677). Degrau 1 inteiro fechado (Task 7 f5d7a32, Task 8 0a1d05f).
