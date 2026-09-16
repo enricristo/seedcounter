@@ -15,7 +15,8 @@
 //   - Manual marks (x, y, type)         → YOLO detection (estimated bbox)
 // =============================================================================
 
-import JSZip from 'jszip';
+// JSZip não é importado estaticamente: só quem exporta o dataset YOLO paga
+// pelo peso dele — quem só conta sementes nunca aciona `generateYOLODataset`.
 import type { Session } from '../types';
 import { IMAGE_SOURCE_UM_PER_PIXEL } from '../types';
 
@@ -312,6 +313,9 @@ export async function generateYOLODataset(
     className: options.className ?? { viable: 'viable', inviable: 'inviable' },
   };
 
+  // Carregado sob demanda: exportar YOLO é uma ação explícita de clique, não
+  // algo que quem só conta sementes deveria baixar sem usar.
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const skippedSessions: string[] = [];
   const calibrationNotes: string[] = [];
