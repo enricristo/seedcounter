@@ -134,6 +134,7 @@ import type { Regiao } from './lib/region';
 import {
   NEUTRAL_ADJUSTMENTS,
   applyAdjustments,
+  exigePixels,
   isNeutral,
   toCssFilter,
   type ImageAdjustments,
@@ -707,10 +708,39 @@ export default function App() {
   const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : '0';
   const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : '0';
 
+  // Imagem com os ajustes aplicados.
+  //
+  // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
+  // detalhe. No clássico o ajuste é controle: a pessoa regula o limiar e vê o
+  // efeito na hora. No modelo é sabotagem silenciosa — a rede foi treinada em
+  // digitalização crua, e brilho, contraste ou saturação empurram a entrada
+  // para fora da distribuição de treino sem que nada na tela diga que foi isso
+  // que degradou o resultado.
+  //
+  // Escala de cinza é o caso extremo: colapsa a entrada no plano R=G=B, onde
+  // todo filtro que codifica diferença entre canais produz exatamente zero.
+  // Não é deslocamento recuperável, é informação destruída.
+  const adjustedSource = useMemo(() => {
+    const base = imagemDeTrabalho;
+    if (!base || !adjustEnabled || isNeutral(adjustments)) return base;
+    return applyAdjustments(base, adjustments) ?? base;
+  }, [imagemDeTrabalho, adjustments, adjustEnabled]);
+
+  // Filtro CSS para a prévia instantânea no canvas — só quando o ajuste cabe
+  // em CSS. Canal, gama e deslocamento por cor exigem pixels: aí o canvas
+  // recebe `adjustedSource` e o filtro fica em 'none' (senão aplicaria duas vezes).
+  const ajusteExigePixels = adjustEnabled && exigePixels(adjustments);
+  const canvasFilter = useMemo(
+    () => (adjustEnabled && !ajusteExigePixels ? toCssFilter(adjustments) : 'none'),
+    [adjustments, adjustEnabled, ajusteExigePixels]
+  );
+  /** O que o canvas pinta: pixels ajustados quando o CSS não dá conta; a imagem de trabalho no resto. */
+  const fonteDoCanvas = ajusteExigePixels ? adjustedSource : imagemDeTrabalho;
+
   // Re-draw Canvas markings
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const base = imagemDeTrabalho;
+    const base = fonteDoCanvas;
     if (!canvas || !base) return;
 
     const ctx = canvas.getContext('2d');
@@ -729,7 +759,7 @@ export default function App() {
     if (mostraPontos(mascara)) {
       renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca, yoloSegmentations);
     }
-  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca, mascara, yoloSegmentations]);
+  }, [fonteDoCanvas, marks, visualMode, ajusteDaMarca, mascara, yoloSegmentations]);
 
   useEffect(() => {
     if (imagemDeTrabalho && canvasRef.current) {
@@ -1647,29 +1677,6 @@ export default function App() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [image, setZoomLevel]);
 
-  // Imagem com os ajustes aplicados.
-  //
-  // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
-  // detalhe. No clássico o ajuste é controle: a pessoa regula o limiar e vê o
-  // efeito na hora. No modelo é sabotagem silenciosa — a rede foi treinada em
-  // digitalização crua, e brilho, contraste ou saturação empurram a entrada
-  // para fora da distribuição de treino sem que nada na tela diga que foi isso
-  // que degradou o resultado.
-  //
-  // Escala de cinza é o caso extremo: colapsa a entrada no plano R=G=B, onde
-  // todo filtro que codifica diferença entre canais produz exatamente zero.
-  // Não é deslocamento recuperável, é informação destruída.
-  const adjustedSource = useMemo(() => {
-    const base = imagemDeTrabalho;
-    if (!base || !adjustEnabled || isNeutral(adjustments)) return base;
-    return applyAdjustments(base, adjustments) ?? base;
-  }, [imagemDeTrabalho, adjustments, adjustEnabled]);
-
-  // Filtro CSS para a prévia instantânea no canvas.
-  const canvasFilter = useMemo(
-    () => (adjustEnabled ? toCssFilter(adjustments) : 'none'),
-    [adjustments, adjustEnabled]
-  );
 
   // Calibração — recebe a distância medida pela régua e encerra o modo.
   const handleMeasured = useCallback((pixels: number) => {
