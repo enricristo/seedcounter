@@ -1,0 +1,81 @@
+{
+  "origem": {
+    "fonte": "Image Dataset of Local Indonesian Soybean Seed Var (Mendeley, c733bjz4m3)",
+    "arquivo": "Anjasmoro002.jpg",
+    "licenca": "a conferir (Enrico)"
+  },
+  "janela": {
+    "x": 1456,
+    "y": 528
+  },
+  "reducao": 3,
+  "limiar_delta_e": 15.0,
+  "escala_um_por_px": null,
+  "verdade": "mascara-por-limiar-de-cor-conferida-visualmente",
+  "objetos": [
+    {
+      "id": 1,
+      "centro": [
+        273.7040722314354,
+        106.92961120324304
+      ],
+      "areaPx": 5427
+    },
+    {
+      "id": 2,
+      "centro": [
+        470.5727255532438,
+        146.92699073198412
+      ],
+      "areaPx": 5287
+    },
+    {
+      "id": 3,
+      "centro": [
+        47.70721789223992,
+        163.95052524567944
+      ],
+      "areaPx": 5902
+    },
+    {
+      "id": 4,
+      "centro": [
+        261.62861072902336,
+        285.01478679504817
+      ],
+      "areaPx": 5816
+    },
+    {
+      "id": 5,
+      "centro": [
+        464.2912731394031,
+        323.96996599924444
+      ],
+      "areaPx": 5294
+    },
+    {
+      "id": 6,
+      "centro": [
+        46.50594475946588,
+        338.31955368575086
+      ],
+      "areaPx": 5467
+    },
+    {
+      "id": 7,
+      "centro": [
+        270.59180138568126,
+        454.22959969207085
+      ],
+      "areaPx": 5196
+    },
+    {
+      "id": 8,
+      "centro": [
+        460.621961102107,
+        474.055510534846
+      ],
+      "areaPx": 4936
+    }
+  ]
+}
