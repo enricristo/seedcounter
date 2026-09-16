@@ -3,6 +3,40 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.5.0] — 2026-09-16
+
+Datasets dentro do app, medida conferida, e o lote. Detalhe em linguagem de
+quem usa: `src/lib/novidades.ts`.
+
+### Corrigido (o que muda número)
+- **`DEFAULT_LAB_DPI` 3600 → 4800.** A régua da própria digitalização mede 4735 e 4771 DPI efetivos em duas imagens independentes (`scripts/auditar-regua.py`, `docs/datasets/auditoria-de-medida.md`). Medidas em mm feitas com 3600 estavam +32%.
+- **Uma enumeração para tudo** (`src/lib/objetos.ts`): contagem, `buildMeasurements`, índices do canvas (tecla 2), lista do inspetor, fantasmas das regras e CSV. Contorno de modelo sem marca passou a ter linha, índice e medida; `origem` no CSV distingue manual/ia/modelo/referência.
+- Canal/gama/cor exigem pixels — o canvas recebe `applyAdjustments` e o filtro CSS sai (não existe filtro CSS de canal).
+- `DetectionPanel` não roda ao montar nem ao trocar de imagem; botão Prévia explícito.
+- Regra semi-automática começa sem critério; `animate-pulse` removido dos fantasmas.
+- `fitToScreen` com piso (container estreito durante layout dava zoom ≤ 0).
+- `await` ausente em `importSessions` (exposto por `strictNullChecks`).
+- Vínculo `Metadata.dataset` zerado a cada imagem nova.
+
+### Adicionado
+- Explorador de datasets: `lib/datasets/` (formato, YOLO, data.yaml, multiclasse, pasta-por-classe), `features/datasets/` (pasta local com handle no Dexie v7, painel, anotação como referência).
+- Exemplos reais (54, `scripts/gerar-exemplos-reais.py`) e cenas compostas (6, `scripts/gerar-cenas-compostas.py`) com verdade por objeto.
+- Ensaio ao carregar (`features/ensaio/`), receita por espécie, receitas salvas (Dexie v8).
+- Perfil medido por classe (`lib/perfil-medido.ts`, `features/datasets/medir-pasta.ts`, Dexie v9).
+- Lote (`features/lote/`): fontes, miniaturas com contornos, resumo com dispersão, duplicata, repetir, retomada (Dexie v10).
+- `lib/eixos.ts` + `EixosOverlay`; `lib/escala-grafica.ts` + barra arrastável; `lib/fonte-da-automacao.ts` + indicador no rodapé; `lib/normas/especies.ts` + chip de espécie.
+- `useBancada()` (`src/hooks/useBancada.ts`): a cena como unidade — primeiro passo das bancadas, sem mudança de comportamento.
+- Easter eggs: `fucik`/`montanha` (passo da montanha e a primeira curva de Fučik), `germinar` (sol e flores), nome do autor → dissertação.
+- Fixtures reais em `src/lib/__tests__/fixtures/` como regressão, com asserções em "medido − margem".
+
+### Alterado
+- `tsconfig`: `strictNullChecks` e `noImplicitAny` ligados (34 erros corrigidos com guardas reais).
+- `jszip` sob demanda; `jstat` reimplementado e removido do `package.json`. Chunk principal 1.272 → 1.124 kB.
+- Marca: semente com contorno tracejado (`docs/marca/`), favicon e cabeçalho; "Edição Acadêmica" removido.
+- Lateral esquerda recolhível; instruções com aba Fluxo (diagrama + lista); barra inferior em grupos rotulados.
+- Sem menções à instituição em nenhum lugar do app.
+- Testes: 766 → 952.
+
 ## [3.4.0] — 2026-09-15
 
 Prancheta, painel com abas e a medida que vem da própria imagem. Detalhe em

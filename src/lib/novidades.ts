@@ -54,6 +54,118 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.5.0',
+    data: '2026-09-16',
+    titulo: 'Os datasets entram no app, e a medida passa a ser conferida',
+    mudancas: [
+      {
+        tipo: 'corrigido',
+        titulo: 'A escala do scanner do laboratório estava 32% errada',
+        detalhe:
+          'O app assumia 3600 DPI porque é o que o driver informa. Medindo a régua colada na própria digitalização, em duas imagens independentes, o scanner entrega ~4735 e ~4771 DPI — a resolução óptica dele é 4800. O padrão passou a 4800. Consequência que precisa ser dita: toda medida em MILÍMETROS feita antes com 3600 estava 32% maior que a real. Contagens não mudam; medidas sim. O painel de calibração agora diz que o DPI do driver é uma declaração e a régua na imagem é a conferência.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Abrir a pasta de datasets dentro do app',
+        detalhe:
+          'Aponte a pasta uma vez e o app reconhece o formato de cada conjunto (YOLO com caixa ou polígono, multiclasse por CSV, pasta por classe, máscara). Clique numa miniatura e a imagem abre; um segundo clique traz a anotação do dataset como referência, marcada como tal no CSV. Nada é copiado: os arquivos continuam onde estão.',
+      },
+      {
+        tipo: 'novo',
+        titulo: '54 exemplos reais e 6 cenas compostas, prontos para abrir',
+        detalhe:
+          'Recortes de 19 conjuntos — orquídea do grupo e do doutorado, soja, trigo, arroz, milho, café, amendoim, 88 espécies do LZUPSD — com espécie, origem e escala preenchidas ao abrir. As cenas compostas juntam sementes reais de vários conjuntos numa imagem só, giradas e espelhadas, cada uma com classe e contorno conhecidos.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Ensaio ao carregar: três receitas lado a lado, você escolhe uma ou nenhuma',
+        detalhe:
+          'Ao abrir uma imagem, o app testa três conjuntos de parâmetros (e um quarto derivado da espécie, quando ela é conhecida) e mostra o resultado de cada um como miniatura com contagem, área e Feret. Passar o mouse mostra a proposta tracejada sobre a imagem. Nada é aplicado sem “Usar esta”. Ligue em Funcionalidades.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Rodar a mesma receita em várias imagens (Lote)',
+        detalhe:
+          'Escolha a fonte — a fila carregada, as regiões de uma digitalização ou uma pasta —, a receita, e rode. Cada linha mostra uma miniatura com os contornos encontrados, para você conferir antes de aceitar; o resumo mostra o total, a mediana por imagem e a dispersão, que é o que denuncia uma receita instável. Nada vira sessão sem aceite, duplicata é avisada, e o lote sobrevive a fechar a aba.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Perfil morfométrico medido por classe',
+        detalhe:
+          '“Medir esta pasta” roda a nossa própria segmentação em cada foto de um conjunto de classificação e monta o perfil de cada classe (n, área, Feret, solidez). No inspetor, esse perfil aparece como “Referência (medida)” acima da referência de literatura — números feitos nas nossas condições, não em outro scanner.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Escala gráfica que se arrasta até a semente',
+        detalhe:
+          'A barra de escala do canto mostra mm e px, e pode ser puxada pelo cabo até um objeto para comparar o tamanho a olho — ou ancorada em qualquer canto. Sem calibração ela aparece do mesmo jeito, em pixels, dizendo “sem escala”.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Ver de onde saem comprimento e largura',
+        detalhe:
+          'Um botão nos controles de zoom desenha os eixos que a medida usa (PCA) e os calibradores de Feret. Quando os dois discordam mais de 15%, aparece um “≠”: a forma não é elíptica — encostadas, quebrada ou contorno vazado — e a medida é palpite.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Espécie no cabeçalho configura a bancada',
+        detalhe:
+          'Um chip ao lado das abas com busca nas espécies conhecidas, nas já usadas nas suas sessões e nas classes do dataset aberto. Escolher preenche a identificação, sugere o protocolo e lembra o jeito típico de digitalizar.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'O rodapé diz qual imagem as automações estão lendo',
+        detalhe:
+          'A onda e o Encontrar leem a imagem ajustada — quem segmenta quer que o algoritmo veja o que o olho vê; o modelo de IA lê sempre a original, porque foi treinado nela e degrada em imagem alterada. Clicar força a original, para responder “piorou por causa do ajuste?” com um clique.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Contagem, medidas, índices e CSV passaram a falar do mesmo objeto',
+        detalhe:
+          'Uma semente detectada por IA sem marcação era contada, mas não tinha linha no CSV, número ao apertar 2, nem medida na morfometria — e os números do canvas eram por classe, diferentes do objeto_id do CSV. Agora existe uma lista só, e todo mundo lê dela.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Detecção assistida virou “Encontrar”, com limites que não dependem do tamanho da imagem',
+        detalhe:
+          'O tamanho mínimo pode ser dito em mm², em fração da mediana dos objetos encontrados (que transfere entre imagens e culturas) ou em px². O painel mostra o que decidiu sobre o fundo e deixa inverter; o resultado aparece tracejado até você aplicar; a receita ajustada pode ser salva por espécie.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Painéis laterais recolhem dos dois lados, e as instruções ganharam o Fluxo',
+        detalhe:
+          'A lateral esquerda vira um trilho de ícones como a direita, os exemplos ficam numa caixa que abre e fecha, e as instruções ganharam uma aba que mostra o caminho de uma amostra — do arquivo ao laudo — em diagrama ou em lista.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Marca nova e o app 12% mais leve para abrir',
+        detalhe:
+          'A marca passou a ser a semente com o contorno tracejado que a onda propõe — a mesma convenção que o canvas usa. E a compactação de exportação só é baixada quando você exporta.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'A borda tracejada que piscava sozinha sobre a cena',
+        detalhe:
+          'O filtro em lote já vinha com um critério escolhido, e a simulação rodava sem ninguém pedir. Agora começa em “Nenhum — não simular”, e o tracejado não pisca mais.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Cliques da onda que não respondiam',
+        detalhe: 'O painel Encontrar rodava sozinho ao abrir e ao trocar de imagem, ocupando a thread — e o clique se perdia.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: '“Exibir canal” não mudava nada',
+        detalhe: 'A prévia usava só filtro de tela, e não existe filtro de tela que isole um canal: virava cinza. Agora o canvas recebe a imagem processada.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Importar uma sessão inválida ficava em silêncio',
+        detalhe: 'Faltava esperar a leitura do arquivo, e o aviso de “formato inválido” nunca aparecia.',
+      },
+    ],
+  },
+  {
     numero: '3.4.0',
     data: '2026-09-15',
     titulo: 'Prancheta, painel com abas e a medida que vem da própria imagem',
