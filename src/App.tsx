@@ -29,7 +29,7 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 
 // Hooks
 import { useTheme } from './hooks/useTheme';
-import { useBancada } from './hooks/useBancada';
+import { useBancadas } from './hooks/useBancadas';
 import { useSessions } from './hooks/useSessions';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
@@ -271,9 +271,9 @@ export default function App() {
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
   const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
   // mascara, contornoSelecionado, fundoAchatado e forcarOriginalNasAutomacoes
-  // sao estado de CENA — moraram em useBancada() (Task 1 de bancadas) e chegam
-  // via `bancada.cena`, desestruturados mais abaixo, no mesmo lugar onde a
-  // fila de imagens entrava.
+  // sao estado de CENA — moram no hook de bancada (Task 1) e chegam via
+  // `bancada.cena`, desestruturados mais abaixo, no mesmo lugar onde a fila
+  // de imagens entrava.
   const [fundoIncerto, setFundoIncerto] = useState(false);
   const [achatando, setAchatando] = useState(false);
 
@@ -296,7 +296,7 @@ export default function App() {
   useEffect(() => {
     if (pedidoDeGerminar === 0) return;
     // Sem semente marcada não há de onde brotar — e é a dica de como achar o resto.
-    if (marcasRef.current.length === 0) {
+    if (bancada.cena.marcasRef.current.length === 0) {
       setRecadoDeGerminar('Marque algumas sementes primeiro (V) — é delas que a flor brota.');
       const t = setTimeout(() => setRecadoDeGerminar(null), 2500);
       return () => clearTimeout(t);
@@ -435,23 +435,19 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // Anotações por imagem da fila (chave nome+tamanho, não índice — senão
-  // reordenar a fila trocaria a contagem de lugar). Estas refs são estado de
-  // cena por natureza; ficam aqui porque `onImageLoaded` ainda as lê direto
-  // (ver `useBancada.ts` sobre a migração adiada para a Task 2).
-  const chaveDaImagem = useCallback((file: File) => `${file.name}:${file.size}`, []);
-  const anotacoesPorImagem = useRef<
-    Map<string, { marks: Mark[]; yoloSegmentations: YoloSegmentation[] }>
-  >(new Map());
-  const chaveAtual = useRef<string | null>(null);
-
-  // Espelhos do estado, para leitura dentro de callbacks assíncronos.
+  // `chaveDaImagem`, `anotacoesPorImagem`, `chaveAtual`, `marcasRef` e
+  // `segmentacoesRef` migraram para dentro de `useBancada` nesta Task 2: são
+  // estado de CENA, e com quatro bancadas ficar soltas aqui as tornaria
+  // estado COMPARTILHADO (a anotação em cache da bancada 1 serviria a imagem
+  // da bancada 3). O que resta aqui — `datasetPendente` — não é por-imagem
+  // dentro de uma bancada; é o vínculo anunciado pelo explorador de datasets
+  // para a PRÓXIMA imagem que qualquer bancada carregar, consumido uma única
+  // vez por `onImageLoaded` (mais abaixo) e por isso continua como espelho
+  // único, não por-bancada.
   /** Vínculo com dataset anunciado pelo explorador para a próxima imagem que carregar. */
   const datasetPendente = useRef<Metadata['dataset'] | null>(null);
   /** O chip de classe do dataset foi fechado para este arquivo. */
   const [chipDeClasseDispensado, setChipDeClasseDispensado] = useState<string | null>(null);
-  const marcasRef = useRef<Mark[]>([]);
-  const segmentacoesRef = useRef<YoloSegmentation[]>([]);
 
   /**
    * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
@@ -483,47 +479,35 @@ export default function App() {
   // Sessions CRUD history
   const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
 
-  // Dispara ao terminar de carregar imagem nova. Continua no App (mexe em
-  // dataset pendente e ensaio, coisas globais) e referencia `bancada` e
-  // `especieOuCulturaDeclarada` antes deles serem declarados — válido porque
-  // só roda depois deste render terminar, como já valia para `abrirAbaDireita`.
-  const onImageLoaded = (img: HTMLImageElement, file: File) => {
+  // Dispara ao terminar de carregar imagem nova, em QUALQUER bancada — recebe
+  // o índice de qual. Continua no App (mexe em dataset pendente e ensaio,
+  // coisas globais) e referencia `bancadas` e `especieOuCulturaDeclarada`
+  // antes deles serem declarados — válido porque só roda depois deste render
+  // terminar, como já valia para `abrirAbaDireita`.
+  //
+  // O cache de anotações por imagem (guardar a que sai, carregar a que
+  // entra) NÃO mora mais aqui: é `useBancada` quem cuida disso agora, porque
+  // é estado da CENA que carregou a imagem, não deste callback global (ver
+  // `useBancada.ts`).
+  const onImageLoaded = (indice: number, img: HTMLImageElement, file: File) => {
+    // A bancada que carregou a imagem — não necessariamente a ativa (Task 3
+    // ainda não liga `ativar` a nenhuma interação, então hoje é sempre a
+    // mesma, mas o índice já vem certo para quando ligar). `?? todas[0]`
+    // pelo mesmo motivo do `ativa` em `useBancadas`: o compilador não sabe
+    // que os quatro slots sempre existem.
+    const alvo = bancadas.todas[indice] ?? bancadas.todas[0];
+
     // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
     const vinculo = datasetPendente.current;
     datasetPendente.current = null;
-    bancada.meta.setMetadata((prev) =>
+    alvo.meta.setMetadata((prev) =>
       prev.dataset || vinculo ? { ...prev, dataset: vinculo ?? undefined } : prev
     );
     setChipDeClasseDispensado(null);
 
-    // As anotações da imagem que estava aberta são guardadas ANTES de a nova
-    // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
-    // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
-    // de uma folha inteira.
-    //
-    // A leitura vem de refs, não do estado: a função é chamada de dentro de
-    // um callback assíncrono do FileReader, onde o valor capturado pelo
-    // fecho pode estar velho.
-    if (chaveAtual.current) {
-      anotacoesPorImagem.current.set(chaveAtual.current, {
-        marks: marcasRef.current,
-        yoloSegmentations: segmentacoesRef.current,
-      });
-    }
-
-    const chave = chaveDaImagem(file);
-    chaveAtual.current = chave;
-
-    // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
-    // pode desfazer o que se fez na anterior.
-    const guardado = anotacoesPorImagem.current.get(chave);
-    bancada.anotacoes.carregar(
-      guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {}
-    );
-
     if (containerRef.current) {
       const container = containerRef.current;
-      bancada.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
+      alvo.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
     }
 
     // Ensaio ao carregar: roda as receitas sobre a imagem RECÉM-CHEGADA
@@ -539,7 +523,7 @@ export default function App() {
       // exatamente do mesmo jeito.
       const areaDaImagemPx = img.width * img.height;
       const receitaDaEspecie = receitaPelaEspecie(especieOuCulturaDeclarada, {
-        umPerPixel: bancada.meta.metadata.umPerPixel,
+        umPerPixel: alvo.meta.metadata.umPerPixel,
         areaDaImagemPx,
       });
       const receitasSalvasConvertidas = receitasSalvas
@@ -589,9 +573,12 @@ export default function App() {
     }
   };
 
-  // A cena inteira (ver `useBancada.ts`). Desestruturada com os MESMOS nomes
-  // que o corpo deste componente já usava — nenhuma outra linha do App muda.
-  const bancada = useBancada('b1', { onImageLoaded });
+  // Quatro cenas, uma ativa (ver `useBancadas.ts`). `bancada` continua sendo
+  // a cena que o resto deste componente lê e escreve — só que agora é a
+  // ATIVA entre quatro, em vez da única que existia. A desestruturação
+  // abaixo usa os MESMOS nomes de antes — nenhuma outra linha do App muda.
+  const bancadas = useBancadas({ onImageLoaded });
+  const bancada = bancadas.ativa;
   const {
     image,
     setImage,
@@ -746,15 +733,6 @@ export default function App() {
   useEffect(() => {
     setUltimaGravacao(null);
   }, [filename]);
-
-
-  useEffect(() => {
-    marcasRef.current = marks;
-  }, [marks]);
-
-  useEffect(() => {
-    segmentacoesRef.current = yoloSegmentations;
-  }, [yoloSegmentations]);
 
   // A regra vive em `lib/contagem.ts`, com teste: é o número que o aplicativo
   // existe para produzir, e já quebrou uma vez estando solto aqui.
@@ -1047,7 +1025,7 @@ export default function App() {
     // imagem por baixo da sessão recém-aberta.
     setImageQueue([]);
     setCurrentImageIndex(0);
-    chaveAtual.current = null;
+    bancada.cena.chaveAtual.current = null;
 
     setMetadata(session.metadata);
     setFilename(session.filename);
@@ -1803,7 +1781,7 @@ export default function App() {
     (id: number, indice: number, x: number, y: number, rigido = false) => {
       let a = arrasteDeVertice.current;
       if (!a || a.id !== id || a.indice !== indice) {
-        const seg = segmentacoesRef.current.find((s) => s.id === id);
+        const seg = bancada.cena.segmentacoesRef.current.find((s) => s.id === id);
         if (!seg) return;
         a = { id, indice, original: seg.polygon_points, raio: raioDeInfluencia(seg.polygon_points) };
         arrasteDeVertice.current = a;
@@ -1959,7 +1937,7 @@ export default function App() {
    */
   const handleAplicarCorte = useCallback(() => {
     if (!corteProposto || contornoSelecionado == null) return;
-    const alvo = segmentacoesRef.current.find((s) => s.id === contornoSelecionado);
+    const alvo = bancada.cena.segmentacoesRef.current.find((s) => s.id === contornoSelecionado);
     if (!alvo) return;
 
     const [a, b] = corteProposto.partes;
@@ -1970,7 +1948,7 @@ export default function App() {
     // sementes com uma contagem so, e o numero do laudo ficaria ERRADO para
     // baixo. Entao: a marca original fica com a metade que a contem, e a outra
     // metade ganha uma marca nova no proprio centroide.
-    const marcaOriginal = alvo.marcaId != null ? marcasRef.current.find((m) => m.id === alvo.marcaId) : undefined;
+    const marcaOriginal = alvo.marcaId != null ? bancada.cena.marcasRef.current.find((m) => m.id === alvo.marcaId) : undefined;
     const contemOriginal = (pontos: [number, number][]) =>
       !!marcaOriginal && pontoNoPoligono(marcaOriginal.x, marcaOriginal.y, pontos);
 
@@ -2268,7 +2246,7 @@ export default function App() {
    */
   const handleClassificarRadial = useCallback(
     (segId: number, chave: string) => {
-      const seg = segmentacoesRef.current.find((s) => s.id === segId);
+      const seg = bancada.cena.segmentacoesRef.current.find((s) => s.id === segId);
       if (!seg || seg.marcaId == null) return;
       setSubclasse(seg.marcaId, chave as ClasseDeSemente);
     },
@@ -2590,8 +2568,8 @@ export default function App() {
    */
   const handleDesenhoConcluido = useCallback(
     (pontos: [number, number][]) => {
-      const visiveis = segmentacoesRef.current.filter((s) => s.visible !== false);
-      const orfa = marcasRef.current.find(
+      const visiveis = bancada.cena.segmentacoesRef.current.filter((s) => s.visible !== false);
+      const orfa = bancada.cena.marcasRef.current.find(
         (m) =>
           pontoNoPoligono(m.x, m.y, pontos) &&
           !visiveis.some((s) => s.marcaId === m.id || pontoNoPoligono(m.x, m.y, s.polygon_points))
@@ -2631,7 +2609,7 @@ export default function App() {
     (id: number, pinceladas: Pincelada[], acrescentar: boolean) => {
       const fonte = imagemDeTrabalho;
       if (!fonte) return;
-      const alvo = segmentacoesRef.current.find((s) => s.id === id);
+      const alvo = bancada.cena.segmentacoesRef.current.find((s) => s.id === id);
       if (!alvo) return;
 
       const canvas = document.createElement('canvas');
@@ -2703,7 +2681,7 @@ export default function App() {
       // seria medida de nada.
       // Continuo: uma passada da borracha e um passo, por mais marcas que
       // ela leve. Cada uma delas volta com o contorno no Ctrl+Z.
-      const apagadas = marcasRef.current
+      const apagadas = bancada.cena.marcasRef.current
         .filter((m) => Math.hypot(m.x - x, m.y - y) <= radius)
         .map((m) => m.id);
       removerMarcas(apagadas, { continuo: true });
@@ -2754,14 +2732,6 @@ export default function App() {
   };
 
   // Keyboard shortcuts binding
-  useEffect(() => {
-    marcasRef.current = marks;
-  }, [marks]);
-
-  useEffect(() => {
-    segmentacoesRef.current = yoloSegmentations;
-  }, [yoloSegmentations]);
-
   useKeyboardShortcuts({
     onUndo: desfazer,
     onRedo: refazer,
