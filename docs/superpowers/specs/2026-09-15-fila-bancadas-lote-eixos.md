@@ -132,3 +132,15 @@ Ordem: depois de C5; a parte de `App.tsx` junto com C2.
 **Onde:** `components/layout/Header.tsx` (chip + popover), `lib/normas/especies.ts` (novo, puro: união das fontes com id, nome comum, científico, cultura, protocolo sugerido, aquisição típica), teste. Depende de C5 (para o cartão) e usa B3 (classes). Pequeno; entra logo depois do C5.
 
 Fila: C5 (em curso) → **C7** → B4 → C1 → C4.1 → C6 → C2.
+
+---
+
+## C8 — Marca e canto superior esquerdo (pedido do Enrico, 16/09)
+
+**O que há:** ícone + "Contador de Sementes" + "Edição Acadêmica • GPEOrq / GPSEM". O Enrico acha o espaço mal aproveitado e a marca (`public/mark.svg`, `logo.png`) melhorável.
+
+**Proposta:** o canto vira **identidade + contexto**: marca redesenhada (semente estilizada com o contorno tracejado que o app desenha — a marca conta o que o app faz), nome "SeedCounter" em display, e logo abaixo o **chip de espécie** do C7 e a versão. "Edição Acadêmica" sai (não diz nada a quem usa). Marca em SVG único com variantes clara/escura, favicon e abertura derivados dele. É trabalho de desenho: apresentar 3 propostas de marca antes de trocar — a memória do projeto diz "Design Lab: veredito" (o Enrico decide com evidência visual).
+
+**Easter eggs — onde cabem sem atrapalhar (som sempre opt-in, regra registrada):** (1) clicar 7× na versão no rodapé → "florescer" já existe (`features/easter/Florescer`); (2) a 100ª/1000ª semente contada numa sessão → confete de sementes por 1 s; (3) sequência de teclas "germinar" no canvas → os contornos "brotam" (animação de 2 s) e voltam; (4) escala gráfica arrastada até o logo → a marca "mede" a si mesma ("1 semente ≈ 24 px"); (5) 1º de abril: os exemplos simulados ganham a cena "forrageira-vazia" com 0 sementes cheias e a mensagem "amostra só de palha"; (6) tetrazólio com 100% viáveis em ≥ 100 sementes → "lote de campeão", uma vez por sessão. Tudo atrás da flag `easterEggs` (já existe? conferir `useEasterEggs`). Pequeno; junto com C8.
+
+Fila: C5 (em curso) → C7 → **C8** → B4 → C1 → C4.1 → C6 → C2.
