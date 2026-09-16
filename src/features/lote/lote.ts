@@ -37,6 +37,18 @@ export interface ResultadoDeUmaImagem {
   duracaoMs: number;
   /** Presente quando a imagem foi descartada — o lote segue, esta linha avisa. */
   erro?: string;
+  /**
+   * Prévia pequena (~72 px no maior lado) com os contornos propostos
+   * desenhados por cima — data URL. Gerada no FIM do processamento desta
+   * imagem, enquanto ela ainda está decodificada (`processar-imagem.ts`):
+   * depois disso seria decodificar de novo. Ausente quando `erro`.
+   */
+  miniatura?: string;
+  /**
+   * Prévia maior (até ~960 px no maior lado), mesma ideia — o que o clique
+   * na miniatura abre para conferir antes de aceitar. Ausente quando `erro`.
+   */
+  imagemGrande?: string;
 }
 
 export interface ResultadoDoLote {
