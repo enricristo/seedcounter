@@ -246,12 +246,12 @@
       "altura": 1024,
       "original": {
         "arquivo": "Image Dataset of Local Indonesian Soybean Seed Var\\Scanned_Anjasmoro\\Anjasmoro\\anjasmoro001.jpg",
-        "largura": 2048,
-        "altura": 2048,
-        "fatorDeReducao": 0.5,
+        "largura": 3000,
+        "altura": 3000,
+        "fatorDeReducao": 0.3413333333333333,
         "recorteEm": [
-          4608,
-          0
+          1800,
+          2400
         ]
       },
       "umPorPixel": null,
@@ -263,7 +263,7 @@
       "licenca": "a conferir (Enrico)",
       "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
       "dica": "Sementes em grade, nunca se tocam; a fonte tem máscara de instância por semente.",
-      "bytes": 622723
+      "bytes": 415978
     },
     {
       "slug": "soja-mendeley-dega-i",
@@ -277,12 +277,12 @@
       "altura": 1024,
       "original": {
         "arquivo": "Image Dataset of Local Indonesian Soybean Seed Var\\Scanned_Dega I\\Dega I\\Dega001.jpg",
-        "largura": 2048,
-        "altura": 2048,
-        "fatorDeReducao": 0.5,
+        "largura": 3000,
+        "altura": 3000,
+        "fatorDeReducao": 0.3413333333333333,
         "recorteEm": [
-          4608,
-          0
+          1800,
+          2400
         ]
       },
       "umPorPixel": null,
@@ -294,7 +294,7 @@
       "licenca": "a conferir (Enrico)",
       "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
       "dica": "Sementes em grade, nunca se tocam; a fonte tem máscara de instância por semente.",
-      "bytes": 648128
+      "bytes": 411619
     },
     {
       "slug": "soja-mendeley-grobogan",
@@ -308,12 +308,12 @@
       "altura": 1024,
       "original": {
         "arquivo": "Image Dataset of Local Indonesian Soybean Seed Var\\Scanned_Grobogan\\Grobogan\\Grobogan001.jpg",
-        "largura": 2048,
-        "altura": 2048,
-        "fatorDeReducao": 0.5,
+        "largura": 3000,
+        "altura": 3000,
+        "fatorDeReducao": 0.3413333333333333,
         "recorteEm": [
-          4608,
-          0
+          1800,
+          2400
         ]
       },
       "umPorPixel": null,
@@ -325,7 +325,7 @@
       "licenca": "a conferir (Enrico)",
       "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
       "dica": "Sementes em grade, nunca se tocam; a fonte tem máscara de instância por semente.",
-      "bytes": 628093
+      "bytes": 457834
     },
     {
       "slug": "trigo-yolo-1",

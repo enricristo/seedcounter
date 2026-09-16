@@ -126,7 +126,7 @@ CONJUNTOS = [
          umPorPixel=None, notaEscala="imagem redimensionada pelo Roboflow; sem escala",
          origem="Roboflow Universe sementes-de-orquideas v8", licenca="CC BY 4.0", url="https://universe.roboflow.com/sementes-de-orqudea/sementes-de-orquideas",
          dica="Anotado viável/inviável por tetrazólio; é o conjunto de treino do modelo embarcado."),
-    dict(slug="soja-mendeley", recorte=2048, pasta="Image Dataset of Local Indonesian Soybean Seed Var", escolha=lambda p: por_pasta(p, 3, so=None) if False else [
+    dict(slug="soja-mendeley", recorte=3000, janela={"anjasmoro001.jpg": (1800, 2400), "Dega001.jpg": (1800, 2400), "Grobogan001.jpg": (1800, 2400)}, pasta="Image Dataset of Local Indonesian Soybean Seed Var", escolha=lambda p: por_pasta(p, 3, so=None) if False else [
              (imagens(d)[0], {"classesDaImagem": [d.name.replace("Scanned_", "").replace("_Seed", "")]})
              for d in sorted(p.glob("Scanned_*")) if imagens(d)],
          rotulo="Soja — digitalização (Mendeley)", cultura="soja", especie="Glycine max", tipo="digitalizacao",
