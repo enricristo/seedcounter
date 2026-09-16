@@ -6,6 +6,7 @@ import { DifferentialMode } from '../sidebar/DifferentialMode';
 import { HelpTip } from '../sidebar/HelpTip';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import type { Metadata, Session } from '../../types';
+import type { ExemploReal } from '../../features/demo/exemplos-reais';
 import type { PresetDeCena } from '../../lib/synthetic-scene';
 
 interface SidebarProps {
@@ -34,6 +35,8 @@ interface SidebarProps {
   onOpenRoi?: () => void;
   onCarregarExemplo?: (preset: PresetDeCena) => void;
   exemploCarregando?: PresetDeCena | null;
+  onCarregarExemploReal?: (e: ExemploReal) => void;
+  exemploRealCarregando?: string | null;
   /** Abre a identificação normativa (BAS/BASO). Ausente = botão oculto. */
   onAbrirIdentificacao?: () => void;
 
@@ -76,6 +79,8 @@ export function Sidebar({
   onOpenRoi,
   onCarregarExemplo,
   exemploCarregando,
+  onCarregarExemploReal,
+  exemploRealCarregando,
   onAbrirIdentificacao,
   adjustSlot,
   calibrationSlot,
@@ -128,6 +133,8 @@ export function Sidebar({
           onOpenRoi={onOpenRoi}
           onCarregarExemplo={onCarregarExemplo}
           exemploCarregando={exemploCarregando}
+          onCarregarExemploReal={onCarregarExemploReal}
+          exemploRealCarregando={exemploRealCarregando}
         />
 
         {/* Etapas de preparo e calibração: Calibração -> Detecção -> Ajuste de Imagem */}

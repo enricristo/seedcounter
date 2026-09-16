@@ -3,6 +3,8 @@ import { Upload, Camera, Grid3x3, Crosshair, Sparkles } from 'lucide-react';
 // Do módulo específico, NÃO do barril: o barril reexporta o DemoDataPanel, que
 // puxa o demo-store e com ele o Dexie para dentro da barra lateral.
 import { EXEMPLOS } from '../../features/demo/exemplos';
+import { ExemplosReais } from '../../features/demo/ExemplosReais';
+import type { ExemploReal } from '../../features/demo/exemplos-reais';
 import type { PresetDeCena } from '../../lib/synthetic-scene';
 
 interface ImageActionsProps {
@@ -20,6 +22,8 @@ interface ImageActionsProps {
   onCarregarExemplo?: (preset: PresetDeCena) => void;
   /** Preset sendo gerado no momento, para desabilitar os botões. */
   exemploCarregando?: PresetDeCena | null;
+  onCarregarExemploReal?: (e: ExemploReal) => void;
+  exemploRealCarregando?: string | null;
 }
 
 export function ImageActions({
@@ -32,6 +36,8 @@ export function ImageActions({
   onOpenRoi,
   onCarregarExemplo,
   exemploCarregando,
+  onCarregarExemploReal,
+  exemploRealCarregando = null,
 }: ImageActionsProps) {
   const botao =
     'rounded-panel border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:border-accent group flex w-full items-center gap-3 border px-4 py-3 font-bold transition-all';
@@ -139,6 +145,9 @@ export function ImageActions({
               serve para comparar o que o app encontra.
             </p>
           </div>
+        )}
+        {onCarregarExemploReal && (
+          <ExemplosReais onCarregar={onCarregarExemploReal} carregando={exemploRealCarregando} />
         )}
       </div>
     </section>

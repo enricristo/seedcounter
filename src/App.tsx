@@ -15,6 +15,7 @@ import { VisualAnnotationsOverlay } from './components/canvas/overlays/VisualAnn
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
 import { SeedInspector } from './components/canvas/SeedInspector';
 import { ListaDeSementes } from './components/canvas/ListaDeSementes';
+import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-reais';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
@@ -488,6 +489,7 @@ export default function App() {
     currentImageIndex,
     setCurrentImageIndex,
     loadError,
+    setLoadError,
     loadFiles,
     handleFileUpload,
     handleNextImage,
@@ -1396,6 +1398,35 @@ export default function App() {
       }
     },
     [loadFiles, setMetadata]
+  );
+
+  const [exemploRealCarregando, setExemploRealCarregando] = useState<string | null>(null);
+  /**
+   * Exemplo REAL: a imagem vem de public/exemplos e os metadados que se
+   * conhecem (espécie, origem, classe, escala quando medida) já entram — o
+   * que não se conhece fica vazio e o app pede, em vez de inventar.
+   */
+  const handleCarregarExemploReal = useCallback(
+    async (e: ExemploReal) => {
+      setExemploRealCarregando(e.slug);
+      try {
+        const { arquivo, metadados } = await carregarExemploReal(e);
+        loadFiles([arquivo]);
+        setMetadata((prev) => ({
+          ...prev,
+          ...metadados,
+          plate: '',
+          quadrant: '',
+          amostra: { ...prev.amostra, ...metadados.amostra },
+        }));
+      } catch (err) {
+        console.error('Falha ao abrir o exemplo real', err);
+        setLoadError(`Não foi possível abrir o exemplo "${e.rotulo}".`);
+      } finally {
+        setExemploRealCarregando(null);
+      }
+    },
+    [loadFiles, setMetadata, setLoadError]
   );
 
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
@@ -2440,6 +2471,8 @@ export default function App() {
             onOpenRoi={isRoiEnabled && image ? () => setIsRoiOpen(true) : undefined}
             onCarregarExemplo={handleCarregarExemplo}
             exemploCarregando={exemploCarregando}
+            onCarregarExemploReal={handleCarregarExemploReal}
+            exemploRealCarregando={exemploRealCarregando}
             onAbrirIdentificacao={
               isModoLaudoEnabled ? () => setIsIdentificacaoOpen(true) : undefined
             }
