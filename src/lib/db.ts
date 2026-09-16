@@ -6,6 +6,7 @@ import type { TelemetryQueueRecord } from './telemetry/types';
 import type { DetectionOptions } from './detect';
 import type { OpcoesDaOnda } from './region-growing';
 import type { PerfilMedido } from './perfil-medido';
+import type { Ponto } from './aglomerado';
 
 /**
  * Uma pasta de datasets que a pessoa abriu e o app lembra.
@@ -81,6 +82,71 @@ export interface PerfilMedidoGuardado {
   medidoEm: number;
 }
 
+/**
+ * Um contorno proposto pelo lote, guardado — mesmo formato de
+ * `ContornoProposto` (`features/ensaio/receitas.ts`), duplicado aqui porque
+ * `lib/` nunca importa de `features/`. Guardar os contornos (não só os
+ * números) é o que deixa aceitar uma linha depois de retomar um lote sem
+ * decodificar a imagem de novo — o polígono já é o resultado do trabalho
+ * caro, e é leve o bastante para caber no Dexie.
+ */
+export interface ContornoDoLoteGuardado {
+  contorno: Ponto[];
+  areaPx: number;
+  suspeitoDeAglomerado: boolean;
+}
+
+/**
+ * Um resultado por imagem do lote, guardado — mesmos campos de
+ * `ResultadoDeUmaImagem` (`features/lote/lote.ts`) mais os contornos
+ * propostos. Estruturalmente compatível de propósito: quem grava (o painel)
+ * só precisa acrescentar `propostos`, não remapear campo por campo.
+ */
+export interface ResultadoDoLoteGuardado {
+  id: string;
+  rotulo: string;
+  contagem: number;
+  viaveis: number;
+  inviaveis: number;
+  suspeitos: number;
+  escapes: number;
+  duracaoMs: number;
+  erro?: string;
+  /** Data URL pequena (~72 px no maior lado) com os contornos por cima. Ausente quando `erro`. */
+  miniatura?: string;
+  /** Data URL maior (até ~960 px), mesma ideia — o que o clique na miniatura abre. Ausente quando `erro`. */
+  imagemGrande?: string;
+  /** Ausente quando `erro` — nada para aceitar. */
+  propostos?: ContornoDoLoteGuardado[];
+}
+
+/**
+ * Um lote guardado a cada imagem concluída — SEM as imagens originais: a
+ * `File` de cada item nunca é gravada aqui, só `miniatura`/`imagemGrande`
+ * (já pequenas) e os contornos. É o que sobrevive a fechar a aba no meio de
+ * um lote grande — reabrir o painel encontra o registro pendente e oferece
+ * retomar ou descartar, em vez de recomeçar do zero ("lote redondo", item 5).
+ *
+ * Sem migração de dado: lote nunca é o estado anterior a este store existir.
+ */
+export interface LoteGuardado {
+  id?: number;
+  criadoEm: number;
+  fonte: 'fila' | 'regioes' | 'pasta';
+  /** A receita usada nesta rodada — mesmos campos de `Receita` (`features/ensaio/receitas.ts`), sem importar de `features/`. */
+  receita: {
+    id: string;
+    nome: string;
+    quando: string;
+    localizacao: DetectionOptions;
+    onda: OpcoesDaOnda;
+  };
+  metadataBase: Metadata;
+  resultados: ResultadoDoLoteGuardado[];
+  /** ids (`ResultadoDoLoteGuardado.id`) já aceitos — viraram sessão. */
+  aceitos: string[];
+}
+
 export class SeedCounterDB extends Dexie {
   sessions!: Table<Session, string>;
   metadataStore!: Table<{ id: string; data: Metadata }, string>;
@@ -90,6 +156,7 @@ export class SeedCounterDB extends Dexie {
   pastasDeDatasets!: Table<PastaDeDatasetGuardada, number>;
   receitas!: Table<ReceitaSalva, number>;
   perfisMedidos!: Table<PerfilMedidoGuardado, number>;
+  lotes!: Table<LoteGuardado, number>;
 
   constructor() {
     super('SeedCounterDB');
@@ -191,6 +258,21 @@ export class SeedCounterDB extends Dexie {
       pastasDeDatasets: '++id, nome, aberta',
       receitas: '++id, especie, nome',
       perfisMedidos: '++id, conjunto, classe, medidoEm',
+    });
+
+    // v10 — lote redondo (item 5): o resultado de um lote em andamento
+    // sobrevive a fechar a aba. Sem migração de dado: repete os stores
+    // anteriores tal como estavam na v9 e acrescenta `lotes`.
+    this.version(10).stores({
+      sessions: 'id, date, experimentId, treatmentId',
+      metadataStore: 'id',
+      experiments: 'id, createdAt, species, responsible',
+      laboratorio: 'id',
+      telemetryQueue: 'id, status, createdAt, retryCount',
+      pastasDeDatasets: '++id, nome, aberta',
+      receitas: '++id, especie, nome',
+      perfisMedidos: '++id, conjunto, classe, medidoEm',
+      lotes: '++id, criadoEm',
     });
   }
 }

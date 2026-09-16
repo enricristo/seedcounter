@@ -3366,7 +3366,9 @@ export default function App() {
                 receitaAtiva={receitaAtiva}
                 especie={especieOuCulturaDeclarada}
                 metadataBase={metadata}
+                sessions={sessions}
                 addSession={addSession}
+                deleteSession={deleteSession}
               />
             }
           />
