@@ -92,3 +92,20 @@ Hoje a conta (`features/conta`) lembra a bancada (metadados) e nada mais; sessõ
 **Consequência da auditoria para o app (pendente):** `DEFAULT_LAB_DPI = 3600` está errado para as digitalizações do grupo — o scanner entrega ~4735–4814 DPI. Antes de trocar a constante, medir a régua em mais 3 digitalizações (`scripts/auditar-regua.py`); se confirmar, o padrão vira o medido e a calibração por DPI ganha aviso "conferir com régua".
 
 **Próximos, na ordem:** B3 (painel do explorador + carregar referência), B4 (perfil medido por classe), C1 (lote), C4.1 (sessões na conta), C2 (bancadas — aguarda o sim ao desenho). Barras superiores: pedido registrado, sem desenho ainda — dizer o que incomoda nelas.
+
+---
+
+## C5 — Detecção assistida, ensaio e regras: um fluxo só (pedido do Enrico, 16/09)
+
+**O que incomoda hoje:** na lateral esquerda, "Detecção por IA" e "Detecção assistida" aparecem em ordem confusa e como coisas separadas do ensaio ao carregar e das regras semi-automáticas — quando são o mesmo pipeline em três momentos. E os controles da assistida são em px absolutos ("tamanho mínimo 200 px"), que significam coisas diferentes numa foto de 640 px e numa digitalização de 6800 px.
+
+**Desenho:**
+
+1. **Ordem e nomes na lateral:** primeiro **Encontrar** (o que hoje é "detecção assistida" — localizar objetos por limiar; funciona em qualquer cultura, sem modelo), depois **Modelo (IA)** (só orquídea, e diz isso: "treinado em orquídea, viável/inviável por tetrazólio"). O painel de IA fica recolhido quando a espécie declarada não é orquídea.
+2. **Uma receita, três momentos:** o ensaio ao carregar propõe 3 receitas; **Usar esta** carrega a receita no painel Encontrar (os controles mostram os valores da receita escolhida); mexer num controle re-executa e o resultado aparece como **fantasma tracejado** (mesmo overlay do hover do ensaio) até a pessoa aceitar; as **regras semi-automáticas** continuam sendo o filtro depois da medida. Salvar a receita ajustada com nome → vira a 4ª opção do ensaio nas próximas imagens (Dexie, por espécie).
+3. **Limites adaptáveis, não px absolutos:** cada limite de tamanho tem três formas equivalentes e a pessoa escolhe a que faz sentido — **mm²** quando há calibração, **fração da mediana** dos objetos já encontrados ("descartar < 0,3× a mediana": transfere entre imagens e culturas), ou px² (mostrado sempre como referência). Internamente tudo vira px² na hora de rodar. O `sensitivity` ganha rótulo humano ("mais objetos ↔ menos falsos") e o `backgroundRadius` deixa de ser px: vira "maior objeto esperado × 2", derivado da mediana. Sem objetos ainda (primeira rodada), os padrões vêm da receita e do tamanho da imagem (fração da área).
+4. **Fundo:** o "fundo escuro/claro" continua automático, mas o painel mostra o que decidiu e deixa inverter em um clique.
+
+**Onde:** `features/detection/DetectionPanel.tsx` (reescrita), `features/ensaio/receitas.ts` (receita salva + conversão de limites), `lib/detect.ts` sem mudança de assinatura (a conversão para px² acontece antes). Depende de A3 (feito). Não toca C1 (lote) — o lote roda a receita que sair daqui.
+
+**Fila atualizada:** B3 (em curso) → recolher barra esquerda → **C5** → B4 → C1 → C4.1 → C2.
