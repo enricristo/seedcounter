@@ -120,6 +120,7 @@ import { useReceitasSalvas } from './hooks/useReceitasSalvas';
 import { usePerfisMedidos } from './hooks/usePerfisMedidos';
 import type { ReceitaSalva } from './lib/db';
 import { DatasetsPanel } from './features/datasets/DatasetsPanel';
+import { LotePanel } from './features/lote/LotePanel';
 import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
 import type { AnotacaoCarregada } from './features/datasets/anotacao';
 import { detectObjects, type DetectionOptions } from './lib/detect';
@@ -2126,9 +2127,9 @@ export default function App() {
    * pessoa perdia o X atrás do zoom. Como aba, o lugar delas é fixo, o fechar é
    * trocar de aba, e o canvas nunca fica coberto.
    */
-  const [rightSidebarTab, setRightSidebarTab] = useState<'resultados' | 'inspetor' | 'galeria' | 'datasets'>(
-    'resultados'
-  );
+  const [rightSidebarTab, setRightSidebarTab] = useState<
+    'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote'
+  >('resultados');
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
     lerPreferencia('sc:painelDireitoRecolhido', false)
   );
@@ -2141,7 +2142,7 @@ export default function App() {
       return !prev;
     });
   }, []);
-  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets') => {
+  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote') => {
     setRightSidebarTab(aba);
     setIsRightSidebarCollapsed(false);
   }, []);
@@ -3354,6 +3355,18 @@ export default function App() {
                 pastaAberta={pastaDeDatasets}
                 onPastaAberta={setPastaDeDatasets}
                 onCarregar={handleCarregarDoDataset}
+              />
+            }
+            loteContent={
+              <LotePanel
+                imageQueue={imageQueue}
+                imagemAtual={image}
+                nomeDaImagemAtual={filename}
+                pastaAberta={pastaDeDatasets}
+                receitaAtiva={receitaAtiva}
+                especie={especieOuCulturaDeclarada}
+                metadataBase={metadata}
+                addSession={addSession}
               />
             }
           />

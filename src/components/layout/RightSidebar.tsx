@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Ruler,
   FolderOpen,
+  Layers,
 } from 'lucide-react';
 import { Counters } from '../sidebar/Counters';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
@@ -53,12 +54,14 @@ interface RightSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   hasImage: boolean;
-  activeTab: 'resultados' | 'inspetor' | 'galeria' | 'datasets';
-  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets') => void;
+  activeTab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote';
+  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote') => void;
   inspectorContent?: React.ReactNode;
   galeriaContent?: React.ReactNode;
   /** Explorador de datasets (Lote B) — quarta aba, abaixo de Resultados/Inspetor/Galeria. */
   datasetsContent?: React.ReactNode;
+  /** A mesma receita em várias imagens (Task C1) — quinta aba. */
+  loteContent?: React.ReactNode;
 }
 
 export function RightSidebar({
@@ -92,6 +95,7 @@ export function RightSidebar({
   inspectorContent,
   galeriaContent,
   datasetsContent,
+  loteContent,
 }: RightSidebarProps) {
 
   return (
@@ -138,6 +142,16 @@ export function RightSidebar({
         >
           <FolderOpen size={20} />
         </button>
+        <button
+          onClick={() => {
+            if (activeTab === 'lote' && !isCollapsed) onToggleCollapse();
+            else { onTabChange('lote'); if (isCollapsed) onToggleCollapse(); }
+          }}
+          title="Lote"
+          className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'lote' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
+        >
+          <Layers size={20} />
+        </button>
       </aside>
 
       {/* Painel de Conteúdo (Oculto quando colapsado) */}
@@ -153,6 +167,7 @@ export function RightSidebar({
                   {activeTab === 'inspetor' && 'Inspetor de Sementes'}
                   {activeTab === 'galeria' && 'Galeria e Curadoria'}
                   {activeTab === 'datasets' && 'Explorador de Datasets'}
+                  {activeTab === 'lote' && 'Lote'}
                 </span>
               </div>
               <button
@@ -246,6 +261,10 @@ export function RightSidebar({
 
             <div className={activeTab === 'datasets' ? 'flex flex-col gap-4' : 'hidden'}>
               {datasetsContent}
+            </div>
+
+            <div className={activeTab === 'lote' ? 'flex flex-col gap-4' : 'hidden'}>
+              {loteContent}
             </div>
 
           </div>

@@ -10,6 +10,8 @@ import type {
   Contagens,
   RegistroDeEscarificacao,
 } from './lib/normas/classes-de-semente';
+import type { DetectionOptions } from './lib/detect';
+import type { OpcoesDaOnda } from './lib/region-growing';
 
 // ---------------------------------------------------------------------------
 // Marking & Segmentation
@@ -166,6 +168,15 @@ export interface Metadata {
    * "resposta" que o conjunto declara para aquela foto.
    */
   dataset?: { conjunto: string; caminho: string; classesDaImagem?: string[] };
+
+  /**
+   * A receita (`features/ensaio/receitas.ts`) usada para gerar esta sessão
+   * pelo Lote (C1) — presente só em sessões gravadas em lote. É o que torna
+   * o lote AUDITÁVEL e REPETÍVEL: outra pessoa, ou você mais tarde, sabe
+   * exatamente que parâmetros produziram esta contagem, sem precisar
+   * lembrar ou adivinhar.
+   */
+  receita?: { id: string; parametros: { localizacao: DetectionOptions; onda: OpcoesDaOnda } };
 }
 
 // ---------------------------------------------------------------------------
