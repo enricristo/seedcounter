@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SeedCounter — semente contornada">
+  <title>Proposta 2 — A semente com o contorno do app</title>
+  <!-- O que o app faz, desenhado: uma semente com o contorno tracejado que a
+       onda propõe em volta. O tracejado é o mesmo vocabulário do canvas
+       (proposta ainda não aceita) — a marca conta o gesto central do produto. -->
+  <ellipse cx="32" cy="34" rx="13.5" ry="9.5" transform="rotate(-22 32 34)" fill="#e0651f"/>
+  <ellipse cx="32" cy="34" rx="19" ry="14.5" transform="rotate(-22 32 34)" fill="none"
+           stroke="#0d8ea1" stroke-width="4.2" stroke-linecap="butt" stroke-dasharray="11 7.5"/>
+  <circle cx="32" cy="34" r="2.6" fill="#0d8ea1"/>
+</svg>
