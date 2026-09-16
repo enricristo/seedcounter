@@ -66,6 +66,8 @@ interface GaleriaModalProps {
    * sem fundo, sem Escape (Escape no painel fecharia o que a pessoa está usando).
    */
   modo?: 'flutuante' | 'painel';
+  /** No modo painel: abre a versão grande (janela flutuante). */
+  onExpandir?: () => void;
   onClose: () => void;
   image: HTMLImageElement | null;
   marks: Mark[];
@@ -119,6 +121,7 @@ export function GaleriaModal({
   medianaDaCena,
   limiares,
   modo = 'flutuante',
+  onExpandir,
 }: GaleriaModalProps) {
   useModalEscape(isOpen && modo === 'flutuante', onClose);
 
@@ -213,6 +216,17 @@ export function GaleriaModal({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {modo === 'painel' && onExpandir && (
+              <button
+                type="button"
+                onClick={onExpandir}
+                title="Abrir a galeria grande, em janela"
+                className="rounded-lg p-1.5 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1 flex items-center gap-1 text-[11px] font-medium border border-line/60"
+              >
+                <Maximize2 size={15} />
+                <span className="hidden sm:inline">Expandir</span>
+              </button>
+            )}
             {modo === 'flutuante' && (
             <button
               onClick={alternarModo}

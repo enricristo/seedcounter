@@ -15,6 +15,7 @@ import {
   UNIT_LABELS,
   DEFAULT_LAB_DPI,
   DEFAULT_LAB_SCANNER,
+  EQUIPAMENTOS_DO_LABORATORIO,
   type CalibrationMethod,
   type CalibrationData,
   type LengthUnit,
@@ -177,6 +178,27 @@ export function CalibrationPanel({
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Equipamento: escolher o aparelho cai no método certo. */}
+      <div className="space-y-1">
+        <p className="text-[10px] text-ink-3">Equipamento</p>
+        <div className="flex flex-wrap gap-1">
+          {EQUIPAMENTOS_DO_LABORATORIO.map((eq) => (
+            <button
+              key={eq.id}
+              type="button"
+              title={eq.dica}
+              onClick={() => {
+                setMethod(eq.metodo);
+                if (eq.dpi) setDpi(eq.dpi);
+              }}
+              className="px-2 py-1 rounded-lg text-[10px] font-bold border border-line bg-surface-2 hover:bg-surface-3 text-ink-2 transition-colors"
+            >
+              {eq.nome}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* --- Método: DPI --- */}

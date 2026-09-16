@@ -14,6 +14,7 @@ import { RegionSelectorOverlay } from './components/canvas/overlays/RegionSelect
 import { VisualAnnotationsOverlay } from './components/canvas/overlays/VisualAnnotationsOverlay';
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
 import { SeedInspector } from './components/canvas/SeedInspector';
+import { ListaDeSementes } from './components/canvas/ListaDeSementes';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
@@ -239,6 +240,8 @@ export default function App() {
   // Calibração — modo régua e última distância medida
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
+  /** A galeria grande (janela) continua existindo, aberta pelo Expandir da aba. */
+  const [galeriaGrande, setGaleriaGrande] = useState(false);
   const { laboratorio } = useLaboratorio();
   const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
@@ -333,6 +336,7 @@ export default function App() {
     isResetConfirmOpen ||
     isFeaturesOpen ||
     novidades.aberto ||
+    galeriaGrande ||
     isIdentificacaoOpen;
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
@@ -2652,13 +2656,25 @@ export default function App() {
                     setRightSidebarTab('resultados');
                   }}
                 />
-              ) : undefined
+              ) : (
+                <ListaDeSementes
+                  segmentations={yoloSegmentations}
+                  umPerPixel={metadata.umPerPixel}
+                  medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                  limiares={limiaresDaCena}
+                  onSelecionar={(id) => {
+                    setContornoSelecionado(id);
+                    setActiveTool('contorno');
+                  }}
+                />
+              )
             }
             galeriaContent={
               <GaleriaModal
                 modo="painel"
                 isOpen={galeriaAberta}
                 onClose={() => setRightSidebarTab('resultados')}
+                onExpandir={() => setGaleriaGrande(true)}
                 image={image}
                 marks={marks}
                 yoloSegmentations={yoloSegmentations}
@@ -2915,6 +2931,30 @@ export default function App() {
         isOpen={novidades.aberto}
         onClose={() => setNovidades((n) => ({ ...n, aberto: false }))}
         versoes={novidades.versoes}
+      />
+
+      <GaleriaModal
+        isOpen={galeriaGrande}
+        onClose={() => setGaleriaGrande(false)}
+        image={image}
+        marks={marks}
+        yoloSegmentations={yoloSegmentations}
+        onToggleSegmentationClass={toggleSegmentationClass}
+        onDeleteSegmentation={deleteSegmentation}
+        onToggleMarkClass={handleToggleMarkClass}
+        onRemoveMark={removeMark}
+        onSegmentarPendentes={handleSegmentarPendentes}
+        onSegmentarUma={handleSegmentarUma}
+        progresso={segmentandoLote}
+        protocolo={metadata.protocolo}
+        onSubclasse={setSubclasse}
+        onFocarNoCanvas={(c, id) => {
+          setGaleriaGrande(false);
+          handleFocarNoCanvas(c, id);
+        }}
+        umPerPixel={metadata.umPerPixel}
+        medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+        limiares={limiaresDaCena}
       />
 
       <IdentificacaoModal

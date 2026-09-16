@@ -169,6 +169,59 @@ export const DPI_PRESETS = [300, 600, 1200, 2400, 3600, 4800] as const;
 export const DEFAULT_LAB_DPI = 3600;
 export const DEFAULT_LAB_SCANNER = 'HP Scanjet G2710';
 
+/**
+ * Equipamentos do laboratório e da bancada de teste do Enrico (15/09/2026).
+ *
+ * Só o scanner tem escala declarável (DPI). Lupa e microscópio dependem da
+ * ampliação escolhida na hora — e o "1600x" impresso na caixa do USB é
+ * ampliação DIGITAL, não escala: para eles a calibração é sempre por objeto
+ * de referência ou micrômetro de platina. A lista existe para a pessoa
+ * escolher o aparelho e cair no método certo, não para adivinhar µm/px.
+ */
+export interface EquipamentoDoLaboratorio {
+  id: string;
+  nome: string;
+  tipo: 'scanner' | 'lupa' | 'microscopio' | 'camera';
+  /** Método de calibração que faz sentido para este aparelho. */
+  metodo: CalibrationMethod;
+  /** DPI padrão, só para scanner. */
+  dpi?: number;
+  /** Uma frase para a interface. */
+  dica: string;
+}
+
+export const EQUIPAMENTOS_DO_LABORATORIO: EquipamentoDoLaboratorio[] = [
+  {
+    id: 'scanjet-g2710',
+    nome: 'HP Scanjet G2710',
+    tipo: 'scanner',
+    metodo: 'dpi',
+    dpi: DEFAULT_LAB_DPI,
+    dica: 'Scanner de mesa do laboratório; digitalizar a 3600 DPI (~7,06 µm/px).',
+  },
+  {
+    id: 'opton-tim-2t',
+    nome: 'Opton TIM-2T',
+    tipo: 'lupa',
+    metodo: 'reference',
+    dica: 'Estereomicroscópio trinocular; a escala muda com o zoom — calibre por micrômetro de platina ou régua na mesma ampliação.',
+  },
+  {
+    id: 'opton-3680',
+    nome: 'Opton 3680',
+    tipo: 'microscopio',
+    metodo: 'stage_micrometer',
+    dica: 'Microscópio; calibre por micrômetro de platina na objetiva em uso.',
+  },
+  {
+    id: 'usb-1600x',
+    nome: 'Microscópio USB portátil ("1600x")',
+    tipo: 'camera',
+    metodo: 'reference',
+    dica: 'UVC genérico; o 1600x é ampliação digital, não escala. Calibre por objeto de referência a cada altura de foco.',
+  },
+];
+
 /** Referências típicas de laboratório, para agilizar a entrada. */
 export const REFERENCE_PRESETS: { label: string; length: number; unit: LengthUnit }[] = [
   { label: 'Placa de Petri 90 mm (diâmetro)', length: 90, unit: 'mm' },
