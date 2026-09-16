@@ -152,6 +152,7 @@ import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } 
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
 import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
 import { enumerarObjetos } from './lib/objetos';
+import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
 
 // Delega para src/lib/download.ts. A versão anterior criava a âncora sem
 // anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
@@ -287,6 +288,12 @@ export default function App() {
    * treinado nela, e foto processada nao e a chapa.
    */
   const [fundoAchatado, setFundoAchatado] = useState<HTMLImageElement | null>(null);
+  /**
+   * Forçar as automações a ler a imagem ORIGINAL, ignorando fundo achatado e
+   * ajustes. Existe para responder "a detecção piorou por causa do ajuste?"
+   * com um clique, em vez de desfazer tudo e refazer depois.
+   */
+  const [forcarOriginalNasAutomacoes, setForcarOriginalNasAutomacoes] = useState(false);
   const [fundoIncerto, setFundoIncerto] = useState(false);
   const [achatando, setAchatando] = useState(false);
 
@@ -701,6 +708,8 @@ export default function App() {
    * com o gradiente removido.
    */
   const imagemDeTrabalho = fundoAchatado ?? image;
+  /** O que as automações de segmentação leem — o gatilho acima manda nisto. */
+  const imagemParaAutomacoes = forcarOriginalNasAutomacoes ? image : imagemDeTrabalho;
   /**
    * Quando esta imagem foi gravada pela ultima vez — para a sugestao de salvar
    * saber se ja passou tempo demais. Zera ao trocar de imagem.
@@ -774,6 +783,16 @@ export default function App() {
   // em CSS. Canal, gama e deslocamento por cor exigem pixels: aí o canvas
   // recebe `adjustedSource` e o filtro fica em 'none' (senão aplicaria duas vezes).
   const ajusteExigePixels = adjustEnabled && exigePixels(adjustments);
+  /** O retrato que o indicador do rodapé lê — nada de decidir em dois lugares. */
+  const estadoDaImagem = useMemo(
+    () => ({
+      fundoAchatado: !!fundoAchatado,
+      ajusteEmPixels: ajusteExigePixels,
+      ajusteEmTela: adjustEnabled && !ajusteExigePixels && !isNeutral(adjustments),
+      forcarOriginal: forcarOriginalNasAutomacoes,
+    }),
+    [fundoAchatado, ajusteExigePixels, adjustEnabled, adjustments, forcarOriginalNasAutomacoes]
+  );
   const canvasFilter = useMemo(
     () => (adjustEnabled && !ajusteExigePixels ? toCssFilter(adjustments) : 'none'),
     [adjustments, adjustEnabled, ajusteExigePixels]
@@ -900,7 +919,7 @@ export default function App() {
       // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
       // exatamente para a onda parar na borda certa. Passar a original aqui
       // tornava o achatamento decorativo.
-      const r = segmentarNoCanvas(imagemDeTrabalho, { x, y });
+      const r = segmentarNoCanvas(imagemParaAutomacoes, { x, y });
       const ms = Math.round(performance.now() - inicio);
 
       if (!r) {
@@ -2331,7 +2350,7 @@ export default function App() {
       const marca = marks.find((m) => m.id === marcaId);
       if (!marca) return;
 
-      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
       if (!r || r.tocouBorda) {
         setRecadoDaOnda({
           tom: 'aviso',
@@ -2370,7 +2389,7 @@ export default function App() {
 
     for (let i = 0; i < pendentes.length; i++) {
       const marca = pendentes[i];
-      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
 
       if (r && !r.tocouBorda) {
         const { width, height } = calculateSeedDimensions(r.contorno);
@@ -2487,7 +2506,7 @@ export default function App() {
   /** A onda, fechada sobre a imagem de trabalho — para o painel Encontrar (C5). */
   const ondaParaEncontrar = useCallback(
     (p: { x: number; y: number }, opcoesDaOnda: OpcoesDaOnda) => {
-      const alvo = imagemDeTrabalho ?? image;
+      const alvo = imagemParaAutomacoes ?? image;
       if (!alvo) return null;
       const r = segmentarNoCanvas(alvo, p, opcoesDaOnda);
       return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
@@ -2890,7 +2909,7 @@ export default function App() {
                       separadas. */}
                   {isDetectionEnabled && (
                     <DetectionPanel
-                      image={adjustedSource}
+                      image={forcarOriginalNasAutomacoes ? image : adjustedSource}
                       receitaAtiva={receitaAtiva}
                       umPerPixel={metadata.umPerPixel}
                       onda={ondaParaEncontrar}
@@ -3360,6 +3379,16 @@ export default function App() {
           imageWidth={image?.width}
           imageHeight={image?.height}
           zoomLevel={image ? zoomLevel : undefined}
+          fonteDaAutomacao={
+            image
+              ? {
+                  resumo: resumoDaFonte(estadoDaImagem),
+                  detalhes: fontesDasAutomacoes(estadoDaImagem),
+                  forcarOriginal: forcarOriginalNasAutomacoes,
+                  onAlternar: () => setForcarOriginalNasAutomacoes((v) => !v),
+                }
+              : undefined
+          }
           totalDeObjetos={image ? totalCount : undefined}
           onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
           bancada={{

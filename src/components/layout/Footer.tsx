@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 import { DISSERTACAO } from '../../features/easter/fucik';
+import type { FonteDeUmaAutomacao } from '../../lib/fonte-da-automacao';
 
 interface FooterProps {
   filename?: string;
@@ -19,6 +20,16 @@ interface FooterProps {
    * contexto que toda medida carrega; sem ele, "285 px" não diz nada.
    */
   bancada?: { especie?: string; umPerPixel?: number; protocolo?: string; equipamento?: string };
+  /**
+   * Que imagem as automações estão lendo, e o gatilho para forçar a original.
+   * Ausente = sem imagem aberta.
+   */
+  fonteDaAutomacao?: {
+    resumo: { texto: string; alterada: boolean };
+    detalhes: FonteDeUmaAutomacao[];
+    forcarOriginal: boolean;
+    onAlternar: () => void;
+  };
 }
 
 const LOGOS = [
@@ -68,6 +79,7 @@ export function Footer({
   version,
   onAbrirNovidades,
   bancada,
+  fonteDaAutomacao,
 }: FooterProps) {
   const versaoExibida = version ?? `v${__APP_VERSION__}`;
   const separador = <span className="bg-line h-6 w-px shrink-0" aria-hidden="true" />;
@@ -120,6 +132,31 @@ export function Footer({
           </Item>
         )}
         {bancada?.equipamento && <Item rotulo="Equipamento">{bancada.equipamento}</Item>}
+        {/* Que imagem as automações leem. Clicar força a original — é um
+            experimento de um clique ("a detecção piorou por causa do ajuste?"),
+            não uma configuração escondida. */}
+        {fonteDaAutomacao && (
+          <button
+            type="button"
+            onClick={fonteDaAutomacao.onAlternar}
+            aria-pressed={fonteDaAutomacao.forcarOriginal}
+            title={[
+              ...fonteDaAutomacao.detalhes.map((d) => `${d.rotulo}: ${d.fonte} — ${d.motivo}`),
+              '',
+              fonteDaAutomacao.forcarOriginal
+                ? 'Clique para voltar a ler a imagem ajustada.'
+                : 'Clique para forçar a leitura da imagem original.',
+            ].join(String.fromCharCode(10))}
+            className={`rounded px-1 py-0.5 text-left transition-colors hover:bg-surface-2 ${
+              fonteDaAutomacao.resumo.alterada ? 'text-ink-1' : ''
+            }`}
+          >
+            <Item rotulo="Automação lê">
+              {fonteDaAutomacao.resumo.alterada && <span className="bg-accent mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" />}
+              {fonteDaAutomacao.resumo.texto}
+            </Item>
+          </button>
+        )}
         {bancada?.protocolo && bancada.protocolo !== 'simples' && <Item rotulo="Protocolo">{bancada.protocolo}</Item>}
       </div>
 
