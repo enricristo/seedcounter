@@ -1,0 +1,67 @@
+# Fila de 15/09 — lote em imagens, bancadas, eixos e auditoria de medida
+
+**Estatuto:** fila e proposta de desenho. O que aqui é pequeno vira tarefa direto; o que é grande (bancadas) precisa do "sim" do Enrico ao desenho antes de virar plano com código.
+
+Contexto que muda o desenho: o laboratório é de **sementes ao longo do tempo** (Profa. Ceci, Prof. Nelson) — a mesma placa/meio de cultura contada várias vezes em vários dias, no scanner ou em foto. Já existe o modelo `Experiment → PlateRun(dayIndex, sessionId)` em `features/longitudinal`; tudo abaixo se apoia nele em vez de inventar outro.
+
+---
+
+## C1 — Lote: a mesma configuração de detecção em várias imagens
+
+**Pedido:** selecionar quais imagens carregadas (ou uma pasta inteira, ou cada região de uma digitalização) e rodar nelas a mesma detecção/segmentação.
+
+**Desenho (pequeno, apoia-se no que existe):**
+- Uma **receita** é o que a A3 já define (`features/ensaio/receitas.ts`): localização + onda + limiar da população. O lote é *uma receita × N imagens*.
+- Fontes de imagens, em ordem de entrega: (a) a **fila** já carregada (`useImageQueue.imageQueue`); (b) as **regiões** de uma digitalização (o `split` já corta em grade/círculo — `features/split`, `image-crop.ts`); (c) uma **pasta** (Lote B, B2).
+- Execução: sequencial, uma imagem por vez, cede a tela por lotes (padrão de `handleSegmentarPendentes`); cada imagem vira **uma sessão** salva com a receita registrada nos metadados (`metadata.receita = {id, parametros}`) — é isso que torna o lote auditável e repetível.
+- Resultado: tabela (imagem · contagem · viáveis · inviáveis · suspeitos · duração) com **exportar CSV**; nada é aplicado sem a pessoa aceitar por imagem OU marcar "aceitar todas" explicitamente.
+- Onde: `features/lote/` (novo). Depende de A3 (receitas). Tarefa própria depois da A3.
+
+---
+
+## C2 — Bancadas: até 4 cenas abertas ao mesmo tempo
+
+**Pedido:** abrir 1 a 4 "bancadas" — 4 imagens para comparar, ou a mesma placa em datas diferentes — cada uma com suas marcas, medidas e resultados, e ver os resultados da que está selecionada.
+
+**O que impede hoje:** `App.tsx` guarda TODO o estado de uma cena (imagem, marcas, contornos, histórico, metadados, calibração, ferramentas) em hooks de topo. Não dá para instanciar duas sem duplicar o App.
+
+**Desenho proposto (para o Enrico aprovar antes de planejar):**
+
+1. **`Bancada` como unidade de estado.** Extrair de `App.tsx` um hook composto `useBancada()` que reúne o que hoje é por-cena: `useImageQueue` (imagem), `useMarks` (marcas/contornos/histórico), `useMetadata`, calibração, `imagemDeTrabalho`, ferramentas ativas. O que é global fica no App: tema, flags, sessões, experimentos, painel direito, modais. Isso é refatoração pura, sem mudar comportamento — **é o passo caro e o único arriscado**; com 804 testes e uma bancada só, vale um teste de fumaça por gesto.
+2. **`bancadas: Bancada[]` (1–4) + `ativa`.** Cada bancada renderiza um `MarkingCanvas` próprio; a barra de ferramentas e o painel direito falam sempre com a **ativa** (clicar num canvas a ativa; borda de destaque). Atalhos vão para a ativa. Layout: 1 (como hoje), 2 (lado a lado), 3–4 (grade 2×2), com o divisor arrastável.
+3. **Bancadas ligadas ao longitudinal.** "Abrir a placa X em 4 datas" = 4 bancadas, cada uma carregando a sessão de um `PlateRun`; a aba Resultados ganha um modo **comparação** (contagens/medidas por bancada, lado a lado, e a série no tempo quando as bancadas são a mesma placa). Sincronizar zoom/pan entre bancadas é opcional (toggle), útil para "mesma região em datas diferentes".
+4. **Memória:** 4 digitalizações de 6800×9359 = ~1 GB de bitmap descomprimido. Regra: bancadas inativas mantêm só uma versão reduzida (≤ 2000 px) e recarregam a cheia ao ativar — a sessão salva garante que nada se perde. Sem isso, 4 bancadas derrubam um tablet.
+5. **Persistência:** o "espaço de trabalho" (quais sessões abertas, layout, ativa) salvo no Dexie, para reabrir onde parou.
+
+**Ordem:** (1) refatoração `useBancada` com uma bancada só → (2) duas bancadas lado a lado com ativa → (3) 4 + grade + memória reduzida → (4) modo comparação + série no tempo → (5) sincronizar zoom. Cada passo é entregável sozinho.
+
+**Complementos que valem a pena (para escolher):** *diff entre datas* (a mesma região em D0 e D7: o que apareceu/sumiu, por posição); *linha de contagem no tempo* já sai de `PlateRun`; *bancada de referência travada* (uma imagem fixa para comparar as outras contra ela); *exportar as 4 lado a lado* como uma figura para artigo, com escala e legenda.
+
+---
+
+## C3 — Eixos visíveis e auditoria de medição/calibração (fila)
+
+**Pedido:** ver de onde saem comprimento e largura em cada máscara; revisar medição e calibração procurando furos; validar contra os datasets — as digitalizações `digitalizarXXXX` de orquídea têm **régua no scanner** e o DPI é conhecido (3600).
+
+**Tarefas concretas, em ordem:**
+1. **Overlay de eixos** — em `MarkingCanvas` (overlay novo em `components/canvas/overlays/EixosOverlay.tsx`): para o contorno selecionado (e, com um toggle, para todos), desenhar os dois eixos que `calculateSeedDimensions` (`lib/pca-utils.ts`) usa — centro, direção principal, comprimento e largura como segmentos — e, ao lado, os **Feret** máx/mín (`lib/feret.ts`) para ver quando os dois discordam. Discordância grande = a forma não é elíptica (encostadas, quebrada) e a medida PCA é palpite.
+2. **Auditoria de escala com a régua** — script Python + teste de fixture: numa `digitalizarXXXX` com régua, medir a distância entre duas marcas de 10 mm em px; comparar com `dpiToUmPerPixel(3600)` = 7,06 µm/px → 10 mm deve dar 1417 px. Registrar o desvio (%) em `docs/datasets/`; se > 1%, o DPI declarado não é o DPI efetivo (scanners às vezes interpolam) e o app precisa avisar.
+3. **Auditoria de medida com a máscara** — na soja (máscara de instância): comprimento/largura por PCA e por Feret contra a máscara de referência (o mesmo Feret sobre a máscara verdadeira); erro mediano e p95 por método. É o que decide **qual medida vai para o CSV como principal**.
+4. **Furos a procurar na leitura de código** (`lib/measurements.ts`, `lib/calibration.ts`, `pca-utils.ts`): unidade misturada (µm/px × mm); área em px² convertida com `umPerPixel` sem elevar ao quadrado; contorno em coordenadas da imagem reduzida (`maxProcessingSize` da detecção) medido como se fosse da imagem cheia; `width/height` gravados no momento do contorno e não recalculados após edição de vértice; TIFF com DPI no cabeçalho ignorado (o leitor novo poderia ler `XResolution` e propor a calibração sozinho).
+
+---
+
+## Sobre "sugestões de segmentação e pontos — alguma novidade?"
+
+Honesto: **nada novo no código desde 10/09**. O que existe: cartões de sugestão (`features/sugestoes`), regras semi-automáticas com fantasmas (Fase 4), limiar da população. O que está planejado e é exatamente isso: **A3 — ensaio ao carregar** (três receitas lado a lado, a pessoa escolhe) e, atrás dela, **C1** (a receita escolhida em lote). A3 foi interrompida por crédito antes de escrever uma linha; é a primeira da fila.
+
+---
+
+## Fila resultante (ordem)
+
+1. **A3** ensaio ao carregar (plano pronto, Lote A).
+2. **A4** fixtures reais (plano pronto).
+3. **C3.1** overlay de eixos (pequeno) e **C3.2** auditoria da régua (script) — podem ir em paralelo com A3/A4.
+4. **B1/B2** explorador (planos prontos) → **B3/B4**.
+5. **C1** lote (depois de A3 e B2).
+6. **C2** bancadas — **só depois do "sim" ao desenho acima**; começa pela refatoração `useBancada`.
