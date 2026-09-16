@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Info, Keyboard, MousePointer, Route } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE, FLUXO_DE_TRABALHO } from '../../features/ajuda/atalhos';
+import { Fluxograma } from './Fluxograma';
 
 /**
  * Instruções de uso, na barra lateral.
@@ -12,6 +13,7 @@ import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE, FLUXO_DE_TRABALHO } from '../..
  */
 export function HelpTip() {
   const [tab, setTab] = useState<'fluxo' | 'mouse' | 'keyboard'>('fluxo');
+  const [formaDoFluxo, setFormaDoFluxo] = useState<'diagrama' | 'lista'>('diagrama');
 
   return (
     <section className="bg-accent-tint/50 p-4 rounded-xl border border-accent/30">
@@ -69,7 +71,24 @@ export function HelpTip() {
             transition={{ duration: 0.15 }}
             className="space-y-2"
           >
-            {FLUXO_DE_TRABALHO.map((p, i) => (
+            <li className="flex justify-end gap-1" aria-label="Forma do fluxo">
+              {(['diagrama', 'lista'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFormaDoFluxo(f)}
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${formaDoFluxo === f ? 'bg-surface-1 text-accent' : 'text-ink-3 hover:text-ink-2'}`}
+                >
+                  {f}
+                </button>
+              ))}
+            </li>
+            {formaDoFluxo === 'diagrama' && (
+              <li>
+                <Fluxograma />
+              </li>
+            )}
+            {formaDoFluxo === 'lista' && FLUXO_DE_TRABALHO.map((p, i) => (
               <li key={p.titulo} className="flex gap-2">
                 <span className="bg-surface-1 text-accent border-accent/40 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-bold">
                   {i + 1}

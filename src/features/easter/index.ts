@@ -9,6 +9,8 @@ export { Florescer } from './Florescer';
 export type { FlorescerProps } from './Florescer';
 
 export { PassoDaMontanha } from './PassoDaMontanha';
+export { Germinar, TEMAS } from './Germinar';
+export type { GerminarProps, TemaDaFlor } from './Germinar';
 export type { PassoDaMontanhaProps } from './PassoDaMontanha';
 export { primeiraCurvaDeFucik, betaDeFucik, nivelDoPasso, DISSERTACAO } from './fucik';
 

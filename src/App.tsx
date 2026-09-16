@@ -59,7 +59,7 @@ import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
-import { useEasterEggs, Florescer, PassoDaMontanha, tocarMarca } from './features/easter';
+import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
 import {
   CartaoDeSugestao,
   sugerir,
@@ -291,7 +291,29 @@ export default function App() {
   // Easter eggs: `semente` liga o tic ao marcar, `orquidea` floresce. O gancho
   // tem o proprio ouvinte de teclado e nao passa por useKeyboardShortcuts —
   // easter egg nao se anuncia na ajuda.
-  const { florescendo, encerrarFlorescer, recado: recadoDoEaster, passoDaMontanha, encerrarPassoDaMontanha } = useEasterEggs();
+  const {
+    florescendo,
+    encerrarFlorescer,
+    recado: recadoDoEaster,
+    passoDaMontanha,
+    encerrarPassoDaMontanha,
+    pedidoDeGerminar,
+    temaDaFlor,
+  } = useEasterEggs();
+  /** Germinar em curso: o pedido que está sendo mostrado (0 = nenhum). */
+  const [germinandoPedido, setGerminandoPedido] = useState(0);
+  const [recadoDeGerminar, setRecadoDeGerminar] = useState<string | null>(null);
+  useEffect(() => {
+    if (pedidoDeGerminar === 0) return;
+    // Sem semente marcada não há de onde brotar — e é a dica de como achar o resto.
+    if (marcasRef.current.length === 0) {
+      setRecadoDeGerminar('Marque algumas sementes primeiro (V) — é delas que a flor brota.');
+      const t = setTimeout(() => setRecadoDeGerminar(null), 2500);
+      return () => clearTimeout(t);
+    }
+    setGerminandoPedido(pedidoDeGerminar);
+  }, [pedidoDeGerminar]);
+  const encerrarGerminar = useCallback(() => setGerminandoPedido(0), []);
 
 
   // Notas de versao: abre sozinha so quando a versao avancou desde a ultima
@@ -2990,6 +3012,12 @@ export default function App() {
                     yoloSegmentations={yoloSegmentations}
                     contornosPropostos={propostaDestacada}
                   />
+                  <Germinar
+                    ativo={germinandoPedido > 0}
+                    tema={temaDaFlor}
+                    sementes={marks}
+                    onFim={encerrarGerminar}
+                  />
                 </MarkingCanvas>
               )}
             </ImageViewport>
@@ -3412,12 +3440,12 @@ export default function App() {
       <Florescer ativo={florescendo} onFim={encerrarFlorescer} />
       <PassoDaMontanha ativo={passoDaMontanha} onFim={encerrarPassoDaMontanha} />
 
-      {recadoDoEaster && (
+      {(recadoDoEaster || recadoDeGerminar) && (
         <div
           role="status"
           className="border-line bg-surface-1 text-ink-1 rounded-panel fixed bottom-16 left-1/2 z-40 -translate-x-1/2 border px-4 py-2 text-xs font-semibold shadow-xl"
         >
-          {recadoDoEaster}
+          {recadoDoEaster ?? recadoDeGerminar}
         </div>
       )}
 

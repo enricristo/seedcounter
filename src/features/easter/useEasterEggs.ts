@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { criarDetector } from './sequencia';
+import { TEMAS, type TemaDaFlor } from './Germinar';
 import { somLigado, ligarSom, desligarSom } from './som';
 
 /** As duas descobertas. O nome de cada uma é o que `criarDetector` devolve. */
@@ -25,6 +26,8 @@ const SEQUENCIAS: Record<string, string> = {
   // a primeira curva de Fučik com ele. Duas grafias, um segredo.
   fucik: 'fucik',
   montanha: 'montanha',
+  // Germinar: sol, luz e flores brotando das sementes marcadas. Alterna o tema a cada vez.
+  germinar: 'germinar',
 };
 
 /** Quanto tempo o recado fica na tela antes de sumir sozinho. */
@@ -40,11 +43,16 @@ export interface UseEasterEggsResultado {
   /** O cartão do passo da montanha está aberto — passe direto para `PassoDaMontanha`. */
   passoDaMontanha: boolean;
   encerrarPassoDaMontanha: () => void;
+  /** Pedido de germinar (contador: cada pedido incrementa) e o tema da vez. Quem mostra decide se há sementes. */
+  pedidoDeGerminar: number;
+  temaDaFlor: TemaDaFlor;
 }
 
 export function useEasterEggs(): UseEasterEggsResultado {
   const [florescendo, setFlorescendo] = useState(false);
   const [passoDaMontanha, setPassoDaMontanha] = useState(false);
+  const [pedidoDeGerminar, setPedidoDeGerminar] = useState(0);
+  const [temaDaFlor, setTemaDaFlor] = useState<TemaDaFlor>('girassol');
   const [recado, setRecado] = useState<string | null>(null);
 
   // O detector é criado uma vez só e vive pela vida do gancho — ref, não
@@ -91,6 +99,9 @@ export function useEasterEggs(): UseEasterEggsResultado {
         setFlorescendo(true);
       } else if (completou === 'fucik' || completou === 'montanha') {
         setPassoDaMontanha(true);
+      } else if (completou === 'germinar') {
+        setPedidoDeGerminar((n) => n + 1);
+        setTemaDaFlor((t) => TEMAS[(TEMAS.indexOf(t) + 1) % TEMAS.length]);
       }
     };
 
@@ -104,5 +115,5 @@ export function useEasterEggs(): UseEasterEggsResultado {
   const encerrarFlorescer = useCallback(() => setFlorescendo(false), []);
   const encerrarPassoDaMontanha = useCallback(() => setPassoDaMontanha(false), []);
 
-  return { florescendo, encerrarFlorescer, recado, passoDaMontanha, encerrarPassoDaMontanha };
+  return { florescendo, encerrarFlorescer, recado, passoDaMontanha, encerrarPassoDaMontanha, pedidoDeGerminar, temaDaFlor };
 }
