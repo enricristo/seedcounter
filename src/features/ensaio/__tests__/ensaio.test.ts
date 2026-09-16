@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { describe, it, expect } from 'vitest';
-import { RECEITAS, resumir } from '../receitas';
+import { RECEITAS, resumir, receitaPelaEspecie, receitaDeSalva } from '../receitas';
 import { executarReceita } from '../executar';
 import { gerarCenaSintetica } from '../../../lib/synthetic-scene';
 import { segmentarPorClique } from '../../../lib/region-growing';
@@ -19,6 +19,63 @@ describe('RECEITAS', () => {
     expect(RECEITAS.length).toBeLessThanOrEqual(3);
     expect(new Set(RECEITAS.map((r) => r.id)).size).toBe(RECEITAS.length);
     for (const r of RECEITAS) expect(r.quando.length).toBeGreaterThan(10);
+  });
+});
+
+describe('receitaPelaEspecie', () => {
+  it('devolve null para espécie desconhecida', () => {
+    expect(receitaPelaEspecie('bicho-de-pe', { areaDaImagemPx: 1_000_000 })).toBeNull();
+  });
+
+  it('devolve null quando a espécie não é informada', () => {
+    expect(receitaPelaEspecie(undefined, { areaDaImagemPx: 1_000_000 })).toBeNull();
+  });
+
+  it('com calibração, deriva minArea/maxArea em px² a partir do tamanho típico', () => {
+    // Soja: 5 a 11 mm, razão ~1,05–1,4. umPerPixel = 10 µm/px.
+    const r = receitaPelaEspecie('soja', { umPerPixel: 10, areaDaImagemPx: 10_000_000 });
+    expect(r).not.toBeNull();
+    expect(r!.localizacao.minArea).toBeGreaterThan(0);
+    expect(r!.localizacao.maxArea).toBeGreaterThan(r!.localizacao.minArea!);
+    // maxElongation vem da razão típica com folga.
+    expect(r!.localizacao.maxElongation).toBeGreaterThan(1.4);
+    expect(r!.nome).toContain('Soja');
+    expect(r!.quando.length).toBeGreaterThan(10);
+  });
+
+  it('sem calibração, ainda devolve minArea (fração da imagem) mas não maxArea', () => {
+    const r = receitaPelaEspecie('orquidea', { areaDaImagemPx: 10_000_000 });
+    expect(r).not.toBeNull();
+    expect(r!.localizacao.minArea).toBeGreaterThan(0);
+    expect(r!.localizacao.maxArea).toBeUndefined();
+  });
+
+  it('espécie maior implica minArea maior, na mesma calibração', () => {
+    const ctx = { umPerPixel: 10, areaDaImagemPx: 10_000_000 };
+    const soja = receitaPelaEspecie('soja', ctx)!;
+    const orquidea = receitaPelaEspecie('orquidea', ctx)!;
+    expect(soja.localizacao.minArea!).toBeGreaterThan(orquidea.localizacao.minArea!);
+  });
+
+  it('aceita o nome científico (mesma tabela de tamanhos-de-semente)', () => {
+    expect(receitaPelaEspecie('Glycine max', { areaDaImagemPx: 1_000_000 })).not.toBeNull();
+  });
+});
+
+describe('receitaDeSalva', () => {
+  it('converte uma receita salva com o prefixo salva- no id', () => {
+    const r = receitaDeSalva({
+      id: 7,
+      especie: 'soja',
+      nome: 'Minha receita',
+      quando: 'Scanner do laboratório X',
+      localizacao: { sensitivity: 60 },
+      onda: {},
+      criadaEm: Date.now(),
+    });
+    expect(r.id).toBe('salva-7');
+    expect(r.nome).toBe('Minha receita');
+    expect(r.localizacao.sensitivity).toBe(60);
   });
 });
 

@@ -13,6 +13,9 @@ import type { OpcoesDaOnda } from '../../lib/region-growing';
 import type { Ponto } from '../../lib/aglomerado';
 import { areaDoPoligono, limiaresDaPopulacao, analisarContorno } from '../../lib/aglomerado';
 import { feret } from '../../lib/feret';
+import { acharPorNome } from '../../lib/normas/tamanhos-de-semente';
+import { FRACAO_MINIMA_PADRAO } from '../../lib/limites-adaptaveis';
+import type { ReceitaSalva } from '../../lib/db';
 
 /**
  * Uma receita é um conjunto de parâmetros com nome. Três, não trinta: o
@@ -52,6 +55,90 @@ export const RECEITAS: Receita[] = [
     onda: { recuoDoEscape: 0.05 },
   },
 ];
+
+/**
+ * Converte uma receita salva no Dexie (`useReceitasSalvas`) de volta para o
+ * formato que o ensaio e o painel Encontrar entendem. O `id` ganha o prefixo
+ * `salva-` para não colidir com os ids fixos de `RECEITAS` nem com o
+ * `especie-*` de `receitaPelaEspecie`.
+ */
+export function receitaDeSalva(salva: ReceitaSalva & { id: number }): Receita {
+  return {
+    id: `salva-${salva.id}`,
+    nome: salva.nome,
+    quando: salva.quando,
+    localizacao: salva.localizacao,
+    onda: salva.onda,
+  };
+}
+
+export interface ContextoDeReceitaPelaEspecie {
+  /** Calibração da imagem, em micrômetros por pixel. Ausente = sem calibração. */
+  umPerPixel?: number;
+  /** Área total da imagem (ou da região de varredura), em px². */
+  areaDaImagemPx: number;
+}
+
+/**
+ * Uma 4ª receita, derivada do que a literatura diz sobre a espécie declarada
+ * (`PERFIS_BIOMETRICOS` / `TAMANHOS` — `lib/normas/tamanhos-de-semente.ts`).
+ *
+ * É REFERÊNCIA, NÃO VEREDITO — mesmo estatuto de `tamanhos-de-semente.ts`: a
+ * pessoa vê de onde vieram os números (`quando`) e escolhe como qualquer
+ * outra receita do ensaio. `null` quando a espécie não está na tabela.
+ *
+ * Com calibração, tamanho mínimo/máximo saem da área de uma elipse com o
+ * comprimento típico (mm → px) e a largura implícita na razão comprimento/
+ * largura típica, com folga generosa para os dois lados — é para orientar,
+ * não para reprovar semente sadia por variação de cultivar. Sem calibração,
+ * não há como converter mm em px: cai no mesmo padrão mínimo por fração da
+ * área da imagem que `limites-adaptaveis.ts` usa sem mediana, e não arrisca
+ * um `maxArea` que dependeria de escala que não existe.
+ *
+ * `maxElongation` é o único que não precisa de calibração nenhuma — a razão
+ * comprimento/largura é invariante de escala — e por isso é o que mais vale
+ * mesmo sem calibrar (mesma lógica de `conferirForma`).
+ */
+export function receitaPelaEspecie(
+  especieOuCultura: string | undefined,
+  ctx: ContextoDeReceitaPelaEspecie
+): Receita | null {
+  const referencia = acharPorNome(especieOuCultura);
+  if (!referencia) return null;
+
+  const razaoMedia =
+    referencia.razaoMinima && referencia.razaoMaxima
+      ? (referencia.razaoMinima + referencia.razaoMaxima) / 2
+      : 1.3;
+
+  let minArea: number;
+  let maxArea: number | undefined;
+
+  if (ctx.umPerPixel && ctx.umPerPixel > 0) {
+    const mmParaPx = (mm: number) => (mm * 1000) / ctx.umPerPixel!;
+    const areaDaElipsePx2 = (comprimentoMm: number) => {
+      const comprimentoPx = mmParaPx(comprimentoMm);
+      const larguraPx = comprimentoPx / razaoMedia;
+      return (Math.PI / 4) * comprimentoPx * larguraPx;
+    };
+    // Folga generosa para os dois lados: é referência de literatura, não a
+    // medida desta imagem — melhor deixar passar do que reprovar semente sadia.
+    minArea = Math.max(1, Math.round(areaDaElipsePx2(referencia.minimo) * 0.35));
+    maxArea = Math.round(areaDaElipsePx2(referencia.maximo) * 3);
+  } else {
+    minArea = Math.max(1, Math.round(FRACAO_MINIMA_PADRAO * ctx.areaDaImagemPx));
+  }
+
+  const maxElongation = referencia.razaoMaxima ? Math.ceil(referencia.razaoMaxima * 1.5) : 0;
+
+  return {
+    id: `especie-${referencia.chave}`,
+    nome: `Pela espécie: ${referencia.nomeComum}`,
+    quando: `Tamanho típico da literatura para ${referencia.nomeComum} (${referencia.origem}).`,
+    localizacao: { sensitivity: 50, minArea, maxArea, maxElongation, splitTouching: false },
+    onda: {},
+  };
+}
 
 export interface ContornoProposto {
   contorno: Ponto[];

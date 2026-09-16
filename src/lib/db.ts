@@ -3,6 +3,8 @@ import Dexie, { type Table } from 'dexie';
 import type { Session, Metadata, Experiment } from '../types';
 import type { IdentificacaoDoLaboratorio } from './normas/identificacao';
 import type { TelemetryQueueRecord } from './telemetry/types';
+import type { DetectionOptions } from './detect';
+import type { OpcoesDaOnda } from './region-growing';
 
 /**
  * Uma pasta de datasets que a pessoa abriu e o app lembra.
@@ -38,6 +40,26 @@ export interface RegistroDoLaboratorio {
 /** A chave do registro único do laboratório. */
 export const ID_DO_LABORATORIO = 'laboratorio_atual';
 
+/**
+ * Uma receita do painel "Encontrar" (C5), salva pela pessoa com um nome.
+ *
+ * "Uma receita, três momentos" (ensaio ao carregar → painel Encontrar →
+ * regras semi-automáticas) — salvar aqui é o que faz a receita ajustada virar
+ * uma 4ª opção do ensaio nas próximas imagens da MESMA espécie. `especie` é a
+ * chave de filtro: o nome comum normalizado (minúsculo, sem acento), ou
+ * `'generica'` quando a pessoa salva sem espécie declarada — essas aparecem
+ * para qualquer espécie, porque não têm do que discordar.
+ */
+export interface ReceitaSalva {
+  id?: number;
+  especie: string;
+  nome: string;
+  quando: string;
+  localizacao: DetectionOptions;
+  onda: OpcoesDaOnda;
+  criadaEm: number;
+}
+
 export class SeedCounterDB extends Dexie {
   sessions!: Table<Session, string>;
   metadataStore!: Table<{ id: string; data: Metadata }, string>;
@@ -45,6 +67,7 @@ export class SeedCounterDB extends Dexie {
   laboratorio!: Table<RegistroDoLaboratorio, string>;
   telemetryQueue!: Table<TelemetryQueueRecord, string>;
   pastasDeDatasets!: Table<PastaDeDatasetGuardada, number>;
+  receitas!: Table<ReceitaSalva, number>;
 
   constructor() {
     super('SeedCounterDB');
@@ -115,6 +138,20 @@ export class SeedCounterDB extends Dexie {
       laboratorio: 'id',
       telemetryQueue: 'id, status, createdAt, retryCount',
       pastasDeDatasets: '++id, nome, aberta',
+    });
+
+    // v8 — receitas salvas do painel "Encontrar" (C5). Uma receita ajustada
+    // manualmente e salva com nome vira 4ª opção do ensaio ao carregar, para
+    // a mesma espécie, sem migração de dado — sessão antiga simplesmente não
+    // tem receita salva nenhuma.
+    this.version(8).stores({
+      sessions: 'id, date, experimentId, treatmentId',
+      metadataStore: 'id',
+      experiments: 'id, createdAt, species, responsible',
+      laboratorio: 'id',
+      telemetryQueue: 'id, status, createdAt, retryCount',
+      pastasDeDatasets: '++id, nome, aberta',
+      receitas: '++id, especie, nome',
     });
   }
 }
