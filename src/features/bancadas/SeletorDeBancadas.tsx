@@ -14,7 +14,7 @@
 // um pixel de ruído visual.
 // =============================================================================
 
-import { Plus, X } from 'lucide-react';
+import { Columns2, Plus, X } from 'lucide-react';
 import { MAXIMO_DE_BANCADAS, type Bancadas as BancadasEstado } from '../../hooks/useBancadas';
 
 interface SeletorDeBancadasProps {
@@ -39,14 +39,21 @@ export function SeletorDeBancadas({ bancadas }: SeletorDeBancadasProps) {
     // segunda bancada não tem por que ver número, moldura ou destaque.
     if (!podeAbrirMais) return null;
     return (
+      // O modo tem NOME. Um "+" mudo no cabeçalho não convida ninguém a
+      // descobrir que o app abre quatro cenas ao mesmo tempo — e é a
+      // funcionalidade que separa este app de um contador comum. O rótulo
+      // some abaixo de `lg` para não disputar espaço com as abas em tela
+      // estreita; o ícone e o título continuam lá.
       <button
         type="button"
         onClick={() => abrirNova()}
-        className={botaoAbrir}
-        title="Abrir uma nova bancada — compare até 4 imagens ao mesmo tempo"
-        aria-label="Abrir nova bancada"
+        className="text-ink-3 hover:text-ink-1 hover:border-accent hover:bg-surface-2 border-line rounded-control flex h-7 shrink-0 items-center gap-1.5 border border-dashed px-2 transition-colors"
+        title="Modo Multibancada — abra até quatro cenas lado a lado e compare imagens, ou a mesma placa em datas diferentes"
+        aria-label="Abrir o modo Multibancada"
       >
-        <Plus size={13} strokeWidth={2.25} aria-hidden="true" />
+        <Columns2 size={13} strokeWidth={2} aria-hidden="true" />
+        <span className="hidden text-[10px] font-bold tracking-wide uppercase lg:inline">Multibancada</span>
+        <Plus size={11} strokeWidth={2.5} aria-hidden="true" />
       </button>
     );
   }
@@ -57,8 +64,17 @@ export function SeletorDeBancadas({ bancadas }: SeletorDeBancadasProps) {
     <div
       className="bg-surface-2 rounded-panel flex shrink-0 items-center gap-0.5 p-0.5"
       role="group"
-      aria-label="Bancadas abertas"
+      aria-label={`Modo Multibancada — ${abertas} bancadas abertas`}
     >
+      {/* O nome do modo, à esquerda das bancadas: quem está com quatro cenas
+          abertas precisa saber o que está vendo, e como voltar a uma só
+          (fechando as outras no ×). */}
+      <span
+        className="text-ink-3 hidden shrink-0 px-1.5 text-[9px] font-bold tracking-widest uppercase xl:inline"
+        title="Modo Multibancada — cada bancada tem imagem, marcações, medidas e calibração próprias"
+      >
+        Multibancada
+      </span>
       {visiveis.map((b, indice) => {
         const ativa = indice === indiceAtivo;
         const nomeDoArquivo = b.fila.filename;

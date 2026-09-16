@@ -212,8 +212,8 @@ export interface PassoDoFluxo {
 export const FLUXO_DE_TRABALHO: PassoDoFluxo[] = [
   {
     titulo: 'Abrir',
-    como: 'Digitalização (PNG, JPG ou TIFF), câmera, um exemplo real, ou uma pasta de datasets.',
-    onde: 'Lateral esquerda — Abrir imagem / Exemplos; aba Datasets à direita.',
+    como: 'Digitalização (PNG, JPG ou TIFF), câmera, um exemplo real, ou uma pasta de datasets. No modo Multibancada, até quatro cenas ao mesmo tempo.',
+    onde: 'Lateral esquerda — Abrir imagem / Exemplos; aba Datasets à direita; Multibancada no cabeçalho.',
   },
   {
     titulo: 'Calibrar',
