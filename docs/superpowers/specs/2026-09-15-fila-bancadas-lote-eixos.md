@@ -65,3 +65,20 @@ Honesto: **nada novo no código desde 10/09**. O que existe: cartões de sugest�
 4. **B1/B2** explorador (planos prontos) → **B3/B4**.
 5. **C1** lote (depois de A3 e B2).
 6. **C2** bancadas — **só depois do "sim" ao desenho acima**; começa pela refatoração `useBancada`.
+
+---
+
+## C4 — Conta: o que o login deve dar (pedido do Enrico, 15/09)
+
+Hoje a conta (`features/conta`) lembra a bancada (metadados) e nada mais; sessões, experimentos e placas vivem só no Dexie do navegador. O que a conta passa a oferecer, em ordem de utilidade:
+
+1. **Lista de sessões da pessoa** — com miniatura, data, contagem, projeto/placa; **continuar** de onde parou (abre a sessão na bancada). Espelha `db.sessions` no servidor (o backend já tem `require_user_for_heavy` e limites de taxa — ver memória `backend-auth-nao-verifica`).
+2. **Fotos e digitalizações** — upload das imagens originais junto da sessão (hoje a sessão guarda só as anotações; sem a imagem, "continuar" noutra máquina é impossível). Regra: original em PNG/TIFF, nunca JPEG re-comprimido.
+3. **Experimentos e placas** (`Experiment`, `PlateRun`) — sincronizados, com a série no tempo por placa. É a base do C2 (bancadas por data).
+4. **Receitas e regras** (A3, 2.2) — as receitas escolhidas e as regras em mm por espécie viajam com a conta, para a mesma bancada em dois computadores dar o mesmo resultado.
+5. **Perfis medidos por classe** (B4) — idem.
+6. **Lista de datasets abertos** (Lote B) — o app lembra quais pastas a pessoa já apontou (handles não viajam; o *nome* e o formato reconhecido sim).
+
+**Pré-condição que só o Enrico resolve:** hospedagem com **disco persistente** (o HF Space é efêmero); sem isso, 2 e 3 não podem existir. 1, 4, 5 e 6 são pequenos e cabem no que já há.
+
+**Onde entra na fila:** C4.1 (lista de sessões + continuar) logo depois do B2 — usa a mesma tela de "abrir" (pasta local · conta · exemplos).
