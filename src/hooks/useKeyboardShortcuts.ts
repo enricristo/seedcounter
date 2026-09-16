@@ -17,6 +17,10 @@ interface KeyboardShortcutsProps {
   onCiclarMascara: () => void;
   /** Abre a galeria de objetos. */
   onAbrirGaleria: () => void;
+  /** Ativa a bancada N (0-3) — Ctrl+1..4 (C2, Task 3). */
+  onAtivarBancada: (indice: number) => void;
+  /** Abre uma bancada nova — Ctrl+Shift+N (C2, Task 3). */
+  onAbrirNovaBancada: () => void;
   hasImage: boolean;
   hasNextImage: boolean;
   hasPrevImage: boolean;
@@ -38,6 +42,8 @@ export function useKeyboardShortcuts({
   onToggleTheme,
   onCiclarMascara,
   onAbrirGaleria,
+  onAtivarBancada,
+  onAbrirNovaBancada,
   hasImage,
   hasNextImage,
   hasPrevImage,
@@ -57,6 +63,20 @@ export function useKeyboardShortcuts({
 
       // Ctrl/Meta shortcuts are always allowed or checked carefully
       if (e.ctrlKey || e.metaKey) {
+        // Bancadas (C2): Ctrl+1..4 ativa a bancada N; Ctrl+Shift+N abre uma
+        // nova. Precisam do `return` aqui — sem ele, Ctrl+1 cairia no
+        // `switch` abaixo e disputaria a tecla '1' com o modo de visualização
+        // (que usa '1'/'2' sem Ctrl).
+        if (!isTyping && !e.shiftKey && /^[1-4]$/.test(e.key)) {
+          e.preventDefault();
+          onAtivarBancada(Number(e.key) - 1);
+          return;
+        }
+        if (!isTyping && e.shiftKey && e.key.toLowerCase() === 'n') {
+          e.preventDefault();
+          onAbrirNovaBancada();
+          return;
+        }
         // Desfazer/refazer sao do CAMPO quando ha um campo com foco: Ctrl+Z
         // nas Observacoes tem que desfazer o texto, nao a ultima marca.
         if (!isTyping && e.key.toLowerCase() === 'z') {
@@ -162,6 +182,8 @@ export function useKeyboardShortcuts({
     onSaveSession,
     onCiclarMascara,
     onAbrirGaleria,
+    onAtivarBancada,
+    onAbrirNovaBancada,
     onOpenExport,
     onToggleTheme,
     hasImage,

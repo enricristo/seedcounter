@@ -19,6 +19,7 @@ import { EscalaGrafica } from './components/canvas/EscalaGrafica';
 import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-reais';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
+import { Bancadas } from './features/bancadas/Bancadas';
 import { DropZone } from './components/shared/DropZone';
 import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
@@ -513,7 +514,12 @@ export default function App() {
     // Ensaio ao carregar: roda as receitas sobre a imagem RECÉM-CHEGADA
     // (o parâmetro `img`, não `imagemDeTrabalho` — que neste fecho ainda é o
     // valor do render anterior, da imagem que acabou de sair da fila).
-    if (isEnsaioAoCarregarEnabled) {
+    //
+    // Só para a bancada ATIVA (Task 3, desempenho): carregar uma imagem numa
+    // bancada que não está em tela não pode disparar um ensaio caro que
+    // ninguém vai ver — com quatro bancadas isso multiplicaria o trabalho por
+    // até quatro sem nenhum ganho.
+    if (isEnsaioAoCarregarEnabled && indice === bancadas.indiceAtivo) {
       ensaioCancelado.current = false;
       abrirAbaDireita('inspetor');
 
@@ -2747,6 +2753,8 @@ export default function App() {
     onToggleTheme: toggleTheme,
     onCiclarMascara: ciclarMascara,
     onAbrirGaleria: () => abrirAbaDireita('galeria'),
+    onAtivarBancada: bancadas.ativar,
+    onAbrirNovaBancada: () => bancadas.abrirNova(),
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
     hasPrevImage: currentImageIndex > 0,
@@ -2955,6 +2963,7 @@ export default function App() {
                           <AiPointerPanel
                             // A ORIGINAL, sempre: é nela que o modelo foi treinado.
                             image={image}
+                            bancadaId={bancada.id}
                             marks={marks}
                             onAddMarks={handleAddDetectedMarks}
                             onPreviewChange={setDetectionPreview}
@@ -2974,6 +2983,12 @@ export default function App() {
           />
 
           {/* 3. Image viewport scroll and Zoom area with persistent floating overlays */}
+          {/* Bancadas (C2): com uma aberta, `Bancadas` devolve exatamente o
+              que está entre as chaves abaixo, sem wrapper — o layout de hoje
+              não muda. Com duas ou mais, cada bancada ganha célula, cabeçalho
+              e borda; só a ATIVA recebe este bloco (as outras recebem uma
+              versão sem os overlays caros — ver `Bancadas.tsx`). */}
+          <Bancadas bancadas={bancadas} onBrowseFiles={handleBrowseFiles}>
           <div className="relative flex-1 h-full overflow-hidden flex flex-col">
             <ImageViewport
               containerRef={containerRef}
@@ -3229,6 +3244,7 @@ export default function App() {
             )}
             {image && mostrarEscala && <EscalaGrafica umPerPixel={metadata.umPerPixel} zoomLevel={zoomLevel} />}
           </div>
+          </Bancadas>
 
           {/* 3. Painel Lateral Direito — RESULTADOS E ANÁLISE BIOMÉTRICA */}
           <RightSidebar

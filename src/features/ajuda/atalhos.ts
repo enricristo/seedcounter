@@ -71,6 +71,20 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
       { teclas: 'Ctrl + E', acao: 'Exportar' },
     ],
   },
+  {
+    titulo: 'Bancadas',
+    atalhos: [
+      { teclas: 'Ctrl + 1', acao: 'Ativar a bancada 1' },
+      { teclas: 'Ctrl + 2', acao: 'Ativar a bancada 2' },
+      { teclas: 'Ctrl + 3', acao: 'Ativar a bancada 3' },
+      { teclas: 'Ctrl + 4', acao: 'Ativar a bancada 4' },
+      {
+        teclas: 'Ctrl + Shift + N',
+        acao: 'Abrir uma nova bancada',
+        nota: 'Até quatro ao mesmo tempo; clicar em qualquer ponto de uma bancada também a ativa.',
+      },
+    ],
+  },
 ];
 
 export interface InstrucaoDoMouse {
