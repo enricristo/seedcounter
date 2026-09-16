@@ -107,7 +107,7 @@ export function useBancada(
   opcoes?: { onImageLoaded?: (img: HTMLImageElement, file: File) => void }
 ): Bancada {
   const anotacoes = useMarks();
-  const meta = useMetadata();
+  const meta = useMetadata(id);
   const zoom = useZoom();
   const pan = usePanning();
 
