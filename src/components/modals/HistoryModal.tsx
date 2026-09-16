@@ -148,7 +148,7 @@ export function HistoryModal({
                 <h3 className="text-base font-bold text-ink-2">Nenhum Registro Salvo</h3>
                 <p className="text-xs text-ink-3 max-w-sm font-medium">
                   Para armazenar dados aqui, carregue uma imagem, faça a marcação e use o botão
-                  "Salvar Sessão Local" na barra superior.
+                  &quot;Salvar Sessão Local&quot; na barra superior.
                 </p>
               </div>
             </div>

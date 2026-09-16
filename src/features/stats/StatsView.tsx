@@ -454,7 +454,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
                   Sessões de Contagem Salvas
                 </h3>
                 <p className="text-[10px] text-ink-3 font-medium">
-                  {sessions.length} avaliações registradas no total. Clique em 'Ver foto' para
+                  {sessions.length} avaliações registradas no total. Clique em &apos;Ver foto&apos; para
                   analisar as marcações.
                 </p>
               </div>

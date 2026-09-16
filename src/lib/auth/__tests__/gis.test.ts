@@ -1,3 +1,4 @@
+/* global RequestInit, HeadersInit */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GisClient, parseJwtPayload } from '../gis-client';
 import type { BenchPreferences } from '../gis-client';

@@ -33,7 +33,10 @@ export const CookieConsentBanner: React.FC = () => {
   const handleAccept = () => {
     try {
       localStorage.setItem(STORAGE_KEY, 'granted');
-    } catch {}
+    } catch {
+      // Sem armazenamento (janela privada, site data bloqueado): a escolha não
+      // sobrevive ao F5, mas não pode impedir de usar o aplicativo.
+    }
 
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('consent', 'update', {
@@ -46,7 +49,10 @@ export const CookieConsentBanner: React.FC = () => {
   const handleDecline = () => {
     try {
       localStorage.setItem(STORAGE_KEY, 'denied');
-    } catch {}
+    } catch {
+      // Sem armazenamento (janela privada, site data bloqueado): a escolha não
+      // sobrevive ao F5, mas não pode impedir de usar o aplicativo.
+    }
 
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('consent', 'update', {
