@@ -201,14 +201,14 @@ export function GaleriaModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Topo do Modal / Gaveta */}
-        <div className="flex items-center justify-between border-b border-line px-4 sm:px-5 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <Grid3x3 size={18} className="text-accent" />
-            <div>
+        <div className={`flex items-center justify-between border-b border-line py-3.5 ${modo === 'painel' ? 'px-3' : 'px-4 sm:px-5'}`}>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Grid3x3 size={18} className="text-accent shrink-0" />
+            <div className="min-w-0">
               <h2 className="text-sm font-bold uppercase tracking-wide text-ink-1">
                 Galeria de objetos {modoVisualizacao === 'gaveta' && <span className="text-[10px] text-accent font-mono ml-1 font-semibold">(Gaveta)</span>}
               </h2>
-              <p className="text-[11px] text-ink-3">
+              <p className="truncate text-[11px] text-ink-3">
                 {itens.length} {itens.length === 1 ? 'objeto' : 'objetos'}
                 {semContorno > 0 && ` • ${semContorno} sem contorno`}
                 {' • Duplo clique foca no canvas'}
@@ -261,7 +261,7 @@ export function GaleriaModal({
         </div>
 
         {/* Barra de Filtros e Ações em Lote */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
+        <div className={`flex flex-wrap items-center gap-2 border-b border-line py-3 ${modo === 'painel' ? 'px-3' : 'px-5'}`}>
           {FILTROS.map((f) => (
             <button
               key={f.id}
@@ -305,8 +305,8 @@ export function GaleriaModal({
         </div>
 
         {/* Corpo Principal: Grade de Miniaturas + Painel de Inspeção Lateral */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-5">
+        <div className={`flex min-h-0 flex-1 overflow-hidden ${modo === 'painel' ? 'flex-col' : ''}`}>
+          <div className={`flex-1 overflow-y-auto ${modo === 'painel' ? 'p-3' : 'p-5'}`}>
             {visiveis.length === 0 ? (
               <p className="py-16 text-center text-sm text-ink-3">
                 {itens.length === 0
@@ -369,6 +369,7 @@ export function GaleriaModal({
           {/* Painel lateral de inspeção detalhada da semente selecionada */}
           {itemInspecionado && (
             <PainelInspecaoGaleria
+              empilhado={modo === 'painel'}
               item={itemInspecionado}
               indice={itens.findIndex((i) => i.chave === itemInspecionado.chave) + 1}
               miniatura={miniaturas.get(itemInspecionado.chave)}
@@ -643,6 +644,7 @@ function Celula({
 // ---------------------------------------------------------------------------
 
 function PainelInspecaoGaleria({
+  empilhado = false,
   item,
   indice,
   miniatura,
@@ -655,6 +657,8 @@ function PainelInspecaoGaleria({
   onFocarNoCanvas,
   onSegmentarUma,
 }: {
+  /** Dentro da aba lateral: empilhado abaixo da grade, largura cheia, em vez de coluna à direita. */
+  empilhado?: boolean;
   item: ItemDaGaleria;
   indice: number;
   miniatura?: string;
@@ -717,7 +721,11 @@ function PainelInspecaoGaleria({
   }, [isContorno, item, umPerPixel, medianaDaCena, limiares]);
 
   return (
-    <aside className="w-80 border-l border-line bg-surface-1 flex flex-col overflow-y-auto p-4 shrink-0 transition-all">
+    <aside
+      className={`border-line bg-surface-1 flex shrink-0 flex-col overflow-y-auto transition-all ${
+        empilhado ? 'w-full border-t p-3' : 'w-80 border-l p-4'
+      }`}
+    >
       <div className="flex items-center justify-between pb-3 border-b border-line">
         <div>
           <span className="text-[10px] font-bold tracking-wider text-ink-3 uppercase">
