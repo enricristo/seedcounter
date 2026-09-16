@@ -63,16 +63,19 @@ export function useKeyboardShortcuts({
 
       // Ctrl/Meta shortcuts are always allowed or checked carefully
       if (e.ctrlKey || e.metaKey) {
-        // Bancadas (C2): Ctrl+1..4 ativa a bancada N; Ctrl+Shift+N abre uma
-        // nova. Precisam do `return` aqui — sem ele, Ctrl+1 cairia no
-        // `switch` abaixo e disputaria a tecla '1' com o modo de visualização
-        // (que usa '1'/'2' sem Ctrl).
-        if (!isTyping && !e.shiftKey && /^[1-4]$/.test(e.key)) {
+        // Bancadas (C2): Ctrl+Alt+1..4 ativa a bancada N; Ctrl+Alt+N abre
+        // uma nova. Era Ctrl+1..4 e Ctrl+Shift+N, mas o navegador e o sistema
+        // já são donos dessas combinações (trocar de aba, aba anônima) — o
+        // Enrico nunca conseguia disparar. Ctrl+Alt não tem dono. Precisam
+        // do `return` aqui — sem ele, Ctrl+Alt+1 cairia no `switch` abaixo e
+        // disputaria a tecla '1' com o modo de visualização (que usa '1'/'2'
+        // sem Ctrl).
+        if (!isTyping && e.altKey && /^[1-4]$/.test(e.key)) {
           e.preventDefault();
           onAtivarBancada(Number(e.key) - 1);
           return;
         }
-        if (!isTyping && e.shiftKey && e.key.toLowerCase() === 'n') {
+        if (!isTyping && e.altKey && e.key.toLowerCase() === 'n') {
           e.preventDefault();
           onAbrirNovaBancada();
           return;

@@ -74,12 +74,16 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
   {
     titulo: 'Bancadas',
     atalhos: [
-      { teclas: 'Ctrl + 1', acao: 'Ativar a bancada 1' },
-      { teclas: 'Ctrl + 2', acao: 'Ativar a bancada 2' },
-      { teclas: 'Ctrl + 3', acao: 'Ativar a bancada 3' },
-      { teclas: 'Ctrl + 4', acao: 'Ativar a bancada 4' },
       {
-        teclas: 'Ctrl + Shift + N',
+        teclas: 'Ctrl + Alt + 1',
+        acao: 'Ativar a bancada 1',
+        nota: 'O seletor no cabeçalho (perto do chip de espécie) faz o mesmo com o mouse — é o caminho normal.',
+      },
+      { teclas: 'Ctrl + Alt + 2', acao: 'Ativar a bancada 2' },
+      { teclas: 'Ctrl + Alt + 3', acao: 'Ativar a bancada 3' },
+      { teclas: 'Ctrl + Alt + 4', acao: 'Ativar a bancada 4' },
+      {
+        teclas: 'Ctrl + Alt + N',
         acao: 'Abrir uma nova bancada',
         nota: 'Até quatro ao mesmo tempo; clicar em qualquer ponto de uma bancada também a ativa.',
       },

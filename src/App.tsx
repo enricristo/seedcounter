@@ -20,6 +20,7 @@ import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { Bancadas } from './features/bancadas/Bancadas';
+import { SeletorDeBancadas } from './features/bancadas/SeletorDeBancadas';
 import { DropZone } from './components/shared/DropZone';
 import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
@@ -2778,6 +2779,7 @@ export default function App() {
             onLimpar={handleLimparEspecie}
           />
         }
+        bancadasSlot={<SeletorDeBancadas bancadas={bancadas} />}
         contaSlot={
           conta.disponivel ? (
             <BotaoDeConta
