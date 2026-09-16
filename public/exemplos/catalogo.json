@@ -1,0 +1,1665 @@
+{
+  "geradoEm": "2026-09-15",
+  "regra": "primeira imagem por ordem de nome; uma por classe/pasta; lado máximo 1024 px; PNG",
+  "exemplos": [
+    {
+      "slug": "gpeorq-scan-1",
+      "conjunto": "gpeorq-scan",
+      "rotulo": "Orquídea — digitalização GPEOrq #1",
+      "cultura": "orquidea",
+      "especie": "Cattleya (GPEOrq)",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/gpeorq-scan-1.png",
+      "largura": 819,
+      "altura": 819,
+      "original": {
+        "arquivo": "images\\digitalizar_scan\\digitalizar0001.jpg",
+        "largura": 1536,
+        "altura": 1536,
+        "fatorDeReducao": 0.533203125,
+        "recorteEm": [
+          4000,
+          2700
+        ]
+      },
+      "umPorPixel": 10.061469288937099,
+      "notaEscala": "medida pela régua da própria digitalização (1864 px / 10 mm, DPI efetivo ≈ 4735 — não os 3600 declarados; docs/datasets/auditoria-de-medida.md)",
+      "classesDaImagem": [],
+      "origem": "GPEOrq / GPSEM — Unoeste",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Digitalização real de bandeja com sementes de orquídea; há régua no scanner para conferir a escala.",
+      "bytes": 941698
+    },
+    {
+      "slug": "gpeorq-scan-2",
+      "conjunto": "gpeorq-scan",
+      "rotulo": "Orquídea — digitalização GPEOrq #2",
+      "cultura": "orquidea",
+      "especie": "Cattleya (GPEOrq)",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/gpeorq-scan-2.png",
+      "largura": 819,
+      "altura": 819,
+      "original": {
+        "arquivo": "images\\digitalizar_scan\\digitalizar0002.jpg",
+        "largura": 1536,
+        "altura": 1536,
+        "fatorDeReducao": 0.533203125,
+        "recorteEm": [
+          3000,
+          3400
+        ]
+      },
+      "umPorPixel": 10.061469288937099,
+      "notaEscala": "medida pela régua da própria digitalização (1864 px / 10 mm, DPI efetivo ≈ 4735 — não os 3600 declarados; docs/datasets/auditoria-de-medida.md)",
+      "classesDaImagem": [],
+      "origem": "GPEOrq / GPSEM — Unoeste",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Digitalização real de bandeja com sementes de orquídea; há régua no scanner para conferir a escala.",
+      "bytes": 990539
+    },
+    {
+      "slug": "gpeorq-tig-1",
+      "conjunto": "gpeorq-tig",
+      "rotulo": "Orquídea — Tigrina (GPEOrq)",
+      "cultura": "orquidea",
+      "especie": "Cattleya tigrina",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/gpeorq-tig-1.png",
+      "largura": 946,
+      "altura": 946,
+      "original": {
+        "arquivo": "images\\1_Tig1.png",
+        "largura": 946,
+        "altura": 946,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "DPI não confirmado (a auditoria achou ≈ 4735 em digitalizarXXXX, não 3600); calibrar por referência",
+      "classesDaImagem": [],
+      "origem": "GPEOrq / GPSEM — Unoeste",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Recorte de digitalização do grupo.",
+      "bytes": 1245478
+    },
+    {
+      "slug": "gpeorq-purp-1",
+      "conjunto": "gpeorq-purp",
+      "rotulo": "Orquídea — Purpurata (GPEOrq)",
+      "cultura": "orquidea",
+      "especie": "Cattleya purpurata",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/gpeorq-purp-1.png",
+      "largura": 945,
+      "altura": 946,
+      "original": {
+        "arquivo": "images\\2_Purp1.png",
+        "largura": 945,
+        "altura": 946,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "DPI não confirmado (a auditoria achou ≈ 4735 em digitalizarXXXX, não 3600); calibrar por referência",
+      "classesDaImagem": [],
+      "origem": "GPEOrq / GPSEM — Unoeste",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Recorte de digitalização do grupo.",
+      "bytes": 1275147
+    },
+    {
+      "slug": "nelson-tz-1",
+      "conjunto": "nelson-tz",
+      "rotulo": "Orquídea — tetrazólio (doutorado Prof. Nelson) #1",
+      "cultura": "orquidea",
+      "especie": "Orquídea (doutorado)",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/nelson-tz-1.png",
+      "largura": 945,
+      "altura": 947,
+      "original": {
+        "arquivo": "nelson_phd_images_orquid_enrico\\DFhandPSOL1 - Copia.tif",
+        "largura": 945,
+        "altura": 947,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "scanner sem DPI registrado; calibrar por referência",
+      "classesDaImagem": [],
+      "origem": "Prof. Nelson B. Machado Neto — GPEOrq",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Sementes encostadas de verdade e tetrazólio real — o caso difícil.",
+      "bytes": 796554
+    },
+    {
+      "slug": "nelson-tz-2",
+      "conjunto": "nelson-tz",
+      "rotulo": "Orquídea — tetrazólio (doutorado Prof. Nelson) #2",
+      "cultura": "orquidea",
+      "especie": "Orquídea (doutorado)",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/nelson-tz-2.png",
+      "largura": 1024,
+      "altura": 1024,
+      "original": {
+        "arquivo": "nelson_phd_images_orquid_enrico\\DFhandPSOL1.tif",
+        "largura": 1536,
+        "altura": 1536,
+        "fatorDeReducao": 0.6666666666666666,
+        "recorteEm": [
+          2600,
+          1200
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "scanner sem DPI registrado; calibrar por referência",
+      "classesDaImagem": [],
+      "origem": "Prof. Nelson B. Machado Neto — GPEOrq",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Sementes encostadas de verdade e tetrazólio real — o caso difícil.",
+      "bytes": 1026094
+    },
+    {
+      "slug": "orquidea-roboflow-1",
+      "conjunto": "orquidea-roboflow",
+      "rotulo": "Orquídea — Epidendrum (Roboflow) #1",
+      "cultura": "orquidea",
+      "especie": "Epidendrum",
+      "tipo": "recorte",
+      "imagem": "exemplos/orquidea-roboflow-1.png",
+      "largura": 946,
+      "altura": 946,
+      "original": {
+        "arquivo": "Sementes de Orquideas\\test\\images\\digitalizar0001_11_jpg.rf.865f9be3bf50d4d9f2994b4fd078d8dc.jpg",
+        "largura": 946,
+        "altura": 946,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "imagem redimensionada pelo Roboflow; sem escala",
+      "classesDaImagem": [],
+      "origem": "Roboflow Universe sementes-de-orquideas v8",
+      "licenca": "CC BY 4.0",
+      "url": "https://universe.roboflow.com/sementes-de-orqudea/sementes-de-orquideas",
+      "dica": "Anotado viável/inviável por tetrazólio; é o conjunto de treino do modelo embarcado.",
+      "bytes": 888915
+    },
+    {
+      "slug": "orquidea-roboflow-2",
+      "conjunto": "orquidea-roboflow",
+      "rotulo": "Orquídea — Epidendrum (Roboflow) #2",
+      "cultura": "orquidea",
+      "especie": "Epidendrum",
+      "tipo": "recorte",
+      "imagem": "exemplos/orquidea-roboflow-2.png",
+      "largura": 946,
+      "altura": 946,
+      "original": {
+        "arquivo": "Sementes de Orquideas\\test\\images\\digitalizar0001_12_jpg.rf.433f5fb96dd27c05743c1b10b9300ee9.jpg",
+        "largura": 946,
+        "altura": 946,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "imagem redimensionada pelo Roboflow; sem escala",
+      "classesDaImagem": [],
+      "origem": "Roboflow Universe sementes-de-orquideas v8",
+      "licenca": "CC BY 4.0",
+      "url": "https://universe.roboflow.com/sementes-de-orqudea/sementes-de-orquideas",
+      "dica": "Anotado viável/inviável por tetrazólio; é o conjunto de treino do modelo embarcado.",
+      "bytes": 795786
+    },
+    {
+      "slug": "soja-mendeley-anjasmoro",
+      "conjunto": "soja-mendeley",
+      "rotulo": "Soja — digitalização (Mendeley) — Anjasmoro",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/soja-mendeley-anjasmoro.png",
+      "largura": 1024,
+      "altura": 1024,
+      "original": {
+        "arquivo": "Image Dataset of Local Indonesian Soybean Seed Var\\Scanned_Anjasmoro\\Anjasmoro\\anjasmoro001.jpg",
+        "largura": 2048,
+        "altura": 2048,
+        "fatorDeReducao": 0.5,
+        "recorteEm": [
+          4608,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "800–950 DPI segundo a fonte, sem valor exato; calibrar por referência",
+      "classesDaImagem": [
+        "Anjasmoro"
+      ],
+      "origem": "Mendeley Data c733bjz4m3 (soja indonésia)",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
+      "dica": "Sementes em grade, nunca se tocam; a fonte tem máscara de instância por semente.",
+      "bytes": 622723
+    },
+    {
+      "slug": "soja-mendeley-dega-i",
+      "conjunto": "soja-mendeley",
+      "rotulo": "Soja — digitalização (Mendeley) — Dega I",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/soja-mendeley-dega-i.png",
+      "largura": 1024,
+      "altura": 1024,
+      "original": {
+        "arquivo": "Image Dataset of Local Indonesian Soybean Seed Var\\Scanned_Dega I\\Dega I\\Dega001.jpg",
+        "largura": 2048,
+        "altura": 2048,
+        "fatorDeReducao": 0.5,
+        "recorteEm": [
+          4608,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "800–950 DPI segundo a fonte, sem valor exato; calibrar por referência",
+      "classesDaImagem": [
+        "Dega I"
+      ],
+      "origem": "Mendeley Data c733bjz4m3 (soja indonésia)",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
+      "dica": "Sementes em grade, nunca se tocam; a fonte tem máscara de instância por semente.",
+      "bytes": 648128
+    },
+    {
+      "slug": "soja-mendeley-grobogan",
+      "conjunto": "soja-mendeley",
+      "rotulo": "Soja — digitalização (Mendeley) — Grobogan",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "digitalizacao",
+      "imagem": "exemplos/soja-mendeley-grobogan.png",
+      "largura": 1024,
+      "altura": 1024,
+      "original": {
+        "arquivo": "Image Dataset of Local Indonesian Soybean Seed Var\\Scanned_Grobogan\\Grobogan\\Grobogan001.jpg",
+        "largura": 2048,
+        "altura": 2048,
+        "fatorDeReducao": 0.5,
+        "recorteEm": [
+          4608,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "800–950 DPI segundo a fonte, sem valor exato; calibrar por referência",
+      "classesDaImagem": [
+        "Grobogan"
+      ],
+      "origem": "Mendeley Data c733bjz4m3 (soja indonésia)",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
+      "dica": "Sementes em grade, nunca se tocam; a fonte tem máscara de instância por semente.",
+      "bytes": 628093
+    },
+    {
+      "slug": "trigo-yolo-1",
+      "conjunto": "trigo-yolo",
+      "rotulo": "Trigo — detecção (Roboflow) #1",
+      "cultura": "trigo",
+      "especie": "Triticum aestivum",
+      "tipo": "foto",
+      "imagem": "exemplos/trigo-yolo-1.png",
+      "largura": 640,
+      "altura": 640,
+      "original": {
+        "arquivo": "seed detect.v3i.yolov8\\train\\images\\con-112-pic2_PNG.rf.73faab6c6750f2aba59a3aa540c1635d.jpg",
+        "largura": 640,
+        "altura": 640,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [],
+      "origem": "Roboflow Universe kyoung-do-min/seed-detect",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet",
+      "dica": "Caixas YOLO; serve para contagem.",
+      "bytes": 287116
+    },
+    {
+      "slug": "trigo-yolo-2",
+      "conjunto": "trigo-yolo",
+      "rotulo": "Trigo — detecção (Roboflow) #2",
+      "cultura": "trigo",
+      "especie": "Triticum aestivum",
+      "tipo": "foto",
+      "imagem": "exemplos/trigo-yolo-2.png",
+      "largura": 640,
+      "altura": 640,
+      "original": {
+        "arquivo": "seed detect.v3i.yolov8\\train\\images\\con-113-pic2_PNG.rf.a08e3322ba219e06e98f43c2d8c32bd9.jpg",
+        "largura": 640,
+        "altura": 640,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [],
+      "origem": "Roboflow Universe kyoung-do-min/seed-detect",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet",
+      "dica": "Caixas YOLO; serve para contagem.",
+      "bytes": 276940
+    },
+    {
+      "slug": "trigo-qualidade-bad-seed",
+      "conjunto": "trigo-qualidade",
+      "rotulo": "Trigo — qualidade (sadia / danificada / impureza) — bad seed",
+      "cultura": "trigo",
+      "especie": "Triticum",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/trigo-qualidade-bad-seed.png",
+      "largura": 640,
+      "altura": 640,
+      "original": {
+        "arquivo": "wheat quality detection.v2i.multiclass\\test\\train_wheat_140_jpg.rf.26f072a9f49262a6deca85662be54774.jpg",
+        "largura": 640,
+        "altura": 640,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "bad seed",
+        "healthy seed",
+        "impurity"
+      ],
+      "origem": "Roboflow Universe (wheat quality detection v2)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Uma classe por foto; serve à taxonomia de classes e ao perfil por classe.",
+      "bytes": 419877
+    },
+    {
+      "slug": "arroz-pragas-broken-kernel",
+      "conjunto": "arroz-pragas",
+      "rotulo": "Arroz — pureza e pragas — Broken kernel",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-pragas-broken-kernel.png",
+      "largura": 640,
+      "altura": 640,
+      "original": {
+        "arquivo": "rice.v1i.multiclass\\test\\-125-_jpg.rf.632712fcf0967794cdb6be4b8115461d.jpg",
+        "largura": 640,
+        "altura": 640,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Broken kernel",
+        "Echinochloa crus-galli Seed",
+        "Immature kernel",
+        "Red kernel",
+        "Red-streaked kernel",
+        "Rice"
+      ],
+      "origem": "Roboflow Universe (rice v1 multiclass)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "12 classes, inclui gorgulho e capim-arroz.",
+      "bytes": 252740
+    },
+    {
+      "slug": "arroz-pragas-brown-rice",
+      "conjunto": "arroz-pragas",
+      "rotulo": "Arroz — pureza e pragas — Brown Rice",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-pragas-brown-rice.png",
+      "largura": 640,
+      "altura": 640,
+      "original": {
+        "arquivo": "rice.v1i.multiclass\\test\\-175-_jpg.rf.3cba1a66605dd46afd98ed4d9d87f16d.jpg",
+        "largura": 640,
+        "altura": 640,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Broken kernel",
+        "Brown Rice",
+        "Damaged kernel",
+        "Echinochloa crus-galli Seed",
+        "Red kernel",
+        "Red-streaked kernel",
+        "Rice",
+        "Rice husk",
+        "Sitophilus oryzae",
+        "Stone"
+      ],
+      "origem": "Roboflow Universe (rice v1 multiclass)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "12 classes, inclui gorgulho e capim-arroz.",
+      "bytes": 346492
+    },
+    {
+      "slug": "arroz-pragas-paddy",
+      "conjunto": "arroz-pragas",
+      "rotulo": "Arroz — pureza e pragas — Paddy",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-pragas-paddy.png",
+      "largura": 640,
+      "altura": 640,
+      "original": {
+        "arquivo": "rice.v1i.multiclass\\test\\-161-_jpg.rf.447603c74af88d186ed52d98c0b147af.jpg",
+        "largura": 640,
+        "altura": 640,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Damaged kernel",
+        "Echinochloa crus-galli Seed",
+        "Paddy",
+        "Red kernel",
+        "Red-streaked kernel",
+        "Sitophilus oryzae"
+      ],
+      "origem": "Roboflow Universe (rice v1 multiclass)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "12 classes, inclui gorgulho e capim-arroz.",
+      "bytes": 336365
+    },
+    {
+      "slug": "amendoim-mofo-without-mold",
+      "conjunto": "amendoim-mofo",
+      "rotulo": "Amendoim — com / sem mofo — without mold",
+      "cultura": "amendoim",
+      "especie": "Arachis hypogaea",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/amendoim-mofo-without-mold.png",
+      "largura": 1024,
+      "altura": 576,
+      "original": {
+        "arquivo": "peanuts.v2-release.multiclass\\test\\WIN_20220502_18_29_50_Pro_jpg.rf.2828b7ce60e5177120477d45288e605e.jpg",
+        "largura": 1280,
+        "altura": 720,
+        "fatorDeReducao": 0.8,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "without mold"
+      ],
+      "origem": "Roboflow Universe (peanuts v2)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Fitopatologia: mofo visível.",
+      "bytes": 756407
+    },
+    {
+      "slug": "amendoim-mofo-with-mold",
+      "conjunto": "amendoim-mofo",
+      "rotulo": "Amendoim — com / sem mofo — with mold",
+      "cultura": "amendoim",
+      "especie": "Arachis hypogaea",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/amendoim-mofo-with-mold.png",
+      "largura": 1024,
+      "altura": 576,
+      "original": {
+        "arquivo": "peanuts.v2-release.multiclass\\test\\WIN_20220423_18_39_55_Pro--2-_jpg.rf.1b402428bafc77d58c7715f8bf30544b.jpg",
+        "largura": 1024,
+        "altura": 576,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "with mold"
+      ],
+      "origem": "Roboflow Universe (peanuts v2)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Fitopatologia: mofo visível.",
+      "bytes": 1054051
+    },
+    {
+      "slug": "lzupsd-achnatherum-inebrians",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Achnatherum inebrians",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-achnatherum-inebrians.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Achnatherum inebrians\\changed4002.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Achnatherum inebrians"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 59446
+    },
+    {
+      "slug": "lzupsd-achnatherum-splendens",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Achnatherum splendens",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-achnatherum-splendens.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Achnatherum splendens\\changed3539.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Achnatherum splendens"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 63344
+    },
+    {
+      "slug": "lzupsd-agriophyllum-squarrosum",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Agriophyllum squarrosum",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-agriophyllum-squarrosum.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Agriophyllum squarrosum\\changed2103.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Agriophyllum squarrosum"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 61022
+    },
+    {
+      "slug": "lzupsd-agropyron-cristatum",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Agropyron cristatum",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-agropyron-cristatum.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Agropyron cristatum\\changed1226.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Agropyron cristatum"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 71851
+    },
+    {
+      "slug": "lzupsd-agropyron-elongatum",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Agropyron elongatum",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-agropyron-elongatum.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Agropyron elongatum\\changed4345.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Agropyron elongatum"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 54973
+    },
+    {
+      "slug": "lzupsd-agropyron-mongolicum",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Agropyron mongolicum",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-agropyron-mongolicum.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Agropyron mongolicum\\changed2011.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Agropyron mongolicum"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 47922
+    },
+    {
+      "slug": "lzupsd-amorpha-fruticosa",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Amorpha fruticosa",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-amorpha-fruticosa.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Amorpha fruticosa\\changed2991.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Amorpha fruticosa"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 51425
+    },
+    {
+      "slug": "lzupsd-amygdalus-mongolica",
+      "conjunto": "lzupsd",
+      "rotulo": "88 espécies — macro (LZUPSD) — Amygdalus mongolica",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "macro",
+      "imagem": "exemplos/lzupsd-amygdalus-mongolica.png",
+      "largura": 192,
+      "altura": 272,
+      "original": {
+        "arquivo": "Seed dataset\\Seed dataset\\Amygdalus mongolica\\changed3764.jpg",
+        "largura": 192,
+        "altura": 272,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "192×272 padronizado; sem escala",
+      "classesDaImagem": [
+        "Amygdalus mongolica"
+      ],
+      "origem": "LZUPSD — Nature Scientific Data 2024",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "dica": "Forrageiras, cereais e daninhas em fundo preto; a pasta é a espécie.",
+      "bytes": 96450
+    },
+    {
+      "slug": "milho-bhihilifa",
+      "conjunto": "milho",
+      "rotulo": "Milho — 3 variedades — Bhihilifa",
+      "cultura": "milho",
+      "especie": "Zea mays",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/milho-bhihilifa.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "maize-seed-dataset\\MaizeData\\Bhihilifa\\1000623800_Bihilifa55.jpg",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Bhihilifa"
+      ],
+      "origem": "Kaggle yungprof123/maize-seed-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/yungprof123/maize-seed-dataset",
+      "dica": "Semente angular; a pasta é a variedade.",
+      "bytes": 26457
+    },
+    {
+      "slug": "milho-sanzalsima",
+      "conjunto": "milho",
+      "rotulo": "Milho — 3 variedades — SanzalSima",
+      "cultura": "milho",
+      "especie": "Zea mays",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/milho-sanzalsima.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "maize-seed-dataset\\MaizeData\\SanzalSima\\1001286059_SanzalSima5.jpg",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "SanzalSima"
+      ],
+      "origem": "Kaggle yungprof123/maize-seed-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/yungprof123/maize-seed-dataset",
+      "dica": "Semente angular; a pasta é a variedade.",
+      "bytes": 25496
+    },
+    {
+      "slug": "milho-wangdataa",
+      "conjunto": "milho",
+      "rotulo": "Milho — 3 variedades — WangDataa",
+      "cultura": "milho",
+      "especie": "Zea mays",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/milho-wangdataa.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "maize-seed-dataset\\MaizeData\\WangDataa\\1000400_WangDataa59.jpg",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "WangDataa"
+      ],
+      "origem": "Kaggle yungprof123/maize-seed-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/yungprof123/maize-seed-dataset",
+      "dica": "Semente angular; a pasta é a variedade.",
+      "bytes": 25941
+    },
+    {
+      "slug": "cafe-torra-dark",
+      "conjunto": "cafe-torra",
+      "rotulo": "Café — níveis de torra — Dark",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/cafe-torra-dark.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "coffee-beans-roasting\\test\\Dark\\dark (1).png",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "224×224; sem escala",
+      "classesDaImagem": [
+        "Dark"
+      ],
+      "origem": "Kaggle gpiosenka/coffee-bean-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/gpiosenka/coffee-bean-dataset-resized-224-x-224",
+      "dica": "Colorimetria (L*a*b*) por torra.",
+      "bytes": 86786
+    },
+    {
+      "slug": "cafe-torra-green",
+      "conjunto": "cafe-torra",
+      "rotulo": "Café — níveis de torra — Green",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/cafe-torra-green.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "coffee-beans-roasting\\test\\Green\\green (1).png",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "224×224; sem escala",
+      "classesDaImagem": [
+        "Green"
+      ],
+      "origem": "Kaggle gpiosenka/coffee-bean-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/gpiosenka/coffee-bean-dataset-resized-224-x-224",
+      "dica": "Colorimetria (L*a*b*) por torra.",
+      "bytes": 87268
+    },
+    {
+      "slug": "cafe-torra-light",
+      "conjunto": "cafe-torra",
+      "rotulo": "Café — níveis de torra — Light",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/cafe-torra-light.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "coffee-beans-roasting\\test\\Light\\light (1).png",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "224×224; sem escala",
+      "classesDaImagem": [
+        "Light"
+      ],
+      "origem": "Kaggle gpiosenka/coffee-bean-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/gpiosenka/coffee-bean-dataset-resized-224-x-224",
+      "dica": "Colorimetria (L*a*b*) por torra.",
+      "bytes": 82798
+    },
+    {
+      "slug": "cafe-torra-medium",
+      "conjunto": "cafe-torra",
+      "rotulo": "Café — níveis de torra — Medium",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/cafe-torra-medium.png",
+      "largura": 224,
+      "altura": 224,
+      "original": {
+        "arquivo": "coffee-beans-roasting\\test\\Medium\\medium (1).png",
+        "largura": 224,
+        "altura": 224,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "224×224; sem escala",
+      "classesDaImagem": [
+        "Medium"
+      ],
+      "origem": "Kaggle gpiosenka/coffee-bean-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/gpiosenka/coffee-bean-dataset-resized-224-x-224",
+      "dica": "Colorimetria (L*a*b*) por torra.",
+      "bytes": 88360
+    },
+    {
+      "slug": "cafe-defeitos-1",
+      "conjunto": "cafe-defeitos",
+      "rotulo": "Café verde — defeitos #1",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "macro",
+      "imagem": "exemplos/cafe-defeitos-1.png",
+      "largura": 871,
+      "altura": 1024,
+      "original": {
+        "arquivo": "green-coffee-defects\\ImageDataset\\BrocadoLeve.jpg",
+        "largura": 1445,
+        "altura": 1698,
+        "fatorDeReducao": 0.6030624263839811,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [],
+      "origem": "Kaggle j4ckdev/green-coffee-beans-dataset",
+      "licenca": "CC BY-NC-SA (arquivo LICENSE na pasta)",
+      "url": "https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset",
+      "dica": "Brocado, concha, fungo, negro.",
+      "bytes": 741337
+    },
+    {
+      "slug": "cafe-defeitos-2",
+      "conjunto": "cafe-defeitos",
+      "rotulo": "Café verde — defeitos #2",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "macro",
+      "imagem": "exemplos/cafe-defeitos-2.png",
+      "largura": 983,
+      "altura": 1024,
+      "original": {
+        "arquivo": "green-coffee-defects\\ImageDataset\\BrocadoSevero.jpg",
+        "largura": 1499,
+        "altura": 1561,
+        "fatorDeReducao": 0.6559897501601537,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [],
+      "origem": "Kaggle j4ckdev/green-coffee-beans-dataset",
+      "licenca": "CC BY-NC-SA (arquivo LICENSE na pasta)",
+      "url": "https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset",
+      "dica": "Brocado, concha, fungo, negro.",
+      "bytes": 829539
+    },
+    {
+      "slug": "cafe-defeitos-3",
+      "conjunto": "cafe-defeitos",
+      "rotulo": "Café verde — defeitos #3",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "macro",
+      "imagem": "exemplos/cafe-defeitos-3.png",
+      "largura": 1024,
+      "altura": 882,
+      "original": {
+        "arquivo": "green-coffee-defects\\ImageDataset\\CerezaSeca.jpg",
+        "largura": 1371,
+        "altura": 1181,
+        "fatorDeReducao": 0.7469000729394603,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [],
+      "origem": "Kaggle j4ckdev/green-coffee-beans-dataset",
+      "licenca": "CC BY-NC-SA (arquivo LICENSE na pasta)",
+      "url": "https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset",
+      "dica": "Brocado, concha, fungo, negro.",
+      "bytes": 583618
+    },
+    {
+      "slug": "cafe-defeitos-4",
+      "conjunto": "cafe-defeitos",
+      "rotulo": "Café verde — defeitos #4",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "macro",
+      "imagem": "exemplos/cafe-defeitos-4.png",
+      "largura": 1024,
+      "altura": 927,
+      "original": {
+        "arquivo": "green-coffee-defects\\ImageDataset\\Concha.jpg",
+        "largura": 2017,
+        "altura": 1826,
+        "fatorDeReducao": 0.5076846802181457,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [],
+      "origem": "Kaggle j4ckdev/green-coffee-beans-dataset",
+      "licenca": "CC BY-NC-SA (arquivo LICENSE na pasta)",
+      "url": "https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset",
+      "dica": "Brocado, concha, fungo, negro.",
+      "bytes": 753278
+    },
+    {
+      "slug": "arroz-cultivares-arborio",
+      "conjunto": "arroz-cultivares",
+      "rotulo": "Arroz — 5 cultivares — Arborio",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-cultivares-arborio.png",
+      "largura": 250,
+      "altura": 250,
+      "original": {
+        "arquivo": "rice-image-dataset\\Rice_Image_Dataset\\Arborio\\Arborio (1).jpg",
+        "largura": 250,
+        "altura": 250,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Arborio"
+      ],
+      "origem": "Kaggle (Koklu) rice-image-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Arborio, Basmati, Ipsala, Jasmine, Karacadag.",
+      "bytes": 13016
+    },
+    {
+      "slug": "arroz-cultivares-basmati",
+      "conjunto": "arroz-cultivares",
+      "rotulo": "Arroz — 5 cultivares — Basmati",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-cultivares-basmati.png",
+      "largura": 250,
+      "altura": 250,
+      "original": {
+        "arquivo": "rice-image-dataset\\Rice_Image_Dataset\\Basmati\\Basmati (1).jpg",
+        "largura": 250,
+        "altura": 250,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Basmati"
+      ],
+      "origem": "Kaggle (Koklu) rice-image-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Arborio, Basmati, Ipsala, Jasmine, Karacadag.",
+      "bytes": 15221
+    },
+    {
+      "slug": "arroz-cultivares-ipsala",
+      "conjunto": "arroz-cultivares",
+      "rotulo": "Arroz — 5 cultivares — Ipsala",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-cultivares-ipsala.png",
+      "largura": 250,
+      "altura": 250,
+      "original": {
+        "arquivo": "rice-image-dataset\\Rice_Image_Dataset\\Ipsala\\Ipsala (1).jpg",
+        "largura": 250,
+        "altura": 250,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Ipsala"
+      ],
+      "origem": "Kaggle (Koklu) rice-image-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Arborio, Basmati, Ipsala, Jasmine, Karacadag.",
+      "bytes": 15957
+    },
+    {
+      "slug": "arroz-cultivares-jasmine",
+      "conjunto": "arroz-cultivares",
+      "rotulo": "Arroz — 5 cultivares — Jasmine",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-cultivares-jasmine.png",
+      "largura": 250,
+      "altura": 250,
+      "original": {
+        "arquivo": "rice-image-dataset\\Rice_Image_Dataset\\Jasmine\\Jasmine (1).jpg",
+        "largura": 250,
+        "altura": 250,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Jasmine"
+      ],
+      "origem": "Kaggle (Koklu) rice-image-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Arborio, Basmati, Ipsala, Jasmine, Karacadag.",
+      "bytes": 10101
+    },
+    {
+      "slug": "arroz-cultivares-karacadag",
+      "conjunto": "arroz-cultivares",
+      "rotulo": "Arroz — 5 cultivares — Karacadag",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/arroz-cultivares-karacadag.png",
+      "largura": 250,
+      "altura": 250,
+      "original": {
+        "arquivo": "rice-image-dataset\\Rice_Image_Dataset\\Karacadag\\Karacadag (1).jpg",
+        "largura": 250,
+        "altura": 250,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Karacadag"
+      ],
+      "origem": "Kaggle (Koklu) rice-image-dataset",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Arborio, Basmati, Ipsala, Jasmine, Karacadag.",
+      "bytes": 15254
+    },
+    {
+      "slug": "soja-defeitos-broken-soybeans",
+      "conjunto": "soja-defeitos",
+      "rotulo": "Soja — 5 classes de integridade — Broken soybeans",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/soja-defeitos-broken-soybeans.png",
+      "largura": 227,
+      "altura": 227,
+      "original": {
+        "arquivo": "soybean-defects\\Broken soybeans\\1.bmp",
+        "largura": 227,
+        "altura": 227,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Broken soybeans"
+      ],
+      "origem": "Kaggle soybean-defects",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Broken, Immature, Intact, Skin-damaged, Spotted — candidatas a subclasse.",
+      "bytes": 71656
+    },
+    {
+      "slug": "soja-defeitos-immature-soybeans",
+      "conjunto": "soja-defeitos",
+      "rotulo": "Soja — 5 classes de integridade — Immature soybeans",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/soja-defeitos-immature-soybeans.png",
+      "largura": 227,
+      "altura": 227,
+      "original": {
+        "arquivo": "soybean-defects\\Immature soybeans\\1.bmp",
+        "largura": 227,
+        "altura": 227,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Immature soybeans"
+      ],
+      "origem": "Kaggle soybean-defects",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Broken, Immature, Intact, Skin-damaged, Spotted — candidatas a subclasse.",
+      "bytes": 59268
+    },
+    {
+      "slug": "soja-defeitos-intact-soybeans",
+      "conjunto": "soja-defeitos",
+      "rotulo": "Soja — 5 classes de integridade — Intact soybeans",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/soja-defeitos-intact-soybeans.png",
+      "largura": 227,
+      "altura": 227,
+      "original": {
+        "arquivo": "soybean-defects\\Intact soybeans\\1.bmp",
+        "largura": 227,
+        "altura": 227,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Intact soybeans"
+      ],
+      "origem": "Kaggle soybean-defects",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Broken, Immature, Intact, Skin-damaged, Spotted — candidatas a subclasse.",
+      "bytes": 60164
+    },
+    {
+      "slug": "soja-defeitos-skin-damaged-soybeans",
+      "conjunto": "soja-defeitos",
+      "rotulo": "Soja — 5 classes de integridade — Skin-damaged soybeans",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/soja-defeitos-skin-damaged-soybeans.png",
+      "largura": 227,
+      "altura": 227,
+      "original": {
+        "arquivo": "soybean-defects\\Skin-damaged soybeans\\1.bmp",
+        "largura": 227,
+        "altura": 227,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Skin-damaged soybeans"
+      ],
+      "origem": "Kaggle soybean-defects",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Broken, Immature, Intact, Skin-damaged, Spotted — candidatas a subclasse.",
+      "bytes": 58727
+    },
+    {
+      "slug": "soja-defeitos-spotted-soybeans",
+      "conjunto": "soja-defeitos",
+      "rotulo": "Soja — 5 classes de integridade — Spotted soybeans",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "foto-individual",
+      "imagem": "exemplos/soja-defeitos-spotted-soybeans.png",
+      "largura": 227,
+      "altura": 227,
+      "original": {
+        "arquivo": "soybean-defects\\Spotted soybeans\\1.bmp",
+        "largura": 227,
+        "altura": 227,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "Spotted soybeans"
+      ],
+      "origem": "Kaggle soybean-defects",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Broken, Immature, Intact, Skin-damaged, Spotted — candidatas a subclasse.",
+      "bytes": 61804
+    },
+    {
+      "slug": "trigo-duro-1-images-from-vitreous-durum-wheat",
+      "conjunto": "trigo-duro",
+      "rotulo": "Trigo duro — por variedade — 1-Images from Vitreous Durum Wheat",
+      "cultura": "trigo",
+      "especie": "Triticum durum",
+      "tipo": "foto",
+      "imagem": "exemplos/trigo-duro-1-images-from-vitreous-durum-wheat.png",
+      "largura": 835,
+      "altura": 1024,
+      "original": {
+        "arquivo": "durum-wheat-dataset\\Durum_Wheat_Dataset\\Dataset2-Durum Wheat Video Images\\1-Images from Vitreous Durum Wheat\\Frame 0001.tif",
+        "largura": 887,
+        "altura": 1088,
+        "fatorDeReducao": 0.9411764705882353,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "1-Images from Vitreous Durum Wheat"
+      ],
+      "origem": "Kaya & Saritas (Selçuk Univ.)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Alta resolução; morfologia de cariopse.",
+      "bytes": 957543
+    },
+    {
+      "slug": "trigo-duro-2-images-from-starchy-durum-wheat",
+      "conjunto": "trigo-duro",
+      "rotulo": "Trigo duro — por variedade — 2-Images from Starchy Durum Wheat",
+      "cultura": "trigo",
+      "especie": "Triticum durum",
+      "tipo": "foto",
+      "imagem": "exemplos/trigo-duro-2-images-from-starchy-durum-wheat.png",
+      "largura": 835,
+      "altura": 1024,
+      "original": {
+        "arquivo": "durum-wheat-dataset\\Durum_Wheat_Dataset\\Dataset2-Durum Wheat Video Images\\2-Images from Starchy Durum Wheat\\Frame 0001.tif",
+        "largura": 887,
+        "altura": 1088,
+        "fatorDeReducao": 0.9411764705882353,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "sem escala",
+      "classesDaImagem": [
+        "2-Images from Starchy Durum Wheat"
+      ],
+      "origem": "Kaya & Saritas (Selçuk Univ.)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "Alta resolução; morfologia de cariopse.",
+      "bytes": 981785
+    },
+    {
+      "slug": "lucasiturriago-1",
+      "conjunto": "lucasiturriago",
+      "rotulo": "Sementes — máscara binária (Kaggle) #1",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "foto",
+      "imagem": "exemplos/lucasiturriago-1.png",
+      "largura": 512,
+      "altura": 512,
+      "original": {
+        "arquivo": "lucasiturriago-seeds\\Test\\images\\sample_0.png",
+        "largura": 512,
+        "altura": 512,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "512×512; sem escala",
+      "classesDaImagem": [],
+      "origem": "Kaggle lucasiturriago/seeds",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/lucasiturriago/seeds",
+      "dica": "Tem máscara semente × fundo (não instância).",
+      "bytes": 244170
+    },
+    {
+      "slug": "lucasiturriago-2",
+      "conjunto": "lucasiturriago",
+      "rotulo": "Sementes — máscara binária (Kaggle) #2",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "foto",
+      "imagem": "exemplos/lucasiturriago-2.png",
+      "largura": 512,
+      "altura": 512,
+      "original": {
+        "arquivo": "lucasiturriago-seeds\\Test\\images\\sample_1.png",
+        "largura": 512,
+        "altura": 512,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "512×512; sem escala",
+      "classesDaImagem": [],
+      "origem": "Kaggle lucasiturriago/seeds",
+      "licenca": "a conferir (Enrico)",
+      "url": "https://www.kaggle.com/datasets/lucasiturriago/seeds",
+      "dica": "Tem máscara semente × fundo (não instância).",
+      "bytes": 286545
+    },
+    {
+      "slug": "mayara-1",
+      "conjunto": "mayara",
+      "rotulo": "Bancada — foto de celular (Mayara) #1",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "foto",
+      "imagem": "exemplos/mayara-1.png",
+      "largura": 1024,
+      "altura": 1024,
+      "original": {
+        "arquivo": "mayara_images\\IMG-20260825-WA0079 - Copia.jpg",
+        "largura": 1069,
+        "altura": 1069,
+        "fatorDeReducao": 0.9579045837231057,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "foto de celular; calibrar por referência",
+      "classesDaImagem": [],
+      "origem": "GPEOrq — bancada",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Robustez a foto de celular.",
+      "bytes": 367977
+    },
+    {
+      "slug": "mayara-2",
+      "conjunto": "mayara",
+      "rotulo": "Bancada — foto de celular (Mayara) #2",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "foto",
+      "imagem": "exemplos/mayara-2.png",
+      "largura": 470,
+      "altura": 1024,
+      "original": {
+        "arquivo": "mayara_images\\IMG-20260825-WA0079.jpg",
+        "largura": 1880,
+        "altura": 4096,
+        "fatorDeReducao": 0.25,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "foto de celular; calibrar por referência",
+      "classesDaImagem": [],
+      "origem": "GPEOrq — bancada",
+      "licenca": "material do grupo",
+      "url": null,
+      "dica": "Robustez a foto de celular.",
+      "bytes": 183000
+    }
+  ]
+}
