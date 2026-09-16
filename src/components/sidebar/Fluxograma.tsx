@@ -19,9 +19,9 @@ const ENTRADAS: Record<string, string[]> = {
 };
 
 const LARGURA = 268;
-const CAIXA_W = 92;
-const CAIXA_H = 30;
-const PASSO = 52;
+const CAIXA_W = 88;
+const CAIXA_H = 32;
+const PASSO = 60;
 const X0 = 8;
 
 export function Fluxograma() {
@@ -66,16 +66,16 @@ export function Fluxograma() {
               stroke="var(--color-accent, #2f8f83)"
               strokeWidth={1.4}
             />
-            <text x={X0 + 9} y={y + 12} fontSize={7} fill="currentColor" opacity={0.55} fontFamily="ui-monospace, monospace">
+            <text x={X0 + 9} y={y + 12} fontSize={8} fill="currentColor" opacity={0.55} fontFamily="ui-monospace, monospace">
               {i + 1}
             </text>
-            <text x={X0 + CAIXA_W / 2 + 4} y={y + 19.5} fontSize={9.5} fontWeight={700} textAnchor="middle" fill="currentColor">
+            <text x={X0 + CAIXA_W / 2 + 4} y={y + 21} fontSize={10.5} fontWeight={700} textAnchor="middle" fill="currentColor">
               {p.titulo.toUpperCase()}
             </text>
             {/* entradas: fio fino da caixa para a nota */}
             <line x1={X0 + CAIXA_W} y1={y + CAIXA_H / 2} x2={X0 + CAIXA_W + 10} y2={y + CAIXA_H / 2} stroke="currentColor" strokeWidth={1} opacity={0.35} />
             {entradas.map((e, k) => (
-              <text key={e} x={X0 + CAIXA_W + 13} y={y + 12 + k * 11} fontSize={7.6} fill="currentColor" opacity={0.78}>
+              <text key={e} x={X0 + CAIXA_W + 13} y={y + 13 + k * 13.5} fontSize={9.6} fill="currentColor" opacity={0.85}>
                 {e}
               </text>
             ))}

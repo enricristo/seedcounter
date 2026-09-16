@@ -29,6 +29,18 @@ export interface GerminarProps {
 }
 
 const DURACAO_TOTAL_MS = 6500;
+
+/**
+ * Transformações CSS em SVG: o `motion` anima via `style.transform`, que
+ * SUBSTITUI o atributo `transform` do elemento — por isso toda rotação ou
+ * translação fixa fica num <g> pai, e o elemento animado só escala. E a
+ * origem precisa de `transformBox: 'fill-box'`, senão "0 0" é o canto da
+ * imagem inteira, não a base da pétala: a flor escalaria a partir do canto
+ * do scanner.
+ */
+const ORIGEM_NA_BASE = { transformBox: 'fill-box', transformOrigin: '50% 100%' } as const;
+const ORIGEM_NO_TOPO = { transformBox: 'fill-box', transformOrigin: '50% 0%' } as const;
+const ORIGEM_NO_CENTRO = { transformBox: 'fill-box', transformOrigin: '50% 50%' } as const;
 const MAXIMO_DE_FLORES = 5;
 
 /** Escolha determinística pelas posições: a mesma cena floresce igual duas vezes. */
@@ -43,21 +55,21 @@ function Girassol({ r }: { r: number }) {
   return (
     <g>
       {Array.from({ length: petalas }, (_, i) => (
-        <motion.ellipse
-          key={i}
-          cx={0}
-          cy={-r * 0.62}
-          rx={r * 0.16}
-          ry={r * 0.42}
-          fill="#f2c02e"
-          stroke="#c9961a"
-          strokeWidth={r * 0.02}
-          transform={`rotate(${(360 / petalas) * i})`}
-          initial={{ scale: 0.2, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.05 * i, duration: 0.5, ease: 'backOut' }}
-          style={{ transformOrigin: '0px 0px' }}
-        />
+        <g key={i} transform={`rotate(${(360 / petalas) * i})`}>
+          <motion.ellipse
+            cx={0}
+            cy={-r * 0.62}
+            rx={r * 0.16}
+            ry={r * 0.42}
+            fill="#f2c02e"
+            stroke="#c9961a"
+            strokeWidth={r * 0.02}
+            initial={{ scale: 0.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.05 * i, duration: 0.5, ease: 'backOut' }}
+            style={ORIGEM_NA_BASE}
+          />
+        </g>
       ))}
       <circle r={r * 0.34} fill="#5a3b12" />
       {Array.from({ length: 28 }, (_, i) => {
@@ -75,18 +87,18 @@ function Orquidea({ r }: { r: number }) {
   return (
     <g>
       {[0, 72, 144, 216, 288].map((ang, i) => (
-        <motion.path
-          key={ang}
-          d={petala}
-          fill={i % 2 ? '#f1a7d8' : '#e879c9'}
-          stroke="#b0468f"
-          strokeWidth={r * 0.02}
-          transform={`rotate(${ang})`}
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.08 * i, duration: 0.55, ease: 'backOut' }}
-          style={{ transformOrigin: '0px 0px' }}
-        />
+        <g key={ang} transform={`rotate(${ang})`}>
+          <motion.path
+            d={petala}
+            fill={i % 2 ? '#f1a7d8' : '#e879c9'}
+            stroke="#b0468f"
+            strokeWidth={r * 0.02}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.08 * i, duration: 0.55, ease: 'backOut' }}
+            style={ORIGEM_NA_BASE}
+          />
+        </g>
       ))}
       <motion.path
         d={labelo}
@@ -94,7 +106,7 @@ function Orquidea({ r }: { r: number }) {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.45, duration: 0.5, ease: 'backOut' }}
-        style={{ transformOrigin: '0px 0px' }}
+        style={ORIGEM_NO_TOPO}
       />
       <circle r={r * 0.09} fill="#fff3b0" />
     </g>
@@ -109,18 +121,18 @@ function Rosa({ r }: { r: number }) {
         const rc = r * (0.95 - c * 0.17);
         const n = 6 - c;
         return Array.from({ length: n }, (_, i) => (
-          <motion.path
-            key={`${c}-${i}`}
-            d={`M0,0 C${rc * 0.7},${-rc * 0.2} ${rc * 0.7},${-rc * 0.95} 0,${-rc} C${-rc * 0.7},${-rc * 0.95} ${-rc * 0.7},${-rc * 0.2} 0,0 Z`}
-            fill={c % 2 ? '#e0304f' : '#c8213f'}
-            stroke="#8f1630"
-            strokeWidth={r * 0.015}
-            transform={`rotate(${(360 / n) * i + c * 23})`}
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.12 * c + 0.03 * i, duration: 0.5, ease: 'easeOut' }}
-            style={{ transformOrigin: '0px 0px' }}
-          />
+          <g key={`${c}-${i}`} transform={`rotate(${(360 / n) * i + c * 23})`}>
+            <motion.path
+              d={`M0,0 C${rc * 0.7},${-rc * 0.2} ${rc * 0.7},${-rc * 0.95} 0,${-rc} C${-rc * 0.7},${-rc * 0.95} ${-rc * 0.7},${-rc * 0.2} 0,0 Z`}
+              fill={c % 2 ? '#e0304f' : '#c8213f'}
+              stroke="#8f1630"
+              strokeWidth={r * 0.015}
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.12 * c + 0.03 * i, duration: 0.5, ease: 'easeOut' }}
+              style={ORIGEM_NA_BASE}
+            />
+          </g>
         ));
       })}
     </g>
@@ -190,7 +202,7 @@ export function Germinar({ ativo, tema, sementes, onFim }: GerminarProps) {
         transition={{ duration: DURACAO_TOTAL_MS / 1000, times: [0, 0.12, 0.88, 1], ease: 'easeInOut' }}
       >
         <motion.g
-          style={{ transformOrigin: `${sol.x}px ${sol.y}px` }}
+          style={ORIGEM_NO_CENTRO}
           animate={{ rotate: reduzido ? 0 : 360 }}
           transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
         >
@@ -240,29 +252,30 @@ export function Germinar({ ativo, tema, sementes, onFim }: GerminarProps) {
               transition={{ delay: atraso, duration: 1.1, ease: 'easeOut' }}
             />
             {[0.45, 0.7].map((f, k) => (
-              <motion.ellipse
-                key={k}
-                cx={s.x + (k ? -1 : 1) * altura * 0.16}
-                cy={s.y - altura * f}
-                rx={altura * 0.15}
-                ry={altura * 0.06}
-                fill="#57a85a"
-                transform={`rotate(${k ? 25 : -25} ${s.x + (k ? -1 : 1) * altura * 0.16} ${s.y - altura * f})`}
+              <g key={k} transform={`rotate(${k ? 25 : -25} ${s.x + (k ? -1 : 1) * altura * 0.16} ${s.y - altura * f})`}>
+                <motion.ellipse
+                  cx={s.x + (k ? -1 : 1) * altura * 0.16}
+                  cy={s.y - altura * f}
+                  rx={altura * 0.15}
+                  ry={altura * 0.06}
+                  fill="#57a85a"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: atraso + 0.6 + k * 0.2, duration: 0.4, ease: 'backOut' }}
+                  style={k ? { transformBox: 'fill-box', transformOrigin: '100% 50%' } : { transformBox: 'fill-box', transformOrigin: '0% 50%' }}
+                />
+              </g>
+            ))}
+            <g transform={`translate(${s.x} ${s.y - altura})`}>
+              <motion.g
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: atraso + 0.6 + k * 0.2, duration: 0.4, ease: 'backOut' }}
-                style={{ transformOrigin: `${s.x}px ${s.y - altura * f}px` }}
-              />
-            ))}
-            <motion.g
-              transform={`translate(${s.x} ${s.y - altura})`}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: atraso + 1.0, duration: 0.7, ease: 'backOut' }}
-              style={{ transformOrigin: `${s.x}px ${s.y - altura}px` }}
-            >
-              <Flor r={raio} />
-            </motion.g>
+                transition={{ delay: atraso + 1.0, duration: 0.7, ease: 'backOut' }}
+                style={ORIGEM_NO_CENTRO}
+              >
+                <Flor r={raio} />
+              </motion.g>
+            </g>
           </motion.g>
         );
       })}

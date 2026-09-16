@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { Ruler, ChevronDown, ChevronUp } from 'lucide-react';
+import { Ruler, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 // Components
 import { Header } from './components/layout/Header';
@@ -143,7 +143,7 @@ import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
 
 // Types
-import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './types';
+import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
@@ -500,6 +500,10 @@ export default function App() {
   const chaveAtual = useRef<string | null>(null);
 
   // Espelhos do estado, para leitura dentro de callbacks assíncronos.
+  /** Vínculo com dataset anunciado pelo explorador para a próxima imagem que carregar. */
+  const datasetPendente = useRef<Metadata['dataset'] | null>(null);
+  /** O chip de classe do dataset foi fechado para este arquivo. */
+  const [chipDeClasseDispensado, setChipDeClasseDispensado] = useState<string | null>(null);
   const marcasRef = useRef<Mark[]>([]);
   const segmentacoesRef = useRef<YoloSegmentation[]>([]);
 
@@ -580,6 +584,12 @@ export default function App() {
     loadImageFromFile,
   } = useImageQueue({
     onImageLoaded: (img, file) => {
+      // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
+      const vinculo = datasetPendente.current;
+      datasetPendente.current = null;
+      setMetadata((prev) => (prev.dataset || vinculo ? { ...prev, dataset: vinculo ?? undefined } : prev));
+      setChipDeClasseDispensado(null);
+
       // As anotações da imagem que estava aberta são guardadas ANTES de a nova
       // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
       // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
@@ -1521,6 +1531,7 @@ export default function App() {
           quadrant: '',
           notes: AVISO_CENA,
           umPerPixel: cena.umPorPixel,
+          dataset: undefined,
         }));
       } catch (e) {
         console.error('Falha ao gerar a cena de exemplo', e);
@@ -1548,6 +1559,8 @@ export default function App() {
           ...metadados,
           plate: '',
           quadrant: '',
+          // A imagem anterior pode ter vindo do explorador; a classe dela não é desta.
+          dataset: undefined,
           amostra: { ...prev.amostra, ...metadados.amostra },
         }));
       } catch (err) {
@@ -1577,16 +1590,16 @@ export default function App() {
   const handleCarregarDoDataset = useCallback(
     async (arquivo: ArquivoDoDataset, anotacao: AnotacaoCarregada | null, conjunto: string, caminho: string) => {
       const file = await arquivo.obterFile();
+      // O vínculo com o dataset é entregue a `onImageLoaded`, que zera o
+      // vínculo de TODA imagem nova e só mantém o que foi anunciado aqui —
+      // senão a classe da imagem anterior ficava colada na seguinte.
+      datasetPendente.current = { conjunto, caminho, classesDaImagem: anotacao?.classesDaImagem };
       loadFiles([file]);
       setAnotacaoAtual(anotacao);
       setDatasetContexto({ conjunto, caminho });
       setReferenciaJaCarregada(false);
-      setMetadata((prev) => ({
-        ...prev,
-        dataset: { conjunto, caminho, classesDaImagem: anotacao?.classesDaImagem },
-      }));
     },
-    [loadFiles, setMetadata]
+    [loadFiles]
   );
 
   /**
@@ -2893,9 +2906,23 @@ export default function App() {
               {!podeCarregarReferencia &&
                 image &&
                 metadata.dataset?.classesDaImagem &&
-                metadata.dataset.classesDaImagem.length > 0 && (
-                  <div className="bg-surface-1/95 rounded-panel border-line absolute top-4 left-1/2 z-30 -translate-x-1/2 border px-3 py-1.5 text-[11px] font-bold text-ink-2 shadow-lg backdrop-blur">
-                    Classe do dataset: {metadata.dataset.classesDaImagem.join(', ')}
+                metadata.dataset.classesDaImagem.length > 0 &&
+                chipDeClasseDispensado !== filename && (
+                  <div className="bg-surface-1/95 rounded-panel border-line absolute top-4 left-1/2 z-30 flex max-w-[60%] -translate-x-1/2 items-center gap-2 border px-3 py-1.5 text-[11px] font-bold text-ink-2 shadow-lg backdrop-blur">
+                    <span className="truncate" title={metadata.dataset.classesDaImagem.join(', ')}>
+                      {metadata.dataset.classesDaImagem.length === 1 ? 'Classe do dataset: ' : 'Classes do dataset: '}
+                      {metadata.dataset.classesDaImagem.slice(0, 3).join(', ')}
+                      {metadata.dataset.classesDaImagem.length > 3 && ` +${metadata.dataset.classesDaImagem.length - 3}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setChipDeClasseDispensado(filename)}
+                      className="text-ink-3 hover:text-ink-1 shrink-0 rounded p-0.5"
+                      aria-label="Fechar"
+                      title="Fechar (a classe continua nos metadados)"
+                    >
+                      <X size={12} />
+                    </button>
                   </div>
                 )}
 
