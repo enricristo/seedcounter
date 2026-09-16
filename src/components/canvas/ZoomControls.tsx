@@ -35,7 +35,14 @@ export function ZoomControls({
     // Um dos dois únicos elementos que de fato flutuam sobre o conteúdo — o
     // outro são os modais. Por isso mantém sombra, enquanto o resto do cromo
     // separa por fio de 1px.
-    <div className="bg-surface-1/95 border-line rounded-panel z-10 fixed right-6 bottom-12 flex select-none flex-col gap-2 border p-1.5 shadow-xl backdrop-blur-md">
+    //
+    // `absolute`, não `fixed`: `fixed` posiciona contra a JANELA inteira, e o
+    // trilho de 48px do painel direito (RightSidebar) cobria a borda direita
+    // do controle. `absolute` posiciona contra o mesmo contêiner relativo
+    // onde a EscalaGrafica já vive (o viewport da bancada ativa), que termina
+    // ANTES do trilho — então o controle nunca mais disputa espaço com ele,
+    // com o painel recolhido ou expandido, e com 1 ou 2+ bancadas abertas.
+    <div className="bg-surface-1/95 border-line rounded-panel z-10 absolute right-6 bottom-12 flex select-none flex-col gap-2 border p-1.5 shadow-xl backdrop-blur-md">
       <button
         onClick={togglePanningMode}
         aria-pressed={isPanningMode}
