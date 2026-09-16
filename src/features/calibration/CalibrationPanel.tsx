@@ -206,7 +206,8 @@ export function CalibrationPanel({
         <div className="space-y-2">
           <p className="text-[10px] text-ink-3">
             Use a resolução configurada no scanner ao digitalizar a placa. Padrão do laboratório:{' '}
-            <strong>{DEFAULT_LAB_SCANNER}</strong> a {DEFAULT_LAB_DPI} DPI.
+            <strong>{DEFAULT_LAB_SCANNER}</strong> a {DEFAULT_LAB_DPI} DPI. O DPI do driver é uma declaração —
+            se houver régua na imagem, confira com o método de referência (a auditoria achou 4735–4771 em vez de 3600).
           </p>
           <div className="flex flex-wrap gap-1">
             {DPI_PRESETS.map((p) => (

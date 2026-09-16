@@ -210,3 +210,9 @@ Nenhuma correção foi feita em `src/lib/` porque nenhuma das suspeitas
 provou um teste que falhasse — o código de medição atual está consistente
 nos quatro primeiros pontos, e o quinto (TIFF) é ausência de recurso, não
 erro de conta.
+
+## Segunda digitalização (16/09) e a decisão
+
+`digitalizar0002.jpg`, régua na faixa y 1500–2500, x 900–8500: **39 marcas, passo 187,83 px/mm → 1878,3 px por 10 mm → 5,324 µm/px → DPI efetivo 4771 (+32,5%)**.
+
+Duas digitalizações independentes deram 4735 e 4771. A resolução óptica nominal do HP Scanjet G2710 é **4800 dpi**; o laboratório digitaliza a 4800, não a 3600 — o "3600" do app era uma declaração nunca conferida. **Decisão:** `DEFAULT_LAB_DPI` passa a 4800 (commit desta data); `UM_POR_PIXEL_MEDIDO_NA_REGUA` guarda a média medida (5,34 µm/px) para quem quiser o valor empírico; o painel de calibração passa a dizer que o DPI do driver é declaração e que a régua na imagem é a conferência. Toda medida em mm feita antes com 3600 estava **32% maior** que o real.
