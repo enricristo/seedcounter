@@ -14,7 +14,7 @@
 // =============================================================================
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FolderOpen, ChevronLeft, ChevronRight, RotateCcw, ImageOff } from 'lucide-react';
+import { FolderOpen, ChevronLeft, ChevronRight, RotateCcw, ImageOff, Ruler, Square, Download } from 'lucide-react';
 import {
   suportaHandles,
   abrirPastaComHandle,
@@ -27,6 +27,13 @@ import {
 import { reconhecerFormato, type DatasetReconhecido, type FormatoDeDataset } from '../../lib/datasets/formato';
 import { lerClassesCsv } from '../../lib/datasets/roboflow-multiclass';
 import { lerAnotacaoDe, type AnotacaoCarregada } from './anotacao';
+import { medirPasta, type ImagemParaMedir } from './medir-pasta';
+import { agregarPorClasse } from '../../lib/perfil-medido';
+import { usePerfisMedidos } from '../../hooks/usePerfisMedidos';
+import { baixarArquivo, nomeDeExportacao } from '../../lib/download';
+
+/** Formatos em que se conhece a classe de CADA IMAGEM sem abrir o contorno — é o que "Medir esta pasta" precisa. */
+const FORMATOS_COM_CLASSE_POR_IMAGEM: FormatoDeDataset[] = ['roboflow-multiclass', 'pasta-por-classe'];
 
 /** Mesmo rótulo usado por `agruparPorConjunto` para imagens soltas na raiz da pasta. */
 const NOME_DA_RAIZ = '(raiz)';
@@ -87,6 +94,12 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
   const [pagina, setPagina] = useState(0);
   const [classeFiltro, setClasseFiltro] = useState<string>('');
   const [carregandoImagem, setCarregandoImagem] = useState<string | null>(null);
+
+  // --- Medir esta pasta (B4) --------------------------------------------------
+  const { perfis: perfisMedidos, gravar: gravarPerfis } = usePerfisMedidos(conjuntoSelecionado ?? undefined);
+  const [medindo, setMedindo] = useState(false);
+  const [progressoMedicao, setProgressoMedicao] = useState<{ feito: number; total: number } | null>(null);
+  const canceladoRef = useRef(false);
 
   const handleAbrirPasta = useCallback(async () => {
     setErro(null);
@@ -230,6 +243,91 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
 
   const totalPaginas = Math.max(1, Math.ceil(imagensFiltradas.length / POR_PAGINA));
   const imagensDaPagina = imagensFiltradas.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
+
+  const podeMedir =
+    !!conjuntoAtual && FORMATOS_COM_CLASSE_POR_IMAGEM.includes(conjuntoAtual.reconhecido.formato);
+
+  /**
+   * "Medir esta pasta": roda a onda em TODAS as imagens do conjunto (não só a
+   * página atual) e agrega por classe. `classesPorImagem` já resolve a classe
+   * sem reabrir cada CSV — o mesmo mapa que alimenta o filtro acima.
+   */
+  const handleMedirPasta = useCallback(async () => {
+    if (!conjuntoAtual || !classesPorImagem) return;
+    const { imagens } = conjuntoAtual.reconhecido;
+
+    const paraMedir: ImagemParaMedir[] = [];
+    for (const relativo of imagens) {
+      const arquivo = arquivosDoConjunto.get(relativo);
+      if (!arquivo) continue;
+      const cs = classesPorImagem.get(relativo) ?? [];
+      const classe = cs.length === 0 ? '(sem classe)' : cs.join(' + ');
+      paraMedir.push({ caminho: relativo, classe, arquivo });
+    }
+    if (paraMedir.length === 0) return;
+
+    canceladoRef.current = false;
+    setMedindo(true);
+    setProgressoMedicao({ feito: 0, total: paraMedir.length });
+    setErro(null);
+    try {
+      const resultado = await medirPasta(paraMedir, {
+        cancelado: () => canceladoRef.current,
+        progresso: (feito, total) => setProgressoMedicao({ feito, total }),
+      });
+      const porClasse = agregarPorClasse(resultado.medidas);
+      const paraGravar = new Map(
+        [...porClasse].map(([classe, perfil]) => [classe, { perfil, descartadas: resultado.descartadas }])
+      );
+      await gravarPerfis(conjuntoAtual.nome, paraGravar);
+    } catch {
+      setErro('Não foi possível medir a pasta.');
+    } finally {
+      setMedindo(false);
+      setProgressoMedicao(null);
+    }
+  }, [conjuntoAtual, classesPorImagem, arquivosDoConjunto, gravarPerfis]);
+
+  const handleExportarCsv = useCallback(() => {
+    if (!conjuntoAtual || perfisMedidos.length === 0) return;
+    const sep = ';';
+    const linhas = [...perfisMedidos]
+      .sort((a, b) => a.classe.localeCompare(b.classe))
+      .map((p) => {
+        const perfil = p.perfil;
+        return [
+          p.classe,
+          perfil.n,
+          perfil.insuficiente ? 'sim' : 'nao',
+          p.descartadas,
+          perfil.areaPx.mediana.toFixed(1),
+          perfil.areaPx.p5.toFixed(1),
+          perfil.areaPx.p95.toFixed(1),
+          perfil.feretMaxPx.mediana.toFixed(2),
+          perfil.feretMinPx.mediana.toFixed(2),
+          perfil.solidez.mediana.toFixed(3),
+          perfil.razaoDeAspecto.mediana.toFixed(3),
+          new Date(p.medidoEm).toISOString(),
+        ].join(sep);
+      });
+    const cabecalho = [
+      'classe',
+      'n',
+      'insuficiente',
+      'descartadas',
+      'area_px2_mediana',
+      'area_px2_p5',
+      'area_px2_p95',
+      'feret_max_px_mediana',
+      'feret_min_px_mediana',
+      'solidez_mediana',
+      'razao_aspecto_mediana',
+      'medido_em',
+    ].join(sep);
+    // BOM para o Excel reconhecer acentuação — mesmo padrão de measurements.ts.
+    const csv = '﻿' + [cabecalho, ...linhas].join('\r\n');
+    baixarArquivo(csv, nomeDeExportacao({ arquivo: conjuntoAtual.nome, tipo: 'perfil-medido' }, 'csv'), 'text/csv');
+  }, [conjuntoAtual, perfisMedidos]);
 
   // --- Miniaturas -------------------------------------------------------------
 
@@ -418,6 +516,107 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
                 </option>
               ))}
             </select>
+          )}
+
+          {podeMedir && (
+            <div className="flex flex-col gap-1.5 rounded-control border border-line bg-surface-2 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold text-ink-2 flex items-center gap-1.5">
+                  <Ruler size={13} className="text-accent" />
+                  Perfil morfométrico medido
+                </span>
+                {medindo ? (
+                  <button
+                    onClick={() => {
+                      canceladoRef.current = true;
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-500 hover:text-red-600 transition-colors"
+                  >
+                    <Square size={11} />
+                    Parar
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleMedirPasta}
+                    disabled={!classesPorImagem}
+                    className="text-[10px] font-bold uppercase tracking-wide text-accent hover:text-accent/80 transition-colors disabled:opacity-40"
+                  >
+                    Medir esta pasta
+                  </button>
+                )}
+              </div>
+
+              {medindo && progressoMedicao && (
+                <div className="flex flex-col gap-1">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all"
+                      style={{
+                        width: `${Math.round((progressoMedicao.feito / Math.max(1, progressoMedicao.total)) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-ink-3">
+                    {progressoMedicao.feito} / {progressoMedicao.total} fotos
+                  </span>
+                </div>
+              )}
+
+              {!medindo && perfisMedidos.length > 0 && (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[10px] border-collapse">
+                      <thead>
+                        <tr className="text-ink-3 text-left">
+                          <th className="pr-2 py-1 font-bold">Classe</th>
+                          <th className="pr-2 py-1 font-bold text-right">n</th>
+                          <th className="pr-2 py-1 font-bold text-right">Área (mediana)</th>
+                          <th className="pr-2 py-1 font-bold text-right">Feret máx.</th>
+                          <th className="pr-2 py-1 font-bold text-right">Solidez</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...perfisMedidos]
+                          .sort((a, b) => a.classe.localeCompare(b.classe))
+                          .map((p) => (
+                            <tr key={p.classe} className="border-t border-line">
+                              <td className="pr-2 py-1 text-ink-1 truncate max-w-[7rem]" title={p.classe}>
+                                {p.classe}
+                                {p.perfil.insuficiente && (
+                                  <span className="text-ink-3" title="Amostra pequena (n < 20)">
+                                    {' '}
+                                    *
+                                  </span>
+                                )}
+                              </td>
+                              <td className="pr-2 py-1 text-ink-2 text-right">{p.perfil.n}</td>
+                              <td className="pr-2 py-1 text-ink-2 text-right">
+                                {p.perfil.areaPx.mediana.toFixed(0)} px²
+                              </td>
+                              <td className="pr-2 py-1 text-ink-2 text-right">
+                                {p.perfil.feretMaxPx.mediana.toFixed(1)} px
+                              </td>
+                              <td className="pr-2 py-1 text-ink-2 text-right">
+                                {(p.perfil.solidez.mediana * 100).toFixed(1)}%
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-[9px] text-ink-3">
+                    * amostra pequena (n &lt; 20) — faixa como referência, não decide nada sozinha.
+                  </p>
+                  <button
+                    onClick={handleExportarCsv}
+                    className="self-start flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-ink-2 hover:text-ink-1 transition-colors"
+                  >
+                    <Download size={12} />
+                    Exportar CSV
+                  </button>
+                </>
+              )}
+            </div>
           )}
 
           {imagensFiltradas.length === 0 ? (

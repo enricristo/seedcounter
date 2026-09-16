@@ -26,6 +26,8 @@ import {
 } from '../../lib/aglomerado';
 import { extrairCaracteristicasDeCor, type CaracteristicasDeCor } from '../../lib/color-features';
 import { compararComPerfil } from '../../lib/priors-morfometricos';
+import { compararComPerfilMedido } from '../../lib/perfil-medido';
+import type { PerfilMedido } from '../../lib/perfil-medido';
 
 interface SeedInspectorProps {
   segmentation: YoloSegmentation;
@@ -35,6 +37,12 @@ interface SeedInspectorProps {
   /** Limiares de aglomerado derivados da população desta cena — ver aglomerado.ts. */
   limiares?: LimiaresDeAglomerado;
   especieId?: string;
+  /**
+   * Perfil medido ("Medir esta pasta", B4) para a classe/conjunto ativos,
+   * quando existir. Some acima da referência de literatura — nunca decide,
+   * só mostra outra régua para comparar.
+   */
+  perfilMedido?: PerfilMedido | null;
   onToggleClass?: (id: number) => void;
   onDelete?: (id: number) => void;
   onProposeCut?: (id: number) => void;
@@ -48,6 +56,7 @@ export function SeedInspector({
   medianaDaCena,
   limiares,
   especieId,
+  perfilMedido,
   onToggleClass,
   onDelete,
   onProposeCut,
@@ -96,6 +105,13 @@ export function SeedInspector({
     const razaoDeArea =
       typeof medianaDaCena === 'number' && medianaDaCena > 0 ? areaPx / medianaDaCena : undefined;
 
+    // Razão de aspecto — só para comparar com o perfil MEDIDO (B4), que a
+    // guarda por vir do Feret (feret.ts), não da PCA.
+    const razaoDeAspecto =
+      segmentation.width && segmentation.height && Math.min(segmentation.width, segmentation.height) > 0
+        ? Math.max(segmentation.width, segmentation.height) / Math.min(segmentation.width, segmentation.height)
+        : undefined;
+
     return {
       areaPx,
       areaMm2,
@@ -105,6 +121,7 @@ export function SeedInspector({
       comprimentoMm,
       larguraMm,
       razaoDeArea,
+      razaoDeAspecto,
     };
   }, [segmentation, umPerPixel, medianaDaCena]);
 
@@ -235,6 +252,19 @@ export function SeedInspector({
     [morfometria.solidez, morfometria.circularidade, especieId]
   );
 
+  // 5b. Comparação com o perfil MEDIDO ("Medir esta pasta", B4) — mostrada
+  // ACIMA da literatura quando existir. Mesma regra: nunca decide.
+  const comparacaoMedida = useMemo(
+    () =>
+      perfilMedido
+        ? compararComPerfilMedido(
+            { solidez: morfometria.solidez, razaoDeAspecto: morfometria.razaoDeAspecto },
+            perfilMedido
+          )
+        : null,
+    [morfometria.solidez, morfometria.razaoDeAspecto, perfilMedido]
+  );
+
   const isViable = segmentation.category === 'viable';
   const aColor = cor?.aMean ?? 0;
   // Tetrazólio: formazan forte geralmente tem a* > 15
@@ -302,8 +332,19 @@ export function SeedInspector({
           <p className="text-ink-2 mt-1 text-[11px] leading-relaxed">
             {sinais.veredito === 'aglomerado' ? sinais.motivo : 'Não'}
           </p>
+          {/* Referência (medida) — perfil de "Medir esta pasta" (B4), quando existe para a
+              classe/conjunto ativos. Fica ACIMA da literatura: é a régua nas nossas condições. */}
+          {comparacaoMedida && (
+            <p className="text-ink-3 mt-1.5 text-[11px] leading-relaxed">
+              <span className="font-bold text-ink-2">
+                Referência (medida, n={comparacaoMedida.perfil?.n ?? 0}):{' '}
+              </span>
+              {comparacaoMedida.nota || 'Dentro da faixa medida'}
+            </p>
+          )}
           {/* Referência (literatura) — orienta o olho, nunca decide: quem decide é o veredito acima */}
           <p className="text-ink-3 mt-1.5 text-[11px] leading-relaxed">
+            <span className="font-bold text-ink-2">Referência (literatura): </span>
             {comparacao.nota || 'Dentro da faixa típica'}
           </p>
         </div>

@@ -13,7 +13,17 @@
 // Quem decide aglomerado e `aglomerado.ts`, com limiar relativo a populacao da
 // propria imagem. Aqui fica o que a literatura diz, para orientar o olho — o
 // mesmo estatuto de `tamanhos-de-semente.ts`.
+//
+// PERFIL MEDIDO (B4): `compararComPerfil` aceita, como ULTIMO parametro
+// opcional, um `PerfilMedido` — o resultado de "Medir esta pasta"
+// (`lib/perfil-medido.ts`), medido com a MESMA onda que o app usa no clique.
+// Quando ele existe, e preferido ao perfil de literatura: e uma referencia
+// nas nossas condicoes, nao de outro scanner. Continua sendo so referencia —
+// a nota muda de fonte, o veredito continua sem existir aqui.
 // =============================================================================
+
+import { compararComPerfilMedido, type PerfilMedido } from './perfil-medido';
+export type { PerfilMedido };
 
 export interface PerfilBiometrico {
   id: string;
@@ -136,6 +146,8 @@ export interface MetricasContorno {
 
 export interface ComparacaoComPerfil {
   perfil: PerfilBiometrico | null;
+  /** Presente quando um perfil MEDIDO foi passado e preferido ao de literatura. */
+  perfilMedido?: PerfilMedido | null;
   solidezForaDaFaixa: boolean;
   circularidadeForaDaFaixa: boolean;
   /** Frase para a interface. Vazia quando dentro da faixa ou sem perfil. */
@@ -143,15 +155,38 @@ export interface ComparacaoComPerfil {
 }
 
 /**
- * Compara o contorno com o perfil de literatura da especie.
+ * Compara o contorno com um perfil de referência da espécie.
+ *
+ * `perfilMedido`, quando presente, é PREFERIDO ao de literatura — é uma
+ * referência medida nas nossas condições (`lib/perfil-medido.ts`), não a de
+ * outro scanner. Sem `perfilMedido` (ou com `n === 0`), cai no perfil de
+ * literatura de sempre.
  *
  * Devolve SO a comparacao. Nao diz "aglomerado", nao diz "quebrada": isso
- * seria transformar um numero de outro laboratorio em veredito sobre este.
+ * seria transformar um numero de outro laboratorio (ou de outra pasta) em
+ * veredito sobre este contorno.
  */
 export function compararComPerfil(
-  metricas: { solidez: number; circularidade: number },
-  especieId?: string
+  metricas: { solidez: number; circularidade: number; razaoDeAspecto?: number },
+  especieId?: string,
+  perfilMedido?: PerfilMedido | null
 ): ComparacaoComPerfil {
+  if (perfilMedido && perfilMedido.n > 0) {
+    const comparacaoMedida = compararComPerfilMedido(
+      { solidez: metricas.solidez, razaoDeAspecto: metricas.razaoDeAspecto },
+      perfilMedido
+    );
+    return {
+      perfil: null,
+      perfilMedido,
+      solidezForaDaFaixa: comparacaoMedida.solidezForaDaFaixa,
+      // O perfil medido não guarda circularidade (não faz parte de
+      // `MedidaDeUmObjeto`) — só a literatura avalia esse eixo.
+      circularidadeForaDaFaixa: false,
+      nota: comparacaoMedida.nota,
+    };
+  }
+
   const perfil = especieId ? (PERFIS_BIOMETRICOS[especieId.toLowerCase()] ?? null) : null;
   if (!perfil) {
     return { perfil: null, solidezForaDaFaixa: false, circularidadeForaDaFaixa: false, nota: '' };

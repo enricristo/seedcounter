@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PERFIS_BIOMETRICOS, compararComPerfil } from '../priors-morfometricos';
+import { agregarPerfil, type MedidaDeUmObjeto } from '../perfil-medido';
 
 describe('Priors Morfométricos e Gatilhos Lógicos', () => {
   it('deve conter as espécies catalogadas dos datasets tabulares', () => {
@@ -47,5 +48,41 @@ describe('comparar com perfil de literatura — referencia, nao veredito', () =>
   it('nao existe mais um "diagnostico" com veredito', async () => {
     const mod = await import('../priors-morfometricos');
     expect('diagnosticarContorno' in mod).toBe(false);
+  });
+});
+
+describe('compararComPerfil prefere o perfil MEDIDO quando presente', () => {
+  const medidas30 = (solidez: number): MedidaDeUmObjeto[] =>
+    Array.from({ length: 30 }, () => ({
+      caminho: 'x.jpg',
+      classe: 'viavel',
+      areaPx: 100,
+      feretMaxPx: 12,
+      feretMinPx: 8,
+      solidez,
+      razaoDeAspecto: 1.5,
+    }));
+
+  it('com perfil medido, ignora a espécie de literatura e usa a faixa medida', () => {
+    const perfilMedido = agregarPerfil(medidas30(0.95));
+    // 0,7 é normal para soja de literatura só se dentro da faixa; aqui a
+    // faixa medida é bem mais estreita (tudo 0,95) — deve acusar fora.
+    const r = compararComPerfil({ solidez: 0.7, circularidade: 0.85 }, 'soja', perfilMedido);
+    expect(r.perfil).toBeNull();
+    expect(r.perfilMedido).toBe(perfilMedido);
+    expect(r.solidezForaDaFaixa).toBe(true);
+    expect(r.nota).toMatch(/faixa medida/i);
+  });
+
+  it('sem perfil medido (undefined) continua caindo na literatura — chamada antiga não quebra', () => {
+    const r = compararComPerfil({ solidez: 0.97, circularidade: 0.85 }, 'soja');
+    expect(r.perfil?.id).toBe('soja');
+    expect(r.perfilMedido).toBeUndefined();
+  });
+
+  it('perfil medido com n=0 não é usado — cai na literatura', () => {
+    const vazio = agregarPerfil([]);
+    const r = compararComPerfil({ solidez: 0.97, circularidade: 0.85 }, 'soja', vazio);
+    expect(r.perfil?.id).toBe('soja');
   });
 });

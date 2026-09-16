@@ -117,6 +117,7 @@ import {
 import { executarReceita, type ResultadoDoEnsaio } from './features/ensaio/executar';
 import { EnsaioPanel } from './features/ensaio/EnsaioPanel';
 import { useReceitasSalvas } from './hooks/useReceitasSalvas';
+import { usePerfisMedidos } from './hooks/usePerfisMedidos';
 import type { ReceitaSalva } from './lib/db';
 import { DatasetsPanel } from './features/datasets/DatasetsPanel';
 import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
@@ -2007,6 +2008,23 @@ export default function App() {
     metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
 
   /**
+   * Perfil MEDIDO ("Medir esta pasta", B4) da classe da imagem ABERTA, dentro
+   * do conjunto de onde ela veio — quando existir. `classesDaImagem` só existe
+   * em imagem carregada do explorador de datasets; sem dataset, sem perfil, e
+   * o inspetor mostra só a literatura (como sempre mostrou).
+   *
+   * A junção com ' + ' repete exatamente a regra de `DatasetsPanel.handleMedirPasta`
+   * ao nomear a classe — é a mesma chave dos dois lados.
+   */
+  const { perfilDaClasse } = usePerfisMedidos(metadata.dataset?.conjunto);
+  const classeDoDatasetAtivo = useMemo(() => {
+    const cs = metadata.dataset?.classesDaImagem;
+    if (!cs || cs.length === 0) return undefined;
+    return cs.join(' + ');
+  }, [metadata.dataset?.classesDaImagem]);
+  const perfilMedidoAtivo = perfilDaClasse(classeDoDatasetAtivo)?.perfil ?? null;
+
+  /**
    * A espécie é o que mais configura a bancada: priors, receita do ensaio,
    * protocolo, jeito de digitalizar. Por isso ela mora no cabeçalho, e
    * escolhê-la PREENCHE o que dela decorre — sem decidir nada sozinha: o
@@ -3261,6 +3279,7 @@ export default function App() {
                   medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
                   limiares={limiaresDaCena}
                   especieId={especieDeclarada}
+                  perfilMedido={perfilMedidoAtivo}
                   onToggleClass={toggleSegmentationClass}
                   onDelete={deleteSegmentation}
                   onProposeCut={handleProposeCut}
