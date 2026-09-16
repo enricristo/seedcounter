@@ -48,6 +48,17 @@ export interface EstadoParaSugestao {
   /** null = nunca gravou nesta imagem. */
   minutosDesdeUltimaGravacao: number | null;
   protocoloExigeTetrazolio: boolean;
+  // --- Sinais novos (16/09). Opcionais: quem monta o retrato pode não ter todos. ---
+  /** A calibração veio do DPI do driver (método 'dpi'), não de referência na imagem. */
+  calibracaoPorDpi?: boolean;
+  /** Contornos em que PCA e Feret discordam > 15% — forma não elíptica, medida é palpite. */
+  contornosComEixosDiscordantes?: number;
+  /** A imagem veio de um dataset com anotação e a referência ainda não foi carregada. */
+  referenciaPendente?: boolean;
+  /** O ensaio ao carregar está desligado nas funcionalidades. */
+  ensaioDesligado?: boolean;
+  /** Há objetos contados sem contorno (marca sem polígono) — sem medida no CSV. */
+  objetosSemMedida?: number;
 }
 
 export type AcaoDeSugestao =
@@ -55,7 +66,11 @@ export type AcaoDeSugestao =
   | 'abrir-calibracao'
   | 'ferramenta-contorno'
   | 'salvar-sessao'
-  | 'abrir-identificacao';
+  | 'abrir-identificacao'
+  | 'mostrar-eixos'
+  | 'carregar-referencia'
+  | 'abrir-funcionalidades'
+  | 'segmentar-pendentes';
 
 export interface Sugestao {
   /** Estável por regra — é a chave que `dispensadas.ts` guarda. */
@@ -85,6 +100,10 @@ const PRIORIDADE = {
   marcasSemContorno: 60,
   salvar: 50,
   semCalibracao: 40,
+  dpiNaoConferido: 38,
+  eixosDiscordantes: 65,
+  referenciaPendente: 45,
+  ensaioDesligado: 20,
   identificacao: 30,
 } as const;
 
@@ -219,6 +238,69 @@ const identificacaoParaLaudo: Regra = (e) => {
   };
 };
 
+
+/**
+ * dpi-nao-conferido — a auditoria da régua (16/09) achou 4735–4771 DPI onde o
+ * driver dizia 3600: o número do driver é declaração, não medida. Se a
+ * calibração veio dele, vale conferir com uma régua na imagem uma vez.
+ */
+const dpiNaoConferido: Regra = (e) => {
+  if (!e.temImagem || !e.calibracaoPorDpi || !e.umPerPixel) return null;
+  return {
+    id: 'dpi-nao-conferido',
+    prioridade: PRIORIDADE.dpiNaoConferido,
+    titulo: 'Escala veio do DPI do driver',
+    texto: 'O DPI declarado pelo scanner é uma promessa: a auditoria mediu +31% num caso. Se há régua na imagem, confira pelo método de referência.',
+    acao: { rotulo: 'Abrir calibração', id: 'abrir-calibracao' },
+    escopoDaDispensa: 'sempre',
+  };
+};
+
+/**
+ * eixos-discordantes — quando o eixo por PCA e o Feret divergem, a forma não é
+ * elíptica: encostadas, quebrada ou contorno vazado. É onde comprimento e
+ * largura viram palpite, e olhar os eixos mostra o porquê.
+ */
+const eixosDiscordantes: Regra = (e) => {
+  if (!e.temImagem || !e.contornosComEixosDiscordantes || e.contornosComEixosDiscordantes < 3) return null;
+  return {
+    id: 'eixos-discordantes',
+    prioridade: PRIORIDADE.eixosDiscordantes,
+    titulo: `${e.contornosComEixosDiscordantes} contornos com forma não elíptica`,
+    texto: 'Comprimento por PCA e por Feret discordam mais de 15% nesses — a medida é palpite. Veja os eixos para decidir se é encosto, quebra ou vazamento.',
+    acao: { rotulo: 'Mostrar eixos', id: 'mostrar-eixos' },
+    escopoDaDispensa: 'imagem',
+  };
+};
+
+/** referencia-pendente — a imagem tem anotação no dataset; comparar é de graça. */
+const referenciaPendente: Regra = (e) => {
+  if (!e.temImagem || !e.referenciaPendente) return null;
+  if (e.totalDeContornos + e.totalDeMarcas === 0) return null; // primeiro o app trabalha, depois compara
+  return {
+    id: 'referencia-pendente',
+    prioridade: PRIORIDADE.referenciaPendente,
+    titulo: 'Esta imagem tem anotação de referência',
+    texto: 'Carregue a referência do dataset por cima do que o app encontrou e compare — a origem fica marcada no CSV.',
+    acao: { rotulo: 'Carregar referência', id: 'carregar-referencia' },
+    escopoDaDispensa: 'imagem',
+  };
+};
+
+/** ensaio-desligado — cena vazia e o ensaio existe: uma dica, uma vez só. */
+const ensaioDesligado: Regra = (e) => {
+  if (!e.temImagem || !e.ensaioDesligado) return null;
+  if (e.totalDeContornos + e.totalDeMarcas > 0) return null;
+  return {
+    id: 'ensaio-desligado',
+    prioridade: PRIORIDADE.ensaioDesligado,
+    titulo: 'Ensaio ao carregar',
+    texto: 'Ligue nas funcionalidades: ao abrir uma imagem, três receitas de detecção aparecem lado a lado para você escolher — ou nenhuma.',
+    acao: { rotulo: 'Abrir funcionalidades', id: 'abrir-funcionalidades' },
+    escopoDaDispensa: 'sempre',
+  };
+};
+
 /** Todas as regras. A ordem aqui não importa — `sugerir` ordena por prioridade. */
 export const REGRAS: Regra[] = [
   escalaSuspeita,
@@ -228,6 +310,10 @@ export const REGRAS: Regra[] = [
   salvar,
   semCalibracao,
   identificacaoParaLaudo,
+  dpiNaoConferido,
+  eixosDiscordantes,
+  referenciaPendente,
+  ensaioDesligado,
 ];
 
 /**

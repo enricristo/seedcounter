@@ -279,7 +279,38 @@ describe('sugerir — prioridade e dispensa', () => {
     expect(s?.id).toBe('tetrazolio');
   });
 
-  it('o conjunto de regras não perdeu nenhuma das sete', () => {
-    expect(REGRAS).toHaveLength(7);
+  it('o conjunto de regras não perdeu nenhuma das onze', () => {
+    expect(REGRAS).toHaveLength(11);
+  });
+});
+
+describe('regras novas (16/09)', () => {
+  const base = {
+    temImagem: true,
+    chaveDaImagem: 'x',
+    totalDeMarcas: 10,
+    marcasSemContorno: 0,
+    totalDeContornos: 10,
+    contornosComFormaSuspeita: 0,
+    minutosDesdeUltimaGravacao: 0,
+    protocoloExigeTetrazolio: false,
+  };
+  it('DPI do driver sem conferência sugere a calibração por referência, uma vez (escopo sempre)', () => {
+    const s = sugerir({ ...base, umPerPixel: 5.3, calibracaoPorDpi: true }, new Set());
+    expect(s?.id).toBe('dpi-nao-conferido');
+    expect(s?.escopoDaDispensa).toBe('sempre');
+  });
+  it('eixos discordantes só a partir de 3 contornos, e vence o DPI', () => {
+    expect(sugerir({ ...base, contornosComEixosDiscordantes: 2 }, new Set())?.id).not.toBe('eixos-discordantes');
+    const s = sugerir({ ...base, umPerPixel: 5.3, calibracaoPorDpi: true, contornosComEixosDiscordantes: 4 }, new Set());
+    expect(s?.id).toBe('eixos-discordantes');
+  });
+  it('referência pendente só depois de o app ter trabalhado', () => {
+    expect(sugerir({ ...base, totalDeMarcas: 0, totalDeContornos: 0, referenciaPendente: true }, new Set())).toBeNull();
+    expect(sugerir({ ...base, referenciaPendente: true }, new Set())?.id).toBe('referencia-pendente');
+  });
+  it('ensaio desligado só na cena vazia, prioridade baixa', () => {
+    expect(sugerir({ ...base, totalDeMarcas: 0, totalDeContornos: 0, ensaioDesligado: true }, new Set())?.id).toBe('ensaio-desligado');
+    expect(sugerir({ ...base, ensaioDesligado: true }, new Set())?.id).not.toBe('ensaio-desligado');
   });
 });
