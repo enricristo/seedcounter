@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Core Types
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // Baseado nas publicações do Prof. Nelson Barbosa Machado Neto e Profa. Ceci Castilho Custódio
 // =============================================================================
 
@@ -270,7 +270,7 @@ export interface Experiment {
   seedLot: string; // Lot/accession identifier: "CL-2024-03"
   collectionDate?: string; // ISO date of seed collection
   responsible: string; // "Dr. Nelson Barbosa Machado Neto"
-  institution: string; // "GPEOrq / Unoeste"
+  institution: string; // "GPEOrq / GPSEM"
   cultureMedia: CultureMedium;
   cultureMediaNotes?: string; // "KC + 15g/L sacarose + PPM 2mL/L"
   sterilizationProtocol?: string; // "NaOCl 1%, 15min + Tween 80"

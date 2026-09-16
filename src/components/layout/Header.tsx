@@ -186,8 +186,7 @@ export function Header({
                   className="hover:underline"
                 >
                   GPSEM
-                </a>{' '}
-                • Unoeste
+                </a>
               </p>
             </div>
           </div>

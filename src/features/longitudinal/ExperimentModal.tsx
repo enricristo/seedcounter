@@ -23,7 +23,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
   const [species, setSpecies] = useState('');
   const [seedLot, setSeedLot] = useState('');
   const [responsible, setResponsible] = useState('');
-  const [institution, setInstitution] = useState('GPEOrq / Unoeste');
+  const [institution, setInstitution] = useState('GPEOrq / GPSEM');
   const [sowingDate, setSowingDate] = useState('');
   const [cultureMedia, setCultureMedia] = useState<CultureMedium>('KC');
   const [cultureMediaNotes, setCultureMediaNotes] = useState('');
@@ -66,7 +66,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
       setSpecies('');
       setSeedLot('');
       setResponsible('');
-      setInstitution('GPEOrq / Unoeste');
+      setInstitution('GPEOrq / GPSEM');
       setSowingDate(new Date().toISOString().split('T')[0]);
       setCultureMedia('KC');
       setCultureMediaNotes('');
@@ -197,7 +197,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                 {experiment ? 'Editar Experimento' : 'Novo Experimento'}
               </h2>
               <p className="text-[10px] text-ink-3 font-semibold uppercase tracking-wider">
-                GPEOrq / Unoeste • Lab. de Sementes e Tecido Vegetal
+                GPEOrq / GPSEM • Lab. de Sementes e Tecido Vegetal
               </p>
             </div>
           </div>
@@ -277,7 +277,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                 type="text"
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
-                placeholder="Ex: GPEOrq / Unoeste"
+                placeholder="Ex: GPEOrq / GPSEM"
                 className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>

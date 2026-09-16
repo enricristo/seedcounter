@@ -1,6 +1,6 @@
 // =============================================================================
 // Statistics Engine — SeedCounter
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Tests implemented:
 //   - Wilson Score CI (proportions)

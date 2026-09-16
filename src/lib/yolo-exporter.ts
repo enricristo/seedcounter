@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — YOLO Dataset Exporter
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 //
 // Exports annotated sessions as a YOLOv8-compatible dataset (.zip):
 //   dataset/
@@ -385,7 +385,7 @@ export async function generateYOLODataset(
   const yaml = [
     `# SeedCounter YOLO Dataset`,
     `# Generated: ${new Date().toISOString()}`,
-    `# GPEOrq / Unoeste — Orchid Seed Germination`,
+    `# GPEOrq / GPSEM — Orchid Seed Germination`,
     ``,
     `path: dataset`,
     `train: images/train`,
@@ -425,7 +425,7 @@ function buildReadme(
   const lines: string[] = [
     '=============================================================',
     ' SeedCounter — YOLO Dataset Export',
-    ' GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal',
+    ' GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal',
     `=============================================================`,
     '',
     `Data de exportação : ${new Date().toLocaleString('pt-BR')}`,

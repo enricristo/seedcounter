@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Ajuste de imagem
-// GPEOrq / GPSEM · Unoeste
+// GPEOrq / GPSEM
 // =============================================================================
 // Ajustes não destrutivos aplicados sobre a imagem original. Servem para dois
 // fins: (1) enxergar melhor durante a contagem manual e (2) melhorar o

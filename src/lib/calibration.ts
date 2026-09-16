@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Calibração Espacial
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Converte pixels em micrômetros. Sem isso, a morfometria não tem significado
 // físico — só faz sentido comparar medidas entre imagens calibradas.
@@ -163,7 +163,7 @@ export function formatArea(pixelArea: number, umPerPixel?: number): string {
 export const DPI_PRESETS = [300, 600, 1200, 2400, 3600, 4800] as const;
 
 /**
- * Padrão do Laboratório de Sementes (GPEOrq/Unoeste): HP Scanjet G2710 a 3600 DPI.
+ * Padrão do Laboratório de Sementes (GPEOrq/GPSEM): HP Scanjet G2710 a 3600 DPI.
  * Equivale a ~7,06 µm/px.
  */
 export const DEFAULT_LAB_DPI = 3600;

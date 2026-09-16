@@ -30,6 +30,9 @@ export function EscalaGrafica({ umPerPixel, zoomLevel }: EscalaGraficaProps) {
           <line x1={1 + w} y1={0} x2={1 + w} y2={10} stroke="currentColor" strokeWidth={1} />
         </svg>
         <span className="font-semibold">{e.rotulo}</span>
+        {/* Também em px da imagem: é a unidade em que o contorno foi medido,
+            e é o que se compara com "comprimento_px" no CSV. */}
+        {!e.semCalibracao && <span className="text-ink-3">· {Math.round(e.pxDaImagem)} px</span>}
       </div>
       {e.semCalibracao && <span className="text-ink-3 text-[9px]">sem escala — calibre</span>}
     </div>

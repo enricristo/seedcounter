@@ -19,7 +19,7 @@ import {
 } from '../identificacao';
 
 const LABORATORIO: IdentificacaoDoLaboratorio = {
-  nome: 'Laboratório de Sementes e Tecido Vegetal — Unoeste',
+  nome: 'Laboratório de Sementes e Tecido Vegetal',
   renasem: 'SP-00000/0000',
   portariaDeCredenciamento: 'Portaria nº 000/0000',
   endereco: 'Rod. Raposo Tavares, km 572 — Presidente Prudente, SP',

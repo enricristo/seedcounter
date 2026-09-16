@@ -172,7 +172,7 @@ export interface ConjuntoDeDemonstracao {
 }
 
 const RESPONSAVEL_PADRAO = 'Demonstração — SeedCounter';
-const INSTITUICAO = 'GPEOrq / GPSEM — Unoeste';
+const INSTITUICAO = 'GPEOrq / GPSEM';
 
 function iso(base: Date, deslocamentoEmDias: number): string {
   const d = new Date(base.getTime() + deslocamentoEmDias * 86400000);

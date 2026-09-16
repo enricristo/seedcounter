@@ -241,7 +241,7 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
           ],
         }
       : {
-          instituicao: 'GPEOrq / GPSEM — Unoeste',
+          instituicao: 'GPEOrq / GPSEM',
           linhas: [
             'Laboratório de Sementes e Tecido Vegetal — Campus II, Presidente Prudente/SP',
             'Grupo de Pesquisa em Orquídeas • Grupo de Estudos e Pesquisas em Sementes',

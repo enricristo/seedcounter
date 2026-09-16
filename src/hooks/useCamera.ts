@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — useCamera
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Captura de imagem via câmera do dispositivo. Suporta:
 //  · Lupa / microscópio USB no computador (seleção de dispositivo)

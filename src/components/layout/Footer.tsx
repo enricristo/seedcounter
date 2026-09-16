@@ -37,7 +37,7 @@ const LOGOS = [
 
 const CREDITOS =
   'Desenvolvido por Enrico S. Ambrosio (Matemático, graduando em Agronomia) · enrico.ambrosio@unesp.br · ' +
-  'Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio · GPEOrq / GPSEM — Unoeste';
+  'Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio · GPEOrq / GPSEM';
 
 /** Um item da barra: rótulo pequeno em cima, valor embaixo. */
 function Item({ rotulo, children, title }: { rotulo: string; children: React.ReactNode; title?: string }) {
@@ -148,9 +148,15 @@ export function Footer({
             </a>
           ))}
         </div>
-        <span className="text-ink-2 hidden text-[10px] lg:inline" title={CREDITOS}>
-          <span className="text-accent font-bold">GPEOrq</span> / <span className="text-accent font-bold">GPSEM</span> — Unoeste
-        </span>
+        <div className="hidden flex-col items-end leading-tight lg:flex" title={CREDITOS}>
+          <span className="text-ink-2 text-[10px]">
+            <span className="text-accent font-bold">GPEOrq</span> / <span className="text-accent font-bold">GPSEM</span>
+            {' · '}Enrico S. Ambrosio
+          </span>
+          <span className="text-ink-3 text-[9px]">
+            Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
+          </span>
+        </div>
         {/* O número da versão é o gancho para as notas. Cromo neutro: ciano e
             magenta significam viável e inviável em toda a interface. */}
         <button

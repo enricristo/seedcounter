@@ -1,6 +1,6 @@
 // =============================================================================
 // Feature Flag Registry
-// SeedCounter — GPEOrq / Unoeste
+// SeedCounter — GPEOrq / GPSEM
 // =============================================================================
 // Flags are persisted in localStorage under key 'sc:featureFlags'.
 // Stable flags are ON by default; experimental flags require explicit opt-in.

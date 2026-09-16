@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Medidas por objeto (uma linha por semente)
-// GPEOrq / GPSEM · Unoeste
+// GPEOrq / GPSEM
 // =============================================================================
 // Inspirado no ExportToSpreadsheet do CellProfiler: em vez de apenas o total da
 // placa, cada semente vira uma linha com suas próprias medidas.

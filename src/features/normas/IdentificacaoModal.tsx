@@ -99,7 +99,7 @@ export function IdentificacaoModal({
               label="Nome do laboratório"
               value={laboratorio?.nome ?? ''}
               onChange={(v) => atualizarCampo('nome', v)}
-              placeholder="Ex: Lab. de Sementes e Tecido Vegetal — Unoeste"
+              placeholder="Ex: Lab. de Sementes e Tecido Vegetal"
             />
             <div className="flex gap-3">
               <MetadataInput

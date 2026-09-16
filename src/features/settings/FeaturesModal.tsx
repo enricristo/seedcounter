@@ -236,7 +236,7 @@ export function FeaturesModal({
                 </a>
               </p>
               <p className="text-[10px] text-ink-3">
-                GPEOrq / GPSEM — Unoeste ·{' '}
+                GPEOrq / GPSEM ·{' '}
                 <a
                   href="https://www.instagram.com/gpeorq"
                   target="_blank"

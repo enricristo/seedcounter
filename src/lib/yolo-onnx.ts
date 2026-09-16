@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Inferência YOLOv8-seg no navegador (ONNX Runtime Web)
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Modelo: YOLOv8m-seg treinado no dataset de sementes de orquídea (TCC),
 // imgsz 960, classes: 0 = inviavel, 1 = viavel.

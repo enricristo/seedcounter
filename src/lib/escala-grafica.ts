@@ -17,6 +17,8 @@ export interface EscalaGrafica {
   rotulo: string;
   /** Verdadeiro quando não há calibração e a barra está em px da imagem. */
   semCalibracao: boolean;
+  /** O mesmo comprimento em px da IMAGEM — a unidade em que o contorno é medido. */
+  pxDaImagem: number;
 }
 
 /** Valor "redondo" (1, 2, 5 × 10ⁿ) ≤ x. */
@@ -55,9 +57,10 @@ export function escalaGrafica(umPerPixel: number | undefined, zoom: number, alvo
     // Quantos µm cabem no alvo, arredondado para baixo a um valor redondo.
     const umNoAlvo = (alvoPx / z) * umPerPixel;
     const um = valorRedondo(umNoAlvo);
-    return { larguraPx: (um / umPerPixel) * z, rotulo: rotuloDeComprimento(um), semCalibracao: false };
+    const pxDaImagem = um / umPerPixel;
+    return { larguraPx: pxDaImagem * z, rotulo: rotuloDeComprimento(um), semCalibracao: false, pxDaImagem };
   }
   const pxNoAlvo = alvoPx / z;
   const px = valorRedondo(pxNoAlvo);
-  return { larguraPx: px * z, rotulo: `${px} px`, semCalibracao: true };
+  return { larguraPx: px * z, rotulo: `${px} px`, semCalibracao: true, pxDaImagem: px };
 }
