@@ -1,7 +1,26 @@
+/* global FileSystemDirectoryHandle */
 import Dexie, { type Table } from 'dexie';
 import type { Session, Metadata, Experiment } from '../types';
 import type { IdentificacaoDoLaboratorio } from './normas/identificacao';
 import type { TelemetryQueueRecord } from './telemetry/types';
+
+/**
+ * Uma pasta de datasets que a pessoa abriu e o app lembra.
+ *
+ * Guardamos o `FileSystemDirectoryHandle` (quando veio do File System Access
+ * API — Chrome/Edge) porque ele é serializável pelo IndexedDB e a permissão
+ * de leitura persiste entre sessões nesses navegadores; é o que evita pedir
+ * "escolha a pasta de novo" toda vez. `aberta` marca qual foi a última pasta
+ * usada, para `reabrirUltimaPasta()` saber qual pegar sem precisar de outro
+ * store. Uma pasta aberta pelo `<input webkitdirectory>` (Firefox/Safari) não
+ * tem handle — não é gravada aqui, porque não há nada para revalidar depois.
+ */
+export interface PastaDeDatasetGuardada {
+  id?: number;
+  nome: string;
+  handle: FileSystemDirectoryHandle;
+  aberta: boolean;
+}
 
 /**
  * O laboratório, guardado como registro único.
@@ -25,6 +44,7 @@ export class SeedCounterDB extends Dexie {
   experiments!: Table<Experiment, string>;
   laboratorio!: Table<RegistroDoLaboratorio, string>;
   telemetryQueue!: Table<TelemetryQueueRecord, string>;
+  pastasDeDatasets!: Table<PastaDeDatasetGuardada, number>;
 
   constructor() {
     super('SeedCounterDB');
@@ -82,6 +102,19 @@ export class SeedCounterDB extends Dexie {
       experiments: 'id, createdAt, species, responsible',
       laboratorio: 'id',
       telemetryQueue: 'id, status, createdAt, retryCount',
+    });
+
+    // v7 — explorador de datasets (Lote B). Guarda o handle da pasta que a
+    // pessoa abriu para não pedir de novo a cada visita — só nos navegadores
+    // que dão handle serializável (File System Access API); sem migração de
+    // dado, os stores anteriores repetem tal como estavam na v6.
+    this.version(7).stores({
+      sessions: 'id, date, experimentId, treatmentId',
+      metadataStore: 'id',
+      experiments: 'id, createdAt, species, responsible',
+      laboratorio: 'id',
+      telemetryQueue: 'id, status, createdAt, retryCount',
+      pastasDeDatasets: '++id, nome, aberta',
     });
   }
 }
