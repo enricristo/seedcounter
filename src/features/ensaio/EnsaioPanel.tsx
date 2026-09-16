@@ -18,6 +18,8 @@ interface EnsaioPanelProps {
   resultados: ResultadoDoEnsaio[];
   emAndamento: boolean;
   onUsar: (r: ResultadoDoEnsaio) => void;
+  /** Mouse sobre um cartão: a proposta aparece tracejada no canvas; null ao sair. */
+  onDestacar?: (r: ResultadoDoEnsaio | null) => void;
   onNenhuma: () => void;
   onParar: () => void;
 }
@@ -92,14 +94,22 @@ function CartaoDaReceita({
   imagem,
   resultado,
   onUsar,
+  onDestacar,
 }: {
   imagem: HTMLImageElement | HTMLCanvasElement;
   resultado: ResultadoDoEnsaio;
   onUsar: () => void;
+  onDestacar?: (r: ResultadoDoEnsaio | null) => void;
 }) {
   const { receita, resumo, escapes, limitado } = resultado;
   return (
-    <li className="border-line bg-surface-1 flex flex-col gap-2 rounded-xl border p-2.5">
+    <li
+      className="border-line bg-surface-1 hover:border-accent/60 flex flex-col gap-2 rounded-xl border p-2.5 transition-colors"
+      onMouseEnter={() => onDestacar?.(resultado)}
+      onMouseLeave={() => onDestacar?.(null)}
+      onFocus={() => onDestacar?.(resultado)}
+      onBlur={() => onDestacar?.(null)}
+    >
       <Miniatura imagem={imagem} resultado={resultado} />
       <div>
         <p className="text-ink-1 text-xs font-bold">{receita.nome}</p>
@@ -142,7 +152,7 @@ function CartaoDaReceita({
  * andamento ou resultados e nenhum contorno está selecionado — selecionar um
  * contorno abre o inspetor daquele contorno, que não compete com este painel.
  */
-export function EnsaioPanel({ imagem, resultados, emAndamento, onUsar, onNenhuma, onParar }: EnsaioPanelProps) {
+export function EnsaioPanel({ imagem, resultados, emAndamento, onUsar, onDestacar, onNenhuma, onParar }: EnsaioPanelProps) {
   // Total fixo (o número de receitas configuradas), não deduzido do que já
   // chegou — senão a barra de progresso ficaria sempre "1/1" a caminho do fim.
   const total = RECEITAS.length;
@@ -172,6 +182,7 @@ export function EnsaioPanel({ imagem, resultados, emAndamento, onUsar, onNenhuma
             imagem={imagem}
             resultado={r}
             onUsar={() => onUsar(r)}
+            onDestacar={onDestacar}
           />
         ))}
       </ul>

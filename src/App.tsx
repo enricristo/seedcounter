@@ -250,6 +250,8 @@ export default function App() {
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   /** A galeria grande (janela) continua existindo, aberta pelo Expandir da aba. */
   const [galeriaGrande, setGaleriaGrande] = useState(false);
+  /** Proposta do ensaio sob o mouse, mostrada tracejada no canvas para comparar receitas. */
+  const [propostaDestacada, setPropostaDestacada] = useState<[number, number][][]>([]);
   const { laboratorio } = useLaboratorio();
   const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
@@ -2644,6 +2646,7 @@ export default function App() {
                     sementesSimuladas={sementesSimuladas}
                     marks={marks}
                     yoloSegmentations={yoloSegmentations}
+                    contornosPropostos={propostaDestacada}
                   />
                 </MarkingCanvas>
               )}
@@ -2768,7 +2771,11 @@ export default function App() {
                       resultados={ensaio.resultados}
                       emAndamento={ensaio.emAndamento}
                       onUsar={handleUsarEnsaio}
-                      onNenhuma={() => setEnsaio(null)}
+                      onDestacar={(r) => setPropostaDestacada(r ? r.propostos.map((p) => p.contorno) : [])}
+                      onNenhuma={() => {
+                        setPropostaDestacada([]);
+                        setEnsaio(null);
+                      }}
                       onParar={() => {
                         ensaioCancelado.current = true;
                       }}
