@@ -137,7 +137,10 @@ export function Toolbar({
     // mais o bloco do deslizante podem passar da altura da janela — sem
     // rolagem o último item (galeria ou o próprio deslizante) ficava cortado
     // embaixo, fora de vista, sem aviso.
-    <div className="border-line bg-surface-1/95 rounded-panel absolute top-1/2 left-3 z-20 flex max-h-[90vh] -translate-y-1/2 flex-col gap-1.5 overflow-y-auto border p-1.5 shadow-xl backdrop-blur">
+    // Coluna própria na borda do espaço de trabalho, não mais flutuando
+    // sobre a imagem: com quatro bancadas, flutuar sobre a ativa roubava
+    // espaço da cena e parecia que cada bancada tinha a sua barra.
+    <div className="border-line bg-surface-1 z-20 flex max-h-full shrink-0 flex-col gap-1.5 self-stretch overflow-x-hidden overflow-y-auto border-r p-1.5">
       {TOOLS.map((tool, i) => {
         const Icon = ICONS[tool.id];
         const isActive = activeTool === tool.id;

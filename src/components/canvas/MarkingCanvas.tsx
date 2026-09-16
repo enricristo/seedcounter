@@ -72,6 +72,19 @@ interface MarkingCanvasProps {
   marks: Mark[];
   yoloSegmentations: YoloSegmentation[];
   anotacoesVisuais?: import('../../types').AnotacaoVisual[];
+  /**
+   * Pinta a IMAGEM no próprio componente, em vez de esperar que alguém
+   * desenhe no canvas.
+   *
+   * Quem pinta os pixels é `drawCanvas`, no App, e ele escreve num canvas só
+   * — o da cena ativa. Uma bancada inativa criava um canvas que ninguém
+   * desenhava: aparecia em branco, com os contornos flutuando no vazio. Aqui
+   * a imagem entra como <img> usando o `src` que já está em memória (nenhuma
+   * decodificação nova) e as marcações, que só existiam no bitmap, ganham
+   * círculos em SVG. Nada disso custa trabalho por quadro — é o que mantém
+   * quatro cenas abertas leves.
+   */
+  fundoEstatico?: boolean;
   /** Os contornos de segmentacao aparecem? (mascara) */
   mostrarContornos: boolean;
   /** As marcacoes aparecem? (mascara) */
@@ -189,6 +202,7 @@ export function MarkingCanvas({
   marks,
   yoloSegmentations,
   anotacoesVisuais = [],
+  fundoEstatico = false,
   mostrarContornos,
   mostrarPontos,
   ajusteDaMarca = AJUSTE_PADRAO,
@@ -742,6 +756,20 @@ export function MarkingCanvas({
       >
         {children}
         {/* Underlying Canvas for image and manual marks */}
+      {/* A imagem da cena inativa. `objectFit: fill` porque o canvas usa o
+          mesmo retângulo: a aritmética de posição das marcas e contornos
+          pressupõe que a imagem ocupa 100% × 100% do viewport. */}
+      {fundoEstatico && (
+        <img
+          src={image.src}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="pointer-events-none absolute inset-0 block h-full w-full select-none"
+          style={{ objectFit: 'fill' }}
+        />
+      )}
+
       <canvas
         ref={canvasRef}
         onClick={(e) => {
@@ -835,6 +863,23 @@ export function MarkingCanvas({
               area que responde sem nada a mostrar, que e pior que nao ter.
               Na ferramenta de contorno os alvos saem: ali o clique e do
               contorno, e uma marca por cima roubaria o vertice. */}
+          {/* Marcações visíveis: na cena ativa quem as desenha é o bitmap
+              (`renderMarksToContext`); numa cena estática, ninguém. */}
+          {fundoEstatico &&
+            mostrarPontos &&
+            marks.map((mark) => (
+              <circle
+                key={`estatica-${mark.id}`}
+                cx={mark.x}
+                cy={mark.y}
+                r={raioDoAlvo(image.width, ajusteDaMarca) * 0.45}
+                fill={mark.type === 'viable' ? corDoEspecime('viable') : 'none'}
+                stroke={corDoEspecime(mark.type)}
+                strokeWidth={espessuraNaImagem(image.width, 1.5)}
+                pointerEvents="none"
+              />
+            ))}
+
           {(mostrarPontos && !editandoContorno ? marks : []).map((mark) => {
             const isHovered = hoveredMarkId === mark.id;
             // Mesma fonte que o desenho da marca, para o alvo nunca ficar menor

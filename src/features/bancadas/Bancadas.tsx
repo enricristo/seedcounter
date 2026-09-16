@@ -84,6 +84,7 @@ const CenaInativa = React.memo(function CenaInativa({
       {image && (
         <MarkingCanvas
           image={image}
+          fundoEstatico
           marks={marks}
           yoloSegmentations={yoloSegmentations}
           mostrarContornos={exibirContornos}

@@ -2990,6 +2990,33 @@ export default function App() {
               não muda. Com duas ou mais, cada bancada ganha célula, cabeçalho
               e borda; só a ATIVA recebe este bloco (as outras recebem uma
               versão sem os overlays caros — ver `Bancadas.tsx`). */}
+          {/* 4. Barra de ferramentas — UMA, na borda do espaço de trabalho.
+              A ferramenta é da PESSOA, não da cena: quem escolhe a onda quer
+              a onda em qualquer bancada em que clicar. Dentro do viewport da
+              bancada ativa ela roubava espaço da imagem em 2×2 e dava a
+              impressão de que cada cena tinha a sua. Age sempre sobre a
+              bancada ativa; zoom e escala continuam por cena, porque esses
+              são da cena. */}
+            {image && (
+              <Toolbar
+                activeTool={activeTool}
+                onSelect={setActiveTool}
+                eraserRadius={eraserRadius}
+                onEraserRadiusChange={setEraserRadius}
+                isTemporary={isToolTemporary}
+                showRulers={showRulers}
+                onToggleRulers={() => setShowRulers((v) => !v)}
+                mascara={mascara}
+                onCiclarMascara={ciclarMascara}
+                onAbrirGaleria={() => abrirAbaDireita('galeria')}
+                totalDeObjetos={marks.length + yoloSegmentations.length}
+                ajusteDaMarca={ajusteDaMarca}
+                onAjusteDaMarcaChange={setAjusteDaMarca}
+                raioDaRaspagem={raioDaRaspagem}
+                onRaioDaRaspagemChange={setRaioDaRaspagem}
+              />
+            )}
+
           <Bancadas bancadas={bancadas} onBrowseFiles={handleBrowseFiles}>
           <div className="relative flex-1 h-full overflow-hidden flex flex-col">
             <ImageViewport
@@ -3171,26 +3198,6 @@ export default function App() {
               )}
             </ImageViewport>
 
-            {/* 4. Barra de Ferramentas — FIXA SOBRE O VIEWPORT (sempre acessível mesmo com muito zoom) */}
-            {image && (
-              <Toolbar
-                activeTool={activeTool}
-                onSelect={setActiveTool}
-                eraserRadius={eraserRadius}
-                onEraserRadiusChange={setEraserRadius}
-                isTemporary={isToolTemporary}
-                showRulers={showRulers}
-                onToggleRulers={() => setShowRulers((v) => !v)}
-                mascara={mascara}
-                onCiclarMascara={ciclarMascara}
-                onAbrirGaleria={() => abrirAbaDireita('galeria')}
-                totalDeObjetos={marks.length + yoloSegmentations.length}
-                ajusteDaMarca={ajusteDaMarca}
-                onAjusteDaMarcaChange={setAjusteDaMarca}
-                raioDaRaspagem={raioDaRaspagem}
-                onRaioDaRaspagemChange={setRaioDaRaspagem}
-              />
-            )}
 
             {/* Medidas ao vivo — FIXO SOBRE O VIEWPORT */}
             {image && (
