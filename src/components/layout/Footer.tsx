@@ -1,5 +1,6 @@
 import React from 'react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
+import { DISSERTACAO } from '../../features/easter/fucik';
 
 interface FooterProps {
   filename?: string;
@@ -151,7 +152,18 @@ export function Footer({
         <div className="hidden flex-col items-end leading-tight lg:flex" title={CREDITOS}>
           <span className="text-ink-2 text-[10px]">
             <span className="text-accent font-bold">GPEOrq</span> / <span className="text-accent font-bold">GPSEM</span>
-            {' · '}Enrico S. Ambrosio
+            {' · '}
+            {/* O nome leva à dissertação — o easter egg mais discreto: quem
+                clica num nome quer saber quem é, e a resposta é o trabalho. */}
+            <a
+              href={DISSERTACAO.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${DISSERTACAO.titulo} — dissertação de mestrado (repositório da biblioteca)`}
+              className="hover:text-accent decoration-current/25 underline underline-offset-2 transition-colors"
+            >
+              Enrico S. Ambrosio
+            </a>
           </span>
           <span className="text-ink-3 text-[9px]">
             Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
