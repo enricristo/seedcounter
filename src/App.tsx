@@ -256,7 +256,6 @@ export default function App() {
   const [fundoIncerto, setFundoIncerto] = useState(false);
   const [achatando, setAchatando] = useState(false);
 
-  const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
 
   // Easter eggs: `semente` liga o tic ao marcar, `orquidea` floresce. O gancho
   // tem o proprio ouvinte de teclado e nao passa por useKeyboardShortcuts —
@@ -334,7 +333,6 @@ export default function App() {
     isResetConfirmOpen ||
     isFeaturesOpen ||
     novidades.aberto ||
-    isGaleriaOpen ||
     isIdentificacaoOpen;
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
@@ -576,8 +574,10 @@ export default function App() {
     ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca);
-  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca]);
+    if (mostraPontos(mascara)) {
+      renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca);
+    }
+  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca, mascara]);
 
   useEffect(() => {
     if (imagemDeTrabalho && canvasRef.current) {
@@ -586,7 +586,7 @@ export default function App() {
       canvas.height = imagemDeTrabalho.height;
       drawCanvas();
     }
-  }, [imagemDeTrabalho, drawCanvas, marks, visualMode]);
+  }, [imagemDeTrabalho, drawCanvas, marks, visualMode, mascara]);
 
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1693,9 +1693,27 @@ export default function App() {
     return resumir(medicoesDeMorfometria, metadata.umPerPixel);
   }, [image, medicoesDeMorfometria, metadata.umPerPixel]);
 
+  /**
+   * O painel direito tem três abas: resultados, inspetor e galeria. Inspetor e
+   * galeria eram janelas flutuantes que cobriam o canvas e "não fechavam" — a
+   * pessoa perdia o X atrás do zoom. Como aba, o lugar delas é fixo, o fechar é
+   * trocar de aba, e o canvas nunca fica coberto.
+   */
+  const [rightSidebarTab, setRightSidebarTab] = useState<'resultados' | 'inspetor' | 'galeria'>('resultados');
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
     lerPreferencia('sc:painelDireitoRecolhido', false)
   );
+  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria') => {
+    setRightSidebarTab(aba);
+    setIsRightSidebarCollapsed(false);
+  }, []);
+  const galeriaAberta = rightSidebarTab === 'galeria' && !isRightSidebarCollapsed;
+
+  // Selecionar um contorno leva ao inspetor; desselecionar não muda de aba
+  // (a pessoa pode estar lendo os resultados e só clicou fora).
+  useEffect(() => {
+    if (contornoSelecionado != null) abrirAbaDireita('inspetor');
+  }, [contornoSelecionado, abrirAbaDireita]);
 
   const handleToggleRightSidebar = useCallback(() => {
     setIsRightSidebarCollapsed((prev) => {
@@ -1855,7 +1873,7 @@ export default function App() {
       setVersaoDispensadas((v) => v + 1);
       switch (acao) {
         case 'abrir-galeria':
-          setIsGaleriaOpen(true);
+          abrirAbaDireita('galeria');
           break;
         case 'abrir-calibracao':
           setActiveTool('viable');
@@ -2000,7 +2018,6 @@ export default function App() {
    */
   const handleFocarNoCanvas = useCallback(
     (coords: { x: number; y: number }, segmentacaoId?: number) => {
-      setIsGaleriaOpen(false);
       if (segmentacaoId != null) {
         setContornoSelecionado(segmentacaoId);
         setActiveTool('contorno');
@@ -2221,7 +2238,7 @@ export default function App() {
     onOpenExport: () => setIsExportModalOpen(true),
     onToggleTheme: toggleTheme,
     onCiclarMascara: ciclarMascara,
-    onAbrirGaleria: () => setIsGaleriaOpen(true),
+    onAbrirGaleria: () => abrirAbaDireita('galeria'),
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
     hasPrevImage: currentImageIndex > 0,
@@ -2453,22 +2470,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Inspetor de Semente: janela lateral flutuante com morfometria, CIELAB e priors */}
-              {segmentacaoAtiva && image && (
-                <SeedInspector
-                  segmentation={segmentacaoAtiva}
-                  image={imagemDeTrabalho ?? image}
-                  umPerPixel={metadata.umPerPixel}
-                  medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
-                  limiares={limiaresDaCena}
-                  especieId={especieDeclarada}
-                  onToggleClass={toggleSegmentationClass}
-                  onDelete={deleteSegmentation}
-                  onProposeCut={handleProposeCut}
-                  onClose={() => setContornoSelecionado(null)}
-                />
-              )}
-
               {image && (
                 <MarkingCanvas
                   image={imagemDeTrabalho ?? image}
@@ -2556,7 +2557,7 @@ export default function App() {
                 onToggleRulers={() => setShowRulers((v) => !v)}
                 mascara={mascara}
                 onCiclarMascara={ciclarMascara}
-                onAbrirGaleria={() => setIsGaleriaOpen(true)}
+                onAbrirGaleria={() => abrirAbaDireita('galeria')}
                 totalDeObjetos={marks.length + yoloSegmentations.length}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
@@ -2632,6 +2633,50 @@ export default function App() {
             isCollapsed={isRightSidebarCollapsed}
             onToggleCollapse={handleToggleRightSidebar}
             hasImage={!!image}
+            activeTab={rightSidebarTab}
+            onTabChange={setRightSidebarTab}
+            inspectorContent={
+              segmentacaoAtiva && image ? (
+                <SeedInspector
+                  segmentation={segmentacaoAtiva}
+                  image={imagemDeTrabalho ?? image}
+                  umPerPixel={metadata.umPerPixel}
+                  medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                  limiares={limiaresDaCena}
+                  especieId={especieDeclarada}
+                  onToggleClass={toggleSegmentationClass}
+                  onDelete={deleteSegmentation}
+                  onProposeCut={handleProposeCut}
+                  onClose={() => {
+                    setContornoSelecionado(null);
+                    setRightSidebarTab('resultados');
+                  }}
+                />
+              ) : undefined
+            }
+            galeriaContent={
+              <GaleriaModal
+                modo="painel"
+                isOpen={galeriaAberta}
+                onClose={() => setRightSidebarTab('resultados')}
+                image={image}
+                marks={marks}
+                yoloSegmentations={yoloSegmentations}
+                onToggleSegmentationClass={toggleSegmentationClass}
+                onDeleteSegmentation={deleteSegmentation}
+                onToggleMarkClass={handleToggleMarkClass}
+                onRemoveMark={removeMark}
+                onSegmentarPendentes={handleSegmentarPendentes}
+                onSegmentarUma={handleSegmentarUma}
+                progresso={segmentandoLote}
+                protocolo={metadata.protocolo}
+                onSubclasse={setSubclasse}
+                onFocarNoCanvas={handleFocarNoCanvas}
+                umPerPixel={metadata.umPerPixel}
+                medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                limiares={limiaresDaCena}
+              />
+            }
           />
         </div>
       )}
@@ -2870,27 +2915,6 @@ export default function App() {
         isOpen={novidades.aberto}
         onClose={() => setNovidades((n) => ({ ...n, aberto: false }))}
         versoes={novidades.versoes}
-      />
-
-      <GaleriaModal
-        isOpen={isGaleriaOpen}
-        onClose={() => setIsGaleriaOpen(false)}
-        image={image}
-        marks={marks}
-        yoloSegmentations={yoloSegmentations}
-        onToggleSegmentationClass={toggleSegmentationClass}
-        onDeleteSegmentation={deleteSegmentation}
-        onToggleMarkClass={handleToggleMarkClass}
-        onRemoveMark={removeMark}
-        onSegmentarPendentes={handleSegmentarPendentes}
-        onSegmentarUma={handleSegmentarUma}
-        progresso={segmentandoLote}
-        protocolo={metadata.protocolo}
-        onSubclasse={setSubclasse}
-        onFocarNoCanvas={handleFocarNoCanvas}
-        umPerPixel={metadata.umPerPixel}
-        medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
-        limiares={limiaresDaCena}
       />
 
       <IdentificacaoModal

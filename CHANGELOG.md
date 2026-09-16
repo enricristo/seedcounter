@@ -3,6 +3,34 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.4.0] — 2026-09-15
+
+Prancheta, painel com abas e a medida que vem da própria imagem. Detalhe em
+linguagem de quem usa: `src/lib/novidades.ts` (tela Novidades do aplicativo).
+
+### Adicionado
+- Painel direito com abas **Resultados / Inspetor / Galeria**; selecionar contorno abre o inspetor na aba.
+- Prancheta metrológica: cota (`R`), seta (`A`), área de interesse (`B`), texto (`T`) — arrastar e soltar; overlays isolados em `components/canvas/overlays/`.
+- Leitor de **TIFF** (8/16 bits, LZW, multipágina) via `utif`.
+- **Feret** máx/mín por calibradores rotativos (`lib/feret.ts`); colunas no CSV.
+- **Limiar de aglomerado relativo à população** da cena (`limiaresDaPopulacao`), medido: orquídea 78% → 13% de falso alarme; soja 0%.
+- Critério de treino do modelo YOLO visível no painel de IA (`lib/criterio-do-modelo.ts`).
+- Taxonomia de classes como caminho (`lib/normas/taxonomia.ts`); Dexie v6.
+- Inferência ONNX em **Web Worker** com fallback e cancelamento.
+- Spike do menu radial atrás da flag `menuRadial` (para medir contra a tecla `X`).
+- Cena sintética com rótulos por pixel e `comporCena`; regras semi-automáticas com fantasmas; histogramas.
+- Consentimento de cookies (Consent Mode v2) antes do GA4.
+
+### Alterado
+- `priors-morfometricos` vira referência (`compararComPerfil`), nunca veredito.
+- Modais: Esc e clique fora fecham; atalhos suspensos com modal aberto.
+- Mouse: direito inverte classe; meio arrasta; roda dá zoom no cursor.
+
+### Corrigido
+- Ocultar marcações não escondia os pontos pintados no bitmap.
+- Propor corte no inspetor aplicava no segundo clique (teste estático `corte-nunca-automatico`).
+- Ferramentas novas sem entrada na ajuda de atalhos.
+
 ## [3.0.0-beta] — 2026-08
 
 Rodada de aquisição, calibração e análise automática.

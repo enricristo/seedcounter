@@ -7,8 +7,26 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+
+      // Google Consent Mode v2: verifica consentimento prévio salvo
+      var savedConsent = null;
+      try {
+        savedConsent = localStorage.getItem('sc:cookie-consent');
+      } catch (e) {}
+
+      gtag('consent', 'default', {
+        'analytics_storage': savedConsent === 'granted' ? 'granted' : 'denied',
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied'
+      });
+
       gtag('config', 'G-8VXS2W0FG4');
     </script>
+
+    <!-- Google Search Console: Pode ser verificado automaticamente pelo GA4 acima, ou descomente abaixo se usar token HTML -->
+    <!-- <meta name="google-site-verification" content="SEU_TOKEN_DO_GOOGLE_SEARCH_CONSOLE_AQUI" /> -->
+
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

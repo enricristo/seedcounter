@@ -26,8 +26,6 @@ import {
 } from '../../lib/aglomerado';
 import { extrairCaracteristicasDeCor, type CaracteristicasDeCor } from '../../lib/color-features';
 import { compararComPerfil } from '../../lib/priors-morfometricos';
-import { useModalEscape } from '../../hooks/useModalEscape';
-import { useDraggable } from '../../hooks/useDraggable';
 
 interface SeedInspectorProps {
   segmentation: YoloSegmentation;
@@ -55,9 +53,6 @@ export function SeedInspector({
   onProposeCut,
   onClose,
 }: SeedInspectorProps) {
-  useModalEscape(true, onClose);
-
-  const { position, handlers, isDragging } = useDraggable({ x: 0, y: 0 });
 
   const thumbnailRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -246,20 +241,9 @@ export function SeedInspector({
   const tetrazolioIntensidade = Math.min(100, Math.max(0, ((aColor - 0) / 45) * 100));
 
   return (
-    <div
-      className="bg-surface-0/95 border-line rounded-panel shadow-floating text-ink-1 animate-in fade-in slide-in-from-right-4 pointer-events-auto absolute top-16 right-4 z-40 flex w-80 flex-col overflow-hidden border backdrop-blur-md transition-all"
-      style={{
-        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-        cursor: isDragging ? 'grabbing' : 'auto',
-      }}
-      role="dialog"
-      aria-label="Inspetor de Semente"
-    >
+    <div className="flex flex-col h-full w-full bg-surface-1">
       {/* Cabeçalho */}
-      <div 
-        className="border-line bg-surface-1/50 flex items-center justify-between border-b px-3.5 py-2.5 cursor-grab active:cursor-grabbing select-none"
-        {...handlers}
-      >
+      <div className="border-line flex items-center justify-between border-b pb-2 select-none mb-2">
         <div className="flex items-center gap-2">
           <Activity className="text-accent h-4 w-4" />
           <span className="text-xs font-bold tracking-tight">
@@ -284,7 +268,7 @@ export function SeedInspector({
         </button>
       </div>
 
-      <div className="max-h-[75vh] space-y-3.5 overflow-y-auto p-3.5 text-xs">
+      <div className="flex-1 space-y-3.5 overflow-y-auto text-xs pb-4">
         {/* Visualizador de Miniatura */}
         <div className="border-line bg-surface-2/40 rounded-control flex flex-col items-center justify-center overflow-hidden border p-1.5">
           <canvas

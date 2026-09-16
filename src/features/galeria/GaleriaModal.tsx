@@ -60,6 +60,12 @@ const FILTROS: { id: Filtro; rotulo: string }[] = [
 
 interface GaleriaModalProps {
   isOpen: boolean;
+  /**
+   * 'flutuante' (padrão): janela/gaveta com fundo escuro e Escape.
+   * 'painel': só o conteúdo, para viver numa aba do painel lateral direito —
+   * sem fundo, sem Escape (Escape no painel fecharia o que a pessoa está usando).
+   */
+  modo?: 'flutuante' | 'painel';
   onClose: () => void;
   image: HTMLImageElement | null;
   marks: Mark[];
@@ -112,8 +118,9 @@ export function GaleriaModal({
   umPerPixel,
   medianaDaCena,
   limiares,
+  modo = 'flutuante',
 }: GaleriaModalProps) {
-  useModalEscape(isOpen, onClose);
+  useModalEscape(isOpen && modo === 'flutuante', onClose);
 
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [semFundo, setSemFundo] = useState(false);
@@ -174,15 +181,17 @@ export function GaleriaModal({
   return (
     <div
       className={
-        modoVisualizacao === 'gaveta'
-          ? 'fixed right-0 top-0 bottom-0 z-40 w-[500px] max-w-[95vw] flex flex-col border-l border-line bg-surface-1 shadow-2xl overflow-hidden'
-          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4'
+        modo === 'painel'
+          ? 'flex flex-col w-full min-h-[70vh]'
+          : modoVisualizacao === 'gaveta'
+            ? 'fixed right-0 top-0 bottom-0 z-40 w-[500px] max-w-[95vw] flex flex-col border-l border-line bg-surface-1 shadow-2xl overflow-hidden'
+            : 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4'
       }
-      onClick={modoVisualizacao === 'modal' ? onClose : undefined}
+      onClick={modo === 'flutuante' && modoVisualizacao === 'modal' ? onClose : undefined}
     >
       <div
         className={
-          modoVisualizacao === 'gaveta'
+          modo === 'painel' || modoVisualizacao === 'gaveta'
             ? 'flex flex-col h-full w-full overflow-hidden'
             : 'flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface-1 shadow-2xl'
         }
@@ -204,6 +213,7 @@ export function GaleriaModal({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {modo === 'flutuante' && (
             <button
               onClick={alternarModo}
               title={
@@ -225,6 +235,7 @@ export function GaleriaModal({
                 </>
               )}
             </button>
+            )}
             <button
               onClick={onClose}
               aria-label="Fechar"

@@ -54,6 +54,78 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.4.0',
+    data: '2026-09-15',
+    titulo: 'Prancheta, painel com abas e a medida que vem da própria imagem',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Inspetor e galeria viraram abas do painel direito',
+        detalhe:
+          'Eram janelas flutuantes que cobriam o canvas e escondiam o próprio X atrás do zoom. Agora o painel direito tem três abas — Resultados, Inspetor, Galeria — e clicar num contorno abre o inspetor no lugar dele, sem tapar nada. Fechar é trocar de aba.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Prancheta: cota (R), seta (A), área de interesse (B) e texto (T)',
+        detalhe:
+          'Ferramentas de documentação sobre a imagem, todas por arrastar e soltar. A cota mede em px, ou em mm quando a cena está calibrada; a seta e a área destacam um fungo ou uma anomalia sem criar semente.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Abre TIFF do scanner',
+        detalhe:
+          'Antes o aplicativo pedia para converter para PNG. Agora decodifica TIFF de 8 e 16 bits direto (multipágina abre a primeira e avisa).',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Diâmetro de Feret no inspetor e no CSV',
+        detalhe:
+          'Maior e menor largura do contorno medidas por calibradores rotativos — a medida padrão do ImageJ e a que mapeia em peneira comercial. Colunas feret_max e feret_min em px e em mm.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Aviso de aglomerado calibrado pela própria imagem',
+        detalhe:
+          'O limiar deixou de ser uma constante por espécie: sai da mediana e da dispersão dos contornos da cena. Medido: em orquídea, sementes sadias acusadas caíram de 78% para 13%; em soja, 0% antes e depois.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Referência de literatura no inspetor, sem veredito',
+        detalhe:
+          'Os valores típicos de solidez e circularidade por espécie aparecem como referência ("fora da faixa típica"), nunca como diagnóstico. Quem decide é quem olha.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Detecção por IA não trava mais o arraste',
+        detalhe: 'A inferência roda num worker separado; se o worker falhar, volta para o modo antigo sem você notar.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Como o modelo foi treinado, escrito no painel',
+        detalhe:
+          'O critério de anotação (vermelho = viável, branco = inviável, vazia = fundo) fica visível antes do botão de detectar — para ninguém esperar do modelo o que ele não aprendeu.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Mouse: botão direito inverte a classe; botão do meio arrasta a imagem; roda dá zoom no cursor',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Ocultar marcações não escondia os pontos desenhados na imagem',
+        detalhe: 'O botão de máscara escondia os contornos mas os pontos continuavam pintados. Agora esconde os dois.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Propor corte no inspetor aplicava o corte no segundo clique',
+        detalhe: 'Agora só seleciona e mostra a linha; cortar continua sendo o botão Separar. Há um teste que impede a regressão.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Modais fecham com Esc e com clique fora, e atalhos ficam suspensos enquanto um modal está aberto',
+      },
+    ],
+  },
+  {
     numero: '3.3.0',
     data: '2026-09-10',
     titulo: 'Desfazer de verdade, e o contorno na mão',

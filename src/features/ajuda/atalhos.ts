@@ -129,6 +129,35 @@ export const INSTRUCOES_DO_MOUSE: GrupoDeInstrucoes[] = [
     ],
   },
   {
+    titulo: 'Cota (régua)',
+    tecla: 'R',
+    instrucoes: [
+      { gesto: 'Arrastar', efeito: 'Traça a cota; o valor sai em px, ou em mm se a cena está calibrada' },
+      { gesto: 'Soltar', efeito: 'Fixa a cota na prancheta' },
+    ],
+  },
+  {
+    titulo: 'Seta',
+    tecla: 'A',
+    instrucoes: [
+      { gesto: 'Arrastar', efeito: 'Desenha uma seta apontando para o que interessa — sem medida' },
+    ],
+  },
+  {
+    titulo: 'Área de interesse',
+    tecla: 'B',
+    instrucoes: [
+      { gesto: 'Arrastar', efeito: 'Destaca uma região (fungo, praga, anomalia) sem associá-la a uma semente' },
+    ],
+  },
+  {
+    titulo: 'Anotação textual',
+    tecla: 'T',
+    instrucoes: [
+      { gesto: 'Clique', efeito: 'Insere um texto de chamada no ponto' },
+    ],
+  },
+  {
     titulo: 'Borracha',
     tecla: 'E',
     instrucoes: [
