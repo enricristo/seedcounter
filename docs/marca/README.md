@@ -1,5 +1,7 @@
 # Marca do SeedCounter — três propostas (16/09/2026)
 
+> **Decidido em 16/09: a proposta 2 (semente contornada) foi aprovada e aplicada** — `public/mark.svg` (favicon) e `MarcaSemente` em `src/components/layout/Header.tsx`. O texto abaixo fica como registro do porquê, e as outras duas ficam disponíveis caso a escolha mude.
+
 A marca atual (`public/mark.svg`, `MarcaReticulo` no cabeçalho) é um retículo com uma semente dentro. Funciona, mas diz "isto observa" — e o que o app faz é **contar e medir**. As três propostas abaixo partem do mesmo par de cores (instrumento frio `#0d8ea1`, espécime quente `#e0651f`, escolhido por contraste em fundo claro *e* escuro) e mudam o que a forma **afirma**. Nenhuma foi aplicada: escolha uma (ou peça ajustes) e eu troco marca, favicon e a tela de abertura de uma vez.
 
 | | proposta | o que ela afirma | leitura a 24 px |
