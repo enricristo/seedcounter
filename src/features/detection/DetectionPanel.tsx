@@ -28,6 +28,7 @@ import {
   SquareDashedMousePointer,
   RotateCcw,
   Save,
+  Eye,
 } from 'lucide-react';
 import { detectObjects, type ThresholdMode, type GrayChannel, type DetectionOptions } from '../../lib/detect';
 import {
@@ -361,7 +362,25 @@ export function DetectionPanel({
 
   // Mexer num controle re-executa, com um pequeno atraso — evita rodar a
   // localização inteira a cada pixel de um arraste de slider.
+  //
+  // SÓ quando um controle mudou. Rodar ao montar ou ao trocar de imagem
+  // fazia a localização + onda correrem na imagem inteira sem ninguém pedir:
+  // fantasmas apareciam sozinhos e a thread principal ficava ocupada — o
+  // clique da onda "não ia". A chave abaixo é o retrato dos controles; a
+  // imagem fica de fora de propósito, e ao trocar de imagem a proposta
+  // antiga é apagada em vez de recalculada.
+  const chaveDosControles = JSON.stringify([
+    sensitivity, polarity, backgroundManual, thresholdMode, channel, denoise, splitTouching, separation,
+    maxElongation, minLimite, maxLimite, regiao, ondaOpcoes,
+  ]);
+  const ultimaChaveRef = useRef<string | null>(null);
   useEffect(() => {
+    if (ultimaChaveRef.current === null) {
+      ultimaChaveRef.current = chaveDosControles; // primeira renderização: só registra
+      return;
+    }
+    if (ultimaChaveRef.current === chaveDosControles) return;
+    ultimaChaveRef.current = chaveDosControles;
     const t = setTimeout(() => {
       void executar();
     }, ATRASO_MS);
@@ -369,7 +388,13 @@ export function DetectionPanel({
       clearTimeout(t);
       cancelRef.current = true;
     };
-  }, [executar]);
+  }, [chaveDosControles, executar]);
+
+  // Imagem nova: a proposta era da anterior.
+  useEffect(() => {
+    setResultado(null);
+    onContornosPropostos([]);
+  }, [image, onContornosPropostos]);
 
   useEffect(() => () => onContornosPropostos([]), [onContornosPropostos]);
 
@@ -718,6 +743,14 @@ export function DetectionPanel({
         ))}
 
         <div className="flex gap-2">
+          <button
+            onClick={() => void executar()}
+            disabled={disabled || isRunning}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-accent text-accent hover:bg-accent-tint disabled:opacity-40 text-[11px] font-bold uppercase tracking-wide transition-colors"
+            title="Rodar com os controles atuais; o resultado aparece tracejado até Aplicar"
+          >
+            <Eye size={14} /> {isRunning ? 'Rodando…' : 'Prévia'}
+          </button>
           <button
             onClick={handleAplicar}
             disabled={disabled || !resultado || resultado.propostos.length === 0}
