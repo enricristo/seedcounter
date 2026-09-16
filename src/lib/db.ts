@@ -5,6 +5,7 @@ import type { IdentificacaoDoLaboratorio } from './normas/identificacao';
 import type { TelemetryQueueRecord } from './telemetry/types';
 import type { DetectionOptions } from './detect';
 import type { OpcoesDaOnda } from './region-growing';
+import type { PerfilMedido } from './perfil-medido';
 
 /**
  * Uma pasta de datasets que a pessoa abriu e o app lembra.
@@ -60,6 +61,26 @@ export interface ReceitaSalva {
   criadaEm: number;
 }
 
+/**
+ * Um perfil morfométrico MEDIDO — resultado de "Medir esta pasta" (B4) sobre
+ * um conjunto de classificação, agregado por classe.
+ *
+ * Guardamos o `PerfilMedido` já agregado (não as medidas cruas por foto):
+ * é o que o inspetor e a tabela do painel consomem, e reagregar a cada
+ * abertura de imagem seria custo sem propósito — medir de novo é um gesto
+ * explícito ("Medir esta pasta"), não algo implícito na navegação.
+ */
+export interface PerfilMedidoGuardado {
+  id?: number;
+  /** Nome do conjunto dentro da pasta aberta (ex.: "peanuts.v2-release.multiclass"). */
+  conjunto: string;
+  classe: string;
+  perfil: PerfilMedido;
+  /** Quantas fotos foram descartadas nesta medição (foto ilegível, sem detecção). */
+  descartadas: number;
+  medidoEm: number;
+}
+
 export class SeedCounterDB extends Dexie {
   sessions!: Table<Session, string>;
   metadataStore!: Table<{ id: string; data: Metadata }, string>;
@@ -68,6 +89,7 @@ export class SeedCounterDB extends Dexie {
   telemetryQueue!: Table<TelemetryQueueRecord, string>;
   pastasDeDatasets!: Table<PastaDeDatasetGuardada, number>;
   receitas!: Table<ReceitaSalva, number>;
+  perfisMedidos!: Table<PerfilMedidoGuardado, number>;
 
   constructor() {
     super('SeedCounterDB');
@@ -152,6 +174,23 @@ export class SeedCounterDB extends Dexie {
       telemetryQueue: 'id, status, createdAt, retryCount',
       pastasDeDatasets: '++id, nome, aberta',
       receitas: '++id, especie, nome',
+    });
+
+    // v9 — perfil morfométrico MEDIDO por classe (B4, "Medir esta pasta").
+    // Distinto dos priors de literatura (`priors-morfometricos.ts`): é medido
+    // com a mesma onda que o app usa no clique, sobre um conjunto de
+    // classificação já rotulado — comparável ao que a bancada mede, não ao
+    // que outro scanner mediu. Sem migração de dado: pasta nunca medida
+    // simplesmente não tem perfil, que é o estado inicial de qualquer uma.
+    this.version(9).stores({
+      sessions: 'id, date, experimentId, treatmentId',
+      metadataStore: 'id',
+      experiments: 'id, createdAt, species, responsible',
+      laboratorio: 'id',
+      telemetryQueue: 'id, status, createdAt, retryCount',
+      pastasDeDatasets: '++id, nome, aberta',
+      receitas: '++id, especie, nome',
+      perfisMedidos: '++id, conjunto, classe, medidoEm',
     });
   }
 }
