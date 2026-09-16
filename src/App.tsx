@@ -29,12 +29,8 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 
 // Hooks
 import { useTheme } from './hooks/useTheme';
-import { useMarks } from './hooks/useMarks';
-import { useMetadata } from './hooks/useMetadata';
+import { useBancada } from './hooks/useBancada';
 import { useSessions } from './hooks/useSessions';
-import { useImageQueue } from './hooks/useImageQueue';
-import { useZoom } from './hooks/useZoom';
-import { usePanning } from './hooks/usePanning';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
 import { useViewNavigation } from './hooks/useViewNavigation';
@@ -94,11 +90,9 @@ import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/a
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
 import { acharPorNome, TAMANHOS } from './lib/normas/tamanhos-de-semente';
 import {
-  ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
   mostraPontos,
   proxima as proximaMascara,
-  type Mascara,
 } from './features/mascara';
 import { useLaboratorio } from './hooks/useLaboratorio';
 import { carregarExemplo } from './features/demo/exemplos';
@@ -135,14 +129,11 @@ import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
-import type { Regiao } from './lib/region';
 import {
-  NEUTRAL_ADJUSTMENTS,
   applyAdjustments,
   exigePixels,
   isNeutral,
   toCssFilter,
-  type ImageAdjustments,
 } from './lib/image-adjust';
 import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
@@ -277,25 +268,12 @@ export default function App() {
   /** Proposta do ensaio sob o mouse, mostrada tracejada no canvas para comparar receitas. */
   const [propostaDestacada, setPropostaDestacada] = useState<[number, number][][]>([]);
   const { laboratorio } = useLaboratorio();
-  const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
-  const [contornoSelecionado, setContornoSelecionado] = useState<number | null>(null);
   const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
-
-  /**
-   * A imagem com o fundo nivelado.
-   *
-   * Fica SEPARADA de `image`, que continua sendo a original. A onda e a
-   * borracha leem esta; o YOLO e o laudo leem a original — o modelo foi
-   * treinado nela, e foto processada nao e a chapa.
-   */
-  const [fundoAchatado, setFundoAchatado] = useState<HTMLImageElement | null>(null);
-  /**
-   * Forçar as automações a ler a imagem ORIGINAL, ignorando fundo achatado e
-   * ajustes. Existe para responder "a detecção piorou por causa do ajuste?"
-   * com um clique, em vez de desfazer tudo e refazer depois.
-   */
-  const [forcarOriginalNasAutomacoes, setForcarOriginalNasAutomacoes] = useState(false);
+  // mascara, contornoSelecionado, fundoAchatado e forcarOriginalNasAutomacoes
+  // sao estado de CENA — moraram em useBancada() (Task 1 de bancadas) e chegam
+  // via `bancada.cena`, desestruturados mais abaixo, no mesmo lugar onde a
+  // fila de imagens entrava.
   const [fundoIncerto, setFundoIncerto] = useState(false);
   const [achatando, setAchatando] = useState(false);
 
@@ -344,15 +322,13 @@ export default function App() {
   }, []);
   const ciclarMascara = useCallback(() => setMascara((m) => proximaMascara(m)), []);
   const [showRulers, setShowRulers] = useState(true);
-  const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
-  const [adjustEnabled, setAdjustEnabled] = useState(true);
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
 
-  // Região de detecção: onde os motores (clássico e YOLO) vão rodar.
-  // Sem ela, os dois varrem a imagem inteira — que numa digitalização de
-  // scanner são dezenas de janelas de inferência e minutos de espera.
-  const [regiaoDeDeteccao, setRegiaoDeDeteccao] = useState<Regiao | null>(null);
+  // Região de detecção: onde os motores (clássico e YOLO) vão rodar. Sem ela,
+  // os dois varrem a imagem inteira — dezenas de janelas de inferência numa
+  // digitalização de scanner. `regiaoDeDeteccao` é estado de cena, em
+  // `bancada.cena`; só o "estou selecionando agora" fica aqui.
   const [selecionandoRegiao, setSelecionandoRegiao] = useState(false);
 
   // Modal Open states
@@ -436,84 +412,16 @@ export default function App() {
   const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
   const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
 
-  // Annotation states
-  const {
-    marks,
-    setMarks,
-    yoloSegmentations,
-    anotacoesVisuais,
-    setYoloSegmentations,
-    segmentsVisible,
-    addMark,
-    removeMark,
-    removerMarcas,
-    setSubclasse,
-    addYoloSegmentations,
-    appendYoloSegmentation,
-    toggleSegmentationClass,
-    deleteSegmentation,
-    resetAllAnnotations,
-    desfazer,
-    refazer,
-    podeDesfazer,
-    podeRefazer,
-    mutar,
-    abrirGesto,
-    fecharGesto,
-    carregar,
-  } = useMarks();
-  // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
-  // maior lado dos contornos ja segmentados. E o que permite conferir se a
-  // escala informada faz sentido para a especie declarada.
-  const comprimentoTipicoEmPixels = useMemo(() => {
-    const lados = yoloSegmentations
-      .filter((s) => s.visible !== false)
-      .map((s) => {
-        const caixa = envolver(s.polygon_points);
-        return caixa ? Math.max(caixa.largura, caixa.altura) : 0;
-      })
-      .filter((l) => l > 0)
-      .sort((a, b) => a - b);
-    if (lados.length < 3) return undefined;
-    const meio = Math.floor(lados.length / 2);
-    return lados.length % 2 === 0 ? (lados[meio - 1] + lados[meio]) / 2 : lados[meio];
-  }, [yoloSegmentations]);
-
-  // Metadata sample inputs
-  const { metadata, setMetadata, updateMetadata } = useMetadata();
-
-  // A conta e opcional e so lembra a bancada. Sem VITE_GOOGLE_CLIENT_ID o botao
-  // nem aparece; o resto do aplicativo nao sabe que ela existe.
-  const conta = useConta(metadata, setMetadata);
-
-  // Sessions CRUD history
-  const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
-
-  // Zooming controls
-  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = useZoom();
-
-  // Panning & Panning gesture drag mode
-  const {
-    isPanningMode,
-    setIsPanningMode,
-    isDragging: isPanningDrag,
-    startDrag,
-    handleDrag,
-    stopDrag,
-    togglePanningMode,
-  } = usePanning();
-
   // DOM Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // Anotações por imagem da fila.
-  //
-  // A chave é nome + tamanho, não o índice: se a fila for recarregada ou
-  // reordenada, o índice muda e o do lado passa a receber a contagem errada,
-  // que é pior do que perdê-la.
+  // Anotações por imagem da fila (chave nome+tamanho, não índice — senão
+  // reordenar a fila trocaria a contagem de lugar). Estas refs são estado de
+  // cena por natureza; ficam aqui porque `onImageLoaded` ainda as lê direto
+  // (ver `useBancada.ts` sobre a migração adiada para a Task 2).
   const chaveDaImagem = useCallback((file: File) => `${file.name}:${file.size}`, []);
   const anotacoesPorImagem = useRef<
     Map<string, { marks: Mark[]; yoloSegmentations: YoloSegmentation[] }>
@@ -555,6 +463,217 @@ export default function App() {
    */
   const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(null);
 
+  // Sessions CRUD history
+  const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
+
+  // Dispara ao terminar de carregar imagem nova. Continua no App (mexe em
+  // dataset pendente e ensaio, coisas globais) e referencia `bancada` e
+  // `especieOuCulturaDeclarada` antes deles serem declarados — válido porque
+  // só roda depois deste render terminar, como já valia para `abrirAbaDireita`.
+  const onImageLoaded = (img: HTMLImageElement, file: File) => {
+    // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
+    const vinculo = datasetPendente.current;
+    datasetPendente.current = null;
+    bancada.meta.setMetadata((prev) =>
+      prev.dataset || vinculo ? { ...prev, dataset: vinculo ?? undefined } : prev
+    );
+    setChipDeClasseDispensado(null);
+
+    // As anotações da imagem que estava aberta são guardadas ANTES de a nova
+    // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
+    // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
+    // de uma folha inteira.
+    //
+    // A leitura vem de refs, não do estado: a função é chamada de dentro de
+    // um callback assíncrono do FileReader, onde o valor capturado pelo
+    // fecho pode estar velho.
+    if (chaveAtual.current) {
+      anotacoesPorImagem.current.set(chaveAtual.current, {
+        marks: marcasRef.current,
+        yoloSegmentations: segmentacoesRef.current,
+      });
+    }
+
+    const chave = chaveDaImagem(file);
+    chaveAtual.current = chave;
+
+    // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
+    // pode desfazer o que se fez na anterior.
+    const guardado = anotacoesPorImagem.current.get(chave);
+    bancada.anotacoes.carregar(
+      guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {}
+    );
+
+    if (containerRef.current) {
+      const container = containerRef.current;
+      bancada.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
+    }
+
+    // Ensaio ao carregar: roda as receitas sobre a imagem RECÉM-CHEGADA
+    // (o parâmetro `img`, não `imagemDeTrabalho` — que neste fecho ainda é o
+    // valor do render anterior, da imagem que acabou de sair da fila).
+    if (isEnsaioAoCarregarEnabled) {
+      ensaioCancelado.current = false;
+      abrirAbaDireita('inspetor');
+
+      // C5, item 2: a receita "pela espécie" (quando a espécie ou o dataset
+      // é conhecido) e as receitas salvas da espécie entram como 4ª+
+      // opções, ao lado das três fixas — a pessoa escolhe qualquer uma
+      // exatamente do mesmo jeito.
+      const areaDaImagemPx = img.width * img.height;
+      const receitaDaEspecie = receitaPelaEspecie(especieOuCulturaDeclarada, {
+        umPerPixel: bancada.meta.metadata.umPerPixel,
+        areaDaImagemPx,
+      });
+      const receitasSalvasConvertidas = receitasSalvas
+        .filter((r): r is ReceitaSalva & { id: number } => r.id != null)
+        .map(receitaDeSalva);
+      const receitasParaRodar: Receita[] = [
+        ...RECEITAS,
+        ...(receitaDaEspecie ? [receitaDaEspecie] : []),
+        ...receitasSalvasConvertidas,
+      ];
+      setEnsaio({ resultados: [], emAndamento: true, total: receitasParaRodar.length });
+
+      (async () => {
+        for (const receita of receitasParaRodar) {
+          if (ensaioCancelado.current) break;
+
+          const deteccao = detectObjects(img, receita.localizacao);
+          // Ferramenta cara em imagem grande: 400 pontos por receita é o
+          // teto — acima disso o ensaio ao carregar deixaria de ser barato,
+          // que é a premissa dele existir sem worker.
+          const limitado = deteccao.objects.length > 400;
+          const pontos = (limitado ? deteccao.objects.slice(0, 400) : deteccao.objects).map((o) => ({
+            x: o.x,
+            y: o.y,
+          }));
+
+          const resultado = await executarReceita(
+            receita,
+            pontos,
+            (p, opcoesDaOnda) => {
+              const r = segmentarNoCanvas(img, p, opcoesDaOnda);
+              return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
+            },
+            { cancelado: () => ensaioCancelado.current }
+          );
+          if (!resultado || ensaioCancelado.current) break;
+
+          console.info(`[ensaio] ${resultado.receita.id} ${resultado.duracaoMs.toFixed(0)}ms`);
+          setEnsaio((prev) => ({
+            resultados: [...(prev?.resultados ?? []), { ...resultado, limitado }],
+            emAndamento: true,
+            total: prev?.total ?? receitasParaRodar.length,
+          }));
+        }
+        setEnsaio((prev) => (prev ? { ...prev, emAndamento: false } : prev));
+      })();
+    }
+  };
+
+  // A cena inteira (ver `useBancada.ts`). Desestruturada com os MESMOS nomes
+  // que o corpo deste componente já usava — nenhuma outra linha do App muda.
+  const bancada = useBancada('b1', { onImageLoaded });
+  const {
+    image,
+    setImage,
+    filename,
+    setFilename,
+    imageQueue,
+    setImageQueue,
+    currentImageIndex,
+    setCurrentImageIndex,
+    loadError,
+    setLoadError,
+    loadFiles,
+    handleFileUpload,
+    handleNextImage,
+    handlePrevImage,
+    loadImageFromFile,
+  } = bancada.fila;
+  const {
+    marks,
+    setMarks,
+    yoloSegmentations,
+    anotacoesVisuais,
+    setYoloSegmentations,
+    segmentsVisible,
+    addMark,
+    removeMark,
+    removerMarcas,
+    setSubclasse,
+    addYoloSegmentations,
+    appendYoloSegmentation,
+    toggleSegmentationClass,
+    deleteSegmentation,
+    resetAllAnnotations,
+    desfazer,
+    refazer,
+    podeDesfazer,
+    podeRefazer,
+    mutar,
+    abrirGesto,
+    fecharGesto,
+    carregar,
+  } = bancada.anotacoes;
+  const { metadata, setMetadata, updateMetadata } = bancada.meta;
+  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = bancada.zoom;
+  const {
+    isPanningMode,
+    setIsPanningMode,
+    isDragging: isPanningDrag,
+    startDrag,
+    handleDrag,
+    stopDrag,
+    togglePanningMode,
+  } = bancada.pan;
+  const {
+    fundoAchatado,
+    setFundoAchatado,
+    adjustments,
+    setAdjustments,
+    adjustEnabled,
+    setAdjustEnabled,
+    mascara,
+    setMascara,
+    contornoSelecionado,
+    setContornoSelecionado,
+    regiaoDeDeteccao,
+    setRegiaoDeDeteccao,
+    ultimaGravacao,
+    setUltimaGravacao,
+    forcarOriginalNasAutomacoes,
+    setForcarOriginalNasAutomacoes,
+    anotacaoAtual,
+    setAnotacaoAtual,
+    datasetContexto,
+    setDatasetContexto,
+    referenciaJaCarregada,
+    setReferenciaJaCarregada,
+  } = bancada.cena;
+
+  // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
+  // maior lado dos contornos ja segmentados. E o que permite conferir se a
+  // escala informada faz sentido para a especie declarada.
+  const comprimentoTipicoEmPixels = useMemo(() => {
+    const lados = yoloSegmentations
+      .filter((s) => s.visible !== false)
+      .map((s) => {
+        const caixa = envolver(s.polygon_points);
+        return caixa ? Math.max(caixa.largura, caixa.altura) : 0;
+      })
+      .filter((l) => l > 0)
+      .sort((a, b) => a - b);
+    if (lados.length < 3) return undefined;
+    const meio = Math.floor(lados.length / 2);
+    return lados.length % 2 === 0 ? (lados[meio - 1] + lados[meio]) / 2 : lados[meio];
+  }, [yoloSegmentations]);
+
+  // A conta e opcional e so lembra a bancada. Sem VITE_GOOGLE_CLIENT_ID o botao
+  // nem aparece; o resto do aplicativo nao sabe que ela existe.
+  const conta = useConta(metadata, setMetadata);
+
   /**
    * Espécie ou cultura já conhecida sobre esta imagem, por qualquer via:
    * declarada no boletim (`metadata.amostra`), ou o conjunto do explorador
@@ -586,122 +705,6 @@ export default function App() {
     setIaAberto(especieEhOrquidea);
   }, [especieEhOrquidea]);
 
-  // Multi-image Queue state
-  const {
-    image,
-    setImage,
-    filename,
-    setFilename,
-    imageQueue,
-    setImageQueue,
-    currentImageIndex,
-    setCurrentImageIndex,
-    loadError,
-    setLoadError,
-    loadFiles,
-    handleFileUpload,
-    handleNextImage,
-    handlePrevImage,
-    loadImageFromFile,
-  } = useImageQueue({
-    onImageLoaded: (img, file) => {
-      // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
-      const vinculo = datasetPendente.current;
-      datasetPendente.current = null;
-      setMetadata((prev) => (prev.dataset || vinculo ? { ...prev, dataset: vinculo ?? undefined } : prev));
-      setChipDeClasseDispensado(null);
-
-      // As anotações da imagem que estava aberta são guardadas ANTES de a nova
-      // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
-      // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
-      // de uma folha inteira.
-      //
-      // A leitura vem de refs, não do estado: a função é chamada de dentro de
-      // um callback assíncrono do FileReader, onde o valor capturado pelo
-      // fecho pode estar velho.
-      if (chaveAtual.current) {
-        anotacoesPorImagem.current.set(chaveAtual.current, {
-          marks: marcasRef.current,
-          yoloSegmentations: segmentacoesRef.current,
-        });
-      }
-
-      const chave = chaveDaImagem(file);
-      chaveAtual.current = chave;
-
-      // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
-      // pode desfazer o que se fez na anterior.
-      const guardado = anotacoesPorImagem.current.get(chave);
-      carregar(guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {});
-
-      if (containerRef.current) {
-        const container = containerRef.current;
-        fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
-      }
-
-      // Ensaio ao carregar: roda as receitas sobre a imagem RECÉM-CHEGADA
-      // (o parâmetro `img`, não `imagemDeTrabalho` — que neste fecho ainda é o
-      // valor do render anterior, da imagem que acabou de sair da fila).
-      if (isEnsaioAoCarregarEnabled) {
-        ensaioCancelado.current = false;
-        abrirAbaDireita('inspetor');
-
-        // C5, item 2: a receita "pela espécie" (quando a espécie ou o dataset
-        // é conhecido) e as receitas salvas da espécie entram como 4ª+
-        // opções, ao lado das três fixas — a pessoa escolhe qualquer uma
-        // exatamente do mesmo jeito.
-        const areaDaImagemPx = img.width * img.height;
-        const receitaDaEspecie = receitaPelaEspecie(especieOuCulturaDeclarada, {
-          umPerPixel: metadata.umPerPixel,
-          areaDaImagemPx,
-        });
-        const receitasSalvasConvertidas = receitasSalvas
-          .filter((r): r is ReceitaSalva & { id: number } => r.id != null)
-          .map(receitaDeSalva);
-        const receitasParaRodar: Receita[] = [
-          ...RECEITAS,
-          ...(receitaDaEspecie ? [receitaDaEspecie] : []),
-          ...receitasSalvasConvertidas,
-        ];
-        setEnsaio({ resultados: [], emAndamento: true, total: receitasParaRodar.length });
-
-        (async () => {
-          for (const receita of receitasParaRodar) {
-            if (ensaioCancelado.current) break;
-
-            const deteccao = detectObjects(img, receita.localizacao);
-            // Ferramenta cara em imagem grande: 400 pontos por receita é o
-            // teto — acima disso o ensaio ao carregar deixaria de ser barato,
-            // que é a premissa dele existir sem worker.
-            const limitado = deteccao.objects.length > 400;
-            const pontos = (limitado ? deteccao.objects.slice(0, 400) : deteccao.objects).map((o) => ({
-              x: o.x,
-              y: o.y,
-            }));
-
-            const resultado = await executarReceita(
-              receita,
-              pontos,
-              (p, opcoesDaOnda) => {
-                const r = segmentarNoCanvas(img, p, opcoesDaOnda);
-                return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
-              },
-              { cancelado: () => ensaioCancelado.current }
-            );
-            if (!resultado || ensaioCancelado.current) break;
-
-            console.info(`[ensaio] ${resultado.receita.id} ${resultado.duracaoMs.toFixed(0)}ms`);
-            setEnsaio((prev) => ({
-              resultados: [...(prev?.resultados ?? []), { ...resultado, limitado }],
-              emAndamento: true,
-              total: prev?.total ?? receitasParaRodar.length,
-            }));
-          }
-          setEnsaio((prev) => (prev ? { ...prev, emAndamento: false } : prev));
-        })();
-      }
-    },
-  });
   /**
    * A imagem que a SEGMENTACAO le.
    *
@@ -712,11 +715,6 @@ export default function App() {
   const imagemDeTrabalho = fundoAchatado ?? image;
   /** O que as automações de segmentação leem — o gatilho acima manda nisto. */
   const imagemParaAutomacoes = forcarOriginalNasAutomacoes ? image : imagemDeTrabalho;
-  /**
-   * Quando esta imagem foi gravada pela ultima vez — para a sugestao de salvar
-   * saber se ja passou tempo demais. Zera ao trocar de imagem.
-   */
-  const [ultimaGravacao, setUltimaGravacao] = useState<number | null>(null);
 
   /**
    * O painel de medidas flutua sobre a area morta ao lado da imagem.
@@ -1615,17 +1613,13 @@ export default function App() {
 
   // --- Explorador de datasets (Lote B) ---------------------------------------
   //
-  // A pasta aberta mora aqui (não dentro do painel) porque é estado da sessão,
-  // não só do painel: se a pessoa recolher a aba Datasets e voltar, a pasta
-  // continua aberta. `anotacaoAtual` é a anotação da ÚLTIMA imagem carregada
-  // pelo explorador — não entra sozinha; "Carregar referência" é quem decide.
+  // A pasta aberta mora aqui (não dentro do painel) porque é estado da sessão:
+  // recolher a aba Datasets e voltar não a fecha. `anotacaoAtual`,
+  // `datasetContexto` e `referenciaJaCarregada` são estado de CENA — vêm de
+  // `bancada.cena`, desestruturados lá em cima; `anotacaoAtual` é a anotação
+  // da ÚLTIMA imagem carregada pelo explorador, e só vira marca/contorno
+  // quando "Carregar referência" é clicado.
   const [pastaDeDatasets, setPastaDeDatasets] = useState<PastaAberta | null>(null);
-  const [anotacaoAtual, setAnotacaoAtual] = useState<AnotacaoCarregada | null>(null);
-  const [datasetContexto, setDatasetContexto] = useState<{ conjunto: string; caminho: string } | null>(null);
-  // Uma vez carregada, o botão "Carregar referência" some — clicar de novo
-  // duplicaria a mesma marca/contorno em cima do que acabou de entrar. Zera
-  // ao carregar a PRÓXIMA imagem do dataset (handleCarregarDoDataset).
-  const [referenciaJaCarregada, setReferenciaJaCarregada] = useState(false);
 
   const handleCarregarDoDataset = useCallback(
     async (arquivo: ArquivoDoDataset, anotacao: AnotacaoCarregada | null, conjunto: string, caminho: string) => {
