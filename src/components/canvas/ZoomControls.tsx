@@ -51,7 +51,7 @@ export function ZoomControls({
         }
         aria-label="Modo mão"
       >
-        <Hand size={16} strokeWidth={2} aria-hidden="true" />
+        <Hand size={20} strokeWidth={2} aria-hidden="true" />
       </button>
 
       <div className="bg-line h-px w-full" />
@@ -62,7 +62,7 @@ export function ZoomControls({
         title="Aumentar zoom (+)"
         aria-label="Aumentar zoom"
       >
-        <ZoomIn size={16} strokeWidth={2} aria-hidden="true" />
+        <ZoomIn size={20} strokeWidth={2} aria-hidden="true" />
       </button>
 
       <button
@@ -80,7 +80,7 @@ export function ZoomControls({
         title="Diminuir zoom (−)"
         aria-label="Diminuir zoom"
       >
-        <ZoomOut size={16} strokeWidth={2} aria-hidden="true" />
+        <ZoomOut size={20} strokeWidth={2} aria-hidden="true" />
       </button>
 
       {(onToggleEscala || onToggleEixos) && <div className="bg-line h-px w-full" />}
@@ -97,7 +97,7 @@ export function ZoomControls({
           title="Escala gráfica sobre a imagem (barra de mapa)"
           aria-label="Escala gráfica"
         >
-          <Ruler size={16} strokeWidth={2} aria-hidden="true" />
+          <Ruler size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       )}
 
@@ -113,7 +113,7 @@ export function ZoomControls({
           title="Eixos de comprimento e largura (PCA e Feret) em todos os contornos"
           aria-label="Eixos das medidas"
         >
-          <Axis3d size={16} strokeWidth={2} aria-hidden="true" />
+          <Axis3d size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       )}
     </div>

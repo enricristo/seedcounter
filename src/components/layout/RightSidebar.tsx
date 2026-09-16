@@ -97,7 +97,7 @@ export function RightSidebar({
   return (
     <div className="flex flex-row h-full shrink-0">
       {/* Faixa de Tabs (Sempre visível) */}
-      <aside className="border-l border-neutral-200 dark:border-zinc-800 bg-surface-1 flex flex-col shrink-0 py-3 w-10 items-center gap-4 z-20">
+      <aside className="border-l border-neutral-200 dark:border-zinc-800 bg-surface-1 flex flex-col shrink-0 py-3 w-12 items-center gap-3 z-20">
         <button
           onClick={() => {
             if (activeTab === 'resultados' && !isCollapsed) onToggleCollapse();
@@ -106,7 +106,7 @@ export function RightSidebar({
           title="Resultados"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'resultados' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
         >
-          <BarChart3 size={16} />
+          <BarChart3 size={20} />
         </button>
         <button
           onClick={() => {
@@ -116,7 +116,7 @@ export function RightSidebar({
           title="Inspetor"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'inspetor' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
         >
-          <Ruler size={16} />
+          <Ruler size={20} />
         </button>
         <button
           onClick={() => {
@@ -126,7 +126,7 @@ export function RightSidebar({
           title="Galeria"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'galeria' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
         >
-          <FileText size={16} />
+          <FileText size={20} />
         </button>
         <button
           onClick={() => {
@@ -136,7 +136,7 @@ export function RightSidebar({
           title="Datasets"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'datasets' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
         >
-          <FolderOpen size={16} />
+          <FolderOpen size={20} />
         </button>
       </aside>
 
@@ -160,7 +160,7 @@ export function RightSidebar({
                 title="Recolher painel lateral"
                 className="p-1 rounded text-ink-3 hover:text-ink-1 hover:bg-surface-2 transition-colors"
               >
-                <ChevronRight size={16} />
+                <ChevronRight size={20} />
               </button>
             </div>
 

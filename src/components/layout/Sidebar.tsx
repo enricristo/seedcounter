@@ -111,24 +111,24 @@ export function Sidebar({
   };
 
   const TRILHO: { secao: string; rotulo: string; icone: React.ReactNode }[] = [
-    { secao: 'sec-abrir', rotulo: 'Abrir imagem', icone: <Upload size={16} /> },
-    { secao: 'sec-exemplos', rotulo: 'Exemplos', icone: <Database size={16} /> },
-    { secao: 'sec-calibrar', rotulo: 'Calibrar escala', icone: <Ruler size={16} /> },
-    { secao: 'sec-encontrar', rotulo: 'Encontrar objetos', icone: <ScanSearch size={16} /> },
-    { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={16} /> },
-    { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={16} /> },
+    { secao: 'sec-abrir', rotulo: 'Abrir imagem', icone: <Upload size={20} /> },
+    { secao: 'sec-exemplos', rotulo: 'Exemplos', icone: <Database size={20} /> },
+    { secao: 'sec-calibrar', rotulo: 'Calibrar escala', icone: <Ruler size={20} /> },
+    { secao: 'sec-encontrar', rotulo: 'Encontrar objetos', icone: <ScanSearch size={20} /> },
+    { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={20} /> },
+    { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={20} /> },
   ];
 
   if (isCollapsed) {
     return (
-      <aside className="border-line bg-surface-1 flex w-10 shrink-0 flex-col items-center gap-2 border-r py-3">
+      <aside className="border-line bg-surface-1 flex w-12 shrink-0 flex-col items-center gap-2 border-r py-3">
         <button
           onClick={onToggleCollapse}
           title="Expandir painel de entrada e preparo"
           aria-label="Expandir painel esquerdo"
           className="border-line bg-surface-2 hover:bg-surface-3 text-ink-2 hover:text-ink-1 rounded-lg border p-1.5 transition-colors"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={20} />
         </button>
         <div className="bg-line my-1 h-px w-6" />
         {TRILHO.map((t) => (
@@ -137,7 +137,7 @@ export function Sidebar({
             onClick={() => irPara(t.secao)}
             title={t.rotulo}
             aria-label={t.rotulo}
-            className="text-ink-3 hover:bg-surface-2 hover:text-ink-1 rounded-lg p-1.5 transition-colors"
+            className="text-ink-3 hover:bg-surface-2 hover:text-ink-1 rounded-lg p-2 transition-colors"
           >
             {t.icone}
           </button>
@@ -159,7 +159,7 @@ export function Sidebar({
               aria-label="Recolher painel esquerdo"
               className="text-ink-3 hover:text-ink-1 hover:bg-surface-2 rounded p-1 transition-colors"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={20} />
             </button>
           )}
         </div>
