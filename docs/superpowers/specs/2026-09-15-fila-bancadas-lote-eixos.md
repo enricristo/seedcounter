@@ -120,3 +120,15 @@ Hoje a conta (`features/conta`) lembra a bancada (metadados) e nada mais; sessõ
 - **Uniões exaustivas:** `origem`, `natureza` (`ObjetoDaCena`), `FormatoDeDataset` viram `switch` com `never` no default, para o próximo caso esquecido falhar em compilação.
 
 Ordem: depois de C5; a parte de `App.tsx` junto com C2.
+
+---
+
+## C7 — Espécie conhecida como contexto de bancada, no cabeçalho (pedido do Enrico, 16/09)
+
+**Ideia:** a espécie é o que mais "configura" o app — priors, tamanho típico, receita do ensaio, protocolo, tolerâncias, classes do dataset. Hoje ela está enterrada em "Identificar amostra". Passa a ser um **chip no cabeçalho** ("Espécie: Cattleya · orquídea" ou "sem espécie"), ao lado das abas.
+
+**Comportamento:** clicar abre uma lista — espécies conhecidas (`PERFIS_BIOMETRICOS`, `TAMANHOS`), as já usadas nas sessões salvas, e as classes do dataset aberto (B3) — com busca. Escolher grava `metadata.amostra.especie*` e dispara o que depende dela: cartão "Pela espécie" no ensaio (C5), referência de literatura no inspetor, `protocolo` sugerido (forrageira/germinação), equipamento e DPI padrão da bancada (quando a espécie tem um "jeito de digitalizar" registrado, ex.: orquídea = scanner 4800 DPI), e a aba Datasets pré-filtrada nos conjuntos daquela cultura. Tudo como sugestão preenchida — nada muda contagem.
+
+**Onde:** `components/layout/Header.tsx` (chip + popover), `lib/normas/especies.ts` (novo, puro: união das fontes com id, nome comum, científico, cultura, protocolo sugerido, aquisição típica), teste. Depende de C5 (para o cartão) e usa B3 (classes). Pequeno; entra logo depois do C5.
+
+Fila: C5 (em curso) → **C7** → B4 → C1 → C4.1 → C6 → C2.
