@@ -19,9 +19,9 @@ interface CardRegrasSemiAutomaticasProps {
   calibrado?: boolean;
   onDestacarSementes?: (ids: number[]) => void;
   onAplicarRegra: (regra: RegraParametrica) => void;
-  regraSelecionadaId: string;
+  regraSelecionadaId: string | null;
   limiaresCustomizados: Record<string, number>;
-  onRegraChange: (id: string) => void;
+  onRegraChange: (id: string | null) => void;
   onLimiarChange: (limiares: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
 }
 
@@ -39,6 +39,8 @@ export function CardRegrasSemiAutomaticas({
 
   const regraAtiva = useMemo(() => {
     const base = REGRAS_PADRAO.find((r) => r.id === regraSelecionadaId) ?? REGRAS_PADRAO[0];
+    // `regraAtiva` sempre existe para a interface ter o que mostrar; o que
+    // decide se a simulação roda é `regraSelecionadaId` ser null, no App.
     const limiar = limiaresCustomizados[base.id] ?? base.limiar;
     return {
       ...base,
@@ -61,9 +63,10 @@ export function CardRegrasSemiAutomaticas({
 
   // Simula quantas sementes atendem
   const sementesAtendidas = useMemo(() => {
-    if (medicoes.length === 0) return [];
+    // Sem regra escolhida não há simulação — nem aqui, nem em fantasma no canvas.
+    if (!regraSelecionadaId || medicoes.length === 0) return [];
     return simularRegra(medicoes, regraAjustada);
-  }, [medicoes, regraAjustada]);
+  }, [medicoes, regraAjustada, regraSelecionadaId]);
 
   const handleLimiarChange = (novoValor: number) => {
     onLimiarChange((prev) => ({
@@ -112,10 +115,11 @@ export function CardRegrasSemiAutomaticas({
           Critério de Análise
         </label>
         <select
-          value={regraSelecionadaId}
-          onChange={(e) => onRegraChange(e.target.value)}
+          value={regraSelecionadaId ?? ''}
+          onChange={(e) => onRegraChange(e.target.value || null)}
           className="w-full border-line bg-surface-1 text-ink-1 text-xs rounded px-2.5 py-1.5 focus:ring-1 focus:ring-accent outline-none font-medium"
         >
+          <option value="">Nenhum — não simular</option>
           {REGRAS_PADRAO.map((r) => (
             <option key={r.id} value={r.id}>
               {r.nome}
@@ -123,7 +127,7 @@ export function CardRegrasSemiAutomaticas({
           ))}
         </select>
         <div className="text-[11px] text-ink-3 italic leading-tight">
-          {regraAtiva.descricao}
+          {regraSelecionadaId ? regraAtiva.descricao : 'Escolha um critério para ver, tracejado no canvas, o que ele afetaria.'}
         </div>
       </div>
 

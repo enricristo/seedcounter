@@ -45,9 +45,9 @@ interface RightSidebarProps {
   onExport: () => void;
   onDestacarSementes?: (ids: number[]) => void;
   onAplicarRegra: (regra: RegraParametrica) => void;
-  regraSelecionadaId: string;
+  regraSelecionadaId: string | null;
   limiaresCustomizados: Record<string, number>;
-  onRegraChange: (id: string) => void;
+  onRegraChange: (id: string | null) => void;
   onLimiarChange: (limiares: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
 
   isCollapsed: boolean;

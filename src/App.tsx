@@ -370,7 +370,16 @@ export default function App() {
   const [versaoDispensadas, setVersaoDispensadas] = useState(0);
 
   // Fase 4: Regra Simulada State (Lifting State para evitar useEffect)
-  const [regraSelecionadaId, setRegraSelecionadaId] = useState<string>(REGRAS_PADRAO[0].id);
+  /**
+   * Nenhuma regra escolhida por padrão.
+   *
+   * Antes começava na primeira da lista, e como a simulação roda a cada
+   * mudança de medida, os quadrinhos tracejados piscavam sobre a cena sem
+   * ninguém ter aberto o painel de regras — uma proposta de curadoria em
+   * lote aparecendo sozinha. O fantasma é resposta a um pedido; sem pedido,
+   * não há fantasma.
+   */
+  const [regraSelecionadaId, setRegraSelecionadaId] = useState<string | null>(null);
   const [limiaresCustomizados, setLimiaresCustomizados] = useState<Record<string, number>>({
     'regra-detritos': 5.0,
     'regra-aglomerados': 0.90,
@@ -2044,7 +2053,8 @@ export default function App() {
   }, [image, marks, yoloSegmentations, metadata, filename]);
 
   const regraAjustada = useMemo(() => {
-    const base = REGRAS_PADRAO.find((r) => r.id === regraSelecionadaId) ?? REGRAS_PADRAO[0];
+    const base = REGRAS_PADRAO.find((r) => r.id === regraSelecionadaId);
+    if (!base) return null;
     const limiar = limiaresCustomizados[base.id] ?? base.limiar;
     let ativa = { ...base, limiar };
     
@@ -2061,7 +2071,7 @@ export default function App() {
   }, [regraSelecionadaId, limiaresCustomizados, metadata.umPerPixel]);
 
   const sementesSimuladas = useMemo(() => {
-    if (medicoesDeMorfometria.length === 0) return [];
+    if (!regraAjustada || medicoesDeMorfometria.length === 0) return [];
     return simularRegra(medicoesDeMorfometria, regraAjustada);
   }, [medicoesDeMorfometria, regraAjustada]);
 

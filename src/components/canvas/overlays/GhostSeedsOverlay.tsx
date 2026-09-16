@@ -74,7 +74,10 @@ export function GhostSeedsOverlay({
             stroke="#d946ef"
             strokeWidth={traco}
             strokeDasharray={tracejado}
-            className="animate-pulse drop-shadow-md"
+            // Sem piscar: o tracejado já diz "proposta, ainda não aplicado",
+            // e uma borda pulsando sem parar vira ruído numa sessão longa —
+            // a mesma razão pela qual o indicador do rodapé é estático.
+            className="drop-shadow-md"
           />
         );
       })}
