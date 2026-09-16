@@ -1660,6 +1660,266 @@
       "url": null,
       "dica": "Robustez a foto de celular.",
       "bytes": 183000
+    },
+    {
+      "slug": "composto-misto-claro-24",
+      "conjunto": "composto",
+      "rotulo": "Cena composta — misto claro 24 (24 sementes)",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "composta",
+      "imagem": "exemplos/composto-misto-claro-24.png",
+      "largura": 901,
+      "altura": 901,
+      "original": {
+        "arquivo": "cena composta a partir de 24 recortes (ver composto-misto-claro-24.verdade.json)",
+        "largura": 1024,
+        "altura": 1024,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "cena composta; escala não se aplica",
+      "classesDaImagem": [
+        "Achnatherum inebrians",
+        "Achnatherum splendens",
+        "Agriophyllum squarrosum",
+        "Agropyron cristatum",
+        "Arborio",
+        "Basmati",
+        "Bhihilifa",
+        "Broken",
+        "Dark",
+        "Green",
+        "Immature",
+        "Intact",
+        "Ipsala",
+        "Jasmine",
+        "Karacadag",
+        "Light",
+        "Medium",
+        "SanzalSima",
+        "Skin-damaged",
+        "Spotted",
+        "WangDataa"
+      ],
+      "origem": "arroz-cultivares (Kaggle rice-image-dataset, 5 cultivares), cafe-torra (Kaggle coffee-bean-dataset, 4 níveis de torra), soja-defeitos (Kaggle soybean-defects, 5 classes de integridade), milho (Kaggle maize-seed-dataset, 3 variedades), lzupsd (LZUPSD — Nature Scientific Data 2024, 88 espécies)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "A verdade (classe, arquivo de origem e polígono de cada recorte) está em composto-misto-claro-24.verdade.json, ao lado desta imagem.",
+      "bytes": 1089541
+    },
+    {
+      "slug": "composto-misto-escuro-24",
+      "conjunto": "composto",
+      "rotulo": "Cena composta — misto escuro 24 (24 sementes)",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "composta",
+      "imagem": "exemplos/composto-misto-escuro-24.png",
+      "largura": 901,
+      "altura": 901,
+      "original": {
+        "arquivo": "cena composta a partir de 24 recortes (ver composto-misto-escuro-24.verdade.json)",
+        "largura": 1024,
+        "altura": 1024,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "cena composta; escala não se aplica",
+      "classesDaImagem": [
+        "Agropyron elongatum",
+        "Agropyron mongolicum",
+        "Amorpha fruticosa",
+        "Amygdalus mongolica",
+        "Arborio",
+        "Basmati",
+        "Bhihilifa",
+        "Broken",
+        "Dark",
+        "Green",
+        "Immature",
+        "Intact",
+        "Ipsala",
+        "Jasmine",
+        "Karacadag",
+        "Light",
+        "Medium",
+        "SanzalSima",
+        "Skin-damaged",
+        "Spotted",
+        "WangDataa"
+      ],
+      "origem": "arroz-cultivares (Kaggle rice-image-dataset, 5 cultivares), cafe-torra (Kaggle coffee-bean-dataset, 4 níveis de torra), soja-defeitos (Kaggle soybean-defects, 5 classes de integridade), milho (Kaggle maize-seed-dataset, 3 variedades), lzupsd (LZUPSD — Nature Scientific Data 2024, 88 espécies)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "A verdade (classe, arquivo de origem e polígono de cada recorte) está em composto-misto-escuro-24.verdade.json, ao lado desta imagem.",
+      "bytes": 1112005
+    },
+    {
+      "slug": "composto-arroz-claro-30",
+      "conjunto": "composto",
+      "rotulo": "Cena composta — arroz claro 30 (30 sementes)",
+      "cultura": "arroz",
+      "especie": "Oryza sativa",
+      "tipo": "composta",
+      "imagem": "exemplos/composto-arroz-claro-30.png",
+      "largura": 1024,
+      "altura": 1024,
+      "original": {
+        "arquivo": "cena composta a partir de 30 recortes (ver composto-arroz-claro-30.verdade.json)",
+        "largura": 1024,
+        "altura": 1024,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "cena composta; escala não se aplica",
+      "classesDaImagem": [
+        "Arborio",
+        "Basmati",
+        "Ipsala",
+        "Jasmine",
+        "Karacadag"
+      ],
+      "origem": "arroz-cultivares (Kaggle rice-image-dataset, 5 cultivares)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "A verdade (classe, arquivo de origem e polígono de cada recorte) está em composto-arroz-claro-30.verdade.json, ao lado desta imagem.",
+      "bytes": 1405386
+    },
+    {
+      "slug": "composto-cafe-claro-20",
+      "conjunto": "composto",
+      "rotulo": "Cena composta — cafe claro 20 (20 sementes)",
+      "cultura": "cafe",
+      "especie": "Coffea",
+      "tipo": "composta",
+      "imagem": "exemplos/composto-cafe-claro-20.png",
+      "largura": 901,
+      "altura": 901,
+      "original": {
+        "arquivo": "cena composta a partir de 20 recortes (ver composto-cafe-claro-20.verdade.json)",
+        "largura": 1024,
+        "altura": 1024,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "cena composta; escala não se aplica",
+      "classesDaImagem": [
+        "Dark",
+        "Green",
+        "Light",
+        "Medium"
+      ],
+      "origem": "cafe-torra (Kaggle coffee-bean-dataset, 4 níveis de torra)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "A verdade (classe, arquivo de origem e polígono de cada recorte) está em composto-cafe-claro-20.verdade.json, ao lado desta imagem.",
+      "bytes": 1161132
+    },
+    {
+      "slug": "composto-soja-defeitos-claro-25",
+      "conjunto": "composto",
+      "rotulo": "Cena composta — soja defeitos claro 25 (23 sementes)",
+      "cultura": "soja",
+      "especie": "Glycine max",
+      "tipo": "composta",
+      "imagem": "exemplos/composto-soja-defeitos-claro-25.png",
+      "largura": 901,
+      "altura": 901,
+      "original": {
+        "arquivo": "cena composta a partir de 23 recortes (ver composto-soja-defeitos-claro-25.verdade.json)",
+        "largura": 1024,
+        "altura": 1024,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "cena composta; escala não se aplica",
+      "classesDaImagem": [
+        "Broken",
+        "Immature",
+        "Intact",
+        "Skin-damaged",
+        "Spotted"
+      ],
+      "origem": "soja-defeitos (Kaggle soybean-defects, 5 classes de integridade)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "A verdade (classe, arquivo de origem e polígono de cada recorte) está em composto-soja-defeitos-claro-25.verdade.json, ao lado desta imagem.",
+      "bytes": 1121362
+    },
+    {
+      "slug": "composto-lzupsd-escuro-24",
+      "conjunto": "composto",
+      "rotulo": "Cena composta — lzupsd escuro 24 (24 sementes)",
+      "cultura": "varias",
+      "especie": null,
+      "tipo": "composta",
+      "imagem": "exemplos/composto-lzupsd-escuro-24.png",
+      "largura": 901,
+      "altura": 901,
+      "original": {
+        "arquivo": "cena composta a partir de 24 recortes (ver composto-lzupsd-escuro-24.verdade.json)",
+        "largura": 1024,
+        "altura": 1024,
+        "fatorDeReducao": 1.0,
+        "recorteEm": [
+          0,
+          0
+        ]
+      },
+      "umPorPixel": null,
+      "notaEscala": "cena composta; escala não se aplica",
+      "classesDaImagem": [
+        "Achnatherum inebrians",
+        "Achnatherum splendens",
+        "Agriophyllum squarrosum",
+        "Agropyron cristatum",
+        "Agropyron elongatum",
+        "Agropyron mongolicum",
+        "Amorpha fruticosa",
+        "Amygdalus mongolica",
+        "Anemone rivularis",
+        "Apocynum pictum",
+        "Apocynum venetum",
+        "Artemisia desertorum",
+        "Artemisia ordosica",
+        "Artemisia sphaerocephala",
+        "Astragalus laxmannii",
+        "Astragalus melilotoides",
+        "Atriplex sibirica",
+        "Avena sativa",
+        "Bassia dasyphylla",
+        "Bromus inermis",
+        "Buddleja alternifolia",
+        "Calligonum mongolicum Turcz",
+        "Calligonum mongolicum",
+        "Caragana korshinskii"
+      ],
+      "origem": "lzupsd (LZUPSD — Nature Scientific Data 2024, 88 espécies)",
+      "licenca": "a conferir (Enrico)",
+      "url": null,
+      "dica": "A verdade (classe, arquivo de origem e polígono de cada recorte) está em composto-lzupsd-escuro-24.verdade.json, ao lado desta imagem.",
+      "bytes": 1094449
     }
   ]
 }
