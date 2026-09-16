@@ -11,12 +11,17 @@
 import { useEffect, useRef } from 'react';
 import { FlaskConical, Check, Ban, Square } from 'lucide-react';
 import type { ResultadoDoEnsaio } from './executar';
-import { RECEITAS } from './receitas';
 
 interface EnsaioPanelProps {
   imagem: HTMLImageElement | HTMLCanvasElement;
   resultados: ResultadoDoEnsaio[];
   emAndamento: boolean;
+  /**
+   * Quantas receitas rodam nesta rodada — as três fixas mais a "pela
+   * espécie" (C5) e as salvas da espécie, quando existem. Vem de quem chama
+   * porque só ele sabe o que foi montado para esta imagem.
+   */
+  total: number;
   onUsar: (r: ResultadoDoEnsaio) => void;
   /** Mouse sobre um cartão: a proposta aparece tracejada no canvas; null ao sair. */
   onDestacar?: (r: ResultadoDoEnsaio | null) => void;
@@ -152,11 +157,16 @@ function CartaoDaReceita({
  * andamento ou resultados e nenhum contorno está selecionado — selecionar um
  * contorno abre o inspetor daquele contorno, que não compete com este painel.
  */
-export function EnsaioPanel({ imagem, resultados, emAndamento, onUsar, onDestacar, onNenhuma, onParar }: EnsaioPanelProps) {
-  // Total fixo (o número de receitas configuradas), não deduzido do que já
-  // chegou — senão a barra de progresso ficaria sempre "1/1" a caminho do fim.
-  const total = RECEITAS.length;
-
+export function EnsaioPanel({
+  imagem,
+  resultados,
+  emAndamento,
+  total,
+  onUsar,
+  onDestacar,
+  onNenhuma,
+  onParar,
+}: EnsaioPanelProps) {
   return (
     <section aria-label="Ensaio ao carregar" className="flex flex-col gap-3">
       <div className="text-ink-2 flex items-center gap-2">
@@ -164,8 +174,9 @@ export function EnsaioPanel({ imagem, resultados, emAndamento, onUsar, onDestaca
         <span className="text-xs font-bold tracking-wide uppercase">Ensaio ao carregar</span>
       </div>
       <p className="text-ink-3 text-[10px] leading-snug">
-        Três conjuntos de parâmetros rodaram sobre esta imagem. Escolha um, ou nenhum — nada entra
-        na contagem sem &ldquo;Usar esta&rdquo;.
+        {total} {total === 1 ? 'conjunto de parâmetros rodou' : 'conjuntos de parâmetros rodaram'}{' '}
+        sobre esta imagem. Escolha um, ou nenhum — nada entra na contagem sem &ldquo;Usar
+        esta&rdquo;.
       </p>
 
       {emAndamento && (

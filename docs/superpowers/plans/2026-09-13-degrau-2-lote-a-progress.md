@@ -55,6 +55,17 @@ Sanidade já conferida por script Node ad-hoc: `decodificarTiff` abre os dois pr
 4. Anote, para as duas imagens, a linha `console.info('[ensaio] <id>', ms)` de cada receita (abra o console do navegador antes de carregar a imagem).
 5. Conte à mão as sementes de cada imagem e compare com a contagem de cada uma das três receitas — a diferença é o dado que falta para decidir se a flag pode ligar por padrão.
 
+## C5 — roteiro para o Enrico
+
+1. Ligue `ensaioAoCarregar` e `assistedDetection` no painel de flags. Abra um exemplo real de soja (`Exemplos` → Soja). Na lateral esquerda, dentro de "Encontrar objetos", confira a ordem: **Encontrar** primeiro, **Modelo (IA)** depois — e recolhido, porque a espécie não é orquídea.
+2. Espere os cartões do ensaio na aba Inspetor (agora podem ser 3, 4 ou mais: as três fixas mais "Pela espécie: Soja" quando a soja é reconhecida). Clique "Usar esta" num cartão — os contornos entram na contagem, e os controles do painel Encontrar mudam para os valores daquela receita.
+3. No painel Encontrar, mude "Tamanho mínimo" para a aba "× mediana" e arraste o valor — em menos de 1 segundo o fantasma tracejado no canvas deve mudar sozinho (sem precisar clicar em nada), mostrando a nova proposta. Confira a frase abaixo do campo: deve mostrar o valor em px² e, se a imagem estiver calibrada, também em mm².
+4. Clique "Aplicar" — o fantasma vira contorno de verdade (linha sólida) e entra na contagem, exatamente como "Usar esta" faria.
+5. Digite um nome em "Salvar como receita" e clique "Salvar". Recarregue a página (F5), abra outro exemplo de soja com o ensaio ligado — a receita salva deve aparecer como mais um cartão do ensaio, ao lado dos três fixos.
+6. Abra um exemplo de orquídea — confira que "Modelo (IA)" aparece expandido por padrão (a espécie contém "orqu"), e "Encontrar" continua primeiro.
+7. Na seção "Remover fundo" do Encontrar, confira que o número muda sozinho conforme a mediana de área muda (é "2 × o raio esperado"); clique "Auto" depois de arrastar manualmente para conferir que ele volta a seguir a mediana.
+8. Na seção "Fundo" no topo do painel, confira a frase ("Fundo claro, objeto escuro" ou o inverso) e clique "Inverter" — a proposta deve rodar de novo com a polaridade trocada.
+
 ## Ponto de parada — 2026-09-13, fim do crédito
 
 - Fechadas: A0 (c7c4406), A1 (a2f83dd), A2 (25d85d3 + 80b9677). Degrau 1 inteiro fechado (Task 7 f5d7a32, Task 8 0a1d05f).

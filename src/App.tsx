@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { Ruler } from 'lucide-react';
+import { Ruler, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Components
 import { Header } from './components/layout/Header';
@@ -92,7 +92,7 @@ import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
 import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
-import { acharPorNome } from './lib/normas/tamanhos-de-semente';
+import { acharPorNome, TAMANHOS } from './lib/normas/tamanhos-de-semente';
 import {
   ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
@@ -107,13 +107,22 @@ import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
-import { RECEITAS } from './features/ensaio/receitas';
+import {
+  RECEITAS,
+  receitaPelaEspecie,
+  receitaDeSalva,
+  type Receita,
+  type ContornoProposto,
+} from './features/ensaio/receitas';
 import { executarReceita, type ResultadoDoEnsaio } from './features/ensaio/executar';
 import { EnsaioPanel } from './features/ensaio/EnsaioPanel';
+import { useReceitasSalvas } from './hooks/useReceitasSalvas';
+import type { ReceitaSalva } from './lib/db';
 import { DatasetsPanel } from './features/datasets/DatasetsPanel';
 import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
 import type { AnotacaoCarregada } from './features/datasets/anotacao';
-import { detectObjects } from './lib/detect';
+import { detectObjects, type DetectionOptions } from './lib/detect';
+import type { OpcoesDaOnda } from './lib/region-growing';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
@@ -480,10 +489,54 @@ export default function App() {
    * em lotes; é ref, não estado, porque o loop já está rodando quando "Parar"
    * é clicado e precisa ler o valor mais recente sem re-render.
    */
-  const [ensaio, setEnsaio] = useState<{ resultados: ResultadoDoEnsaio[]; emAndamento: boolean } | null>(
+  const [ensaio, setEnsaio] = useState<{
+    resultados: ResultadoDoEnsaio[];
+    emAndamento: boolean;
+    /** Quantas receitas rodam nesta rodada — fixas + espécie + salvas (C5). */
+    total: number;
+  } | null>(
     null
   );
   const ensaioCancelado = useRef(false);
+
+  /**
+   * C5 — "uma receita, três momentos": a receita que "Usar esta" (ensaio) ou
+   * uma receita salva carregou nos controles do painel Encontrar. O painel
+   * lê isto para inicializar os controles; editar os controles depois NÃO
+   * escreve de volta aqui — só uma nova receita escolhida troca este estado.
+   */
+  const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(null);
+
+  /**
+   * Espécie ou cultura já conhecida sobre esta imagem, por qualquer via:
+   * declarada no boletim (`metadata.amostra`), ou o conjunto do explorador
+   * de datasets (B3) quando o nome bate com a tabela de tamanhos típicos.
+   * Alimenta a 4ª receita do ensaio (`receitaPelaEspecie`) e o filtro de
+   * receitas salvas por espécie — é REFERÊNCIA, não veredito: só entra no
+   * ensaio como mais uma opção que a pessoa escolhe como qualquer outra.
+   */
+  const especieOuCulturaDeclarada = useMemo(() => {
+    const declarada = metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
+    if (declarada) return declarada;
+    const conjunto = metadata.dataset?.conjunto?.toLowerCase();
+    if (!conjunto) return undefined;
+    const achado = TAMANHOS.find(
+      (t) => conjunto.includes(t.nomeComum.toLowerCase()) || conjunto.includes(t.chave)
+    );
+    return achado?.nomeComum;
+  }, [metadata.amostra?.especieNomeCientifico, metadata.amostra?.especieNomeComum, metadata.dataset?.conjunto]);
+
+  const { receitas: receitasSalvas, salvar: salvarReceitaEncontrada } =
+    useReceitasSalvas(especieOuCulturaDeclarada);
+
+  // O painel "Modelo (IA)" só serve para orquídea (tetrazólio) — recolhido
+  // por padrão quando a espécie declarada não contém "orqu". Reage a mudança
+  // de espécie: declarar orquídea depois de carregar reabre o painel sozinho.
+  const especieEhOrquidea = /orqu/i.test(especieOuCulturaDeclarada ?? '');
+  const [iaAberto, setIaAberto] = useState(especieEhOrquidea);
+  useEffect(() => {
+    setIaAberto(especieEhOrquidea);
+  }, [especieEhOrquidea]);
 
   // Multi-image Queue state
   const {
@@ -537,11 +590,29 @@ export default function App() {
       // valor do render anterior, da imagem que acabou de sair da fila).
       if (isEnsaioAoCarregarEnabled) {
         ensaioCancelado.current = false;
-        setEnsaio({ resultados: [], emAndamento: true });
         abrirAbaDireita('inspetor');
 
+        // C5, item 2: a receita "pela espécie" (quando a espécie ou o dataset
+        // é conhecido) e as receitas salvas da espécie entram como 4ª+
+        // opções, ao lado das três fixas — a pessoa escolhe qualquer uma
+        // exatamente do mesmo jeito.
+        const areaDaImagemPx = img.width * img.height;
+        const receitaDaEspecie = receitaPelaEspecie(especieOuCulturaDeclarada, {
+          umPerPixel: metadata.umPerPixel,
+          areaDaImagemPx,
+        });
+        const receitasSalvasConvertidas = receitasSalvas
+          .filter((r): r is ReceitaSalva & { id: number } => r.id != null)
+          .map(receitaDeSalva);
+        const receitasParaRodar: Receita[] = [
+          ...RECEITAS,
+          ...(receitaDaEspecie ? [receitaDaEspecie] : []),
+          ...receitasSalvasConvertidas,
+        ];
+        setEnsaio({ resultados: [], emAndamento: true, total: receitasParaRodar.length });
+
         (async () => {
-          for (const receita of RECEITAS) {
+          for (const receita of receitasParaRodar) {
             if (ensaioCancelado.current) break;
 
             const deteccao = detectObjects(img, receita.localizacao);
@@ -569,6 +640,7 @@ export default function App() {
             setEnsaio((prev) => ({
               resultados: [...(prev?.resultados ?? []), { ...resultado, limitado }],
               emAndamento: true,
+              total: prev?.total ?? receitasParaRodar.length,
             }));
           }
           setEnsaio((prev) => (prev ? { ...prev, emAndamento: false } : prev));
@@ -2231,38 +2303,84 @@ export default function App() {
   }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
 
   /**
+   * Contornos propostos (ensaio, ou o painel Encontrar) → segmentações.
+   *
+   * Origem 'modelo' porque é proposta aceita sem marcação manual
+   * correspondente (mesma semântica do AI Pointer — conta como semente).
+   * Suspeitos de aglomerado entram também: a pessoa já vê o tracejado na
+   * miniatura/fantasma, e o inspetor os sinaliza de novo depois; filtrar
+   * aqui seria a ferramenta decidindo por ela.
+   */
+  const propostosParaSegmentacoes = useCallback((propostos: ContornoProposto[]): YoloSegmentation[] => {
+    return propostos.map((p, i) => {
+      const { width, height } = calculateSeedDimensions(p.contorno);
+      return {
+        id: Date.now() + i,
+        category: 'viable' as const,
+        class_name: 'viavel',
+        confidence: 1,
+        polygon_points: p.contorno,
+        visible: true,
+        width,
+        height,
+        origem: 'modelo' as const,
+      };
+    });
+  }, []);
+
+  /**
    * "Usar esta": o único caminho que leva os contornos de uma receita do
    * ensaio ao estado da aplicação. `addYoloSegmentations` SUBSTITUI a lista
    * inteira — correto aqui porque o ensaio dispara ao carregar a imagem,
    * quando ainda não há contorno manual para perder.
    *
-   * Origem 'modelo' porque é proposta aceita sem marcação manual correspondente
-   * (mesma semântica do AI Pointer — conta como semente). Suspeitos de
-   * aglomerado entram também: a pessoa já vê o tracejado na miniatura, e o
-   * inspetor os sinaliza de novo depois; filtrar aqui seria a ferramenta
-   * decidindo por ela.
+   * Também carrega a receita usada nos controles do painel Encontrar
+   * (`receitaAtiva`, C5) — "uma receita, três momentos": o que o ensaio
+   * escolheu é o ponto de partida do que a pessoa ajusta a seguir.
    */
   const handleUsarEnsaio = useCallback(
     (r: ResultadoDoEnsaio) => {
-      addYoloSegmentations(
-        r.propostos.map((p, i) => {
-          const { width, height } = calculateSeedDimensions(p.contorno);
-          return {
-            id: Date.now() + i,
-            category: 'viable' as const,
-            class_name: 'viavel',
-            confidence: 1,
-            polygon_points: p.contorno,
-            visible: true,
-            width,
-            height,
-            origem: 'modelo' as const,
-          };
-        })
-      );
+      addYoloSegmentations(propostosParaSegmentacoes(r.propostos));
+      setReceitaAtiva(r.receita);
       setEnsaio(null);
     },
-    [addYoloSegmentations]
+    [addYoloSegmentations, propostosParaSegmentacoes]
+  );
+
+  /**
+   * "Aplicar", no painel Encontrar: faz exatamente o que "Usar esta" faz —
+   * os contornos só entram no estado da aplicação por este botão, nunca
+   * sozinhos a cada re-execução da localização.
+   */
+  const handleAplicarEncontrado = useCallback(
+    (propostos: ContornoProposto[]) => {
+      addYoloSegmentations(propostosParaSegmentacoes(propostos));
+    },
+    [addYoloSegmentations, propostosParaSegmentacoes]
+  );
+
+  /** Salva a receita ajustada no painel Encontrar — 4ª opção do ensaio depois. */
+  const handleSalvarReceitaEncontrada = useCallback(
+    (nome: string, localizacao: DetectionOptions, onda: OpcoesDaOnda) => {
+      void salvarReceitaEncontrada({
+        nome,
+        quando: 'Ajustada manualmente no painel Encontrar.',
+        localizacao,
+        onda,
+      });
+    },
+    [salvarReceitaEncontrada]
+  );
+
+  /** A onda, fechada sobre a imagem de trabalho — para o painel Encontrar (C5). */
+  const ondaParaEncontrar = useCallback(
+    (p: { x: number; y: number }, opcoesDaOnda: OpcoesDaOnda) => {
+      const alvo = imagemDeTrabalho ?? image;
+      if (!alvo) return null;
+      const r = segmentarNoCanvas(alvo, p, opcoesDaOnda);
+      return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
+    },
+    [imagemDeTrabalho, image]
   );
 
   /**
@@ -2644,30 +2762,64 @@ export default function App() {
             detectionSlot={
               isAiPointerEnabled || isDetectionEnabled ? (
                 <div className="space-y-5">
-                  {isAiPointerEnabled && (
-                    <AiPointerPanel
-                      // A ORIGINAL, sempre: é nela que o modelo foi treinado.
-                      image={image}
-                      marks={marks}
-                      onAddMarks={handleAddDetectedMarks}
-                      onPreviewChange={setDetectionPreview}
-                      onAddSegmentations={addYoloSegmentations}
+                  {/* C5: "Encontrar" primeiro — funciona em qualquer cultura,
+                      sem modelo. "Modelo (IA)" depois, porque só serve para
+                      orquídea (tetrazólio); os dois são o mesmo pipeline do
+                      ensaio ao carregar em outro momento, não coisas
+                      separadas. */}
+                  {isDetectionEnabled && (
+                    <DetectionPanel
+                      image={adjustedSource}
+                      receitaAtiva={receitaAtiva}
                       umPerPixel={metadata.umPerPixel}
+                      onda={ondaParaEncontrar}
+                      onContornosPropostos={setPropostaDestacada}
+                      onAplicar={handleAplicarEncontrado}
+                      onSalvarReceita={handleSalvarReceitaEncontrada}
                       regiao={regiaoDeDeteccao}
                       onSelecionarRegiao={() => setSelecionandoRegiao(true)}
                       onLimparRegiao={() => setRegiaoDeDeteccao(null)}
                     />
                   )}
-                  {isDetectionEnabled && (
-                    <DetectionPanel
-                      image={adjustedSource}
-                      marks={marks}
-                      onAddMarks={handleAddDetectedMarks}
-                      onPreviewChange={setDetectionPreview}
-                      regiao={regiaoDeDeteccao}
-                      onSelecionarRegiao={() => setSelecionandoRegiao(true)}
-                      onLimparRegiao={() => setRegiaoDeDeteccao(null)}
-                    />
+                  {isAiPointerEnabled && (
+                    <div className={isDetectionEnabled ? 'border-t border-line-soft pt-4' : undefined}>
+                      <button
+                        type="button"
+                        onClick={() => setIaAberto((v) => !v)}
+                        aria-expanded={iaAberto}
+                        className="w-full flex items-center justify-between gap-2 text-left"
+                      >
+                        <span>
+                          <span className="block text-[10px] font-bold text-ink-3 uppercase tracking-widest">
+                            Modelo (IA)
+                          </span>
+                          <span className="block text-[10px] text-ink-3 leading-snug mt-0.5">
+                            Treinado em orquídea: viável/inviável por tetrazólio.
+                          </span>
+                        </span>
+                        {iaAberto ? (
+                          <ChevronUp size={14} className="text-ink-3 shrink-0" />
+                        ) : (
+                          <ChevronDown size={14} className="text-ink-3 shrink-0" />
+                        )}
+                      </button>
+                      {iaAberto && (
+                        <div className="mt-3">
+                          <AiPointerPanel
+                            // A ORIGINAL, sempre: é nela que o modelo foi treinado.
+                            image={image}
+                            marks={marks}
+                            onAddMarks={handleAddDetectedMarks}
+                            onPreviewChange={setDetectionPreview}
+                            onAddSegmentations={addYoloSegmentations}
+                            umPerPixel={metadata.umPerPixel}
+                            regiao={regiaoDeDeteccao}
+                            onSelecionarRegiao={() => setSelecionandoRegiao(true)}
+                            onLimparRegiao={() => setRegiaoDeDeteccao(null)}
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : undefined
@@ -2968,6 +3120,7 @@ export default function App() {
                       imagem={(imagemDeTrabalho ?? image)!}
                       resultados={ensaio.resultados}
                       emAndamento={ensaio.emAndamento}
+                      total={ensaio.total}
                       onUsar={handleUsarEnsaio}
                       onDestacar={(r) => setPropostaDestacada(r ? r.propostos.map((p) => p.contorno) : [])}
                       onNenhuma={() => {
