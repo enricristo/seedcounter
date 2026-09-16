@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Info, Keyboard, MousePointer } from 'lucide-react';
+import { Info, Keyboard, MousePointer, Route } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE } from '../../features/ajuda/atalhos';
+import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE, FLUXO_DE_TRABALHO } from '../../features/ajuda/atalhos';
 
 /**
  * Instruções de uso, na barra lateral.
@@ -11,7 +11,7 @@ import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE } from '../../features/ajuda/ata
  * ferramenta, a tecla dela no título, e um gesto por linha.
  */
 export function HelpTip() {
-  const [tab, setTab] = useState<'mouse' | 'keyboard'>('mouse');
+  const [tab, setTab] = useState<'fluxo' | 'mouse' | 'keyboard'>('fluxo');
 
   return (
     <section className="bg-accent-tint/50 p-4 rounded-xl border border-accent/30">
@@ -25,6 +25,15 @@ export function HelpTip() {
       {/* Tabs */}
       <div className="flex bg-line/50 p-0.5 rounded-lg mb-3">
         <button
+          onClick={() => setTab('fluxo')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer
+            ${tab === 'fluxo' ? 'bg-surface-1 text-accent shadow-sm' : 'text-ink-3 hover:text-ink-2'}
+          `}
+        >
+          <Route size={11} />
+          <span>Fluxo</span>
+        </button>
+        <button
           onClick={() => setTab('mouse')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer
             ${
@@ -33,7 +42,7 @@ export function HelpTip() {
           `}
         >
           <MousePointer size={11} />
-          <span>Mouse / Cliques</span>
+          <span>Mouse</span>
         </button>
         <button
           onClick={() => setTab('keyboard')}
@@ -46,12 +55,34 @@ export function HelpTip() {
           `}
         >
           <Keyboard size={11} />
-          <span>Atalhos Teclado</span>
+          <span>Teclado</span>
         </button>
       </div>
 
       <AnimatePresence mode="wait">
-        {tab === 'mouse' ? (
+        {tab === 'fluxo' ? (
+          <motion.ol
+            key="fluxo"
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-2"
+          >
+            {FLUXO_DE_TRABALHO.map((p, i) => (
+              <li key={p.titulo} className="flex gap-2">
+                <span className="bg-surface-1 text-accent border-accent/40 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-bold">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 text-[10px]">
+                  <div className="text-ink-1 font-bold uppercase tracking-wide">{p.titulo}</div>
+                  <div className="text-ink-2 leading-snug">{p.como}</div>
+                  <div className="text-ink-3 mt-0.5 text-[9px] leading-snug">{p.onde}</div>
+                </div>
+              </li>
+            ))}
+          </motion.ol>
+        ) : tab === 'mouse' ? (
           <motion.div
             key="mouse"
             initial={{ opacity: 0, y: 3 }}

@@ -173,3 +173,58 @@ export const INSTRUCOES_DO_MOUSE: GrupoDeInstrucoes[] = [
     ],
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Fluxo de trabalho — o caminho de uma amostra, do arquivo ao laudo
+// ---------------------------------------------------------------------------
+
+export interface PassoDoFluxo {
+  titulo: string;
+  /** O que fazer, em uma frase. */
+  como: string;
+  /** Onde fica na tela. */
+  onde: string;
+}
+
+/**
+ * A terceira aba das instruções. As duas primeiras dizem O QUE cada gesto e
+ * tecla fazem; esta diz EM QUE ORDEM as coisas acontecem — é o que alguém que
+ * chega pela primeira vez pergunta, e nenhuma lista de atalhos responde.
+ */
+export const FLUXO_DE_TRABALHO: PassoDoFluxo[] = [
+  {
+    titulo: 'Abrir',
+    como: 'Digitalização (PNG, JPG ou TIFF), câmera, um exemplo real, ou uma pasta de datasets.',
+    onde: 'Lateral esquerda — Abrir imagem / Exemplos; aba Datasets à direita.',
+  },
+  {
+    titulo: 'Calibrar',
+    como: 'Diga a escala: DPI do scanner, régua na imagem ou micrômetro. O DPI do driver é declaração — a régua é a conferência.',
+    onde: 'Etapa 1. A escala gráfica no canto da imagem mostra o resultado (mm e px).',
+  },
+  {
+    titulo: 'Encontrar',
+    como: 'Marque (V/I), segmente por clique (S), ou deixe o ensaio propor três receitas ao carregar e escolha uma — ou nenhuma.',
+    onde: 'Etapa 2 e a aba Inspetor à direita (cartões do ensaio).',
+  },
+  {
+    titulo: 'Curar',
+    como: 'Confira na galeria, ajuste contornos (C), separe encostadas pela proposta de corte, aplique regras em lote — o fantasma tracejado mostra antes.',
+    onde: 'Abas Galeria e Inspetor; Regras semi-automáticas em Resultados.',
+  },
+  {
+    titulo: 'Medir',
+    como: 'Área, comprimento × largura, Feret, solidez por objeto; o botão de eixos mostra de onde cada medida sai e o "≠" avisa quando a forma não é elíptica.',
+    onde: 'Inspetor (uma semente) e Resultados (a população); controles de zoom → eixos.',
+  },
+  {
+    titulo: 'Identificar',
+    como: 'Espécie, lote, protocolo — é o que dá contexto a todo número e habilita referências e tolerâncias.',
+    onde: 'Etapa 4 na lateral esquerda.',
+  },
+  {
+    titulo: 'Exportar',
+    como: 'CSV com um objeto por linha (origem marcada: manual, ia, modelo, referência), laudo PDF, sessão JSON para continuar depois.',
+    onde: 'Cabeçalho — Exportar; Resultados — Exportar laudo.',
+  },
+];
