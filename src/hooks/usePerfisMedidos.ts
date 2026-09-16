@@ -12,7 +12,10 @@ import type { PerfilMedido } from '../lib/perfil-medido';
 export function usePerfisMedidos(conjunto: string | undefined) {
   const todos =
     useLiveQuery(
-      () => (conjunto ? db.perfisMedidos.where('conjunto').equals(conjunto).toArray() : Promise.resolve([])),
+      () =>
+        conjunto
+          ? db.perfisMedidos.where('conjunto').equals(conjunto).toArray()
+          : Promise.resolve<PerfilMedidoGuardado[]>([]),
       [conjunto]
     ) ?? [];
 

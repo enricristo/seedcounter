@@ -425,7 +425,10 @@ export function LotePanel({
     setFonte(guardado.fonte);
     setReceitaId(guardado.receita.id);
     receitaDaRodadaRef.current = { ...guardado.receita };
-    loteIdRef.current = guardado.id;
+    // `guardado.id` já foi conferido não-nulo na guarda acima (`lotePendente.id
+    // == null`), mas o tipo de `guardado.id` continua `number | undefined`
+    // depois do alias — o `??` só converte undefined em null para o ref.
+    loteIdRef.current = guardado.id ?? null;
     criadoEmRef.current = guardado.criadoEm;
     itensRef.current = new Map();
     propostosRef.current = new Map(

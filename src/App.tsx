@@ -914,7 +914,10 @@ export default function App() {
 
   const segmentarComOnda = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      if (!imagemDeTrabalho) return;
+      // `imagemParaAutomacoes` some quando forcarOriginalNasAutomacoes está
+      // ligado mas a imagem original ainda não carregou — guarda de tipo, não
+      // caso novo: sem ela, segmentarNoCanvas nem tem o que ler.
+      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
       const marcaId = marcarComSom(x, y, tipo);
 
       const inicio = performance.now();
@@ -989,7 +992,7 @@ export default function App() {
   const saveCurrentSession = (silent = false) => {
     if (!filename) return;
 
-    let imageDataStr = undefined;
+    let imageDataStr: string | undefined = undefined;
     if (image) {
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
@@ -1066,7 +1069,7 @@ export default function App() {
   const processJSONFile = useCallback(
     (file: File) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const text = event.target?.result as string;
           const parsed = JSON.parse(text);
@@ -1105,7 +1108,11 @@ export default function App() {
 
           // 2. Check if it is a SeedCounter backup history array
           if (Array.isArray(parsed)) {
-            const success = importSessions(parsed);
+            // `importSessions` é assíncrona (grava no IndexedDB): sem o await
+            // aqui `success` era a Promise em si, sempre truthy — o alerta de
+            // "formato inválido" nunca disparava, mesmo quando a gravação
+            // falhava. `strictNullChecks` (TS2801) pegou isso.
+            const success = await importSessions(parsed);
             if (success) {
               alert(
                 `Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`
@@ -2365,7 +2372,7 @@ export default function App() {
    */
   const handleSegmentarUma = useCallback(
     (marcaId: number) => {
-      if (!imagemDeTrabalho) return;
+      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
       const marca = marks.find((m) => m.id === marcaId);
       if (!marca) return;
 
@@ -2397,7 +2404,7 @@ export default function App() {
   );
 
   const handleSegmentarPendentes = useCallback(async () => {
-    if (!imagemDeTrabalho || marcasSemContorno.length === 0) return;
+    if (!imagemDeTrabalho || !imagemParaAutomacoes || marcasSemContorno.length === 0) return;
 
     const pendentes = [...marcasSemContorno];
     setSegmentandoLote({ feitas: 0, total: pendentes.length });
