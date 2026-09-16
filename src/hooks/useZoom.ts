@@ -23,7 +23,10 @@ export function useZoom() {
       }
       const fitX = (containerWidth - 64) / imageWidth;
       const fitY = (containerHeight - 64) / imageHeight;
-      const fitZoom = Math.min(fitX, fitY, 1);
+      // Container menor que a folga (64 px) durante o layout — painel
+      // lateral montando, aba trocando — dava zoom negativo ou zero e a
+      // imagem "sumia" até um clique forçar outro cálculo.
+      const fitZoom = Math.max(0.02, Math.min(fitX, fitY, 1));
       setZoomLevel(fitZoom);
     },
     []

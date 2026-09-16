@@ -15,6 +15,9 @@ import { calculateSeedDimensions } from './pca-utils';
 import { feret } from './feret';
 import { fechoConvexo, areaDoPoligono } from './aglomerado';
 import type { Mark, YoloSegmentation, Metadata } from '../types';
+import { enumerarObjetos, pointInPolygon, type ObjetoDaCena } from './objetos';
+
+export { pointInPolygon };
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
 
 export interface SeedMeasurement {
@@ -110,37 +113,6 @@ export interface MeasurementContext {
   colorSampling?: number;
 }
 
-/**
- * A marcação está dentro do contorno? Lançamento de raio.
- *
- * Esta é a associação CORRETA entre marca e segmentação. A versão anterior
- * usava distância ao centroide com raio fixo de 25 px, o que falha por dois
- * motivos: uma semente de orquídea a 3600 DPI tem ~165 px de comprimento,
- * então clicar na ponta já fica a mais de 25 px do centro; e o mesmo raio fixo
- * atende imagens de 946 px e de 7992 px, onde 25 px significam coisas
- * completamente diferentes.
- */
-export function pointInPolygon(px: number, py: number, poly: [number, number][]): boolean {
-  let dentro = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    const cruza = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
-    if (cruza) dentro = !dentro;
-  }
-  return dentro;
-}
-
-/** Maior distância do centroide a um vértice — o "raio" próprio do contorno. */
-function raioDoContorno(poly: [number, number][], c: { x: number; y: number }): number {
-  let maior = 0;
-  for (const [x, y] of poly) {
-    const d = Math.hypot(x - c.x, y - c.y);
-    if (d > maior) maior = d;
-  }
-  return maior;
-}
-
 /** Perímetro de um polígono fechado, em pixels. */
 function polygonPerimeter(points: [number, number][]): number {
   let p = 0;
@@ -163,17 +135,6 @@ function polygonArea(points: [number, number][]): number {
   return Math.abs(a) / 2;
 }
 
-/** Centroide de um polígono. */
-function polygonCentroid(points: [number, number][]): { x: number; y: number } {
-  let sx = 0,
-    sy = 0;
-  for (const [x, y] of points) {
-    sx += x;
-    sy += y;
-  }
-  return { x: sx / points.length, y: sy / points.length };
-}
-
 /**
  * Monta a tabela de medidas. Cada marcação vira uma linha; se houver um
  * contorno correspondente, a linha ganha as colunas morfométricas.
@@ -184,56 +145,25 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
   const umPerPixel = metadata.umPerPixel;
   const matchRadius = ctx.matchRadius ?? 25;
 
-  // Índice dos contornos visíveis, com centroide pré-calculado.
-  const contours = segmentations
-    .filter((s) => s.visible !== false && s.polygon_points?.length >= 3)
-    .map((s) => ({ seg: s, c: polygonCentroid(s.polygon_points) }));
-  const used = new Set<number>();
+  // A MESMA lista que a contagem usa (`enumerarObjetos`): marcações, com o
+  // contorno pareado quando há, e depois os contornos que valem por uma
+  // semente sozinhos. Antes só marcações viravam linha — uma semente detectada
+  // por modelo sem marca era contada, mas não medida nem exportada.
+  const objetos = enumerarObjetos(marks, segmentations, { raioMinimo: matchRadius });
 
-  return marks.map((mark, i) => {
+  return objetos.map((objeto: ObjetoDaCena) => {
     const row: SeedMeasurement = {
-      objectId: i + 1,
-      classe: mark.type === 'viable' ? 'viavel' : 'inviavel',
-      origem: 'manual',
-      x: Math.round(mark.x),
-      y: Math.round(mark.y),
+      objectId: objeto.indice,
+      classe: objeto.categoria === 'viable' ? 'viavel' : 'inviavel',
+      // 'manual' = só marcação; 'ia' = marcação com contorno; 'modelo' =
+      // contorno proposto sem marcação (IA, ensaio, detecção) e aceito.
+      origem: objeto.natureza === 'contorno' ? 'modelo' : objeto.natureza === 'marca+contorno' ? 'ia' : 'manual',
+      x: Math.round(objeto.x),
+      y: Math.round(objeto.y),
     };
-
-    // Duas etapas, nesta ordem.
-    //
-    // 1. O contorno que CONTÉM a marcação. É exato e independe de escala: o
-    //    técnico clica em cima da semente, não no centro geométrico dela.
-    // 2. Se nenhum contém — a marcação caiu na borda, ou o contorno é côncavo
-    //    e ela ficou numa reentrância —, o mais próximo cujo raio próprio
-    //    alcança a marcação. O raio vem do contorno, não de uma constante:
-    //    matchRadius fixo em 25 px era menor que meia semente a 3600 DPI.
-    let best: (typeof contours)[number] | null = null;
-
-    for (const c of contours) {
-      if (used.has(c.seg.id)) continue;
-      if (pointInPolygon(mark.x, mark.y, c.seg.polygon_points)) {
-        best = c;
-        break;
-      }
-    }
-
-    if (!best) {
-      let melhorDist = Infinity;
-      for (const c of contours) {
-        if (used.has(c.seg.id)) continue;
-        const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
-        // Tolerância: o próprio tamanho do contorno, com uma folga de 20%.
-        // matchRadius continua servindo de piso, para contornos minúsculos.
-        const limite = Math.max(matchRadius, raioDoContorno(c.seg.polygon_points, c.c) * 1.2);
-        if (d < limite && d < melhorDist) {
-          melhorDist = d;
-          best = c;
-        }
-      }
-    }
+    const best = objeto.contorno ? { seg: objeto.contorno } : null;
 
     if (best) {
-      used.add(best.seg.id);
       const poly = best.seg.polygon_points;
       const { width, height } = calculateSeedDimensions(poly);
       const comprimento = Math.max(width, height);
@@ -241,7 +171,6 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       const area = polygonArea(poly);
       const perim = polygonPerimeter(poly);
 
-      row.origem = 'ia';
       row.comprimentoPx = Number(comprimento.toFixed(2));
       row.larguraPx = Number(largura.toFixed(2));
       row.areaPx = Number(area.toFixed(1));

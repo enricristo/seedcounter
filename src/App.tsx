@@ -133,6 +133,7 @@ import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './ty
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
 import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
+import { enumerarObjetos } from './lib/objetos';
 
 // Delega para src/lib/download.ts. A versão anterior criava a âncora sem
 // anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
@@ -159,7 +160,8 @@ function renderMarksToContext(
   marks: Mark[],
   mode: 'dots' | 'numbers',
   larguraDaImagem: number,
-  ajusteDaMarca = AJUSTE_PADRAO
+  ajusteDaMarca = AJUSTE_PADRAO,
+  segmentacoes: YoloSegmentation[] = []
 ) {
   // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
   // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
@@ -167,38 +169,36 @@ function renderMarksToContext(
   const raio = raioDaMarca(larguraDaImagem, ajusteDaMarca);
   const traco = espessuraNaImagem(larguraDaImagem, 1.5);
 
-  let viableCounter = 0;
-  let inviableCounter = 0;
+  // O índice é o de `enumerarObjetos` — o mesmo do CSV, da lista do inspetor
+  // e da contagem. Antes cada classe tinha a própria sequência e os contornos
+  // do modelo não recebiam número: "índice 7" no canvas não era a linha 7.
+  const objetos = enumerarObjetos(marks, segmentacoes);
 
-  marks.forEach((mark) => {
-    let num = 0;
-    if (mark.type === 'viable') {
-      viableCounter++;
-      num = viableCounter;
-    } else {
-      inviableCounter++;
-      num = inviableCounter;
-    }
+  objetos.forEach((objeto) => {
+    const { x, y, categoria } = objeto;
+    const num = objeto.indice;
+    const soContorno = objeto.natureza === 'contorno';
 
     if (mode === 'dots') {
       // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
-      desenharMarca(ctx, mark.type, mark.x, mark.y, raio);
+      // Contorno sem marca não ganha ponto: o polígono já o mostra.
+      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio);
     } else {
       // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
       // vazada. A redundancia vira um anel externo escuro so no inviavel.
-      const cor = corDoEspecime(mark.type);
+      const cor = corDoEspecime(categoria);
       const raioDoIndice = raio * 1.8;
       ctx.beginPath();
-      ctx.arc(mark.x, mark.y, raioDoIndice, 0, Math.PI * 2);
+      ctx.arc(x, y, raioDoIndice, 0, Math.PI * 2);
       ctx.fillStyle = cor;
       ctx.fill();
       ctx.strokeStyle = ESPECIME.halo;
       ctx.lineWidth = traco;
       ctx.stroke();
 
-      if (mark.type === 'inviable') {
+      if (categoria === 'inviable') {
         ctx.beginPath();
-        ctx.arc(mark.x, mark.y, raioDoIndice * 1.3, 0, Math.PI * 2);
+        ctx.arc(x, y, raioDoIndice * 1.3, 0, Math.PI * 2);
         ctx.strokeStyle = cor;
         ctx.lineWidth = traco;
         ctx.stroke();
@@ -210,7 +210,7 @@ function renderMarksToContext(
       ctx.font = `bold ${corpoDaFonte(raioDoIndice)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(num.toString(), mark.x, mark.y + 0.5);
+      ctx.fillText(num.toString(), x, y + 0.5);
     }
   });
 }
@@ -644,9 +644,9 @@ export default function App() {
 
     // Draw manual marks
     if (mostraPontos(mascara)) {
-      renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca);
+      renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca, yoloSegmentations);
     }
-  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca, mascara]);
+  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca, mascara, yoloSegmentations]);
 
   useEffect(() => {
     if (imagemDeTrabalho && canvasRef.current) {
@@ -655,7 +655,7 @@ export default function App() {
       canvas.height = imagemDeTrabalho.height;
       drawCanvas();
     }
-  }, [imagemDeTrabalho, drawCanvas, marks, visualMode, mascara]);
+  }, [imagemDeTrabalho, drawCanvas, marks, visualMode, mascara, yoloSegmentations]);
 
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -2775,6 +2775,7 @@ export default function App() {
                     />
                   )}
                   <ListaDeSementes
+                    marks={marks}
                     segmentations={yoloSegmentations}
                     umPerPixel={metadata.umPerPixel}
                     medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
