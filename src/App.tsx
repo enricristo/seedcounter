@@ -110,6 +110,9 @@ import { RoiModal } from './features/roi';
 import { RECEITAS } from './features/ensaio/receitas';
 import { executarReceita, type ResultadoDoEnsaio } from './features/ensaio/executar';
 import { EnsaioPanel } from './features/ensaio/EnsaioPanel';
+import { DatasetsPanel } from './features/datasets/DatasetsPanel';
+import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
+import type { AnotacaoCarregada } from './features/datasets/anotacao';
 import { detectObjects } from './lib/detect';
 
 // Utils
@@ -1433,6 +1436,103 @@ export default function App() {
     [loadFiles, setMetadata, setLoadError]
   );
 
+  // --- Explorador de datasets (Lote B) ---------------------------------------
+  //
+  // A pasta aberta mora aqui (não dentro do painel) porque é estado da sessão,
+  // não só do painel: se a pessoa recolher a aba Datasets e voltar, a pasta
+  // continua aberta. `anotacaoAtual` é a anotação da ÚLTIMA imagem carregada
+  // pelo explorador — não entra sozinha; "Carregar referência" é quem decide.
+  const [pastaDeDatasets, setPastaDeDatasets] = useState<PastaAberta | null>(null);
+  const [anotacaoAtual, setAnotacaoAtual] = useState<AnotacaoCarregada | null>(null);
+  const [datasetContexto, setDatasetContexto] = useState<{ conjunto: string; caminho: string } | null>(null);
+  // Uma vez carregada, o botão "Carregar referência" some — clicar de novo
+  // duplicaria a mesma marca/contorno em cima do que acabou de entrar. Zera
+  // ao carregar a PRÓXIMA imagem do dataset (handleCarregarDoDataset).
+  const [referenciaJaCarregada, setReferenciaJaCarregada] = useState(false);
+
+  const handleCarregarDoDataset = useCallback(
+    async (arquivo: ArquivoDoDataset, anotacao: AnotacaoCarregada | null, conjunto: string, caminho: string) => {
+      const file = await arquivo.obterFile();
+      loadFiles([file]);
+      setAnotacaoAtual(anotacao);
+      setDatasetContexto({ conjunto, caminho });
+      setReferenciaJaCarregada(false);
+      setMetadata((prev) => ({
+        ...prev,
+        dataset: { conjunto, caminho, classesDaImagem: anotacao?.classesDaImagem },
+      }));
+    },
+    [loadFiles, setMetadata]
+  );
+
+  /**
+   * "Carregar referência" — o SEGUNDO gesto. Clicar na miniatura já carregou a
+   * imagem; só agora a anotação do dataset vira marca/contorno de verdade.
+   *
+   * Polígono vira contorno com `origem: 'referencia'` (conta como semente,
+   * mesma regra de um contorno de modelo — ver `objetos.ts`). Caixa vira
+   * marca no centro. Nome de classe que bate com viável/inviável usa a
+   * taxonomia do app; qualquer outro nome (amendoim com mofo, trigo duro…)
+   * fica em `classeExterna`, cru — inventar uma correspondência que ninguém
+   * validou seria pior que não ter classe nenhuma.
+   */
+  const normalizarClasseExterna = useCallback(
+    (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
+      const c = classe.trim().toLowerCase();
+      if (c === 'viavel' || c === 'viável') return { category: 'viable', class_name: 'viavel' };
+      if (c === 'inviavel' || c === 'inviável') return { category: 'inviable', class_name: 'inviavel' };
+      return { category: 'viable', class_name: 'viavel', classeExterna: classe };
+    },
+    []
+  );
+
+  const podeCarregarReferencia =
+    !!image &&
+    !referenciaJaCarregada &&
+    !!anotacaoAtual &&
+    ((anotacaoAtual.contornos?.length ?? 0) > 0 || (anotacaoAtual.marcas?.length ?? 0) > 0);
+
+  const handleCarregarReferencia = useCallback(() => {
+    if (!anotacaoAtual) return;
+
+    if (anotacaoAtual.contornos && anotacaoAtual.contornos.length > 0) {
+      const novasSegmentacoes: YoloSegmentation[] = anotacaoAtual.contornos.map((c, i) => {
+        const { width, height } = calculateSeedDimensions(c.poligono);
+        const { category, class_name, classeExterna } = normalizarClasseExterna(c.classe);
+        return {
+          id: Date.now() + i,
+          category,
+          class_name,
+          confidence: 1,
+          polygon_points: c.poligono,
+          visible: true,
+          width,
+          height,
+          origem: 'referencia',
+          ...(classeExterna ? { classeExterna } : {}),
+        };
+      });
+      addYoloSegmentations(novasSegmentacoes);
+    }
+
+    if (anotacaoAtual.marcas && anotacaoAtual.marcas.length > 0) {
+      const novasMarcas: Mark[] = anotacaoAtual.marcas.map((m, i) => {
+        const { category } = normalizarClasseExterna(m.classe);
+        return {
+          id: Date.now() + i + 1,
+          x: m.x,
+          y: m.y,
+          type: category,
+          origem: 'referencia' as const,
+        };
+      });
+      setMarks((prev) => [...prev, ...novasMarcas]);
+    }
+
+    setReferenciaJaCarregada(true);
+    setRecadoDaOnda({ tom: 'ok', texto: 'Referência do dataset carregada.' });
+  }, [anotacaoAtual, addYoloSegmentations, setMarks, normalizarClasseExterna]);
+
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
   // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
   // depois de trocar de ferramenta (o que bloqueava os cliques de marcação).
@@ -1805,11 +1905,13 @@ export default function App() {
    * pessoa perdia o X atrás do zoom. Como aba, o lugar delas é fixo, o fechar é
    * trocar de aba, e o canvas nunca fica coberto.
    */
-  const [rightSidebarTab, setRightSidebarTab] = useState<'resultados' | 'inspetor' | 'galeria'>('resultados');
+  const [rightSidebarTab, setRightSidebarTab] = useState<'resultados' | 'inspetor' | 'galeria' | 'datasets'>(
+    'resultados'
+  );
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
     lerPreferencia('sc:painelDireitoRecolhido', false)
   );
-  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria') => {
+  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets') => {
     setRightSidebarTab(aba);
     setIsRightSidebarCollapsed(false);
   }, []);
@@ -2477,6 +2579,7 @@ export default function App() {
             exemploCarregando={exemploCarregando}
             onCarregarExemploReal={handleCarregarExemploReal}
             exemploRealCarregando={exemploRealCarregando}
+            onAbrirDatasets={() => abrirAbaDireita('datasets')}
             onAbrirIdentificacao={
               isModoLaudoEnabled ? () => setIsIdentificacaoOpen(true) : undefined
             }
@@ -2573,6 +2676,37 @@ export default function App() {
               handleDrag={handleDrag}
               stopDrag={stopDrag}
             >
+              {/* "Carregar referência" — o segundo gesto do explorador de datasets.
+                  Clicar na miniatura já carregou a imagem; a anotação (contorno
+                  ou marca) só entra quando a pessoa pedir aqui. */}
+              {podeCarregarReferencia && (
+                <div className="border-accent bg-surface-1/95 rounded-panel absolute top-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
+                  <div className="min-w-0">
+                    <p className="text-ink-1 text-xs font-bold">Anotação do dataset disponível</p>
+                    <p className="text-ink-3 text-[10px] leading-snug truncate max-w-[280px]">
+                      {datasetContexto?.conjunto} — {anotacaoAtual?.contornos?.length
+                        ? `${anotacaoAtual.contornos.length} contorno(s)`
+                        : `${anotacaoAtual?.marcas?.length ?? 0} marca(s)`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCarregarReferencia}
+                    className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Carregar referência
+                  </button>
+                </div>
+              )}
+              {/* Classe da imagem (multiclasse / pasta-por-classe) — só metadado + chip, nunca cria marca sozinho. */}
+              {!podeCarregarReferencia &&
+                image &&
+                metadata.dataset?.classesDaImagem &&
+                metadata.dataset.classesDaImagem.length > 0 && (
+                  <div className="bg-surface-1/95 rounded-panel border-line absolute top-4 left-1/2 z-30 -translate-x-1/2 border px-3 py-1.5 text-[11px] font-bold text-ink-2 shadow-lg backdrop-blur">
+                    Classe do dataset: {metadata.dataset.classesDaImagem.join(', ')}
+                  </div>
+                )}
+
               {/* O corte proposto. Fica sobre a imagem, ao lado da linha tracejada */}
               {corteProposto && (
                 <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
@@ -2870,6 +3004,13 @@ export default function App() {
                 umPerPixel={metadata.umPerPixel}
                 medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
                 limiares={limiaresDaCena}
+              />
+            }
+            datasetsContent={
+              <DatasetsPanel
+                pastaAberta={pastaDeDatasets}
+                onPastaAberta={setPastaDeDatasets}
+                onCarregar={handleCarregarDoDataset}
               />
             }
           />

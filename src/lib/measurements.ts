@@ -136,6 +136,26 @@ function polygonArea(points: [number, number][]): number {
 }
 
 /**
+ * A coluna `origem` do CSV: de onde veio a linha.
+ *
+ * 'manual' = só marcação (clique humano); 'ia' = marcação com contorno
+ * (segmentação por clique — a onda mediu o que a pessoa apontou); 'modelo' =
+ * contorno proposto sem marcação e aceito (detecção, ensaio); 'referencia' =
+ * a mesma coisa, mas a proposta veio de um dataset de terceiros carregado
+ * pelo explorador (Lote B), não do modelo do próprio app — vale a pena
+ * distinguir os dois no CSV.
+ */
+function origemDaLinha(objeto: ObjetoDaCena): string {
+  if (objeto.natureza === 'contorno') {
+    return objeto.contorno?.origem === 'referencia' ? 'referencia' : 'modelo';
+  }
+  if (objeto.natureza === 'marca') {
+    return objeto.marca?.origem === 'referencia' ? 'referencia' : 'manual';
+  }
+  return 'ia';
+}
+
+/**
  * Monta a tabela de medidas. Cada marcação vira uma linha; se houver um
  * contorno correspondente, a linha ganha as colunas morfométricas.
  */
@@ -155,9 +175,7 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
     const row: SeedMeasurement = {
       objectId: objeto.indice,
       classe: objeto.categoria === 'viable' ? 'viavel' : 'inviavel',
-      // 'manual' = só marcação; 'ia' = marcação com contorno; 'modelo' =
-      // contorno proposto sem marcação (IA, ensaio, detecção) e aceito.
-      origem: objeto.natureza === 'contorno' ? 'modelo' : objeto.natureza === 'marca+contorno' ? 'ia' : 'manual',
+      origem: origemDaLinha(objeto),
       x: Math.round(objeto.x),
       y: Math.round(objeto.y),
     };

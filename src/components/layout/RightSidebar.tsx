@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   ChevronRight,
   Ruler,
+  FolderOpen,
 } from 'lucide-react';
 import { Counters } from '../sidebar/Counters';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
@@ -52,10 +53,12 @@ interface RightSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   hasImage: boolean;
-  activeTab: 'resultados' | 'inspetor' | 'galeria';
-  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria') => void;
+  activeTab: 'resultados' | 'inspetor' | 'galeria' | 'datasets';
+  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets') => void;
   inspectorContent?: React.ReactNode;
   galeriaContent?: React.ReactNode;
+  /** Explorador de datasets (Lote B) — quarta aba, abaixo de Resultados/Inspetor/Galeria. */
+  datasetsContent?: React.ReactNode;
 }
 
 export function RightSidebar({
@@ -88,6 +91,7 @@ export function RightSidebar({
   onTabChange,
   inspectorContent,
   galeriaContent,
+  datasetsContent,
 }: RightSidebarProps) {
 
   return (
@@ -124,6 +128,16 @@ export function RightSidebar({
         >
           <FileText size={16} />
         </button>
+        <button
+          onClick={() => {
+            if (activeTab === 'datasets' && !isCollapsed) onToggleCollapse();
+            else { onTabChange('datasets'); if (isCollapsed) onToggleCollapse(); }
+          }}
+          title="Datasets"
+          className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'datasets' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
+        >
+          <FolderOpen size={16} />
+        </button>
       </aside>
 
       {/* Painel de Conteúdo (Oculto quando colapsado) */}
@@ -138,6 +152,7 @@ export function RightSidebar({
                   {activeTab === 'resultados' && 'Resultados & Análise'}
                   {activeTab === 'inspetor' && 'Inspetor de Sementes'}
                   {activeTab === 'galeria' && 'Galeria e Curadoria'}
+                  {activeTab === 'datasets' && 'Explorador de Datasets'}
                 </span>
               </div>
               <button
@@ -227,6 +242,10 @@ export function RightSidebar({
             
             <div className={activeTab === 'galeria' ? 'flex flex-col gap-4' : 'hidden'}>
               {galeriaContent || <div className="text-ink-3 text-sm text-center mt-8">Nenhum dado na galeria.</div>}
+            </div>
+
+            <div className={activeTab === 'datasets' ? 'flex flex-col gap-4' : 'hidden'}>
+              {datasetsContent}
             </div>
 
           </div>

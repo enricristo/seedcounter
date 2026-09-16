@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Camera, Grid3x3, Crosshair, Sparkles } from 'lucide-react';
+import { Upload, Camera, Grid3x3, Crosshair, Sparkles, FolderOpen } from 'lucide-react';
 // Do módulo específico, NÃO do barril: o barril reexporta o DemoDataPanel, que
 // puxa o demo-store e com ele o Dexie para dentro da barra lateral.
 import { EXEMPLOS } from '../../features/demo/exemplos';
@@ -24,6 +24,8 @@ interface ImageActionsProps {
   exemploCarregando?: PresetDeCena | null;
   onCarregarExemploReal?: (e: ExemploReal) => void;
   exemploRealCarregando?: string | null;
+  /** Abre a aba Datasets do painel direito (explorador — Lote B). Ausente = botão oculto. */
+  onAbrirDatasets?: () => void;
 }
 
 export function ImageActions({
@@ -38,6 +40,7 @@ export function ImageActions({
   exemploCarregando,
   onCarregarExemploReal,
   exemploRealCarregando = null,
+  onAbrirDatasets,
 }: ImageActionsProps) {
   const botao =
     'rounded-panel border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:border-accent group flex w-full items-center gap-3 border px-4 py-3 font-bold transition-all';
@@ -148,6 +151,23 @@ export function ImageActions({
         )}
         {onCarregarExemploReal && (
           <ExemplosReais onCarregar={onCarregarExemploReal} carregando={exemploRealCarregando} />
+        )}
+
+        {/* Explorador de datasets (Lote B) — abaixo dos exemplos reais: os
+            exemplos são a demonstração; a pasta de datasets é o material de
+            verdade que a pessoa quer usar. O painel em si (conjuntos,
+            miniaturas, "Carregar referência") vive na aba Datasets do painel
+            direito; este botão só leva até lá. */}
+        {onAbrirDatasets && (
+          <button onClick={onAbrirDatasets} className={`${botao} mt-1`} title="Explorar pasta de datasets local">
+            <FolderOpen
+              size={16}
+              strokeWidth={2}
+              className="text-ink-3 group-hover:text-accent transition-colors"
+              aria-hidden="true"
+            />
+            <span className="text-xs tracking-wide uppercase">Abrir pasta de datasets…</span>
+          </button>
         )}
       </div>
     </section>

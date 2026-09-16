@@ -39,6 +39,8 @@ interface SidebarProps {
   exemploRealCarregando?: string | null;
   /** Abre a identificação normativa (BAS/BASO). Ausente = botão oculto. */
   onAbrirIdentificacao?: () => void;
+  /** Abre a aba Datasets do painel direito. Ausente = botão oculto. */
+  onAbrirDatasets?: () => void;
 
   // --- Painéis opcionais, agrupados por etapa do fluxo ---
   /** Etapa 1 — ajuste de imagem. */
@@ -82,6 +84,7 @@ export function Sidebar({
   onCarregarExemploReal,
   exemploRealCarregando,
   onAbrirIdentificacao,
+  onAbrirDatasets,
   adjustSlot,
   calibrationSlot,
   detectionSlot,
@@ -135,6 +138,7 @@ export function Sidebar({
           exemploCarregando={exemploCarregando}
           onCarregarExemploReal={onCarregarExemploReal}
           exemploRealCarregando={exemploRealCarregando}
+          onAbrirDatasets={onAbrirDatasets}
         />
 
         {/* Etapas de preparo e calibração: Calibração -> Detecção -> Ajuste de Imagem */}
