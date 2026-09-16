@@ -49,3 +49,20 @@ export function gravarPreferencia(chave: string, valor: boolean): void {
     // Ignorado de propósito: não poder lembrar não pode impedir de usar.
   }
 }
+
+/** Lê uma preferência de texto (ex.: qual canto, qual aba). Mesma regra da booleana. */
+export function lerPreferenciaTexto(chave: string, padrao: string): string {
+  try {
+    return localStorage.getItem(chave) ?? padrao;
+  } catch {
+    return padrao;
+  }
+}
+
+export function gravarPreferenciaTexto(chave: string, valor: string): void {
+  try {
+    localStorage.setItem(chave, valor);
+  } catch {
+    // Ignorado de propósito: não poder lembrar não pode impedir de usar.
+  }
+}
