@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Medidas por objeto (uma linha por semente)
-// GPEOrq / GPSEM · Unoeste
+// GPEOrq / GPSEM
 // =============================================================================
 // Inspirado no ExportToSpreadsheet do CellProfiler: em vez de apenas o total da
 // placa, cada semente vira uma linha com suas próprias medidas.
@@ -12,7 +12,12 @@
 // =============================================================================
 
 import { calculateSeedDimensions } from './pca-utils';
+import { feret } from './feret';
+import { fechoConvexo, areaDoPoligono } from './aglomerado';
 import type { Mark, YoloSegmentation, Metadata } from '../types';
+import { enumerarObjetos, pointInPolygon, type ObjetoDaCena } from './objetos';
+
+export { pointInPolygon };
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
 
 export interface SeedMeasurement {
@@ -42,10 +47,20 @@ export interface SeedMeasurement {
   comprimentoMm?: number;
   larguraMm?: number;
   areaMm2?: number;
+  /**
+   * Feret maximo e minimo — a medida do paquimetro e da peneira comercial.
+   * Em px sempre; em mm quando calibrado.
+   */
+  feretMaxPx?: number;
+  feretMinPx?: number;
+  feretMaxMm?: number;
+  feretMinMm?: number;
   /** Razão de aspecto (comprimento / largura). */
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
   circularidade?: number;
+  /** Solidez: área dividida pela área do fecho convexo — 1 = perfeitamente convexo. */
+  solidez?: number;
   /** Confiança do modelo, quando aplicável. */
   confianca?: number;
 
@@ -98,37 +113,6 @@ export interface MeasurementContext {
   colorSampling?: number;
 }
 
-/**
- * A marcação está dentro do contorno? Lançamento de raio.
- *
- * Esta é a associação CORRETA entre marca e segmentação. A versão anterior
- * usava distância ao centroide com raio fixo de 25 px, o que falha por dois
- * motivos: uma semente de orquídea a 3600 DPI tem ~165 px de comprimento,
- * então clicar na ponta já fica a mais de 25 px do centro; e o mesmo raio fixo
- * atende imagens de 946 px e de 7992 px, onde 25 px significam coisas
- * completamente diferentes.
- */
-export function pointInPolygon(px: number, py: number, poly: [number, number][]): boolean {
-  let dentro = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    const cruza = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
-    if (cruza) dentro = !dentro;
-  }
-  return dentro;
-}
-
-/** Maior distância do centroide a um vértice — o "raio" próprio do contorno. */
-function raioDoContorno(poly: [number, number][], c: { x: number; y: number }): number {
-  let maior = 0;
-  for (const [x, y] of poly) {
-    const d = Math.hypot(x - c.x, y - c.y);
-    if (d > maior) maior = d;
-  }
-  return maior;
-}
-
 /** Perímetro de um polígono fechado, em pixels. */
 function polygonPerimeter(points: [number, number][]): number {
   let p = 0;
@@ -151,15 +135,24 @@ function polygonArea(points: [number, number][]): number {
   return Math.abs(a) / 2;
 }
 
-/** Centroide de um polígono. */
-function polygonCentroid(points: [number, number][]): { x: number; y: number } {
-  let sx = 0,
-    sy = 0;
-  for (const [x, y] of points) {
-    sx += x;
-    sy += y;
+/**
+ * A coluna `origem` do CSV: de onde veio a linha.
+ *
+ * 'manual' = só marcação (clique humano); 'ia' = marcação com contorno
+ * (segmentação por clique — a onda mediu o que a pessoa apontou); 'modelo' =
+ * contorno proposto sem marcação e aceito (detecção, ensaio); 'referencia' =
+ * a mesma coisa, mas a proposta veio de um dataset de terceiros carregado
+ * pelo explorador (Lote B), não do modelo do próprio app — vale a pena
+ * distinguir os dois no CSV.
+ */
+function origemDaLinha(objeto: ObjetoDaCena): string {
+  if (objeto.natureza === 'contorno') {
+    return objeto.contorno?.origem === 'referencia' ? 'referencia' : 'modelo';
   }
-  return { x: sx / points.length, y: sy / points.length };
+  if (objeto.natureza === 'marca') {
+    return objeto.marca?.origem === 'referencia' ? 'referencia' : 'manual';
+  }
+  return 'ia';
 }
 
 /**
@@ -172,56 +165,23 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
   const umPerPixel = metadata.umPerPixel;
   const matchRadius = ctx.matchRadius ?? 25;
 
-  // Índice dos contornos visíveis, com centroide pré-calculado.
-  const contours = segmentations
-    .filter((s) => s.visible !== false && s.polygon_points?.length >= 3)
-    .map((s) => ({ seg: s, c: polygonCentroid(s.polygon_points) }));
-  const used = new Set<number>();
+  // A MESMA lista que a contagem usa (`enumerarObjetos`): marcações, com o
+  // contorno pareado quando há, e depois os contornos que valem por uma
+  // semente sozinhos. Antes só marcações viravam linha — uma semente detectada
+  // por modelo sem marca era contada, mas não medida nem exportada.
+  const objetos = enumerarObjetos(marks, segmentations, { raioMinimo: matchRadius });
 
-  return marks.map((mark, i) => {
+  return objetos.map((objeto: ObjetoDaCena) => {
     const row: SeedMeasurement = {
-      objectId: i + 1,
-      classe: mark.type === 'viable' ? 'viavel' : 'inviavel',
-      origem: 'manual',
-      x: Math.round(mark.x),
-      y: Math.round(mark.y),
+      objectId: objeto.indice,
+      classe: objeto.categoria === 'viable' ? 'viavel' : 'inviavel',
+      origem: origemDaLinha(objeto),
+      x: Math.round(objeto.x),
+      y: Math.round(objeto.y),
     };
-
-    // Duas etapas, nesta ordem.
-    //
-    // 1. O contorno que CONTÉM a marcação. É exato e independe de escala: o
-    //    técnico clica em cima da semente, não no centro geométrico dela.
-    // 2. Se nenhum contém — a marcação caiu na borda, ou o contorno é côncavo
-    //    e ela ficou numa reentrância —, o mais próximo cujo raio próprio
-    //    alcança a marcação. O raio vem do contorno, não de uma constante:
-    //    matchRadius fixo em 25 px era menor que meia semente a 3600 DPI.
-    let best: (typeof contours)[number] | null = null;
-
-    for (const c of contours) {
-      if (used.has(c.seg.id)) continue;
-      if (pointInPolygon(mark.x, mark.y, c.seg.polygon_points)) {
-        best = c;
-        break;
-      }
-    }
-
-    if (!best) {
-      let melhorDist = Infinity;
-      for (const c of contours) {
-        if (used.has(c.seg.id)) continue;
-        const d = Math.hypot(c.c.x - mark.x, c.c.y - mark.y);
-        // Tolerância: o próprio tamanho do contorno, com uma folga de 20%.
-        // matchRadius continua servindo de piso, para contornos minúsculos.
-        const limite = Math.max(matchRadius, raioDoContorno(c.seg.polygon_points, c.c) * 1.2);
-        if (d < limite && d < melhorDist) {
-          melhorDist = d;
-          best = c;
-        }
-      }
-    }
+    const best = objeto.contorno ? { seg: objeto.contorno } : null;
 
     if (best) {
-      used.add(best.seg.id);
       const poly = best.seg.polygon_points;
       const { width, height } = calculateSeedDimensions(poly);
       const comprimento = Math.max(width, height);
@@ -229,7 +189,6 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       const area = polygonArea(poly);
       const perim = polygonPerimeter(poly);
 
-      row.origem = 'ia';
       row.comprimentoPx = Number(comprimento.toFixed(2));
       row.larguraPx = Number(largura.toFixed(2));
       row.areaPx = Number(area.toFixed(1));
@@ -238,7 +197,22 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
         perim > 0
           ? Number(Math.min(1, (4 * Math.PI * area) / (perim * perim)).toFixed(3))
           : undefined;
+      const fc = fechoConvexo(poly as [number, number][]);
+      const areaFc = areaDoPoligono(fc);
+      row.solidez = areaFc > 0 ? Number(Math.min(1, area / areaFc).toFixed(3)) : undefined;
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
+
+      // Feret: a medida do paquimetro e da peneira comercial (UBS classifica
+      // por fenda/redonda em mm). Diverge da PCA em contorno assimetrico.
+      const f = feret(poly);
+      if (f) {
+        row.feretMaxPx = f.maximo;
+        row.feretMinPx = f.minimo;
+        if (umPerPixel && umPerPixel > 0) {
+          row.feretMaxMm = (f.maximo * umPerPixel) / 1000;
+          row.feretMinMm = (f.minimo * umPerPixel) / 1000;
+        }
+      }
 
       // Cor dentro do contorno, quando os pixels estão disponíveis.
       if (imageData) {
@@ -309,6 +283,10 @@ const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'comprimentoMm', label: 'comprimento_mm' },
   { key: 'larguraMm', label: 'largura_mm' },
   { key: 'areaMm2', label: 'area_mm2' },
+  { key: 'feretMaxPx', label: 'feret_max_px' },
+  { key: 'feretMinPx', label: 'feret_min_px' },
+  { key: 'feretMaxMm', label: 'feret_max_mm' },
+  { key: 'feretMinMm', label: 'feret_min_mm' },
   { key: 'rMean', label: 'r_mean' },
   { key: 'rStd', label: 'r_std' },
   { key: 'gMean', label: 'g_mean' },

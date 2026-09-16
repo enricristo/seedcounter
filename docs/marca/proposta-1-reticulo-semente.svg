@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SeedCounter — retículo e semente">
+  <title>Proposta 1 — Retículo medido</title>
+  <!-- A marca atual, ajustada: o retículo vira um CALIBRE. As duas hastes
+       horizontais encostam na semente, como um paquímetro fecha sobre o grão:
+       a marca passa a dizer "isto mede", não só "isto observa". -->
+  <circle cx="32" cy="32" r="19" fill="none" stroke="#0d8ea1" stroke-width="3"/>
+  <path d="M32 13.8v5.4M32 50.2v-5.4" stroke="#0d8ea1" stroke-width="3" stroke-linecap="round"/>
+  <path d="M13.8 32h7.6M50.2 32h-7.6" stroke="#0d8ea1" stroke-width="3" stroke-linecap="round"/>
+  <path d="M21.4 27.6v8.8M42.6 27.6v8.8" stroke="#0d8ea1" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="32" cy="32" rx="9.4" ry="5.6" transform="rotate(-24 32 32)" fill="#e0651f"/>
+</svg>

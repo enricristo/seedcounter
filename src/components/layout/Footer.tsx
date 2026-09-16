@@ -1,20 +1,35 @@
 import React from 'react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
+import { DISSERTACAO } from '../../features/easter/fucik';
+import type { FonteDeUmaAutomacao } from '../../lib/fonte-da-automacao';
 
 interface FooterProps {
   filename?: string;
   imageWidth?: number;
   imageHeight?: number;
+  /** Zoom atual (1 = 100%). Ausente = sem imagem. */
+  zoomLevel?: number;
+  /** Total de objetos contados na cena. */
+  totalDeObjetos?: number;
   /** Sobrescreve a versão do build. Normalmente não é passado. */
   version?: string;
   /** Abre as notas de versão. Ausente = o número fica só informativo. */
   onAbrirNovidades?: () => void;
   /**
-   * As condicoes de medicao: especie declarada e escala. Ficam no meio do
-   * rodape porque sao o contexto que toda medida carrega — e porque o meio
-   * estava vazio.
+   * As condições de medição em curso: espécie, escala, protocolo. É o
+   * contexto que toda medida carrega; sem ele, "285 px" não diz nada.
    */
-  bancada?: { especie?: string; umPerPixel?: number; protocolo?: string };
+  bancada?: { especie?: string; umPerPixel?: number; protocolo?: string; equipamento?: string };
+  /**
+   * Que imagem as automações estão lendo, e o gatilho para forçar a original.
+   * Ausente = sem imagem aberta.
+   */
+  fonteDaAutomacao?: {
+    resumo: { texto: string; alterada: boolean };
+    detalhes: FonteDeUmaAutomacao[];
+    forcarOriginal: boolean;
+    onAlternar: () => void;
+  };
 }
 
 const LOGOS = [
@@ -22,80 +37,133 @@ const LOGOS = [
     src: '/logo-gpeorq.png',
     alt: 'Logo GPEOrq',
     href: 'https://www.instagram.com/gpeorq',
-    titulo: 'GPEOrq — Grupo de Pesquisa em Orquídeas',
+    titulo: 'GPEOrq — Grupo de Pesquisa em Orquídeas · @gpeorq',
   },
   {
     src: '/logo-gpsem.png',
     alt: 'Logo GPSEM',
     href: 'https://www.instagram.com/gpsem_2000/',
-    titulo: 'GPSEM — Grupo de Estudos e Pesquisas em Sementes',
+    titulo: 'GPSEM — Grupo de Estudos e Pesquisas em Sementes · @gpsem_2000',
   },
 ];
 
+const CREDITOS =
+  'Desenvolvido por Enrico S. Ambrosio (Matemático, graduando em Agronomia) · enrico.ambrosio@unesp.br · ' +
+  'Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio · GPEOrq / GPSEM';
+
+/** Um item da barra: rótulo pequeno em cima, valor embaixo. */
+function Item({ rotulo, children, title }: { rotulo: string; children: React.ReactNode; title?: string }) {
+  return (
+    <div className="flex min-w-0 flex-col leading-none" title={title}>
+      <span className="text-ink-3 text-[8px] font-bold tracking-widest uppercase">{rotulo}</span>
+      <span className="text-ink-2 truncate font-mono text-[10px] tabular-nums">{children}</span>
+    </div>
+  );
+}
+
+/**
+ * A barra inferior: três grupos com o mesmo peso — estado, imagem em curso,
+ * condições de medição — e, à direita, filiação e versão.
+ *
+ * Antes era uma linha de texto em caixa alta de um lado e dois parágrafos
+ * de créditos de 9 px do outro; nada tinha rótulo e o zoom, que é o que
+ * muda o tempo todo, não aparecia. Os créditos completos ficam no tooltip
+ * da filiação — a barra é de trabalho, não de página institucional.
+ */
 export function Footer({
   filename,
   imageWidth,
   imageHeight,
+  zoomLevel,
+  totalDeObjetos,
   version,
   onAbrirNovidades,
   bancada,
+  fonteDaAutomacao,
 }: FooterProps) {
-  // A versão vem do build, não de uma constante que alguém precisa lembrar de
-  // atualizar. __APP_VERSION__ sai do package.json e __BUILD_COMMIT__ do git,
-  // então cada publicação se identifica sozinha — e um relatório exportado
-  // pode dizer exatamente qual código o produziu.
   const versaoExibida = version ?? `v${__APP_VERSION__}`;
-  const link = 'hover:text-accent underline decoration-current/25 underline-offset-2 transition-colors'; // prettier-ignore
+  const separador = <span className="bg-line h-6 w-px shrink-0" aria-hidden="true" />;
 
   return (
-    <footer className="border-line bg-surface-1 flex h-12 shrink-0 items-center justify-between border-t px-6">
-      {/* Estado do sistema e identificação da imagem em curso. */}
-      <div className="text-ink-3 flex items-center gap-4 text-[10px] font-bold tracking-wide uppercase">
-        <div className="flex items-center gap-1.5">
-          {/* Ponto estático, não pulsante: um indicador que pisca sem parar
-              cansa a vista numa sessão longa de contagem, e o estado aqui não
-              muda — é sempre local e offline. */}
-          <span className="bg-ok h-1.5 w-1.5 rounded-full" />
-          <span>Local offline</span>
-        </div>
-        {filename && (
-          <div className="border-line text-ink-2 border-l pl-3 font-mono text-[10px] normal-case tabular-nums">
-            {filename} {imageWidth && imageHeight && `• ${imageWidth}×${imageHeight}px`}
-          </div>
-        )}
-        {/* O que esta em curso. Some quando nao ha nada — e a excecao
-            deliberada ao ponto estatico acima: aqui o movimento SIGNIFICA
-            alguma coisa, e para quando ela termina. */}
-        <div className="border-line border-l pl-3 empty:hidden">
-          <IndicadorDeAtividade />
-        </div>
+    <footer className="border-line bg-surface-1 flex h-12 shrink-0 items-center gap-4 border-t px-4">
+      {/* 1. Estado — ponto estático: o app é sempre local e offline; um
+          indicador que pisca sem parar cansa numa sessão longa. */}
+      <div className="flex shrink-0 items-center gap-2" title="Os dados ficam neste computador; nada sai sem você exportar.">
+        <span className="bg-ok h-1.5 w-1.5 rounded-full" />
+        <Item rotulo="Dados">local · offline</Item>
+      </div>
+      <div className="empty:hidden">
+        <IndicadorDeAtividade />
       </div>
 
-      {/* As condicoes de medicao, no centro. E o contexto que toda medida
-          carrega; sem ele, "285 px" nao diz nada. Some quando nao ha nada
-          declarado, em vez de mostrar "—" tres vezes. */}
-      {bancada && (bancada.especie || bancada.umPerPixel) && (
-        <div className="text-ink-3 hidden items-center gap-3 text-[10px] font-bold tracking-wide uppercase lg:flex">
-          {bancada.especie && (
-            <span>
-              <span className="text-ink-2 normal-case italic">{bancada.especie}</span>
-            </span>
+      {separador}
+
+      {/* 2. Imagem em curso */}
+      {filename ? (
+        <div className="flex min-w-0 items-center gap-4">
+          <Item rotulo="Imagem" title={filename}>
+            {filename}
+          </Item>
+          {imageWidth && imageHeight && (
+            <Item rotulo="Pixels">
+              {imageWidth}×{imageHeight}
+            </Item>
           )}
-          {bancada.umPerPixel && bancada.umPerPixel > 0 && (
-            <span className="border-line border-l pl-3 font-mono normal-case tabular-nums">
-              {bancada.umPerPixel.toFixed(2).replace('.', ',')} µm/px
-            </span>
-          )}
-          {bancada.protocolo && bancada.protocolo !== 'simples' && (
-            <span className="border-line border-l pl-3">{bancada.protocolo}</span>
-          )}
+          {zoomLevel != null && <Item rotulo="Zoom">{Math.round(zoomLevel * 100)}%</Item>}
+          {totalDeObjetos != null && <Item rotulo="Objetos">{totalDeObjetos}</Item>}
         </div>
+      ) : (
+        <Item rotulo="Imagem">nenhuma aberta</Item>
       )}
 
-      {/* Créditos e filiação. As logos vieram do cabeçalho: aqui elas ficam
-          ao lado do texto que já as nomeava, em vez de disputar espaço com a
-          navegação. */}
-      <div className="flex items-center gap-3">
+      {separador}
+
+      {/* 3. Condições de medição — some o que não foi declarado, em vez de
+          mostrar "—" três vezes. */}
+      <div className="hidden min-w-0 items-center gap-4 md:flex">
+        <Item rotulo="Escala" title={bancada?.umPerPixel ? 'µm por pixel, da calibração desta imagem' : 'Sem calibração: medidas em pixel. Calibre no painel esquerdo.'}>
+          {bancada?.umPerPixel && bancada.umPerPixel > 0
+            ? `${bancada.umPerPixel.toFixed(2).replace('.', ',')} µm/px`
+            : 'sem calibração'}
+        </Item>
+        {bancada?.especie && (
+          <Item rotulo="Espécie">
+            <span className="italic">{bancada.especie}</span>
+          </Item>
+        )}
+        {bancada?.equipamento && <Item rotulo="Equipamento">{bancada.equipamento}</Item>}
+        {/* Que imagem as automações leem. Clicar força a original — é um
+            experimento de um clique ("a detecção piorou por causa do ajuste?"),
+            não uma configuração escondida. */}
+        {fonteDaAutomacao && (
+          <button
+            type="button"
+            onClick={fonteDaAutomacao.onAlternar}
+            aria-pressed={fonteDaAutomacao.forcarOriginal}
+            title={[
+              ...fonteDaAutomacao.detalhes.map((d) => `${d.rotulo}: ${d.fonte} — ${d.motivo}`),
+              '',
+              fonteDaAutomacao.forcarOriginal
+                ? 'Clique para voltar a ler a imagem ajustada.'
+                : 'Clique para forçar a leitura da imagem original.',
+            ].join(String.fromCharCode(10))}
+            className={`rounded px-1 py-0.5 text-left transition-colors hover:bg-surface-2 ${
+              fonteDaAutomacao.resumo.alterada ? 'text-ink-1' : ''
+            }`}
+          >
+            <Item rotulo="Automação lê">
+              {fonteDaAutomacao.resumo.alterada && <span className="bg-accent mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" />}
+              {fonteDaAutomacao.resumo.texto}
+            </Item>
+          </button>
+        )}
+        {bancada?.protocolo && bancada.protocolo !== 'simples' && <Item rotulo="Protocolo">{bancada.protocolo}</Item>}
+      </div>
+
+      <div className="flex-1" />
+
+      {/* 4. Filiação e versão. Créditos completos no tooltip. */}
+      <div className="flex shrink-0 items-center gap-3">
         <div className="hidden items-center gap-1.5 md:flex">
           {LOGOS.map((l) => (
             <a
@@ -110,8 +178,6 @@ export function Footer({
                 src={l.src}
                 alt={l.alt}
                 className="h-6 w-6 object-contain"
-                // Esconde o link inteiro, não só a imagem: esconder apenas a
-                // <img> deixava a caixa branca vazia na barra.
                 onError={(e) => {
                   const a = e.currentTarget.closest('a');
                   if (a) a.style.display = 'none';
@@ -120,41 +186,28 @@ export function Footer({
             </a>
           ))}
         </div>
-
-        <div className="flex flex-col items-end">
-          <div className="text-ink-2 text-[10px]">
-            <span className="text-accent font-bold">GPEOrq</span> /{' '}
-            <span className="text-accent font-bold">GPSEM</span> — Unoeste •{' '}
-            <a
-              href="https://www.instagram.com/gpeorq"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={link}
-            >
-              @gpeorq
-            </a>
+        <div className="hidden flex-col items-end leading-tight lg:flex" title={CREDITOS}>
+          <span className="text-ink-2 text-[10px]">
+            <span className="text-accent font-bold">GPEOrq</span> / <span className="text-accent font-bold">GPSEM</span>
             {' · '}
+            {/* O nome leva à dissertação — o easter egg mais discreto: quem
+                clica num nome quer saber quem é, e a resposta é o trabalho. */}
             <a
-              href="https://www.instagram.com/gpsem_2000/"
+              href={DISSERTACAO.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={link}
+              title={`${DISSERTACAO.titulo} — dissertação de mestrado (repositório da biblioteca)`}
+              className="hover:text-accent decoration-current/25 underline underline-offset-2 transition-colors"
             >
-              @gpsem_2000
+              Enrico S. Ambrosio
             </a>
-          </div>
-          <div className="text-ink-3 mt-0.5 max-w-2xl truncate text-right text-[9px]">
-            Desenvolvido por Enrico S. Ambrosio (Matemático, graduando em Agronomia) •{' '}
-            <a href="mailto:enrico.ambrosio@unesp.br" className={link}>
-              enrico.ambrosio@unesp.br
-            </a>
-            {' • '}Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
-          </div>
+          </span>
+          <span className="text-ink-3 text-[9px]">
+            Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
+          </span>
         </div>
-        {/* O numero da versao e o gancho para as notas: e onde as pessoas ja
-            olham quando querem saber "o que mudou?". A afordancia entra em
-            cromo neutro — borda e foco — porque ciano e magenta significam
-            viavel e inviavel em toda a interface. */}
+        {/* O número da versão é o gancho para as notas. Cromo neutro: ciano e
+            magenta significam viável e inviável em toda a interface. */}
         <button
           type="button"
           onClick={onAbrirNovidades}

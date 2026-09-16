@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Detecção Assistida (visão computacional clássica)
-// GPEOrq / GPSEM · Unoeste
+// GPEOrq / GPSEM
 // =============================================================================
 // Pipeline (cada etapa pode ser desligada):
 //   1. escala de cinza (com escolha do canal)

@@ -1,15 +1,26 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
+import { Ruler, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 // Components
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { RightSidebar } from './components/layout/RightSidebar';
 import { Footer } from './components/layout/Footer';
 import { ImageViewport } from './components/canvas/ImageViewport';
+import { CalibrationRulerOverlay } from './components/canvas/overlays/CalibrationRulerOverlay';
+import { GhostSeedsOverlay } from './components/canvas/overlays/GhostSeedsOverlay';
+import { RegionSelectorOverlay } from './components/canvas/overlays/RegionSelectorOverlay';
+import { VisualAnnotationsOverlay } from './components/canvas/overlays/VisualAnnotationsOverlay';
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
+import { SeedInspector } from './components/canvas/SeedInspector';
+import { ListaDeSementes } from './components/canvas/ListaDeSementes';
+import { EscalaGrafica } from './components/canvas/EscalaGrafica';
+import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-reais';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { DropZone } from './components/shared/DropZone';
+import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
 // Modals
 import { ExportModal } from './components/modals/ExportModal';
@@ -18,12 +29,8 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 
 // Hooks
 import { useTheme } from './hooks/useTheme';
-import { useMarks } from './hooks/useMarks';
-import { useMetadata } from './hooks/useMetadata';
+import { useBancada } from './hooks/useBancada';
 import { useSessions } from './hooks/useSessions';
-import { useImageQueue } from './hooks/useImageQueue';
-import { useZoom } from './hooks/useZoom';
-import { usePanning } from './hooks/usePanning';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
 import { useViewNavigation } from './hooks/useViewNavigation';
@@ -47,7 +54,20 @@ import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
-import { BotaoDeConta, useConta } from './features/conta';
+import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
+import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
+import {
+  CartaoDeSugestao,
+  sugerir,
+  lerDispensadas,
+  dispensar,
+  type EstadoParaSugestao,
+  type AcaoDeSugestao,
+} from './features/sugestoes';
+import { PainelDeMorfometria, resumir } from './features/morfometria';
+import { aplicarRegra, simularRegra, REGRAS_PADRAO, type RegraParametrica } from './features/morfometria/regras';
+import { lerPreferencia, gravarPreferencia, CHAVE_SUGESTOES } from './features/settings/preferencias';
+import { conferirForma } from './lib/normas/tamanhos-de-semente';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
 import { BarraDeAtividade } from './features/atividade/BarraDeAtividade';
 import {
@@ -68,13 +88,11 @@ import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
 import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
-import { acharPorNome } from './lib/normas/tamanhos-de-semente';
+import { acharPorNome, TAMANHOS } from './lib/normas/tamanhos-de-semente';
 import {
-  ESTADO_INICIAL as MASCARA_INICIAL,
   mostraContornos,
   mostraPontos,
   proxima as proximaMascara,
-  type Mascara,
 } from './features/mascara';
 import { useLaboratorio } from './hooks/useLaboratorio';
 import { carregarExemplo } from './features/demo/exemplos';
@@ -83,28 +101,51 @@ import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
+import {
+  RECEITAS,
+  receitaPelaEspecie,
+  receitaDeSalva,
+  type Receita,
+  type ContornoProposto,
+} from './features/ensaio/receitas';
+import { executarReceita, type ResultadoDoEnsaio } from './features/ensaio/executar';
+import { EnsaioPanel } from './features/ensaio/EnsaioPanel';
+import { useReceitasSalvas } from './hooks/useReceitasSalvas';
+import { usePerfisMedidos } from './hooks/usePerfisMedidos';
+import type { ReceitaSalva } from './lib/db';
+import { DatasetsPanel } from './features/datasets/DatasetsPanel';
+import { LotePanel } from './features/lote/LotePanel';
+import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
+import type { AnotacaoCarregada } from './features/datasets/anotacao';
+import { detectObjects, type DetectionOptions } from './lib/detect';
+import type { OpcoesDaOnda } from './lib/region-growing';
+import { ChipDeEspecie } from './components/layout/ChipDeEspecie';
+import { especieAtual, type EspecieConhecida } from './lib/normas/especies';
+import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
+import { limiaresDaPopulacao } from './lib/aglomerado';
+import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
-import type { Regiao } from './lib/region';
 import {
-  NEUTRAL_ADJUSTMENTS,
   applyAdjustments,
+  exigePixels,
   isNeutral,
   toCssFilter,
-  type ImageAdjustments,
 } from './lib/image-adjust';
 import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
 
 // Types
-import type { Mark, YoloSegmentation, Session, Experiment, PlateRun } from './types';
+import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
 import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
 import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
+import { enumerarObjetos } from './lib/objetos';
+import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
 
 // Delega para src/lib/download.ts. A versão anterior criava a âncora sem
 // anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
@@ -131,7 +172,8 @@ function renderMarksToContext(
   marks: Mark[],
   mode: 'dots' | 'numbers',
   larguraDaImagem: number,
-  ajusteDaMarca = AJUSTE_PADRAO
+  ajusteDaMarca = AJUSTE_PADRAO,
+  segmentacoes: YoloSegmentation[] = []
 ) {
   // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
   // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
@@ -139,38 +181,36 @@ function renderMarksToContext(
   const raio = raioDaMarca(larguraDaImagem, ajusteDaMarca);
   const traco = espessuraNaImagem(larguraDaImagem, 1.5);
 
-  let viableCounter = 0;
-  let inviableCounter = 0;
+  // O índice é o de `enumerarObjetos` — o mesmo do CSV, da lista do inspetor
+  // e da contagem. Antes cada classe tinha a própria sequência e os contornos
+  // do modelo não recebiam número: "índice 7" no canvas não era a linha 7.
+  const objetos = enumerarObjetos(marks, segmentacoes);
 
-  marks.forEach((mark) => {
-    let num = 0;
-    if (mark.type === 'viable') {
-      viableCounter++;
-      num = viableCounter;
-    } else {
-      inviableCounter++;
-      num = inviableCounter;
-    }
+  objetos.forEach((objeto) => {
+    const { x, y, categoria } = objeto;
+    const num = objeto.indice;
+    const soContorno = objeto.natureza === 'contorno';
 
     if (mode === 'dots') {
       // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
-      desenharMarca(ctx, mark.type, mark.x, mark.y, raio);
+      // Contorno sem marca não ganha ponto: o polígono já o mostra.
+      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio);
     } else {
       // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
       // vazada. A redundancia vira um anel externo escuro so no inviavel.
-      const cor = corDoEspecime(mark.type);
+      const cor = corDoEspecime(categoria);
       const raioDoIndice = raio * 1.8;
       ctx.beginPath();
-      ctx.arc(mark.x, mark.y, raioDoIndice, 0, Math.PI * 2);
+      ctx.arc(x, y, raioDoIndice, 0, Math.PI * 2);
       ctx.fillStyle = cor;
       ctx.fill();
       ctx.strokeStyle = ESPECIME.halo;
       ctx.lineWidth = traco;
       ctx.stroke();
 
-      if (mark.type === 'inviable') {
+      if (categoria === 'inviable') {
         ctx.beginPath();
-        ctx.arc(mark.x, mark.y, raioDoIndice * 1.3, 0, Math.PI * 2);
+        ctx.arc(x, y, raioDoIndice * 1.3, 0, Math.PI * 2);
         ctx.strokeStyle = cor;
         ctx.lineWidth = traco;
         ctx.stroke();
@@ -182,7 +222,7 @@ function renderMarksToContext(
       ctx.font = `bold ${corpoDaFonte(raioDoIndice)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(num.toString(), mark.x, mark.y + 0.5);
+      ctx.fillText(num.toString(), x, y + 0.5);
     }
   });
 }
@@ -207,30 +247,64 @@ export default function App() {
   const isModoLaudoEnabled = useFeatureFlag('modoLaudo');
   const isSplitEnabled = useFeatureFlag('splitScan');
   const isRoiEnabled = useFeatureFlag('circularRoi');
+  // Spike (Tarefa 8, Degrau 1): desligada por padrao. So muda o botao direito
+  // no canvas quando ligada — ver `MarkingCanvas` e `flags.ts`.
+  const isMenuRadialEnabled = useFeatureFlag('menuRadial');
+  // Fase I — o ensaio ao carregar. Desligado por padrão: a ferramenta propõe,
+  // nunca decide sozinha, e fica atrás de flag até a medição dizer que a taxa
+  // de "Nenhuma" é baixa o bastante para ligar por padrão.
+  const isEnsaioAoCarregarEnabled = useFeatureFlag('ensaioAoCarregar');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
 
   // Calibração — modo régua e última distância medida
   const [isFeaturesOpen, setIsFeaturesOpen] = useState(false);
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
+  /** A galeria grande (janela) continua existindo, aberta pelo Expandir da aba. */
+  const [galeriaGrande, setGaleriaGrande] = useState(false);
+  /** Escala gráfica e eixos: preferências de quem mede, lembradas. */
+  const [mostrarEscala, setMostrarEscala] = useState(() => lerPreferencia('sc:escalaGrafica', true));
+  const [mostrarEixos, setMostrarEixos] = useState(() => lerPreferencia('sc:eixosDasMedidas', false));
+  /** Proposta do ensaio sob o mouse, mostrada tracejada no canvas para comparar receitas. */
+  const [propostaDestacada, setPropostaDestacada] = useState<[number, number][][]>([]);
   const { laboratorio } = useLaboratorio();
-  const [mascara, setMascara] = useState<Mascara>(MASCARA_INICIAL);
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
-  const [contornoSelecionado, setContornoSelecionado] = useState<number | null>(null);
   const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
-
-  /**
-   * A imagem com o fundo nivelado.
-   *
-   * Fica SEPARADA de `image`, que continua sendo a original. A onda e a
-   * borracha leem esta; o YOLO e o laudo leem a original — o modelo foi
-   * treinado nela, e foto processada nao e a chapa.
-   */
-  const [fundoAchatado, setFundoAchatado] = useState<HTMLImageElement | null>(null);
+  // mascara, contornoSelecionado, fundoAchatado e forcarOriginalNasAutomacoes
+  // sao estado de CENA — moraram em useBancada() (Task 1 de bancadas) e chegam
+  // via `bancada.cena`, desestruturados mais abaixo, no mesmo lugar onde a
+  // fila de imagens entrava.
   const [fundoIncerto, setFundoIncerto] = useState(false);
   const [achatando, setAchatando] = useState(false);
 
-  const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
+
+  // Easter eggs: `semente` liga o tic ao marcar, `orquidea` floresce. O gancho
+  // tem o proprio ouvinte de teclado e nao passa por useKeyboardShortcuts —
+  // easter egg nao se anuncia na ajuda.
+  const {
+    florescendo,
+    encerrarFlorescer,
+    recado: recadoDoEaster,
+    passoDaMontanha,
+    encerrarPassoDaMontanha,
+    pedidoDeGerminar,
+    temaDaFlor,
+  } = useEasterEggs();
+  /** Germinar em curso: o pedido que está sendo mostrado (0 = nenhum). */
+  const [germinandoPedido, setGerminandoPedido] = useState(0);
+  const [recadoDeGerminar, setRecadoDeGerminar] = useState<string | null>(null);
+  useEffect(() => {
+    if (pedidoDeGerminar === 0) return;
+    // Sem semente marcada não há de onde brotar — e é a dica de como achar o resto.
+    if (marcasRef.current.length === 0) {
+      setRecadoDeGerminar('Marque algumas sementes primeiro (V) — é delas que a flor brota.');
+      const t = setTimeout(() => setRecadoDeGerminar(null), 2500);
+      return () => clearTimeout(t);
+    }
+    setGerminandoPedido(pedidoDeGerminar);
+  }, [pedidoDeGerminar]);
+  const encerrarGerminar = useCallback(() => setGerminandoPedido(0), []);
+
 
   // Notas de versao: abre sozinha so quando a versao avancou desde a ultima
   // visita. Na primeira visita registra em silencio — quem abre o aplicativo
@@ -248,41 +322,17 @@ export default function App() {
   }, []);
   const ciclarMascara = useCallback(() => setMascara((m) => proximaMascara(m)), []);
   const [showRulers, setShowRulers] = useState(true);
-  const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
-  const [adjustEnabled, setAdjustEnabled] = useState(true);
   const [isMeasuring, setIsMeasuring] = useState(false);
   const [measuredPixels, setMeasuredPixels] = useState<number | undefined>(undefined);
 
-  // Região de detecção: onde os motores (clássico e YOLO) vão rodar.
-  // Sem ela, os dois varrem a imagem inteira — que numa digitalização de
-  // scanner são dezenas de janelas de inferência e minutos de espera.
-  const [regiaoDeDeteccao, setRegiaoDeDeteccao] = useState<Regiao | null>(null);
+  // Região de detecção: onde os motores (clássico e YOLO) vão rodar. Sem ela,
+  // os dois varrem a imagem inteira — dezenas de janelas de inferência numa
+  // digitalização de scanner. `regiaoDeDeteccao` é estado de cena, em
+  // `bancada.cena`; só o "estou selecionando agora" fica aqui.
   const [selecionandoRegiao, setSelecionandoRegiao] = useState(false);
 
-  // Fase F — ferramentas de edição (marcar / borracha / mover)
-  const {
-    activeTool,
-    setActiveTool,
-    eraserRadius,
-    setEraserRadius,
-    isTemporary: isToolTemporary,
-  } = useTools();
-  const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
-
-  // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
-  const { toggle: toggleFlag } = useFeatureFlags();
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        toggleFlag('debugPanel');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleFlag]);
-
   // Modal Open states
+  const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -302,16 +352,268 @@ export default function App() {
   const [selectedPlateRunForEdit, setSelectedPlateRunForEdit] = useState<PlateRun | undefined>(
     undefined
   );
+  const [versaoDispensadas, setVersaoDispensadas] = useState(0);
+
+  // Fase 4: Regra Simulada State (Lifting State para evitar useEffect)
+  /**
+   * Nenhuma regra escolhida por padrão.
+   *
+   * Antes começava na primeira da lista, e como a simulação roda a cada
+   * mudança de medida, os quadrinhos tracejados piscavam sobre a cena sem
+   * ninguém ter aberto o painel de regras — uma proposta de curadoria em
+   * lote aparecendo sozinha. O fantasma é resposta a um pedido; sem pedido,
+   * não há fantasma.
+   */
+  const [regraSelecionadaId, setRegraSelecionadaId] = useState<string | null>(null);
+  const [limiaresCustomizados, setLimiaresCustomizados] = useState<Record<string, number>>({
+    'regra-detritos': 5.0,
+    'regra-aglomerados': 0.90,
+    'regra-chocha': 0.65,
+  });
+
+  const isAnyModalOpen =
+    isExportModalOpen ||
+    isHistoryModalOpen ||
+    isYoloExportModalOpen ||
+    isExperimentModalOpen ||
+    isPlateRunModalOpen ||
+    isCameraOpen ||
+    isSplitOpen ||
+    isRoiOpen ||
+    isResetConfirmOpen ||
+    isFeaturesOpen ||
+    novidades.aberto ||
+    galeriaGrande ||
+    isIdentificacaoOpen;
+
+  // Fase F — ferramentas de edição (marcar / borracha / mover)
+  const {
+    activeTool,
+    setActiveTool,
+    eraserRadius,
+    setEraserRadius,
+    isTemporary: isToolTemporary,
+  } = useTools({ disabled: isAnyModalOpen });
+
+  // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
+  const { toggle: toggleFlag } = useFeatureFlags();
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        toggleFlag('debugPanel');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleFlag]);
 
   // Manual marking class toggle
   const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
+
+  /**
+   * Escolher a classe nos cartões de resultado também troca a ferramenta.
+   *
+   * Clicar em "viável" ali é dizer "agora eu vou marcar viáveis" — e ter de
+   * ir até a barra de ferramentas depois disso é um passo que a pessoa não
+   * pediu. Só muda quando a ferramenta atual é de marcação ou nenhuma: quem
+   * está no meio de um ajuste de contorno ou com a borracha na mão não quer
+   * ser arrancado dali por um clique no painel.
+   */
+  const escolherClasse = useCallback(
+    (tipo: 'viable' | 'inviable') => {
+      setActiveClassification(tipo);
+      setActiveTool((atual) => (atual === 'viable' || atual === 'inviable' ? tipo : atual));
+    },
+    [setActiveTool]
+  );
   const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
 
-  // Annotation states
+  // DOM Refs
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  // Anotações por imagem da fila (chave nome+tamanho, não índice — senão
+  // reordenar a fila trocaria a contagem de lugar). Estas refs são estado de
+  // cena por natureza; ficam aqui porque `onImageLoaded` ainda as lê direto
+  // (ver `useBancada.ts` sobre a migração adiada para a Task 2).
+  const chaveDaImagem = useCallback((file: File) => `${file.name}:${file.size}`, []);
+  const anotacoesPorImagem = useRef<
+    Map<string, { marks: Mark[]; yoloSegmentations: YoloSegmentation[] }>
+  >(new Map());
+  const chaveAtual = useRef<string | null>(null);
+
+  // Espelhos do estado, para leitura dentro de callbacks assíncronos.
+  /** Vínculo com dataset anunciado pelo explorador para a próxima imagem que carregar. */
+  const datasetPendente = useRef<Metadata['dataset'] | null>(null);
+  /** O chip de classe do dataset foi fechado para este arquivo. */
+  const [chipDeClasseDispensado, setChipDeClasseDispensado] = useState<string | null>(null);
+  const marcasRef = useRef<Mark[]>([]);
+  const segmentacoesRef = useRef<YoloSegmentation[]>([]);
+
+  /**
+   * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
+   *
+   * `resultados` acumula um `ResultadoDoEnsaio` por receita conforme cada uma
+   * termina — a pessoa vê os cartões aparecerem, não espera as três de uma
+   * vez. `ensaioCancelado` é lido dentro de `executarReceita`, que cede a tela
+   * em lotes; é ref, não estado, porque o loop já está rodando quando "Parar"
+   * é clicado e precisa ler o valor mais recente sem re-render.
+   */
+  const [ensaio, setEnsaio] = useState<{
+    resultados: ResultadoDoEnsaio[];
+    emAndamento: boolean;
+    /** Quantas receitas rodam nesta rodada — fixas + espécie + salvas (C5). */
+    total: number;
+  } | null>(
+    null
+  );
+  const ensaioCancelado = useRef(false);
+
+  /**
+   * C5 — "uma receita, três momentos": a receita que "Usar esta" (ensaio) ou
+   * uma receita salva carregou nos controles do painel Encontrar. O painel
+   * lê isto para inicializar os controles; editar os controles depois NÃO
+   * escreve de volta aqui — só uma nova receita escolhida troca este estado.
+   */
+  const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(null);
+
+  // Sessions CRUD history
+  const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
+
+  // Dispara ao terminar de carregar imagem nova. Continua no App (mexe em
+  // dataset pendente e ensaio, coisas globais) e referencia `bancada` e
+  // `especieOuCulturaDeclarada` antes deles serem declarados — válido porque
+  // só roda depois deste render terminar, como já valia para `abrirAbaDireita`.
+  const onImageLoaded = (img: HTMLImageElement, file: File) => {
+    // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
+    const vinculo = datasetPendente.current;
+    datasetPendente.current = null;
+    bancada.meta.setMetadata((prev) =>
+      prev.dataset || vinculo ? { ...prev, dataset: vinculo ?? undefined } : prev
+    );
+    setChipDeClasseDispensado(null);
+
+    // As anotações da imagem que estava aberta são guardadas ANTES de a nova
+    // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
+    // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
+    // de uma folha inteira.
+    //
+    // A leitura vem de refs, não do estado: a função é chamada de dentro de
+    // um callback assíncrono do FileReader, onde o valor capturado pelo
+    // fecho pode estar velho.
+    if (chaveAtual.current) {
+      anotacoesPorImagem.current.set(chaveAtual.current, {
+        marks: marcasRef.current,
+        yoloSegmentations: segmentacoesRef.current,
+      });
+    }
+
+    const chave = chaveDaImagem(file);
+    chaveAtual.current = chave;
+
+    // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
+    // pode desfazer o que se fez na anterior.
+    const guardado = anotacoesPorImagem.current.get(chave);
+    bancada.anotacoes.carregar(
+      guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {}
+    );
+
+    if (containerRef.current) {
+      const container = containerRef.current;
+      bancada.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
+    }
+
+    // Ensaio ao carregar: roda as receitas sobre a imagem RECÉM-CHEGADA
+    // (o parâmetro `img`, não `imagemDeTrabalho` — que neste fecho ainda é o
+    // valor do render anterior, da imagem que acabou de sair da fila).
+    if (isEnsaioAoCarregarEnabled) {
+      ensaioCancelado.current = false;
+      abrirAbaDireita('inspetor');
+
+      // C5, item 2: a receita "pela espécie" (quando a espécie ou o dataset
+      // é conhecido) e as receitas salvas da espécie entram como 4ª+
+      // opções, ao lado das três fixas — a pessoa escolhe qualquer uma
+      // exatamente do mesmo jeito.
+      const areaDaImagemPx = img.width * img.height;
+      const receitaDaEspecie = receitaPelaEspecie(especieOuCulturaDeclarada, {
+        umPerPixel: bancada.meta.metadata.umPerPixel,
+        areaDaImagemPx,
+      });
+      const receitasSalvasConvertidas = receitasSalvas
+        .filter((r): r is ReceitaSalva & { id: number } => r.id != null)
+        .map(receitaDeSalva);
+      const receitasParaRodar: Receita[] = [
+        ...RECEITAS,
+        ...(receitaDaEspecie ? [receitaDaEspecie] : []),
+        ...receitasSalvasConvertidas,
+      ];
+      setEnsaio({ resultados: [], emAndamento: true, total: receitasParaRodar.length });
+
+      (async () => {
+        for (const receita of receitasParaRodar) {
+          if (ensaioCancelado.current) break;
+
+          const deteccao = detectObjects(img, receita.localizacao);
+          // Ferramenta cara em imagem grande: 400 pontos por receita é o
+          // teto — acima disso o ensaio ao carregar deixaria de ser barato,
+          // que é a premissa dele existir sem worker.
+          const limitado = deteccao.objects.length > 400;
+          const pontos = (limitado ? deteccao.objects.slice(0, 400) : deteccao.objects).map((o) => ({
+            x: o.x,
+            y: o.y,
+          }));
+
+          const resultado = await executarReceita(
+            receita,
+            pontos,
+            (p, opcoesDaOnda) => {
+              const r = segmentarNoCanvas(img, p, opcoesDaOnda);
+              return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
+            },
+            { cancelado: () => ensaioCancelado.current }
+          );
+          if (!resultado || ensaioCancelado.current) break;
+
+          console.info(`[ensaio] ${resultado.receita.id} ${resultado.duracaoMs.toFixed(0)}ms`);
+          setEnsaio((prev) => ({
+            resultados: [...(prev?.resultados ?? []), { ...resultado, limitado }],
+            emAndamento: true,
+            total: prev?.total ?? receitasParaRodar.length,
+          }));
+        }
+        setEnsaio((prev) => (prev ? { ...prev, emAndamento: false } : prev));
+      })();
+    }
+  };
+
+  // A cena inteira (ver `useBancada.ts`). Desestruturada com os MESMOS nomes
+  // que o corpo deste componente já usava — nenhuma outra linha do App muda.
+  const bancada = useBancada('b1', { onImageLoaded });
+  const {
+    image,
+    setImage,
+    filename,
+    setFilename,
+    imageQueue,
+    setImageQueue,
+    currentImageIndex,
+    setCurrentImageIndex,
+    loadError,
+    setLoadError,
+    loadFiles,
+    handleFileUpload,
+    handleNextImage,
+    handlePrevImage,
+    loadImageFromFile,
+  } = bancada.fila;
   const {
     marks,
     setMarks,
     yoloSegmentations,
+    anotacoesVisuais,
     setYoloSegmentations,
     segmentsVisible,
     addMark,
@@ -327,10 +629,47 @@ export default function App() {
     refazer,
     podeDesfazer,
     podeRefazer,
+    mutar,
     abrirGesto,
     fecharGesto,
     carregar,
-  } = useMarks();
+  } = bancada.anotacoes;
+  const { metadata, setMetadata, updateMetadata } = bancada.meta;
+  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = bancada.zoom;
+  const {
+    isPanningMode,
+    setIsPanningMode,
+    isDragging: isPanningDrag,
+    startDrag,
+    handleDrag,
+    stopDrag,
+    togglePanningMode,
+  } = bancada.pan;
+  const {
+    fundoAchatado,
+    setFundoAchatado,
+    adjustments,
+    setAdjustments,
+    adjustEnabled,
+    setAdjustEnabled,
+    mascara,
+    setMascara,
+    contornoSelecionado,
+    setContornoSelecionado,
+    regiaoDeDeteccao,
+    setRegiaoDeDeteccao,
+    ultimaGravacao,
+    setUltimaGravacao,
+    forcarOriginalNasAutomacoes,
+    setForcarOriginalNasAutomacoes,
+    anotacaoAtual,
+    setAnotacaoAtual,
+    datasetContexto,
+    setDatasetContexto,
+    referenciaJaCarregada,
+    setReferenciaJaCarregada,
+  } = bancada.cena;
+
   // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
   // maior lado dos contornos ja segmentados. E o que permite conferir se a
   // escala informada faz sentido para a especie declarada.
@@ -348,98 +687,41 @@ export default function App() {
     return lados.length % 2 === 0 ? (lados[meio - 1] + lados[meio]) / 2 : lados[meio];
   }, [yoloSegmentations]);
 
-  // Metadata sample inputs
-  const { metadata, setMetadata, updateMetadata } = useMetadata();
-
   // A conta e opcional e so lembra a bancada. Sem VITE_GOOGLE_CLIENT_ID o botao
   // nem aparece; o resto do aplicativo nao sabe que ela existe.
   const conta = useConta(metadata, setMetadata);
 
-  // Sessions CRUD history
-  const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
+  /**
+   * Espécie ou cultura já conhecida sobre esta imagem, por qualquer via:
+   * declarada no boletim (`metadata.amostra`), ou o conjunto do explorador
+   * de datasets (B3) quando o nome bate com a tabela de tamanhos típicos.
+   * Alimenta a 4ª receita do ensaio (`receitaPelaEspecie`) e o filtro de
+   * receitas salvas por espécie — é REFERÊNCIA, não veredito: só entra no
+   * ensaio como mais uma opção que a pessoa escolhe como qualquer outra.
+   */
+  const especieOuCulturaDeclarada = useMemo(() => {
+    const declarada = metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
+    if (declarada) return declarada;
+    const conjunto = metadata.dataset?.conjunto?.toLowerCase();
+    if (!conjunto) return undefined;
+    const achado = TAMANHOS.find(
+      (t) => conjunto.includes(t.nomeComum.toLowerCase()) || conjunto.includes(t.chave)
+    );
+    return achado?.nomeComum;
+  }, [metadata.amostra?.especieNomeCientifico, metadata.amostra?.especieNomeComum, metadata.dataset?.conjunto]);
 
-  // Zooming controls
-  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = useZoom();
+  const { receitas: receitasSalvas, salvar: salvarReceitaEncontrada } =
+    useReceitasSalvas(especieOuCulturaDeclarada);
 
-  // Panning & Panning gesture drag mode
-  const {
-    isPanningMode,
-    setIsPanningMode,
-    isDragging: isPanningDrag,
-    startDrag,
-    handleDrag,
-    stopDrag,
-    togglePanningMode,
-  } = usePanning();
+  // O painel "Modelo (IA)" só serve para orquídea (tetrazólio) — recolhido
+  // por padrão quando a espécie declarada não contém "orqu". Reage a mudança
+  // de espécie: declarar orquídea depois de carregar reabre o painel sozinho.
+  const especieEhOrquidea = /orqu/i.test(especieOuCulturaDeclarada ?? '');
+  const [iaAberto, setIaAberto] = useState(especieEhOrquidea);
+  useEffect(() => {
+    setIaAberto(especieEhOrquidea);
+  }, [especieEhOrquidea]);
 
-  // DOM Refs
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
-
-  // Anotações por imagem da fila.
-  //
-  // A chave é nome + tamanho, não o índice: se a fila for recarregada ou
-  // reordenada, o índice muda e o do lado passa a receber a contagem errada,
-  // que é pior do que perdê-la.
-  const chaveDaImagem = useCallback((file: File) => `${file.name}:${file.size}`, []);
-  const anotacoesPorImagem = useRef<
-    Map<string, { marks: Mark[]; yoloSegmentations: YoloSegmentation[] }>
-  >(new Map());
-  const chaveAtual = useRef<string | null>(null);
-
-  // Espelhos do estado, para leitura dentro de callbacks assíncronos.
-  const marcasRef = useRef<Mark[]>([]);
-  const segmentacoesRef = useRef<YoloSegmentation[]>([]);
-
-  // Multi-image Queue state
-  const {
-    image,
-    setImage,
-    filename,
-    setFilename,
-    imageQueue,
-    setImageQueue,
-    currentImageIndex,
-    setCurrentImageIndex,
-    loadError,
-    loadFiles,
-    handleFileUpload,
-    handleNextImage,
-    handlePrevImage,
-    loadImageFromFile,
-  } = useImageQueue({
-    onImageLoaded: (img, file) => {
-      // As anotações da imagem que estava aberta são guardadas ANTES de a nova
-      // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
-      // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
-      // de uma folha inteira.
-      //
-      // A leitura vem de refs, não do estado: a função é chamada de dentro de
-      // um callback assíncrono do FileReader, onde o valor capturado pelo
-      // fecho pode estar velho.
-      if (chaveAtual.current) {
-        anotacoesPorImagem.current.set(chaveAtual.current, {
-          marks: marcasRef.current,
-          yoloSegmentations: segmentacoesRef.current,
-        });
-      }
-
-      const chave = chaveDaImagem(file);
-      chaveAtual.current = chave;
-
-      // Trocar de imagem RECOMECA o historico: o Ctrl+Z desta imagem nao
-      // pode desfazer o que se fez na anterior.
-      const guardado = anotacoesPorImagem.current.get(chave);
-      carregar(guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {});
-
-      if (containerRef.current) {
-        const container = containerRef.current;
-        fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
-      }
-    },
-  });
   /**
    * A imagem que a SEGMENTACAO le.
    *
@@ -448,6 +730,22 @@ export default function App() {
    * com o gradiente removido.
    */
   const imagemDeTrabalho = fundoAchatado ?? image;
+  /** O que as automações de segmentação leem — o gatilho acima manda nisto. */
+  const imagemParaAutomacoes = forcarOriginalNasAutomacoes ? image : imagemDeTrabalho;
+
+  /**
+   * O painel de medidas flutua sobre a area morta ao lado da imagem.
+   *
+   * Flutuar, e nao ocupar coluna: numa digitalizacao panoramica nao sobra
+   * area morta nenhuma, e uma coluna fixa empurraria a imagem para caber.
+   * Por isso ele e recolhivel, e o recolhimento e lembrado.
+   */
+  const [painelDeMedidasAberto, setPainelDeMedidasAberto] = useState<boolean>(() =>
+    lerPreferencia('sc:painelDeMedidas', true)
+  );
+  useEffect(() => {
+    setUltimaGravacao(null);
+  }, [filename]);
 
 
   useEffect(() => {
@@ -480,10 +778,49 @@ export default function App() {
   const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : '0';
   const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : '0';
 
+  // Imagem com os ajustes aplicados.
+  //
+  // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
+  // detalhe. No clássico o ajuste é controle: a pessoa regula o limiar e vê o
+  // efeito na hora. No modelo é sabotagem silenciosa — a rede foi treinada em
+  // digitalização crua, e brilho, contraste ou saturação empurram a entrada
+  // para fora da distribuição de treino sem que nada na tela diga que foi isso
+  // que degradou o resultado.
+  //
+  // Escala de cinza é o caso extremo: colapsa a entrada no plano R=G=B, onde
+  // todo filtro que codifica diferença entre canais produz exatamente zero.
+  // Não é deslocamento recuperável, é informação destruída.
+  const adjustedSource = useMemo(() => {
+    const base = imagemDeTrabalho;
+    if (!base || !adjustEnabled || isNeutral(adjustments)) return base;
+    return applyAdjustments(base, adjustments) ?? base;
+  }, [imagemDeTrabalho, adjustments, adjustEnabled]);
+
+  // Filtro CSS para a prévia instantânea no canvas — só quando o ajuste cabe
+  // em CSS. Canal, gama e deslocamento por cor exigem pixels: aí o canvas
+  // recebe `adjustedSource` e o filtro fica em 'none' (senão aplicaria duas vezes).
+  const ajusteExigePixels = adjustEnabled && exigePixels(adjustments);
+  /** O retrato que o indicador do rodapé lê — nada de decidir em dois lugares. */
+  const estadoDaImagem = useMemo(
+    () => ({
+      fundoAchatado: !!fundoAchatado,
+      ajusteEmPixels: ajusteExigePixels,
+      ajusteEmTela: adjustEnabled && !ajusteExigePixels && !isNeutral(adjustments),
+      forcarOriginal: forcarOriginalNasAutomacoes,
+    }),
+    [fundoAchatado, ajusteExigePixels, adjustEnabled, adjustments, forcarOriginalNasAutomacoes]
+  );
+  const canvasFilter = useMemo(
+    () => (adjustEnabled && !ajusteExigePixels ? toCssFilter(adjustments) : 'none'),
+    [adjustments, adjustEnabled, ajusteExigePixels]
+  );
+  /** O que o canvas pinta: pixels ajustados quando o CSS não dá conta; a imagem de trabalho no resto. */
+  const fonteDoCanvas = ajusteExigePixels ? adjustedSource : imagemDeTrabalho;
+
   // Re-draw Canvas markings
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const base = imagemDeTrabalho;
+    const base = fonteDoCanvas;
     if (!canvas || !base) return;
 
     const ctx = canvas.getContext('2d');
@@ -499,8 +836,10 @@ export default function App() {
     ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
 
     // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca);
-  }, [imagemDeTrabalho, marks, visualMode, ajusteDaMarca]);
+    if (mostraPontos(mascara)) {
+      renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca, yoloSegmentations);
+    }
+  }, [fonteDoCanvas, marks, visualMode, ajusteDaMarca, mascara, yoloSegmentations]);
 
   useEffect(() => {
     if (imagemDeTrabalho && canvasRef.current) {
@@ -509,13 +848,13 @@ export default function App() {
       canvas.height = imagemDeTrabalho.height;
       drawCanvas();
     }
-  }, [imagemDeTrabalho, drawCanvas, marks, visualMode]);
+  }, [imagemDeTrabalho, drawCanvas, marks, visualMode, mascara, yoloSegmentations]);
 
   // Handle canvas click to place a manual mark
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanningMode) return;
-    // Borracha e "mover" não criam marcações (a borracha age na camada própria).
-    if (activeTool === 'eraser' || activeTool === 'pan') return;
+    // Ferramentas que não criam marcações.
+    if (activeTool === 'eraser' || activeTool === 'pan' || activeTool === 'cota' || activeTool === 'caixa') return;
     if (!image || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -533,12 +872,31 @@ export default function App() {
     const shouldInvert = e.shiftKey || e.ctrlKey || e.button !== 0;
     const type = shouldInvert ? (baseType === 'viable' ? 'inviable' : 'viable') : baseType;
 
+    if (activeTool === 'chamada') {
+      const texto = prompt('Digite a anotação:');
+      if (texto) {
+        mutar((antes) => ({
+          ...antes,
+          anotacoesVisuais: [
+            ...(antes.anotacoesVisuais || []),
+            {
+              id: Date.now().toString(),
+              tipo: 'chamada',
+              p: [x, y],
+              texto,
+            },
+          ],
+        }));
+      }
+      return;
+    }
+
     if (activeTool === 'onda') {
       segmentarComOnda(x, y, type);
       return;
     }
 
-    addMark(x, y, type);
+    marcarComSom(x, y, type);
   };
 
   /**
@@ -553,16 +911,35 @@ export default function App() {
    * é um detalhe estético — ele vira área, comprimento e largura no CSV, e um
    * número errado é pior que número nenhum.
    */
+  /**
+   * Marca E toca — quando o som esta ligado.
+   *
+   * `tocarMarca` ja confere a preferencia por dentro e cria o AudioContext so
+   * neste gesto (politica de autoplay), entao chamar sempre e seguro: sem
+   * preferencia ligada, silencio.
+   */
+  const marcarComSom = useCallback(
+    (x: number, y: number, tipo: 'viable' | 'inviable') => {
+      const id = addMark(x, y, tipo);
+      tocarMarca(tipo);
+      return id;
+    },
+    [addMark]
+  );
+
   const segmentarComOnda = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      if (!imagemDeTrabalho) return;
-      const marcaId = addMark(x, y, tipo);
+      // `imagemParaAutomacoes` some quando forcarOriginalNasAutomacoes está
+      // ligado mas a imagem original ainda não carregou — guarda de tipo, não
+      // caso novo: sem ela, segmentarNoCanvas nem tem o que ler.
+      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
+      const marcaId = marcarComSom(x, y, tipo);
 
       const inicio = performance.now();
       // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
       // exatamente para a onda parar na borda certa. Passar a original aqui
       // tornava o achatamento decorativo.
-      const r = segmentarNoCanvas(imagemDeTrabalho, { x, y });
+      const r = segmentarNoCanvas(imagemParaAutomacoes, { x, y });
       const ms = Math.round(performance.now() - inicio);
 
       if (!r) {
@@ -606,7 +983,7 @@ export default function App() {
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
     },
-    [imagemDeTrabalho, addMark, appendYoloSegmentation, metadata.umPerPixel]
+    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -630,7 +1007,7 @@ export default function App() {
   const saveCurrentSession = (silent = false) => {
     if (!filename) return;
 
-    let imageDataStr = undefined;
+    let imageDataStr: string | undefined = undefined;
     if (image) {
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
@@ -654,6 +1031,7 @@ export default function App() {
       imageData: imageDataStr,
     };
     addSession(newSession);
+    setUltimaGravacao(Date.now());
     if (!silent) {
       alert('Sessão salva com sucesso no histórico local!');
     }
@@ -706,7 +1084,7 @@ export default function App() {
   const processJSONFile = useCallback(
     (file: File) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const text = event.target?.result as string;
           const parsed = JSON.parse(text);
@@ -745,7 +1123,11 @@ export default function App() {
 
           // 2. Check if it is a SeedCounter backup history array
           if (Array.isArray(parsed)) {
-            const success = importSessions(parsed);
+            // `importSessions` é assíncrona (grava no IndexedDB): sem o await
+            // aqui `success` era a Promise em si, sempre truthy — o alerta de
+            // "formato inválido" nunca disparava, mesmo quando a gravação
+            // falhava. `strictNullChecks` (TS2801) pegou isso.
+            const success = await importSessions(parsed);
             if (success) {
               alert(
                 `Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`
@@ -1204,6 +1586,7 @@ export default function App() {
           quadrant: '',
           notes: AVISO_CENA,
           umPerPixel: cena.umPorPixel,
+          dataset: undefined,
         }));
       } catch (e) {
         console.error('Falha ao gerar a cena de exemplo', e);
@@ -1213,6 +1596,130 @@ export default function App() {
     },
     [loadFiles, setMetadata]
   );
+
+  const [exemploRealCarregando, setExemploRealCarregando] = useState<string | null>(null);
+  /**
+   * Exemplo REAL: a imagem vem de public/exemplos e os metadados que se
+   * conhecem (espécie, origem, classe, escala quando medida) já entram — o
+   * que não se conhece fica vazio e o app pede, em vez de inventar.
+   */
+  const handleCarregarExemploReal = useCallback(
+    async (e: ExemploReal) => {
+      setExemploRealCarregando(e.slug);
+      try {
+        const { arquivo, metadados } = await carregarExemploReal(e);
+        loadFiles([arquivo]);
+        setMetadata((prev) => ({
+          ...prev,
+          ...metadados,
+          plate: '',
+          quadrant: '',
+          // A imagem anterior pode ter vindo do explorador; a classe dela não é desta.
+          dataset: undefined,
+          amostra: { ...prev.amostra, ...metadados.amostra },
+        }));
+      } catch (err) {
+        console.error('Falha ao abrir o exemplo real', err);
+        setLoadError(`Não foi possível abrir o exemplo "${e.rotulo}".`);
+      } finally {
+        setExemploRealCarregando(null);
+      }
+    },
+    [loadFiles, setMetadata, setLoadError]
+  );
+
+  // --- Explorador de datasets (Lote B) ---------------------------------------
+  //
+  // A pasta aberta mora aqui (não dentro do painel) porque é estado da sessão:
+  // recolher a aba Datasets e voltar não a fecha. `anotacaoAtual`,
+  // `datasetContexto` e `referenciaJaCarregada` são estado de CENA — vêm de
+  // `bancada.cena`, desestruturados lá em cima; `anotacaoAtual` é a anotação
+  // da ÚLTIMA imagem carregada pelo explorador, e só vira marca/contorno
+  // quando "Carregar referência" é clicado.
+  const [pastaDeDatasets, setPastaDeDatasets] = useState<PastaAberta | null>(null);
+
+  const handleCarregarDoDataset = useCallback(
+    async (arquivo: ArquivoDoDataset, anotacao: AnotacaoCarregada | null, conjunto: string, caminho: string) => {
+      const file = await arquivo.obterFile();
+      // O vínculo com o dataset é entregue a `onImageLoaded`, que zera o
+      // vínculo de TODA imagem nova e só mantém o que foi anunciado aqui —
+      // senão a classe da imagem anterior ficava colada na seguinte.
+      datasetPendente.current = { conjunto, caminho, classesDaImagem: anotacao?.classesDaImagem };
+      loadFiles([file]);
+      setAnotacaoAtual(anotacao);
+      setDatasetContexto({ conjunto, caminho });
+      setReferenciaJaCarregada(false);
+    },
+    [loadFiles]
+  );
+
+  /**
+   * "Carregar referência" — o SEGUNDO gesto. Clicar na miniatura já carregou a
+   * imagem; só agora a anotação do dataset vira marca/contorno de verdade.
+   *
+   * Polígono vira contorno com `origem: 'referencia'` (conta como semente,
+   * mesma regra de um contorno de modelo — ver `objetos.ts`). Caixa vira
+   * marca no centro. Nome de classe que bate com viável/inviável usa a
+   * taxonomia do app; qualquer outro nome (amendoim com mofo, trigo duro…)
+   * fica em `classeExterna`, cru — inventar uma correspondência que ninguém
+   * validou seria pior que não ter classe nenhuma.
+   */
+  const normalizarClasseExterna = useCallback(
+    (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
+      const c = classe.trim().toLowerCase();
+      if (c === 'viavel' || c === 'viável') return { category: 'viable', class_name: 'viavel' };
+      if (c === 'inviavel' || c === 'inviável') return { category: 'inviable', class_name: 'inviavel' };
+      return { category: 'viable', class_name: 'viavel', classeExterna: classe };
+    },
+    []
+  );
+
+  const podeCarregarReferencia =
+    !!image &&
+    !referenciaJaCarregada &&
+    !!anotacaoAtual &&
+    ((anotacaoAtual.contornos?.length ?? 0) > 0 || (anotacaoAtual.marcas?.length ?? 0) > 0);
+
+  const handleCarregarReferencia = useCallback(() => {
+    if (!anotacaoAtual) return;
+
+    if (anotacaoAtual.contornos && anotacaoAtual.contornos.length > 0) {
+      const novasSegmentacoes: YoloSegmentation[] = anotacaoAtual.contornos.map((c, i) => {
+        const { width, height } = calculateSeedDimensions(c.poligono);
+        const { category, class_name, classeExterna } = normalizarClasseExterna(c.classe);
+        return {
+          id: Date.now() + i,
+          category,
+          class_name,
+          confidence: 1,
+          polygon_points: c.poligono,
+          visible: true,
+          width,
+          height,
+          origem: 'referencia',
+          ...(classeExterna ? { classeExterna } : {}),
+        };
+      });
+      addYoloSegmentations(novasSegmentacoes);
+    }
+
+    if (anotacaoAtual.marcas && anotacaoAtual.marcas.length > 0) {
+      const novasMarcas: Mark[] = anotacaoAtual.marcas.map((m, i) => {
+        const { category } = normalizarClasseExterna(m.classe);
+        return {
+          id: Date.now() + i + 1,
+          x: m.x,
+          y: m.y,
+          type: category,
+          origem: 'referencia' as const,
+        };
+      });
+      setMarks((prev) => [...prev, ...novasMarcas]);
+    }
+
+    setReferenciaJaCarregada(true);
+    setRecadoDaOnda({ tom: 'ok', texto: 'Referência do dataset carregada.' });
+  }, [anotacaoAtual, addYoloSegmentations, setMarks, normalizarClasseExterna]);
 
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
   // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
@@ -1256,29 +1763,6 @@ export default function App() {
     return () => container.removeEventListener('wheel', onWheel);
   }, [image, setZoomLevel]);
 
-  // Imagem com os ajustes aplicados.
-  //
-  // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
-  // detalhe. No clássico o ajuste é controle: a pessoa regula o limiar e vê o
-  // efeito na hora. No modelo é sabotagem silenciosa — a rede foi treinada em
-  // digitalização crua, e brilho, contraste ou saturação empurram a entrada
-  // para fora da distribuição de treino sem que nada na tela diga que foi isso
-  // que degradou o resultado.
-  //
-  // Escala de cinza é o caso extremo: colapsa a entrada no plano R=G=B, onde
-  // todo filtro que codifica diferença entre canais produz exatamente zero.
-  // Não é deslocamento recuperável, é informação destruída.
-  const adjustedSource = useMemo(() => {
-    const base = imagemDeTrabalho;
-    if (!base || !adjustEnabled || isNeutral(adjustments)) return base;
-    return applyAdjustments(base, adjustments) ?? base;
-  }, [imagemDeTrabalho, adjustments, adjustEnabled]);
-
-  // Filtro CSS para a prévia instantânea no canvas.
-  const canvasFilter = useMemo(
-    () => (adjustEnabled ? toCssFilter(adjustments) : 'none'),
-    [adjustments, adjustEnabled]
-  );
 
   // Calibração — recebe a distância medida pela régua e encerra o modo.
   const handleMeasured = useCallback((pixels: number) => {
@@ -1537,6 +2021,337 @@ export default function App() {
     return marks.filter((m) => !visiveis.some((s) => pontoNoPoligono(m.x, m.y, s.polygon_points)));
   }, [marks, yoloSegmentations]);
 
+  // --- Sugestoes contextuais e morfometria ao vivo --------------------------
+
+  const especieDeclarada =
+    metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum;
+
+  /**
+   * Perfil MEDIDO ("Medir esta pasta", B4) da classe da imagem ABERTA, dentro
+   * do conjunto de onde ela veio — quando existir. `classesDaImagem` só existe
+   * em imagem carregada do explorador de datasets; sem dataset, sem perfil, e
+   * o inspetor mostra só a literatura (como sempre mostrou).
+   *
+   * A junção com ' + ' repete exatamente a regra de `DatasetsPanel.handleMedirPasta`
+   * ao nomear a classe — é a mesma chave dos dois lados.
+   */
+  const { perfilDaClasse } = usePerfisMedidos(metadata.dataset?.conjunto);
+  const classeDoDatasetAtivo = useMemo(() => {
+    const cs = metadata.dataset?.classesDaImagem;
+    if (!cs || cs.length === 0) return undefined;
+    return cs.join(' + ');
+  }, [metadata.dataset?.classesDaImagem]);
+  const perfilMedidoAtivo = perfilDaClasse(classeDoDatasetAtivo)?.perfil ?? null;
+
+  /**
+   * A espécie é o que mais configura a bancada: priors, receita do ensaio,
+   * protocolo, jeito de digitalizar. Por isso ela mora no cabeçalho, e
+   * escolhê-la PREENCHE o que dela decorre — sem decidir nada sozinha: o
+   * protocolo só é sugerido quando ainda não há um, e a calibração vira
+   * recado, nunca escala aplicada.
+   */
+  const especieDaBancada = useMemo(() => especieAtual(metadata), [metadata]);
+  /** Nomes que não estão nas tabelas: os já usados em sessões e as classes do dataset aberto. */
+  const especiesExtras = useMemo(() => {
+    const nomes = new Set<string>();
+    for (const sessao of sessions) {
+      const n = sessao.metadata?.amostra?.especieNomeComum || sessao.metadata?.amostra?.especieNomeCientifico;
+      if (n) nomes.add(n);
+    }
+    for (const c of metadata.dataset?.classesDaImagem ?? []) nomes.add(c);
+    return [...nomes];
+  }, [sessions, metadata.dataset]);
+
+  const handleEscolherEspecie = useCallback(
+    (especie: EspecieConhecida | { nomeComum: string }) => {
+      const conhecida = 'id' in especie ? especie : null;
+      setMetadata((prev) => ({
+        ...prev,
+        protocolo:
+          conhecida?.protocoloSugerido && (!prev.protocolo || prev.protocolo === 'simples')
+            ? conhecida.protocoloSugerido
+            : prev.protocolo,
+        amostra: {
+          ...prev.amostra,
+          especieNomeComum: especie.nomeComum,
+          especieNomeCientifico: conhecida?.nomeCientifico ?? prev.amostra?.especieNomeCientifico,
+        },
+      }));
+      // Jeito típico de digitalizar: só um recado. Calibrar por conta própria
+      // seria inventar escala — e escala inventada vira medida errada em mm.
+      const aq = conhecida?.aquisicaoTipica;
+      if (aq && !(metadata.umPerPixel && metadata.umPerPixel > 0)) {
+        const eq = EQUIPAMENTOS_DO_LABORATORIO.find((e) => e.id === aq.equipamentoId);
+        if (eq) {
+          setRecadoDaOnda({
+            tom: 'aviso',
+            texto: `${especie.nomeComum} costuma ser digitalizada em ${eq.nome}${aq.dpi ? ` a ${aq.dpi} DPI` : ''}. Calibre na Etapa 1 — o DPI do driver é declaração; a régua na imagem é a conferência.`,
+          });
+        }
+      }
+    },
+    [setMetadata, metadata.umPerPixel]
+  );
+
+  const handleLimparEspecie = useCallback(() => {
+    setMetadata((prev) => ({
+      ...prev,
+      amostra: { ...prev.amostra, especieNomeComum: undefined, especieNomeCientifico: undefined },
+    }));
+  }, [setMetadata]);
+
+  /**
+   * As medidas completas de cada semente da imagem.
+   */
+  const medicoesDeMorfometria = useMemo(() => {
+    if (!image) return [];
+    return buildMeasurements({ marks, segmentations: yoloSegmentations, metadata, filename });
+  }, [image, marks, yoloSegmentations, metadata, filename]);
+
+  const regraAjustada = useMemo(() => {
+    const base = REGRAS_PADRAO.find((r) => r.id === regraSelecionadaId);
+    if (!base) return null;
+    const limiar = limiaresCustomizados[base.id] ?? base.limiar;
+    let ativa = { ...base, limiar };
+    
+    // Se a regra usa mm² mas não está calibrado, usamos px² adaptado temporariamente
+    const calibrado = !!metadata.umPerPixel && metadata.umPerPixel > 0;
+    if (!calibrado && ativa.campo === 'areaMm2') {
+      ativa = {
+        ...ativa,
+        campo: 'areaPx' as const,
+        limiar: ativa.limiar * 100,
+      };
+    }
+    return ativa;
+  }, [regraSelecionadaId, limiaresCustomizados, metadata.umPerPixel]);
+
+  const sementesSimuladas = useMemo(() => {
+    if (!regraAjustada || medicoesDeMorfometria.length === 0) return [];
+    return simularRegra(medicoesDeMorfometria, regraAjustada);
+  }, [medicoesDeMorfometria, regraAjustada]);
+
+  /**
+   * O resumo de morfometria, derivado a cada mudanca.
+   */
+  const resumoDeMorfometria = useMemo(() => {
+    if (!image || medicoesDeMorfometria.length === 0) return null;
+    return resumir(medicoesDeMorfometria, metadata.umPerPixel);
+  }, [image, medicoesDeMorfometria, metadata.umPerPixel]);
+
+  /**
+   * O painel direito tem três abas: resultados, inspetor e galeria. Inspetor e
+   * galeria eram janelas flutuantes que cobriam o canvas e "não fechavam" — a
+   * pessoa perdia o X atrás do zoom. Como aba, o lugar delas é fixo, o fechar é
+   * trocar de aba, e o canvas nunca fica coberto.
+   */
+  const [rightSidebarTab, setRightSidebarTab] = useState<
+    'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote'
+  >('resultados');
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
+    lerPreferencia('sc:painelDireitoRecolhido', false)
+  );
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(() =>
+    lerPreferencia('sc:painelEsquerdoRecolhido', false)
+  );
+  const handleToggleLeftSidebar = useCallback(() => {
+    setIsLeftSidebarCollapsed((prev) => {
+      gravarPreferencia('sc:painelEsquerdoRecolhido', !prev);
+      return !prev;
+    });
+  }, []);
+  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote') => {
+    setRightSidebarTab(aba);
+    setIsRightSidebarCollapsed(false);
+  }, []);
+  const galeriaAberta = rightSidebarTab === 'galeria' && !isRightSidebarCollapsed;
+
+  // Selecionar um contorno leva ao inspetor; desselecionar não muda de aba
+  // (a pessoa pode estar lendo os resultados e só clicou fora).
+  useEffect(() => {
+    if (contornoSelecionado != null) abrirAbaDireita('inspetor');
+  }, [contornoSelecionado, abrirAbaDireita]);
+
+  const handleToggleRightSidebar = useCallback(() => {
+    setIsRightSidebarCollapsed((prev) => {
+      const next = !prev;
+      gravarPreferencia('sc:painelDireitoRecolhido', next);
+      return next;
+    });
+  }, []);
+
+  const handleDestacarSementes = useCallback(
+    (ids: number[]) => {
+      if (ids.length > 0) {
+        setRecadoDaOnda({
+          tom: 'ok',
+          texto: `${ids.length} ${ids.length === 1 ? 'semente atendida' : 'sementes atendidas'}.`,
+        });
+        const primeiraMarca = marks[ids[0] - 1];
+        if (primeiraMarca) {
+          const seg = yoloSegmentations.find((s) => s.marcaId === primeiraMarca.id);
+          if (seg) setContornoSelecionado(seg.id);
+        }
+      }
+    },
+    [marks, yoloSegmentations]
+  );
+
+  const handleAplicarRegra = useCallback(
+    (regra: RegraParametrica) => {
+      mutar((antes) => {
+        const res = aplicarRegra(antes.marks, antes.segmentacoes, medicoesDeMorfometria, regra);
+        return {
+          ...antes,
+          marks: res.marks,
+          segmentacoes: res.segmentacoes,
+        };
+      });
+      setRecadoDaOnda({
+        tom: 'ok',
+        texto: `Regra "${regra.nome}" aplicada. Ctrl+Z para desfazer.`,
+      });
+    },
+    [mutar, medicoesDeMorfometria]
+  );
+
+  /**
+   * Contorno selecionado atualmente ativo para inspeção biométrica e espectral.
+   */
+  const segmentacaoAtiva = useMemo(() => {
+    if (contornoSelecionado == null) return null;
+    return (
+      yoloSegmentations.find((s) => s.id === contornoSelecionado && s.visible !== false) ?? null
+    );
+  }, [contornoSelecionado, yoloSegmentations]);
+
+  /**
+   * Limiares de aglomerado derivados DESTA imagem.
+   *
+   * Substitui os presets por espécie: o que a maioria dos contornos da cena
+   * tem é a referência, e o par é o outlier. Com menos de 8 contornos não há
+   * população — cai no padrão.
+   */
+  const limiaresDaCena = useMemo(() => {
+    const contornos = yoloSegmentations
+      .filter((s) => s.visible !== false)
+      .map((s) => s.polygon_points);
+    return limiaresDaPopulacao(contornos) ?? undefined;
+  }, [yoloSegmentations]);
+
+  /**
+   * O inspetor pede para ver o corte: seleciona e mostra a linha. NUNCA aplica.
+   *
+   * A regra do corte e mostrar a proposta e esperar a pessoa decidir — cortar
+   * por engano vira duas sementes onde havia uma, e o numero do laudo sobe.
+   * Aplicar continua sendo so o botao Separar.
+   */
+  const handleProposeCut = useCallback(
+    (id: number) => {
+      setActiveTool('contorno');
+      setContornoSelecionado(id);
+    },
+    [setActiveTool]
+  );
+
+  /**
+   * O spike do menu radial (Tarefa 8, Degrau 1): classifica pela DIRECAO do
+   * arraste do botao direito sobre um contorno, sem sair do canvas.
+   *
+   * As opcoes sao as seis raizes de TAXONOMIA — a classe fina do teste de
+   * germinacao (`ClasseDeSemente`). A classificacao cai na MARCA vinculada ao
+   * contorno, pelo mesmo `setSubclasse` que a galeria ja usa: nao existe um
+   * segundo lugar para gravar classe so porque o gesto e outro.
+   *
+   * Um contorno de MODELO sem marca vinculada (`marcaId` nulo) nao tem onde
+   * gravar — o gesto termina em silencio, como um clique que nao achou alvo.
+   */
+  const handleClassificarRadial = useCallback(
+    (segId: number, chave: string) => {
+      const seg = segmentacoesRef.current.find((s) => s.id === segId);
+      if (!seg || seg.marcaId == null) return;
+      setSubclasse(seg.marcaId, chave as ClasseDeSemente);
+    },
+    [setSubclasse]
+  );
+
+  /** Quantos contornos tem forma incompativel com a especie declarada. */
+  const contornosComFormaSuspeita = useMemo(() => {
+    if (!especieDeclarada) return 0;
+    let n = 0;
+    for (const seg of yoloSegmentations) {
+      if (seg.visible === false || !seg.width || !seg.height) continue;
+      const v = conferirForma(seg.width, seg.height, especieDeclarada).veredicto;
+      if (v === 'alongado-demais' || v === 'redondo-demais') n++;
+    }
+    return n;
+  }, [yoloSegmentations, especieDeclarada]);
+
+  /**
+   * A sugestao da vez — no maximo uma.
+   *
+   * A preferencia e lida a cada calculo, e nao guardada em estado: desligar nas
+   * configuracoes tem de calar o cartao no proximo render, sem recarregar.
+   */
+  const sugestaoAtual = useMemo(() => {
+    if (!lerPreferencia(CHAVE_SUGESTOES, true)) return null;
+    const estado: EstadoParaSugestao = {
+      temImagem: !!image,
+      chaveDaImagem: image ? filename || 'imagem' : null,
+      totalDeMarcas: marks.length,
+      marcasSemContorno: marcasSemContorno.length,
+      totalDeContornos: yoloSegmentations.filter((s) => s.visible !== false).length,
+      umPerPixel: metadata.umPerPixel,
+      especie: especieDeclarada,
+      comprimentoTipicoEmPixels,
+      contornosComFormaSuspeita,
+      minutosDesdeUltimaGravacao:
+        ultimaGravacao === null ? null : (Date.now() - ultimaGravacao) / 60000,
+      protocoloExigeTetrazolio: false,
+    };
+    return sugerir(estado, lerDispensadas(estado.chaveDaImagem));
+  }, [
+    image,
+    filename,
+    marks.length,
+    marcasSemContorno.length,
+    yoloSegmentations,
+    metadata.umPerPixel,
+    especieDeclarada,
+    comprimentoTipicoEmPixels,
+    contornosComFormaSuspeita,
+    ultimaGravacao,
+    versaoDispensadas,
+  ]);
+
+  /** Cada acao de sugestao dispara a MESMA coisa que o botao ou a tecla ja disparam. */
+  const handleAcaoDeSugestao = useCallback(
+    (acao: AcaoDeSugestao) => {
+      setVersaoDispensadas((v) => v + 1);
+      switch (acao) {
+        case 'abrir-galeria':
+          abrirAbaDireita('galeria');
+          break;
+        case 'abrir-calibracao':
+          setActiveTool('viable');
+          document.getElementById('etapa-calibracao')?.scrollIntoView({ behavior: 'smooth' });
+          break;
+        case 'ferramenta-contorno':
+          setActiveTool('contorno');
+          break;
+        case 'salvar-sessao':
+          saveCurrentSession(false);
+          break;
+        case 'abrir-identificacao':
+          setIsIdentificacaoOpen(true);
+          break;
+      }
+    },
+    // saveCurrentSession e funcao comum (nao memoizada) e le refs por dentro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
     null
   );
@@ -1568,11 +2383,11 @@ export default function App() {
    */
   const handleSegmentarUma = useCallback(
     (marcaId: number) => {
-      if (!imagemDeTrabalho) return;
+      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
       const marca = marks.find((m) => m.id === marcaId);
       if (!marca) return;
 
-      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
       if (!r || r.tocouBorda) {
         setRecadoDaOnda({
           tom: 'aviso',
@@ -1600,7 +2415,7 @@ export default function App() {
   );
 
   const handleSegmentarPendentes = useCallback(async () => {
-    if (!imagemDeTrabalho || marcasSemContorno.length === 0) return;
+    if (!imagemDeTrabalho || !imagemParaAutomacoes || marcasSemContorno.length === 0) return;
 
     const pendentes = [...marcasSemContorno];
     setSegmentandoLote({ feitas: 0, total: pendentes.length });
@@ -1611,7 +2426,7 @@ export default function App() {
 
     for (let i = 0; i < pendentes.length; i++) {
       const marca = pendentes[i];
-      const r = segmentarNoCanvas(imagemDeTrabalho, { x: marca.x, y: marca.y });
+      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
 
       if (r && !r.tocouBorda) {
         const { width, height } = calculateSeedDimensions(r.contorno);
@@ -1654,6 +2469,116 @@ export default function App() {
           : ' A contagem não mudou.'),
     });
   }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
+
+  /**
+   * Contornos propostos (ensaio, ou o painel Encontrar) → segmentações.
+   *
+   * Origem 'modelo' porque é proposta aceita sem marcação manual
+   * correspondente (mesma semântica do AI Pointer — conta como semente).
+   * Suspeitos de aglomerado entram também: a pessoa já vê o tracejado na
+   * miniatura/fantasma, e o inspetor os sinaliza de novo depois; filtrar
+   * aqui seria a ferramenta decidindo por ela.
+   */
+  const propostosParaSegmentacoes = useCallback((propostos: ContornoProposto[]): YoloSegmentation[] => {
+    return propostos.map((p, i) => {
+      const { width, height } = calculateSeedDimensions(p.contorno);
+      return {
+        id: Date.now() + i,
+        category: 'viable' as const,
+        class_name: 'viavel',
+        confidence: 1,
+        polygon_points: p.contorno,
+        visible: true,
+        width,
+        height,
+        origem: 'modelo' as const,
+      };
+    });
+  }, []);
+
+  /**
+   * "Usar esta": o único caminho que leva os contornos de uma receita do
+   * ensaio ao estado da aplicação. `addYoloSegmentations` SUBSTITUI a lista
+   * inteira — correto aqui porque o ensaio dispara ao carregar a imagem,
+   * quando ainda não há contorno manual para perder.
+   *
+   * Também carrega a receita usada nos controles do painel Encontrar
+   * (`receitaAtiva`, C5) — "uma receita, três momentos": o que o ensaio
+   * escolheu é o ponto de partida do que a pessoa ajusta a seguir.
+   */
+  const handleUsarEnsaio = useCallback(
+    (r: ResultadoDoEnsaio) => {
+      addYoloSegmentations(propostosParaSegmentacoes(r.propostos));
+      setReceitaAtiva(r.receita);
+      setEnsaio(null);
+    },
+    [addYoloSegmentations, propostosParaSegmentacoes]
+  );
+
+  /**
+   * "Aplicar", no painel Encontrar: faz exatamente o que "Usar esta" faz —
+   * os contornos só entram no estado da aplicação por este botão, nunca
+   * sozinhos a cada re-execução da localização.
+   */
+  const handleAplicarEncontrado = useCallback(
+    (propostos: ContornoProposto[]) => {
+      addYoloSegmentations(propostosParaSegmentacoes(propostos));
+    },
+    [addYoloSegmentations, propostosParaSegmentacoes]
+  );
+
+  /** Salva a receita ajustada no painel Encontrar — 4ª opção do ensaio depois. */
+  const handleSalvarReceitaEncontrada = useCallback(
+    (nome: string, localizacao: DetectionOptions, onda: OpcoesDaOnda) => {
+      void salvarReceitaEncontrada({
+        nome,
+        quando: 'Ajustada manualmente no painel Encontrar.',
+        localizacao,
+        onda,
+      });
+    },
+    [salvarReceitaEncontrada]
+  );
+
+  /** A onda, fechada sobre a imagem de trabalho — para o painel Encontrar (C5). */
+  const ondaParaEncontrar = useCallback(
+    (p: { x: number; y: number }, opcoesDaOnda: OpcoesDaOnda) => {
+      const alvo = imagemParaAutomacoes ?? image;
+      if (!alvo) return null;
+      const r = segmentarNoCanvas(alvo, p, opcoesDaOnda);
+      return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
+    },
+    [imagemDeTrabalho, image]
+  );
+
+  /**
+   * Foca o canvas numa semente vinda da Galeria (zoom + pan centralizado + seleção de contorno).
+   */
+  const handleFocarNoCanvas = useCallback(
+    (coords: { x: number; y: number }, segmentacaoId?: number) => {
+      if (segmentacaoId != null) {
+        setContornoSelecionado(segmentacaoId);
+        setActiveTool('contorno');
+      } else {
+        setActiveTool('onda');
+      }
+      const targetZoom = Math.max(zoomLevel, 2.8);
+      setZoomLevel(targetZoom);
+
+      setTimeout(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const targetScrollX = coords.x * targetZoom - container.clientWidth / 2;
+        const targetScrollY = coords.y * targetZoom - container.clientHeight / 2;
+        container.scrollTo({
+          left: Math.max(0, targetScrollX),
+          top: Math.max(0, targetScrollY),
+          behavior: 'smooth',
+        });
+      }, 80);
+    },
+    [zoomLevel, setZoomLevel, setActiveTool]
+  );
 
   /**
    * Poligono desenhado a mao.
@@ -1782,8 +2707,31 @@ export default function App() {
         .filter((m) => Math.hypot(m.x - x, m.y - y) <= radius)
         .map((m) => m.id);
       removerMarcas(apagadas, { continuo: true });
+
+      // Também apaga anotações visuais (prancheta) que estiverem sob o cursor
+      mutar((antes) => {
+        if (!antes.anotacoesVisuais?.length) return antes;
+        const sobrou = antes.anotacoesVisuais.filter((av) => {
+          let cx, cy;
+          if (av.tipo === 'cota' || av.tipo === 'seta') {
+            cx = (av.p1[0] + av.p2[0]) / 2;
+            cy = (av.p1[1] + av.p2[1]) / 2;
+          } else if (av.tipo === 'caixa') {
+            cx = av.x + av.w / 2;
+            cy = av.y + av.h / 2;
+          } else if (av.tipo === 'chamada') {
+            cx = av.p[0];
+            cy = av.p[1];
+          } else {
+            return true;
+          }
+          return Math.hypot(cx - x, cy - y) > radius;
+        });
+        if (sobrou.length === antes.anotacoesVisuais.length) return antes;
+        return { ...antes, anotacoesVisuais: sobrou };
+      }, { continuo: true });
     },
-    [removerMarcas]
+    [removerMarcas, mutar]
   );
 
   // Fase E — insere os pontos confirmados da detecção assistida.
@@ -1828,10 +2776,11 @@ export default function App() {
     onOpenExport: () => setIsExportModalOpen(true),
     onToggleTheme: toggleTheme,
     onCiclarMascara: ciclarMascara,
-    onAbrirGaleria: () => setIsGaleriaOpen(true),
+    onAbrirGaleria: () => abrirAbaDireita('galeria'),
     hasImage: !!image,
     hasNextImage: currentImageIndex < imageQueue.length - 1,
     hasPrevImage: currentImageIndex > 0,
+    disabled: isAnyModalOpen,
   });
 
   return (
@@ -1842,7 +2791,31 @@ export default function App() {
         toggleTheme={toggleTheme}
         sessionsCount={sessions.length}
         openHistory={() => setIsHistoryModalOpen(true)}
-        contaSlot={conta.disponivel ? <BotaoDeConta conta={conta} /> : undefined}
+        especieSlot={
+          <ChipDeEspecie
+            atual={especieDaBancada}
+            cultivar={metadata.amostra?.cultivar}
+            extras={especiesExtras}
+            onEscolher={handleEscolherEspecie}
+            onLimpar={handleLimparEspecie}
+          />
+        }
+        contaSlot={
+          conta.disponivel ? (
+            <BotaoDeConta
+              conta={conta}
+              metadata={metadata}
+              onAplicarBancada={() => {
+                if (conta.preferenciaSincronizada) {
+                  setMetadata((prev) => aplicarPreferencia(prev, conta.preferenciaSincronizada!));
+                }
+              }}
+              onAbrirConfiguracoes={() => setIsFeaturesOpen(true)}
+              onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+            />
+          ) : undefined
+        }
+        onImportSession={() => importInputRef.current?.click()}
         onUndo={desfazer}
         undoDisabled={!podeDesfazer}
         onRedo={refazer}
@@ -1899,7 +2872,7 @@ export default function App() {
             visualMode={visualMode}
             setVisualMode={setVisualMode}
             activeClassification={activeClassification}
-            setActiveClassification={setActiveClassification}
+            setActiveClassification={escolherClasse}
             metadata={metadata}
             updateMetadata={updateMetadata}
             sessions={sessions}
@@ -1908,6 +2881,11 @@ export default function App() {
             onOpenRoi={isRoiEnabled && image ? () => setIsRoiOpen(true) : undefined}
             onCarregarExemplo={handleCarregarExemplo}
             exemploCarregando={exemploCarregando}
+            onCarregarExemploReal={handleCarregarExemploReal}
+            exemploRealCarregando={exemploRealCarregando}
+            isCollapsed={isLeftSidebarCollapsed}
+            onToggleCollapse={handleToggleLeftSidebar}
+            onAbrirDatasets={() => abrirAbaDireita('datasets')}
             onAbrirIdentificacao={
               isModoLaudoEnabled ? () => setIsIdentificacaoOpen(true) : undefined
             }
@@ -1917,6 +2895,8 @@ export default function App() {
                 : 'medidas em pixels'
             }
             needsCalibration={!metadata.umPerPixel || metadata.umPerPixel <= 0}
+            hasImage={!!image}
+            hideCounters={true}
             adjustSlot={
               <ImageAdjustPanel
                 image={image}
@@ -1959,48 +2939,252 @@ export default function App() {
             detectionSlot={
               isAiPointerEnabled || isDetectionEnabled ? (
                 <div className="space-y-5">
-                  {isAiPointerEnabled && (
-                    <AiPointerPanel
-                      // A ORIGINAL, sempre: é nela que o modelo foi treinado.
-                      image={image}
-                      marks={marks}
-                      onAddMarks={handleAddDetectedMarks}
-                      onPreviewChange={setDetectionPreview}
-                      onAddSegmentations={addYoloSegmentations}
+                  {/* C5: "Encontrar" primeiro — funciona em qualquer cultura,
+                      sem modelo. "Modelo (IA)" depois, porque só serve para
+                      orquídea (tetrazólio); os dois são o mesmo pipeline do
+                      ensaio ao carregar em outro momento, não coisas
+                      separadas. */}
+                  {isDetectionEnabled && (
+                    <DetectionPanel
+                      image={forcarOriginalNasAutomacoes ? image : adjustedSource}
+                      receitaAtiva={receitaAtiva}
                       umPerPixel={metadata.umPerPixel}
+                      onda={ondaParaEncontrar}
+                      onContornosPropostos={setPropostaDestacada}
+                      onAplicar={handleAplicarEncontrado}
+                      onSalvarReceita={handleSalvarReceitaEncontrada}
                       regiao={regiaoDeDeteccao}
                       onSelecionarRegiao={() => setSelecionandoRegiao(true)}
                       onLimparRegiao={() => setRegiaoDeDeteccao(null)}
                     />
                   )}
-                  {isDetectionEnabled && (
-                    <DetectionPanel
-                      image={adjustedSource}
-                      marks={marks}
-                      onAddMarks={handleAddDetectedMarks}
-                      onPreviewChange={setDetectionPreview}
-                      regiao={regiaoDeDeteccao}
-                      onSelecionarRegiao={() => setSelecionandoRegiao(true)}
-                      onLimparRegiao={() => setRegiaoDeDeteccao(null)}
-                    />
+                  {isAiPointerEnabled && (
+                    <div className={isDetectionEnabled ? 'border-t border-line-soft pt-4' : undefined}>
+                      <button
+                        type="button"
+                        onClick={() => setIaAberto((v) => !v)}
+                        aria-expanded={iaAberto}
+                        className="w-full flex items-center justify-between gap-2 text-left"
+                      >
+                        <span>
+                          <span className="block text-[10px] font-bold text-ink-3 uppercase tracking-widest">
+                            Modelo (IA)
+                          </span>
+                          <span className="block text-[10px] text-ink-3 leading-snug mt-0.5">
+                            Treinado em orquídea: viável/inviável por tetrazólio.
+                          </span>
+                        </span>
+                        {iaAberto ? (
+                          <ChevronUp size={14} className="text-ink-3 shrink-0" />
+                        ) : (
+                          <ChevronDown size={14} className="text-ink-3 shrink-0" />
+                        )}
+                      </button>
+                      {iaAberto && (
+                        <div className="mt-3">
+                          <AiPointerPanel
+                            // A ORIGINAL, sempre: é nela que o modelo foi treinado.
+                            image={image}
+                            marks={marks}
+                            onAddMarks={handleAddDetectedMarks}
+                            onPreviewChange={setDetectionPreview}
+                            onAddSegmentations={addYoloSegmentations}
+                            umPerPixel={metadata.umPerPixel}
+                            regiao={regiaoDeDeteccao}
+                            onSelecionarRegiao={() => setSelecionandoRegiao(true)}
+                            onLimparRegiao={() => setRegiaoDeDeteccao(null)}
+                          />
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : undefined
             }
           />
 
-          {/* 3. Image viewport scroll and Zoom area */}
-          <ImageViewport
-            containerRef={containerRef}
-            image={image}
-            onBrowseFiles={handleBrowseFiles}
-            loadError={loadError}
-            isPanningMode={isPanningMode}
-            isDragging={isPanningDrag}
-            startDrag={startDrag}
-            handleDrag={handleDrag}
-            stopDrag={stopDrag}
-          >
+          {/* 3. Image viewport scroll and Zoom area with persistent floating overlays */}
+          <div className="relative flex-1 h-full overflow-hidden flex flex-col">
+            <ImageViewport
+              containerRef={containerRef}
+              image={image}
+              onBrowseFiles={handleBrowseFiles}
+              loadError={loadError}
+              isPanningMode={isPanningMode}
+              isDragging={isPanningDrag}
+              startDrag={startDrag}
+              handleDrag={handleDrag}
+              stopDrag={stopDrag}
+            >
+              {/* "Carregar referência" — o segundo gesto do explorador de datasets.
+                  Clicar na miniatura já carregou a imagem; a anotação (contorno
+                  ou marca) só entra quando a pessoa pedir aqui. */}
+              {podeCarregarReferencia && (
+                <div className="border-accent bg-surface-1/95 rounded-panel absolute top-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
+                  <div className="min-w-0">
+                    <p className="text-ink-1 text-xs font-bold">Anotação do dataset disponível</p>
+                    <p className="text-ink-3 text-[10px] leading-snug truncate max-w-[280px]">
+                      {datasetContexto?.conjunto} — {anotacaoAtual?.contornos?.length
+                        ? `${anotacaoAtual.contornos.length} contorno(s)`
+                        : `${anotacaoAtual?.marcas?.length ?? 0} marca(s)`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCarregarReferencia}
+                    className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Carregar referência
+                  </button>
+                </div>
+              )}
+              {/* Classe da imagem (multiclasse / pasta-por-classe) — só metadado + chip, nunca cria marca sozinho. */}
+              {!podeCarregarReferencia &&
+                image &&
+                metadata.dataset?.classesDaImagem &&
+                metadata.dataset.classesDaImagem.length > 0 &&
+                chipDeClasseDispensado !== filename && (
+                  <div className="bg-surface-1/95 rounded-panel border-line absolute top-4 left-1/2 z-30 flex max-w-[60%] -translate-x-1/2 items-center gap-2 border px-3 py-1.5 text-[11px] font-bold text-ink-2 shadow-lg backdrop-blur">
+                    <span className="truncate" title={metadata.dataset.classesDaImagem.join(', ')}>
+                      {metadata.dataset.classesDaImagem.length === 1 ? 'Classe do dataset: ' : 'Classes do dataset: '}
+                      {metadata.dataset.classesDaImagem.slice(0, 3).join(', ')}
+                      {metadata.dataset.classesDaImagem.length > 3 && ` +${metadata.dataset.classesDaImagem.length - 3}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setChipDeClasseDispensado(filename)}
+                      className="text-ink-3 hover:text-ink-1 shrink-0 rounded p-0.5"
+                      aria-label="Fechar"
+                      title="Fechar (a classe continua nos metadados)"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+              {/* O corte proposto. Fica sobre a imagem, ao lado da linha tracejada */}
+              {corteProposto && (
+                <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
+                  <div className="min-w-0">
+                    <p className="text-ink-1 text-xs font-bold">Cintura encontrada</p>
+                    <p className="text-ink-3 text-[10px] leading-snug">
+                      O contorno parece conter duas sementes. A linha tracejada mostra onde
+                      separar.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAplicarCorte}
+                    className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Separar
+                  </button>
+                  <button
+                    onClick={() => setContornoSelecionado(null)}
+                    aria-label="Manter como está"
+                    className="border-line text-ink-2 hover:bg-surface-2 shrink-0 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Manter
+                  </button>
+                </div>
+              )}
+
+              {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa acabou de clicar */}
+              {!corteProposto && recadoDaOnda && (
+                <div
+                  className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
+                    recadoDaOnda.tom === 'ok'
+                      ? 'border-accent bg-accent-tint text-accent'
+                      : 'border-warn bg-warn/15 text-ink-1'
+                  }`}
+                  role="status"
+                >
+                  {recadoDaOnda.texto}
+                </div>
+              )}
+
+              {image && (
+                <MarkingCanvas
+                  image={imagemDeTrabalho ?? image}
+                  marks={marks}
+                  yoloSegmentations={yoloSegmentations}
+                  anotacoesVisuais={anotacoesVisuais}
+                  mostrarContornos={mostraContornos(mascara)}
+                  mostrarEixosDeTodos={mostrarEixos}
+                  mostrarPontos={mostraPontos(mascara)}
+                  contornoSelecionado={contornoSelecionado}
+                  onSelecionarContorno={setContornoSelecionado}
+                  onMoverVertice={handleMoverVertice}
+                  onInserirVertice={handleInserirVertice}
+                  onRemoverVertice={handleRemoverVertice}
+                  onRaspar={handleRaspar}
+                  onInicioDeGesto={abrirGesto}
+                  onFimDeGesto={handleFimDeGesto}
+                  linhaDeCorte={corteProposto?.linha ?? null}
+                  onDesenhoConcluido={handleDesenhoConcluido}
+                  raioDaRaspagem={raioDaRaspagem}
+                  ajusteDaMarca={ajusteDaMarca}
+                  visualMode={visualMode}
+                  zoomLevel={zoomLevel}
+                  isPanningMode={isPanningMode}
+                  onCanvasClick={handleCanvasClick}
+                  canvasRef={canvasRef}
+                  onToggleSegmentationClass={toggleSegmentationClass}
+                  onDeleteSegmentation={deleteSegmentation}
+                  umPerPixel={metadata.umPerPixel}
+                  detectionPreview={detectionPreview}
+                  canvasFilter={canvasFilter}
+                  activeTool={activeTool}
+                  eraserRadius={eraserRadius}
+                  onRemoveMark={removeMark}
+                  onToggleMarkClass={handleToggleMarkClass}
+                  onMoveMark={handleMoveMark}
+                  onEraseArea={handleEraseArea}
+                  showRulers={showRulers}
+                  menuRadialAtivo={isMenuRadialEnabled}
+                  onClassificarRadial={handleClassificarRadial}
+                  sementesSimuladas={sementesSimuladas}
+                >
+                  {isMeasuring && <CalibrationRulerOverlay onMeasured={handleMeasured} />}
+                  
+                  {selecionandoRegiao && (
+                    <RegionSelectorOverlay
+                      selectedRegion={regiaoDeDeteccao}
+                      onRegionSelected={(r) => {
+                        setRegiaoDeDeteccao(r);
+                        setSelecionandoRegiao(false);
+                      }}
+                    />
+                  )}
+
+                  <VisualAnnotationsOverlay
+                    onAddAnotacaoVisual={(a) => {
+                      mutar((antes) => ({
+                        ...antes,
+                        anotacoesVisuais: [...(antes.anotacoesVisuais || []), a],
+                      }));
+                      setRecadoDaOnda({
+                        tom: 'ok',
+                        texto: 'Anotação adicionada à prancheta.',
+                      });
+                    }}
+                  />
+
+                  <GhostSeedsOverlay
+                    sementesSimuladas={sementesSimuladas}
+                    marks={marks}
+                    yoloSegmentations={yoloSegmentations}
+                    contornosPropostos={propostaDestacada}
+                  />
+                  <Germinar
+                    ativo={germinandoPedido > 0}
+                    tema={temaDaFlor}
+                    sementes={marks}
+                    onFim={encerrarGerminar}
+                  />
+                </MarkingCanvas>
+              )}
+            </ImageViewport>
+
+            {/* 4. Barra de Ferramentas — FIXA SOBRE O VIEWPORT (sempre acessível mesmo com muito zoom) */}
             {image && (
               <Toolbar
                 activeTool={activeTool}
@@ -2012,7 +3196,7 @@ export default function App() {
                 onToggleRulers={() => setShowRulers((v) => !v)}
                 mascara={mascara}
                 onCiclarMascara={ciclarMascara}
-                onAbrirGaleria={() => setIsGaleriaOpen(true)}
+                onAbrirGaleria={() => abrirAbaDireita('galeria')}
                 totalDeObjetos={marks.length + yoloSegmentations.length}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
@@ -2020,108 +3204,192 @@ export default function App() {
                 onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
             )}
-            {/* O corte proposto. Fica sobre a imagem, ao lado da linha
-                tracejada que ele vai aplicar — decidir olhando a proposta e o
-                que permite RECUSAR, e recusar importa mais que aceitar:
-                cortar por engano vira duas sementes onde havia uma. */}
-            {corteProposto && (
-              <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
-                <div className="min-w-0">
-                  <p className="text-ink-1 text-xs font-bold">Cintura encontrada</p>
-                  <p className="text-ink-3 text-[10px] leading-snug">
-                    O contorno parece conter duas sementes. A linha tracejada mostra onde
-                    separar.
-                  </p>
-                </div>
-                <button
-                  onClick={handleAplicarCorte}
-                  className="bg-accent text-accent-on hover:bg-accent-strong shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
-                >
-                  Separar
-                </button>
-                <button
-                  onClick={() => setContornoSelecionado(null)}
-                  aria-label="Manter como está"
-                  className="border-line text-ink-2 hover:bg-surface-2 shrink-0 rounded-lg border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
-                >
-                  Manter
-                </button>
+
+            {/* Medidas ao vivo — FIXO SOBRE O VIEWPORT */}
+            {image && (
+              <div className="absolute top-3 right-3 z-20 w-[280px] max-w-[42vw]">
+                {painelDeMedidasAberto ? (
+                  <PainelDeMorfometria
+                    resumo={resumoDeMorfometria}
+                    especie={especieDeclarada}
+                    onFechar={() => {
+                      setPainelDeMedidasAberto(false);
+                      gravarPreferencia('sc:painelDeMedidas', false);
+                    }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => {
+                      setPainelDeMedidasAberto(true);
+                      gravarPreferencia('sc:painelDeMedidas', true);
+                    }}
+                    title="Mostrar as medidas desta imagem"
+                    className="border-line bg-surface-1/95 text-ink-2 hover:border-accent hover:text-accent focus-visible:ring-accent/40 rounded-panel ml-auto flex items-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-bold tracking-wide uppercase shadow-lg backdrop-blur transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  >
+                    <Ruler size={12} /> Medidas
+                  </button>
+                )}
               </div>
             )}
 
-            {/* Resposta da onda: fica sobre a imagem, perto de onde a pessoa
-                acabou de clicar, e não numa barra distante. */}
-            {!corteProposto && recadoDaOnda && (
-              <div
-                className={`pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-panel border px-4 py-2 text-xs font-bold shadow-lg ${
-                  recadoDaOnda.tom === 'ok'
-                    ? 'border-accent bg-accent-tint text-accent'
-                    : 'border-warn bg-warn/15 text-ink-1'
-                }`}
-                role="status"
-              >
-                {recadoDaOnda.texto}
-              </div>
-            )}
+            {/* Floating Zoom and Panning controls — FIXO SOBRE O VIEWPORT */}
             {image && (
-              <MarkingCanvas
-                image={imagemDeTrabalho ?? image}
-                marks={marks}
-                yoloSegmentations={yoloSegmentations}
-                mostrarContornos={mostraContornos(mascara)}
-                mostrarPontos={mostraPontos(mascara)}
-                contornoSelecionado={contornoSelecionado}
-                onSelecionarContorno={setContornoSelecionado}
-                onMoverVertice={handleMoverVertice}
-                onInserirVertice={handleInserirVertice}
-                onRemoverVertice={handleRemoverVertice}
-                onRaspar={handleRaspar}
-                onInicioDeGesto={abrirGesto}
-                onFimDeGesto={handleFimDeGesto}
-                linhaDeCorte={corteProposto?.linha ?? null}
-                onDesenhoConcluido={handleDesenhoConcluido}
-                raioDaRaspagem={raioDaRaspagem}
-                ajusteDaMarca={ajusteDaMarca}
-                visualMode={visualMode}
-                zoomLevel={zoomLevel}
+              <ZoomControls
                 isPanningMode={isPanningMode}
-                onCanvasClick={handleCanvasClick}
-                canvasRef={canvasRef}
-                onToggleSegmentationClass={toggleSegmentationClass}
-                onDeleteSegmentation={deleteSegmentation}
-                umPerPixel={metadata.umPerPixel}
-                detectionPreview={detectionPreview}
-                canvasFilter={canvasFilter}
-                activeTool={activeTool}
-                eraserRadius={eraserRadius}
-                onRemoveMark={removeMark}
-                onToggleMarkClass={handleToggleMarkClass}
-                onMoveMark={handleMoveMark}
-                onEraseArea={handleEraseArea}
-                showRulers={showRulers}
-                isMeasuring={isMeasuring}
-                onMeasured={handleMeasured}
-                isSelectingRegion={selecionandoRegiao}
-                selectedRegion={regiaoDeDeteccao}
-                onRegionSelected={(r) => {
-                  setRegiaoDeDeteccao(r);
-                  setSelecionandoRegiao(false);
+                togglePanningMode={togglePanningMode}
+                zoomIn={zoomIn}
+                zoomOut={zoomOut}
+                zoomLevel={zoomLevel}
+                onFitToScreen={handleFitToScreen}
+                mostrarEscala={mostrarEscala}
+                onToggleEscala={() => {
+                  setMostrarEscala((v) => {
+                    gravarPreferencia('sc:escalaGrafica', !v);
+                    return !v;
+                  });
+                }}
+                mostrarEixos={mostrarEixos}
+                onToggleEixos={() => {
+                  setMostrarEixos((v) => {
+                    gravarPreferencia('sc:eixosDasMedidas', !v);
+                    return !v;
+                  });
                 }}
               />
             )}
-          </ImageViewport>
+            {image && mostrarEscala && <EscalaGrafica umPerPixel={metadata.umPerPixel} zoomLevel={zoomLevel} />}
+          </div>
 
-          {/* 4. Floating Zoom and Panning controls */}
-          {image && (
-            <ZoomControls
-              isPanningMode={isPanningMode}
-              togglePanningMode={togglePanningMode}
-              zoomIn={zoomIn}
-              zoomOut={zoomOut}
-              zoomLevel={zoomLevel}
-              onFitToScreen={handleFitToScreen}
-            />
-          )}
+          {/* 3. Painel Lateral Direito — RESULTADOS E ANÁLISE BIOMÉTRICA */}
+          <RightSidebar
+            viableCount={viableCount}
+            inviableCount={inviableCount}
+            viablePercent={viablePercent}
+            inviablePercent={inviablePercent}
+            totalCount={totalCount}
+            visualMode={visualMode}
+            setVisualMode={setVisualMode}
+            activeClassification={activeClassification}
+            setActiveClassification={escolherClasse}
+            plateId={metadata.plate}
+            sessions={sessions}
+            resumo={resumoDeMorfometria}
+            medicoes={medicoesDeMorfometria}
+            especie={especieDeclarada}
+            calibrado={!!metadata.umPerPixel && metadata.umPerPixel > 0}
+            onExport={() => setIsExportModalOpen(true)}
+            onDestacarSementes={handleDestacarSementes}
+            onAplicarRegra={handleAplicarRegra}
+            regraSelecionadaId={regraSelecionadaId}
+            limiaresCustomizados={limiaresCustomizados}
+            onRegraChange={setRegraSelecionadaId}
+            onLimiarChange={setLimiaresCustomizados}
+            isCollapsed={isRightSidebarCollapsed}
+            onToggleCollapse={handleToggleRightSidebar}
+            hasImage={!!image}
+            activeTab={rightSidebarTab}
+            onTabChange={setRightSidebarTab}
+            inspectorContent={
+              segmentacaoAtiva && image ? (
+                <SeedInspector
+                  segmentation={segmentacaoAtiva}
+                  image={imagemDeTrabalho ?? image}
+                  umPerPixel={metadata.umPerPixel}
+                  medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                  limiares={limiaresDaCena}
+                  especieId={especieDeclarada}
+                  perfilMedido={perfilMedidoAtivo}
+                  onToggleClass={toggleSegmentationClass}
+                  onDelete={deleteSegmentation}
+                  onProposeCut={handleProposeCut}
+                  onClose={() => {
+                    setContornoSelecionado(null);
+                    setRightSidebarTab('resultados');
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {/* Ensaio ao carregar: enquanto roda, ou com resultados ainda não
+                      decididos, fica acima da lista — some assim que "Usar esta" ou
+                      "Nenhuma" resolve. Não compete com o inspetor de um contorno
+                      selecionado (ramo acima). */}
+                  {ensaio && (ensaio.emAndamento || ensaio.resultados.length > 0) && (imagemDeTrabalho ?? image) && (
+                    <EnsaioPanel
+                      imagem={(imagemDeTrabalho ?? image)!}
+                      resultados={ensaio.resultados}
+                      emAndamento={ensaio.emAndamento}
+                      total={ensaio.total}
+                      onUsar={handleUsarEnsaio}
+                      onDestacar={(r) => setPropostaDestacada(r ? r.propostos.map((p) => p.contorno) : [])}
+                      onNenhuma={() => {
+                        setPropostaDestacada([]);
+                        setEnsaio(null);
+                      }}
+                      onParar={() => {
+                        ensaioCancelado.current = true;
+                      }}
+                    />
+                  )}
+                  <ListaDeSementes
+                    marks={marks}
+                    segmentations={yoloSegmentations}
+                    umPerPixel={metadata.umPerPixel}
+                    medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                    limiares={limiaresDaCena}
+                    onSelecionar={(id) => {
+                      setContornoSelecionado(id);
+                      setActiveTool('contorno');
+                    }}
+                  />
+                </div>
+              )
+            }
+            galeriaContent={
+              <GaleriaModal
+                modo="painel"
+                isOpen={galeriaAberta}
+                onClose={() => setRightSidebarTab('resultados')}
+                onExpandir={() => setGaleriaGrande(true)}
+                image={image}
+                marks={marks}
+                yoloSegmentations={yoloSegmentations}
+                onToggleSegmentationClass={toggleSegmentationClass}
+                onDeleteSegmentation={deleteSegmentation}
+                onToggleMarkClass={handleToggleMarkClass}
+                onRemoveMark={removeMark}
+                onSegmentarPendentes={handleSegmentarPendentes}
+                onSegmentarUma={handleSegmentarUma}
+                progresso={segmentandoLote}
+                protocolo={metadata.protocolo}
+                onSubclasse={setSubclasse}
+                onFocarNoCanvas={handleFocarNoCanvas}
+                umPerPixel={metadata.umPerPixel}
+                medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                limiares={limiaresDaCena}
+              />
+            }
+            datasetsContent={
+              <DatasetsPanel
+                pastaAberta={pastaDeDatasets}
+                onPastaAberta={setPastaDeDatasets}
+                onCarregar={handleCarregarDoDataset}
+              />
+            }
+            loteContent={
+              <LotePanel
+                imageQueue={imageQueue}
+                imagemAtual={image}
+                nomeDaImagemAtual={filename}
+                pastaAberta={pastaDeDatasets}
+                receitaAtiva={receitaAtiva}
+                especie={especieOuCulturaDeclarada}
+                metadataBase={metadata}
+                sessions={sessions}
+                addSession={addSession}
+                deleteSession={deleteSession}
+              />
+            }
+          />
         </div>
       )}
 
@@ -2162,6 +3430,18 @@ export default function App() {
           filename={filename}
           imageWidth={image?.width}
           imageHeight={image?.height}
+          zoomLevel={image ? zoomLevel : undefined}
+          fonteDaAutomacao={
+            image
+              ? {
+                  resumo: resumoDaFonte(estadoDaImagem),
+                  detalhes: fontesDasAutomacoes(estadoDaImagem),
+                  forcarOriginal: forcarOriginalNasAutomacoes,
+                  onAlternar: () => setForcarOriginalNasAutomacoes((v) => !v),
+                }
+              : undefined
+          }
+          totalDeObjetos={image ? totalCount : undefined}
           onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
           bancada={{
             especie: metadata.amostra?.especieNomeCientifico,
@@ -2198,7 +3478,10 @@ export default function App() {
             exportAnnotatedImage={handleExportAnnotatedImage}
             exportPDF={handleExportPDF}
             isYoloExportEnabled={isYoloExportEnabled}
-            onOpenYoloExport={() => setIsYoloExportModalOpen(true)}
+            onOpenYoloExport={() => {
+              setIsExportModalOpen(false);
+              setIsYoloExportModalOpen(true);
+            }}
           />
         )}
       </AnimatePresence>
@@ -2320,10 +3603,38 @@ export default function App() {
       </AnimatePresence>
 
       {/* Painel visível de funcionalidades */}
-      <FeaturesModal isOpen={isFeaturesOpen} onClose={() => setIsFeaturesOpen(false)} />
+      <FeaturesModal
+        isOpen={isFeaturesOpen}
+        onClose={() => setIsFeaturesOpen(false)}
+        onAbrirNovidades={() => {
+          setIsFeaturesOpen(false);
+          setNovidades({ aberto: true, versoes: [] });
+        }}
+      />
 
       <BarraDeAtividade />
       <AvisoDeAtualizacao />
+
+      <CartaoDeSugestao
+        sugestao={sugestaoAtual}
+        onAcao={handleAcaoDeSugestao}
+        onDispensar={(sug) => {
+          dispensar(sug.id, sug.escopoDaDispensa, image ? filename || 'imagem' : null);
+          setVersaoDispensadas((v) => v + 1);
+        }}
+      />
+
+      <Florescer ativo={florescendo} onFim={encerrarFlorescer} />
+      <PassoDaMontanha ativo={passoDaMontanha} onFim={encerrarPassoDaMontanha} />
+
+      {(recadoDoEaster || recadoDeGerminar) && (
+        <div
+          role="status"
+          className="border-line bg-surface-1 text-ink-1 rounded-panel fixed bottom-16 left-1/2 z-40 -translate-x-1/2 border px-4 py-2 text-xs font-semibold shadow-xl"
+        >
+          {recadoDoEaster ?? recadoDeGerminar}
+        </div>
+      )}
 
       <NovidadesModal
         isOpen={novidades.aberto}
@@ -2332,8 +3643,8 @@ export default function App() {
       />
 
       <GaleriaModal
-        isOpen={isGaleriaOpen}
-        onClose={() => setIsGaleriaOpen(false)}
+        isOpen={galeriaGrande}
+        onClose={() => setGaleriaGrande(false)}
         image={image}
         marks={marks}
         yoloSegmentations={yoloSegmentations}
@@ -2346,6 +3657,13 @@ export default function App() {
         progresso={segmentandoLote}
         protocolo={metadata.protocolo}
         onSubclasse={setSubclasse}
+        onFocarNoCanvas={(c, id) => {
+          setGaleriaGrande(false);
+          handleFocarNoCanvas(c, id);
+        }}
+        umPerPixel={metadata.umPerPixel}
+        medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+        limiares={limiaresDaCena}
       />
 
       <IdentificacaoModal
@@ -2357,6 +3675,9 @@ export default function App() {
 
       {/* 8. Feature Flags Debug Panel */}
       <FeatureFlagsDebugPanel />
+
+      {/* 9. Cookie & Privacy Consent Banner */}
+      <CookieConsentBanner />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Redo2,
   Eraser,
   Save,
+  FolderInput,
   Download,
   Calendar,
   BarChart4,
@@ -22,6 +23,8 @@ interface HeaderProps {
   openHistory: () => void;
   /** O botao da conta. Ausente = nada no lugar dele. */
   contaSlot?: React.ReactNode;
+  /** O chip de especie (C7), ao lado das abas. Ausente = nada no lugar dele. */
+  especieSlot?: React.ReactNode;
   onUndo: () => void;
   undoDisabled: boolean;
   onRedo: () => void;
@@ -34,6 +37,14 @@ interface HeaderProps {
   onPrevImage: () => void;
   onNextImage: () => void;
   onSaveSession: () => void;
+  /**
+   * Importar sessao (JSON). Ausente = botao oculto.
+   *
+   * Mora aqui, e nao na barra lateral, porque e I/O de sessao — o mesmo grupo
+   * de Salvar e Exportar. Na lateral ele ficava ao lado de "carregar amostras",
+   * que e carregar IMAGEM, e as duas acoes se confundiam.
+   */
+  onImportSession?: () => void;
   onExport: () => void;
   hasImage: boolean;
 
@@ -47,11 +58,18 @@ interface HeaderProps {
 }
 
 /**
- * A marca Retículo, inline para acompanhar o tema.
- * O arquivo public/mark.svg tem cores fixas porque favicon não herda tema;
- * aqui o retículo vem do token de acento e a semente da tinta principal.
+ * A marca: a semente com o contorno que a onda propõe em volta.
+ *
+ * Trocou o retículo em 16/09/2026 (proposta 2 de `docs/marca/`). O retículo
+ * dizia "isto observa", e é vocabulário de qualquer ferramenta de visão; o
+ * tracejado em volta da semente é a assinatura DESTE app — e significa, aqui
+ * dentro, a mesma coisa que significa no canvas: proposta ainda não aceita.
+ * Uma marca que ensina uma convenção da interface vale mais que uma bonita.
+ *
+ * Inline para herdar o tema. `public/mark.svg` tem o mesmo desenho com cores
+ * fixas, porque favicon não herda tema.
  */
-function MarcaReticulo({ size = 26 }: { size?: number }) {
+function MarcaSemente({ size = 26 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -62,28 +80,19 @@ function MarcaReticulo({ size = 26 }: { size?: number }) {
       aria-label="SeedCounter"
       className="shrink-0"
     >
-      <circle
-        cx="32"
-        cy="32"
-        r="19"
-        stroke="var(--color-accent)"
-        strokeWidth="3"
-        vectorEffect="non-scaling-stroke"
-      />
-      <path
-        d="M32 13.8v4.7M32 50.2v-4.7M13.8 32h4.7M50.2 32h-4.7"
-        stroke="var(--color-accent)"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
+      <ellipse cx="32" cy="34" rx="13.5" ry="9.5" transform="rotate(-22 32 34)" fill="var(--color-ink-1)" />
       <ellipse
-        cx="30"
+        cx="32"
         cy="34"
-        rx="8"
-        ry="4.8"
-        transform="rotate(-30 30 34)"
-        fill="var(--color-ink-1)"
+        rx="19"
+        ry="14.5"
+        transform="rotate(-22 32 34)"
+        fill="none"
+        stroke="var(--color-accent)"
+        strokeWidth="4.2"
+        strokeDasharray="11 7.5"
       />
+      <circle cx="32" cy="34" r="2.6" fill="var(--color-accent)" />
     </svg>
   );
 }
@@ -102,6 +111,7 @@ export function Header({
   sessionsCount,
   openHistory,
   contaSlot,
+  especieSlot,
   onUndo,
   undoDisabled,
   onRedo,
@@ -114,6 +124,7 @@ export function Header({
   onPrevImage,
   onNextImage,
   onSaveSession,
+  onImportSession,
   onExport,
   hasImage,
 
@@ -153,31 +164,16 @@ export function Header({
         <div className="flex min-w-0 items-center gap-4 xl:gap-5">
           {/* Identidade do produto primeiro, credenciais institucionais depois. */}
           <div className="flex shrink-0 items-center gap-2.5">
-            <MarcaReticulo />
+            <MarcaSemente size={30} />
             <div>
               <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
-                Contador de Sementes
+                SeedCounter
               </h1>
-              <p className="text-accent hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
-                Edição Acadêmica •{' '}
-                <a
-                  href="https://www.instagram.com/gpeorq"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  GPEOrq
-                </a>
-                {' / '}
-                <a
-                  href="https://www.instagram.com/gpsem_2000/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  GPSEM
-                </a>{' '}
-                • Unoeste
+              {/* "Edição Acadêmica" saiu: não dizia nada a quem usa. No lugar,
+                  o que o app faz — e os grupos continuam no rodapé, com as
+                  logos, que é onde filiação pertence. */}
+              <p className="text-ink-3 hidden text-[9px] font-bold tracking-widest whitespace-nowrap uppercase lg:block">
+                Contar · medir · laudar
               </p>
             </div>
           </div>
@@ -213,6 +209,10 @@ export function Header({
               </button>
             )}
           </nav>
+
+          {/* Espécie da bancada (C7): logo depois das abas — é contexto de
+            navegação, não ferramenta, por isso mora na linha 1. */}
+          {especieSlot}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -235,7 +235,7 @@ export function Header({
           {onOpenFeatures && (
             <button
               onClick={onOpenFeatures}
-              className={`${botaoIcone} hover:border-accent hover:text-accent`}
+              className={`${botaoIcone} hover:border-accent hover:text-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40`}
               title="Funcionalidades e recursos experimentais"
               aria-label="Funcionalidades e recursos experimentais"
             >
@@ -326,6 +326,17 @@ export function Header({
                   Próxima
                 </button>
               </div>
+            )}
+
+            {currentView === 'counter' && onImportSession && (
+              <button
+                onClick={onImportSession}
+                title="Abre uma sessão salva em JSON — imagem, marcações e contornos"
+                className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 focus-visible:ring-accent/40 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all focus-visible:ring-2 focus-visible:outline-none"
+              >
+                <FolderInput size={16} strokeWidth={2} aria-hidden="true" />
+                <span>Importar</span>
+              </button>
             )}
 
             {currentView === 'counter' && (

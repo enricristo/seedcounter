@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Ajuste de imagem
-// GPEOrq / GPSEM · Unoeste
+// GPEOrq / GPSEM
 // =============================================================================
 // Ajustes não destrutivos aplicados sobre a imagem original. Servem para dois
 // fins: (1) enxergar melhor durante a contagem manual e (2) melhorar o
@@ -204,13 +204,25 @@ export function applyAdjustments(
  * Cobre brilho, contraste e saturação; isolamento de canal e ajuste por canal
  * exigem o processamento real (`applyAdjustments`).
  */
+/**
+ * O ajuste precisa mexer nos PIXELS, ou um filtro CSS basta?
+ *
+ * CSS faz brilho, contraste, saturação e inversão de graça, na GPU. Mas não
+ * existe filtro CSS que isole um canal, aplique gama ou desloque R, G, B
+ * separadamente — o antigo `grayscale(1)` no lugar do canal era o motivo de
+ * "Exibir canal" não pegar: virava cinza, não o canal. Para esses, o canvas
+ * tem de receber a imagem já processada por `applyAdjustments`.
+ */
+export function exigePixels(adj: ImageAdjustments): boolean {
+  return adj.channel !== 'all' || adj.gamma !== 1 || adj.red !== 0 || adj.green !== 0 || adj.blue !== 0;
+}
+
 export function toCssFilter(adj: ImageAdjustments): string {
   if (isNeutral(adj)) return 'none';
   const parts: string[] = [];
   if (adj.brightness !== 0) parts.push(`brightness(${1 + adj.brightness / 100})`);
   if (adj.contrast !== 0) parts.push(`contrast(${1 + adj.contrast / 100})`);
   if (adj.saturation !== 0) parts.push(`saturate(${1 + adj.saturation / 100})`);
-  if (adj.channel !== 'all') parts.push('grayscale(1)');
   if (adj.invert) parts.push('invert(1)');
   return parts.length ? parts.join(' ') : 'none';
 }

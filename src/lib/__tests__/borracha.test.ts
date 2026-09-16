@@ -19,6 +19,7 @@ import {
   menorCaminho,
   rasterizar,
   type Ponto,
+  type Pincelada,
 } from '../borracha';
 import type { DadosImagem } from '../color-features';
 
@@ -216,7 +217,7 @@ describe('ajustarContorno — remover', () => {
     // nova fronteira seria o arco do cursor. Aqui ela tem de cair sobre o
     // degrau de cor.
     const contorno = densificar(contornoVazado());
-    const pinceladas = [];
+    const pinceladas: Pincelada[] = [];
     for (let y = OBJETO.y0 + 4; y < OBJETO.y1 - 4; y += 4) {
       pinceladas.push({ x: OBJETO.x1 + 14, y, raio: 16 });
     }
@@ -247,7 +248,7 @@ describe('ajustarContorno — remover', () => {
     // inteiro colado na borda real: matematicamente o mais barato, e não o que a
     // pessoa pediu. Raspar a direita não pode reescrever a esquerda.
     const contorno = densificar(contornoVazado());
-    const pinceladas = [];
+    const pinceladas: Pincelada[] = [];
     for (let y = OBJETO.y0 + 4; y < OBJETO.y1 - 4; y += 4) {
       pinceladas.push({ x: OBJETO.x1 + 14, y, raio: 16 });
     }
@@ -286,7 +287,7 @@ describe('ajustarContorno — acrescentar', () => {
       [OBJETO.x0, OBJETO.y1 - 1],
     ]);
 
-    const pinceladas = [];
+    const pinceladas: Pincelada[] = [];
     for (let y = OBJETO.y0 + 6; y < OBJETO.y1 - 6; y += 4) {
       pinceladas.push({ x: OBJETO.x1 - 14, y, raio: 12 });
     }
@@ -309,7 +310,7 @@ describe('ajustarContorno — acrescentar', () => {
 describe('o contorno devolvido continua utilizável', () => {
   it('é um polígono fechado com vértices suficientes', () => {
     const contorno = densificar(contornoVazado());
-    const pinceladas = [];
+    const pinceladas: Pincelada[] = [];
     for (let y = OBJETO.y0 + 4; y < OBJETO.y1 - 4; y += 4) {
       pinceladas.push({ x: OBJETO.x1 + 14, y, raio: 16 });
     }

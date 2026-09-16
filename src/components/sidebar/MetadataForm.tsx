@@ -36,7 +36,7 @@ export function MetadataForm({
           label="Projeto de Pesquisa"
           value={metadata.project || ''}
           onChange={(v) => updateMetadata('project', v)}
-          placeholder="Ex: Orquídeas da Unoeste 2026"
+          placeholder="Ex: Orquídeas 2026"
         />
 
         <MetadataInput

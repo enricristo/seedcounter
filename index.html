@@ -7,8 +7,26 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
+
+      // Google Consent Mode v2: verifica consentimento prévio salvo
+      var savedConsent = null;
+      try {
+        savedConsent = localStorage.getItem('sc:cookie-consent');
+      } catch (e) {}
+
+      gtag('consent', 'default', {
+        'analytics_storage': savedConsent === 'granted' ? 'granted' : 'denied',
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied'
+      });
+
       gtag('config', 'G-8VXS2W0FG4');
     </script>
+
+    <!-- Google Search Console: Pode ser verificado automaticamente pelo GA4 acima, ou descomente abaixo se usar token HTML -->
+    <!-- <meta name="google-site-verification" content="SEU_TOKEN_DO_GOOGLE_SEARCH_CONSOLE_AQUI" /> -->
+
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -62,7 +80,9 @@
         <img src="/logo-gpeorq.png" alt="GPEOrq" />
         <img src="/logo-gpsem.png" alt="GPSEM" />
       </div>
-      <p class="abertura-inst">GPEOrq &middot; GPSEM &mdash; Unoeste</p>
+      <p class="abertura-inst">GPEOrq &middot; GPSEM</p>
+      <p class="abertura-autor">Enrico S. Ambrosio</p>
+      <p class="abertura-orient">Orienta&ccedil;&atilde;o: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Cust&oacute;dio</p>
     </div>
 
     <style>
@@ -180,6 +200,23 @@
         letter-spacing: 0.13em;
         text-transform: uppercase;
         color: #5d6d71;
+      }
+      .abertura-autor {
+        margin: 12px 0 0;
+        font-size: 9.5px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: #5d6d71;
+        margin-top: 0.6rem;
+      }
+      .abertura-orient {
+        margin: 12px 0 0;
+        font-size: 9.5px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: #5d6d71;
+        opacity: 0.7;
+        font-size: 0.75em;
       }
 
       /* Quem pediu menos movimento recebe a marca parada, nao a tela em branco. */

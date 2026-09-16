@@ -730,7 +730,7 @@ export function LongitudinalView({
             <div>
               <p className="font-bold text-ink-2 text-sm">Nenhum dado de avaliação</p>
               <p className="text-xs text-ink-3 mt-1 max-w-sm">
-                Adicione avaliações de placa clicando em "+ Avaliação" acima para começar a rastrear
+                Adicione avaliações de placa clicando em &quot;+ Avaliação&quot; acima para começar a rastrear
                 a germinação.
               </p>
             </div>

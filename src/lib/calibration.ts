@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Calibração Espacial
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Converte pixels em micrômetros. Sem isso, a morfometria não tem significado
 // físico — só faz sentido comparar medidas entre imagens calibradas.
@@ -163,11 +163,73 @@ export function formatArea(pixelArea: number, umPerPixel?: number): string {
 export const DPI_PRESETS = [300, 600, 1200, 2400, 3600, 4800] as const;
 
 /**
- * Padrão do Laboratório de Sementes (GPEOrq/Unoeste): HP Scanjet G2710 a 3600 DPI.
- * Equivale a ~7,06 µm/px.
+ * Padrão do Laboratório de Sementes (GPEOrq/GPSEM): HP Scanjet G2710 a 4800 DPI
+ * (~5,29 µm/px).
+ *
+ * Era 3600 até 16/09/2026. A auditoria da régua colada no próprio scanner
+ * (`scripts/auditar-regua.py`, `docs/datasets/auditoria-de-medida.md`) mediu
+ * 4735 e 4771 DPI efetivos em duas digitalizações independentes — +32% sobre
+ * 3600, e a 1,5% da resolução óptica nominal do G2710, que é 4800. Toda
+ * medida em mm feita com 3600 estava 32% maior que o real. O DPI do driver
+ * continua sendo uma DECLARAÇÃO: a régua na imagem é a conferência.
  */
-export const DEFAULT_LAB_DPI = 3600;
+export const DEFAULT_LAB_DPI = 4800;
+/** O que a régua mediu de fato (µm/px), média das duas digitalizações auditadas. */
+export const UM_POR_PIXEL_MEDIDO_NA_REGUA = (10_000 / 1864.0 + 10_000 / 1878.3) / 2;
 export const DEFAULT_LAB_SCANNER = 'HP Scanjet G2710';
+
+/**
+ * Equipamentos do laboratório e da bancada de teste do Enrico (15/09/2026).
+ *
+ * Só o scanner tem escala declarável (DPI). Lupa e microscópio dependem da
+ * ampliação escolhida na hora — e o "1600x" impresso na caixa do USB é
+ * ampliação DIGITAL, não escala: para eles a calibração é sempre por objeto
+ * de referência ou micrômetro de platina. A lista existe para a pessoa
+ * escolher o aparelho e cair no método certo, não para adivinhar µm/px.
+ */
+export interface EquipamentoDoLaboratorio {
+  id: string;
+  nome: string;
+  tipo: 'scanner' | 'lupa' | 'microscopio' | 'camera';
+  /** Método de calibração que faz sentido para este aparelho. */
+  metodo: CalibrationMethod;
+  /** DPI padrão, só para scanner. */
+  dpi?: number;
+  /** Uma frase para a interface. */
+  dica: string;
+}
+
+export const EQUIPAMENTOS_DO_LABORATORIO: EquipamentoDoLaboratorio[] = [
+  {
+    id: 'scanjet-g2710',
+    nome: 'HP Scanjet G2710',
+    tipo: 'scanner',
+    metodo: 'dpi',
+    dpi: DEFAULT_LAB_DPI,
+    dica: 'Scanner de mesa do laboratório; 4800 DPI (~5,29 µm/px). Confira com a régua na imagem: a auditoria mediu 4735–4771.',
+  },
+  {
+    id: 'opton-tim-2t',
+    nome: 'Opton TIM-2T',
+    tipo: 'lupa',
+    metodo: 'reference',
+    dica: 'Estereomicroscópio trinocular; a escala muda com o zoom — calibre por micrômetro de platina ou régua na mesma ampliação.',
+  },
+  {
+    id: 'opton-3680',
+    nome: 'Opton 3680',
+    tipo: 'microscopio',
+    metodo: 'stage_micrometer',
+    dica: 'Microscópio; calibre por micrômetro de platina na objetiva em uso.',
+  },
+  {
+    id: 'usb-1600x',
+    nome: 'Microscópio USB portátil ("1600x")',
+    tipo: 'camera',
+    metodo: 'reference',
+    dica: 'UVC genérico; o 1600x é ampliação digital, não escala. Calibre por objeto de referência a cada altura de foco.',
+  },
+];
 
 /** Referências típicas de laboratório, para agilizar a entrada. */
 export const REFERENCE_PRESETS: { label: string; length: number; unit: LengthUnit }[] = [

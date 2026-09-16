@@ -14,7 +14,9 @@ import {
   LIMIARES_DE_CONTORNO_IRREGULAR,
   analisarContorno,
   areaDoPoligono,
+  estatisticaRobusta,
   fechoConvexo,
+  limiaresDaPopulacao,
   maiorDefeitoDeConvexidade,
   medianaDaCena,
   type Ponto,
@@ -281,5 +283,62 @@ describe('limiares contra contorno irregular', () => {
     // Mediana das 240 fundidas: profundidade relativa 0,852, solidez 0,615.
     expect(0.852).toBeGreaterThan(LIMIARES_DE_CONTORNO_IRREGULAR.profundidadeMaxima);
     expect(0.615).toBeLessThan(LIMIARES_DE_CONTORNO_IRREGULAR.solidezMinima);
+  });
+});
+
+/** Contorno com solidez e profundidade controladas: circulo com uma reentrancia. */
+function comReentrancia(raio: number, profundidade: number, n = 64): [number, number][] {
+  return Array.from({ length: n }, (_, i) => {
+    const t = (i / n) * Math.PI * 2;
+    // Uma cintura estreita centrada em t = 0, com a profundidade pedida.
+    const cintura = Math.exp(-((t - Math.PI) ** 2) / 0.08) * profundidade;
+    const r = raio - cintura;
+    return [200 + r * Math.cos(t), 200 + r * Math.sin(t)];
+  });
+}
+
+describe('limiar relativo a populacao', () => {
+  it('estatistica robusta: mediana e MAD', () => {
+    const e = estatisticaRobusta([1, 2, 3, 4, 100])!;
+    expect(e.mediana).toBe(3);
+    expect(e.mad).toBe(1); // desvios: 2,1,0,1,97 -> mediana 1
+    expect(e.n).toBe(5);
+    expect(estatisticaRobusta([])).toBeNull();
+  });
+
+  it('numa cena de sementes LISAS, o par e pego e as isoladas passam', () => {
+    // 20 discos quase perfeitos + 2 com cintura funda.
+    const isoladas = Array.from({ length: 20 }, () => comReentrancia(40, 1));
+    const pares = [comReentrancia(40, 14), comReentrancia(40, 16)];
+    const limiares = limiaresDaPopulacao([...isoladas, ...pares])!;
+    expect(limiares).not.toBeNull();
+    for (const c of isoladas) {
+      expect(analisarContorno(c, NaN, limiares).veredito).toBe('semente');
+    }
+    for (const c of pares) {
+      expect(analisarContorno(c, NaN, limiares).veredito).toBe('aglomerado');
+    }
+  });
+
+  it('numa cena de sementes IRREGULARES, as isoladas NAO sao acusadas', () => {
+    // E o caso da orquideia: toda semente tem reentrancia natural. Com limiar
+    // absoluto 0,15, 78% eram reprovadas. Relativo a populacao, nenhuma.
+    const isoladas = Array.from({ length: 20 }, (_, i) => comReentrancia(40, 6 + (i % 3)));
+    const limiares = limiaresDaPopulacao(isoladas)!;
+    const acusadas = isoladas.filter(
+      (c) => analisarContorno(c, NaN, limiares).veredito === 'aglomerado'
+    );
+    expect(acusadas.length).toBe(0);
+  });
+
+  it('e o par continua sendo pego mesmo na cena irregular', () => {
+    const isoladas = Array.from({ length: 20 }, (_, i) => comReentrancia(40, 6 + (i % 3)));
+    const par = comReentrancia(40, 22);
+    const limiares = limiaresDaPopulacao([...isoladas, par])!;
+    expect(analisarContorno(par, NaN, limiares).veredito).toBe('aglomerado');
+  });
+
+  it('populacao pequena demais devolve nulo — usa-se o padrao', () => {
+    expect(limiaresDaPopulacao([comReentrancia(40, 1)])).toBeNull();
   });
 });

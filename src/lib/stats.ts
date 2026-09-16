@@ -1,6 +1,6 @@
 // =============================================================================
 // Statistics Engine — SeedCounter
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Tests implemented:
 //   - Wilson Score CI (proportions)
@@ -15,7 +15,6 @@
 //   - Dunn's test with Holm correction (post-hoc after Kruskal-Wallis)
 // =============================================================================
 
-import jStat from 'jstat';
 import { mean as ssMean, standardDeviation as ssSd, quantile } from 'simple-statistics';
 import type {
   ConfidenceInterval,
@@ -205,7 +204,7 @@ export function shapiroWilk(values: number[]): NormalityResult {
   // Escores normais esperados, normalizados: a = m / ||m||. É a normalização
   // que garante W ≤ 1.
   const m: number[] = [];
-  for (let i = 1; i <= n; i++) m.push(jStat.normal.inv((i - 0.375) / (n + 0.25), 0, 1));
+  for (let i = 1; i <= n; i++) m.push(inversaNormalPadrao((i - 0.375) / (n + 0.25)));
   const norma = Math.sqrt(m.reduce((s, v) => s + v * v, 0));
 
   let b = 0;
@@ -222,7 +221,7 @@ export function shapiroWilk(values: number[]): NormalityResult {
   // W === 1 dá log(0) = -Infinity, z = -Infinity e p = 1 — que é o certo para
   // uma amostra perfeitamente alinhada com a normal.
   const z = (Math.log(1 - W) - mu) / sigma;
-  const pValue = 1 - jStat.normal.cdf(z, 0, 1);
+  const pValue = 1 - acumuladaNormal(z);
 
   return { W, pValue, normal: pValue > 0.05, testable: true };
 }
@@ -252,7 +251,7 @@ export function oneWayANOVA(groups: GroupStat[]): ANOVAResult {
   const msBetween = SSB / dfBetween;
   const msWithin = SSW / dfWithin;
   const fStat = msWithin > 0 ? msBetween / msWithin : 0;
-  const pValue = 1 - jStat.centralF.cdf(fStat, dfBetween, dfWithin);
+  const pValue = 1 - fCdf(fStat, dfBetween, dfWithin);
 
   return {
     fStat,
@@ -295,6 +294,168 @@ function logGama(x: number): number {
   for (let i = 0; i < g.length; i++) a += g[i] / (z + i + 1);
   const t = z + g.length - 0.5;
   return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+// ---------------------------------------------------------------------------
+// Funções especiais (Γ incompleta, Β incompleta, inversa da normal)
+//
+// POR QUE ESTÃO AQUI.
+//
+// `jstat` entrava no bundle principal inteiro só por causa de cinco chamadas
+// síncronas (normal.inv, normal.cdf, centralF.cdf, chisquare.cdf) usadas
+// dentro de `runStatsPipeline`, chamado em `useMemo` de `StatsView` — ou seja,
+// em render, não em resposta a um clique. Trocar por `await import('jstat')`
+// obrigaria o pipeline inteiro a virar assíncrono, o que é mudança de
+// comportamento (loading state, re-render em dois passos) e está fora do
+// escopo desta limpeza. As fórmulas abaixo são as clássicas de Numerical
+// Recipes (Press et al., cap. 6) — o mesmo motivo pelo qual `acumuladaNormal`
+// e `logGama`, usadas pelo Tukey logo acima, já viviam neste arquivo.
+// ---------------------------------------------------------------------------
+
+/** Aproximação racional de Acklam para a inversa da normal padrão (probit). */
+function inversaNormalPadrao(p: number): number {
+  if (p <= 0) return -Infinity;
+  if (p >= 1) return Infinity;
+  const a = [
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
+  ];
+  const b = [
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
+  ];
+  const c = [
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
+  ];
+  const d = [
+    7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416,
+  ];
+  const pLow = 0.02425;
+  const pHigh = 1 - pLow;
+
+  if (p < pLow) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
+  }
+  if (p <= pHigh) {
+    const q = p - 0.5;
+    const r = q * q;
+    return (
+      ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+    );
+  }
+  const q = Math.sqrt(-2 * Math.log(1 - p));
+  return (
+    -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+    ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+  );
+}
+
+/** Série da função gama incompleta (Numerical Recipes 6.2.5), para x < a+1. */
+function gamaIncompletaSerie(a: number, x: number): number {
+  if (x <= 0) return 0;
+  let soma = 1 / a;
+  let termo = soma;
+  for (let n = 1; n <= 200; n++) {
+    termo *= x / (a + n);
+    soma += termo;
+    if (Math.abs(termo) < Math.abs(soma) * 1e-14) break;
+  }
+  return soma * Math.exp(-x + a * Math.log(x) - logGama(a));
+}
+
+/** Fração contínua da função gama incompleta (Numerical Recipes 6.2.6), para x ≥ a+1. */
+function gamaIncompletaFracaoContinua(a: number, x: number): number {
+  const FPMIN = 1e-300;
+  let b = x + 1 - a;
+  let c = 1 / FPMIN;
+  let d = 1 / b;
+  let h = d;
+  for (let i = 1; i <= 200; i++) {
+    const an = -i * (i - a);
+    b += 2;
+    d = an * d + b;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = b + an / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < 1e-14) break;
+  }
+  return Math.exp(-x + a * Math.log(x) - logGama(a)) * h;
+}
+
+/** P(a, x) — função gama incompleta regularizada (inferior). */
+function gamaIncompletaRegularizada(a: number, x: number): number {
+  if (x < 0 || a <= 0) return NaN;
+  if (x === 0) return 0;
+  if (x < a + 1) return gamaIncompletaSerie(a, x);
+  return 1 - gamaIncompletaFracaoContinua(a, x);
+}
+
+/** CDF da qui-quadrado com `df` graus de liberdade. */
+function chiQuadradoCdf(x: number, df: number): number {
+  if (x <= 0) return 0;
+  return gamaIncompletaRegularizada(df / 2, x / 2);
+}
+
+/** Fração contínua da função beta incompleta (Numerical Recipes 6.4.1). */
+function betaFracaoContinua(a: number, b: number, x: number): number {
+  const FPMIN = 1e-300;
+  const qab = a + b;
+  const qap = a + 1;
+  const qam = a - 1;
+  let c = 1;
+  let d = 1 - (qab * x) / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= 200; m++) {
+    const m2 = 2 * m;
+    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    h *= d * c;
+    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < 1e-14) break;
+  }
+  return h;
+}
+
+/** I_x(a, b) — função beta incompleta regularizada. */
+function betaIncompletaRegularizada(x: number, a: number, b: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const frente = Math.exp(
+    logGama(a + b) - logGama(a) - logGama(b) + a * Math.log(x) + b * Math.log(1 - x)
+  );
+  if (x < (a + 1) / (a + b + 2)) {
+    return (frente * betaFracaoContinua(a, b, x)) / a;
+  }
+  return 1 - (frente * betaFracaoContinua(b, a, 1 - x)) / b;
+}
+
+/** CDF da F com `d1`/`d2` graus de liberdade. */
+function fCdf(f: number, d1: number, d2: number): number {
+  if (f <= 0) return 0;
+  const x = (d1 * f) / (d1 * f + d2);
+  return betaIncompletaRegularizada(x, d1 / 2, d2 / 2);
 }
 
 /** Simpson composto em [a, b] com `n` subintervalos (n par). */
@@ -481,7 +642,7 @@ export function scottKnott(groups: GroupStat[], alpha = 0.05): Map<string, strin
     // Chi-square significance test for the split
     const N = sorted.flatMap((g) => g.values).length;
     const chiStat = N * (bestBetweenSS / totalSS);
-    const pValue = 1 - jStat.chisquare.cdf(chiStat, 1);
+    const pValue = 1 - chiQuadradoCdf(chiStat, 1);
 
     if (pValue < alpha) {
       // Significant split — recurse each sub-group independently
@@ -536,7 +697,7 @@ export function kruskalWallis(groups: GroupStat[]): {
       groups.reduce((s, g, gi) => s + groupRankSums[gi] ** 2 / g.values.length, 0) -
     3 * (N + 1);
 
-  const pValue = 1 - jStat.chisquare.cdf(H, k - 1);
+  const pValue = 1 - chiQuadradoCdf(H, k - 1);
 
   return { H, pValue, significant: pValue < 0.05 };
 }
@@ -580,7 +741,7 @@ export function dunnTest(
         ((N * (N + 1)) / 12) * (1 / groups[a].values.length + 1 / groups[b].values.length)
       );
       const z = (groupRankMeans[a] - groupRankMeans[b]) / se;
-      const pRaw = 2 * (1 - jStat.normal.cdf(Math.abs(z), 0, 1));
+      const pRaw = 2 * (1 - acumuladaNormal(Math.abs(z)));
       pairResults.push({
         groupA: groups[a].label,
         groupB: groups[b].label,

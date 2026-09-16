@@ -495,7 +495,7 @@ function desenharRodape(doc: jsPDF, laudo: DocumentoDeLaudo, p: number, paginas:
     });
     texto(
       doc,
-      'Unoeste • Laboratório de Sementes e Tecido Vegetal — Campus II, Presidente Prudente/SP',
+      'Laboratório de Sementes e Tecido Vegetal',
       MARGEM,
       y + 21,
       { tamanho: 6.5, cor: COR.tinta3 }

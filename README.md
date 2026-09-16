@@ -233,7 +233,7 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 | **Aplicação e validação** | Mayara de Oliveira Vidotto Figueiredo (doutoranda) |
 | **Coorientação científica** | Profa. Dra. Ceci Castilho Custódio |
 
-GPEOrq · GPSEM — Universidade do Oeste Paulista (Unoeste)
+GPEOrq · GPSEM
 [@gpeorq](https://www.instagram.com/gpeorq) · [@gpsem_2000](https://www.instagram.com/gpsem_2000/)
 
 ## Contribuindo

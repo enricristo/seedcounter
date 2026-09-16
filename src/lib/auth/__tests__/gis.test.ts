@@ -1,6 +1,7 @@
+/* global RequestInit, HeadersInit */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GisClient, parseJwtPayload } from '../gis-client';
-import type { BenchPreferences } from '../gis-client';
+import type { AuthState, BenchPreferences } from '../gis-client';
 
 function base64UrlEncode(str: string): string {
   return Buffer.from(str, 'utf-8').toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -89,7 +90,7 @@ describe('Google Identity Services (GIS) Auth Client', () => {
         given_name: 'Nelson',
       });
 
-      let notifiedState = null;
+      let notifiedState: AuthState | null = null;
       client.onAuthStateChanged((state) => {
         notifiedState = state;
       });

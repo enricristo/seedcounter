@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Core Types
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // Baseado nas publicações do Prof. Nelson Barbosa Machado Neto e Profa. Ceci Castilho Custódio
 // =============================================================================
 
@@ -10,6 +10,8 @@ import type {
   Contagens,
   RegistroDeEscarificacao,
 } from './lib/normas/classes-de-semente';
+import type { DetectionOptions } from './lib/detect';
+import type { OpcoesDaOnda } from './lib/region-growing';
 
 // ---------------------------------------------------------------------------
 // Marking & Segmentation
@@ -32,6 +34,13 @@ export interface Mark {
    * do que foi classificado, em vez de um contador digitado a parte.
    */
   subclasse?: ClasseDeSemente;
+  /**
+   * De onde veio esta marca. 'referencia' = caixa YOLO carregada de um
+   * dataset (explorador de datasets — Lote B); a pessoa não clicou, o
+   * arquivo de anotação já dizia que ali tem uma semente. Ausente (ou
+   * 'humano') é o caso de sempre: alguém clicou na imagem.
+   */
+  origem?: 'humano' | 'referencia';
 }
 
 export interface YoloSegmentation {
@@ -52,11 +61,28 @@ export interface YoloSegmentation {
    * 'clique' — a pessoa clicou na semente e a onda mediu o contorno. NÃO conta
    *   como semente: quem já conta é a marcação criada pelo mesmo clique.
    *   Contar os dois somaria a mesma semente duas vezes.
+   * 'referencia' — polígono carregado de um dataset (explorador de datasets
+   *   — Lote B). CONTA como semente, como 'modelo': não há marcação humana
+   *   correspondente, é a anotação de terceiros que a pessoa decidiu trazer.
    *
    * É também a primeira peça do registro de curadoria: saber quem propôs cada
    * objeto é pré-requisito para medir se a máquina está ajudando.
    */
-  origem?: 'modelo' | 'clique';
+  origem?: 'modelo' | 'clique' | 'referencia';
+  /**
+   * Caminho taxonomico: ['anormal', 'danificada']. A raiz e uma das classes de
+   * germinacao. Ausente = so a categoria viavel/inviavel de sempre.
+   */
+  classe?: string[];
+  /**
+   * Nome de classe cru, vindo de um dataset externo, quando não bate com a
+   * taxonomia viável/inviável do app (ex.: "with mold", "trigo duro"). Só
+   * existe em contorno com `origem: 'referencia'`. Não é usado para contar
+   * nem para decidir cor — é texto solto para o inspetor mostrar; forçar um
+   * nome estranho na taxonomia (`classe`) inventaria uma correspondência que
+   * ninguém validou.
+   */
+  classeExterna?: string;
   /**
    * A marcacao a que este contorno pertence.
    *
@@ -132,7 +158,36 @@ export interface Metadata {
   contagensPorClasse?: Contagens;
   /** Superação de dormência aplicada ao lote, quando houve. */
   escarificacao?: RegistroDeEscarificacao;
+  /**
+   * De onde veio a imagem, quando ela foi carregada pelo explorador de
+   * datasets (Lote B) — não pela câmera, scanner ou upload de sempre.
+   * `conjunto` é o nome da subpasta (ex.: "Sementes de Orquideas"); `caminho`
+   * é o caminho da imagem dentro do conjunto, útil para religar ao arquivo
+   * original se a pessoa quiser conferir. `classesDaImagem` só existe em
+   * conjuntos de classificação (multiclasse ou pasta-por-classe) — a
+   * "resposta" que o conjunto declara para aquela foto.
+   */
+  dataset?: { conjunto: string; caminho: string; classesDaImagem?: string[] };
+
+  /**
+   * A receita (`features/ensaio/receitas.ts`) usada para gerar esta sessão
+   * pelo Lote (C1) — presente só em sessões gravadas em lote. É o que torna
+   * o lote AUDITÁVEL e REPETÍVEL: outra pessoa, ou você mais tarde, sabe
+   * exatamente que parâmetros produziram esta contagem, sem precisar
+   * lembrar ou adivinhar.
+   */
+  receita?: { id: string; parametros: { localizacao: DetectionOptions; onda: OpcoesDaOnda } };
 }
+
+// ---------------------------------------------------------------------------
+// Metrological Clipboard (Anotações Visuais)
+// ---------------------------------------------------------------------------
+
+export type AnotacaoVisual =
+  | { id: string; tipo: 'cota'; p1: [number, number]; p2: [number, number] }
+  | { id: string; tipo: 'seta'; p1: [number, number]; p2: [number, number] }
+  | { id: string; tipo: 'caixa'; x: number; y: number; w: number; h: number; cor?: string }
+  | { id: string; tipo: 'chamada'; p: [number, number]; texto: string };
 
 // ---------------------------------------------------------------------------
 // Session (single counting event)
@@ -147,6 +202,7 @@ export interface Session {
   metadata: Metadata;
   marks?: Mark[];
   yoloSegmentations?: YoloSegmentation[];
+  anotacoesVisuais?: AnotacaoVisual[];
   imageData?: string; // Base64 encoded image
   experimentId?: string; // Link to Experiment
   treatmentId?: string; // Link to Treatment
@@ -254,7 +310,7 @@ export interface Experiment {
   seedLot: string; // Lot/accession identifier: "CL-2024-03"
   collectionDate?: string; // ISO date of seed collection
   responsible: string; // "Dr. Nelson Barbosa Machado Neto"
-  institution: string; // "GPEOrq / Unoeste"
+  institution: string; // "GPEOrq / GPSEM"
   cultureMedia: CultureMedium;
   cultureMediaNotes?: string; // "KC + 15g/L sacarose + PPM 2mL/L"
   sterilizationProtocol?: string; // "NaOCl 1%, 15min + Tween 80"

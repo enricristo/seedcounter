@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — YOLO Dataset Exporter
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 //
 // Exports annotated sessions as a YOLOv8-compatible dataset (.zip):
 //   dataset/
@@ -15,7 +15,8 @@
 //   - Manual marks (x, y, type)         → YOLO detection (estimated bbox)
 // =============================================================================
 
-import JSZip from 'jszip';
+// JSZip não é importado estaticamente: só quem exporta o dataset YOLO paga
+// pelo peso dele — quem só conta sementes nunca aciona `generateYOLODataset`.
 import type { Session } from '../types';
 import { IMAGE_SOURCE_UM_PER_PIXEL } from '../types';
 
@@ -312,6 +313,9 @@ export async function generateYOLODataset(
     className: options.className ?? { viable: 'viable', inviable: 'inviable' },
   };
 
+  // Carregado sob demanda: exportar YOLO é uma ação explícita de clique, não
+  // algo que quem só conta sementes deveria baixar sem usar.
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const skippedSessions: string[] = [];
   const calibrationNotes: string[] = [];
@@ -385,7 +389,7 @@ export async function generateYOLODataset(
   const yaml = [
     `# SeedCounter YOLO Dataset`,
     `# Generated: ${new Date().toISOString()}`,
-    `# GPEOrq / Unoeste — Orchid Seed Germination`,
+    `# GPEOrq / GPSEM — Orchid Seed Germination`,
     ``,
     `path: dataset`,
     `train: images/train`,
@@ -425,7 +429,7 @@ function buildReadme(
   const lines: string[] = [
     '=============================================================',
     ' SeedCounter — YOLO Dataset Export',
-    ' GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal',
+    ' GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal',
     `=============================================================`,
     '',
     `Data de exportação : ${new Date().toLocaleString('pt-BR')}`,

@@ -54,6 +54,190 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.5.0',
+    data: '2026-09-16',
+    titulo: 'Os datasets entram no app, e a medida passa a ser conferida',
+    mudancas: [
+      {
+        tipo: 'corrigido',
+        titulo: 'A escala do scanner do laboratório estava 32% errada',
+        detalhe:
+          'O app assumia 3600 DPI porque é o que o driver informa. Medindo a régua colada na própria digitalização, em duas imagens independentes, o scanner entrega ~4735 e ~4771 DPI — a resolução óptica dele é 4800. O padrão passou a 4800. Consequência que precisa ser dita: toda medida em MILÍMETROS feita antes com 3600 estava 32% maior que a real. Contagens não mudam; medidas sim. O painel de calibração agora diz que o DPI do driver é uma declaração e a régua na imagem é a conferência.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Abrir a pasta de datasets dentro do app',
+        detalhe:
+          'Aponte a pasta uma vez e o app reconhece o formato de cada conjunto (YOLO com caixa ou polígono, multiclasse por CSV, pasta por classe, máscara). Clique numa miniatura e a imagem abre; um segundo clique traz a anotação do dataset como referência, marcada como tal no CSV. Nada é copiado: os arquivos continuam onde estão.',
+      },
+      {
+        tipo: 'novo',
+        titulo: '54 exemplos reais e 6 cenas compostas, prontos para abrir',
+        detalhe:
+          'Recortes de 19 conjuntos — orquídea do grupo e do doutorado, soja, trigo, arroz, milho, café, amendoim, 88 espécies do LZUPSD — com espécie, origem e escala preenchidas ao abrir. As cenas compostas juntam sementes reais de vários conjuntos numa imagem só, giradas e espelhadas, cada uma com classe e contorno conhecidos.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Ensaio ao carregar: três receitas lado a lado, você escolhe uma ou nenhuma',
+        detalhe:
+          'Ao abrir uma imagem, o app testa três conjuntos de parâmetros (e um quarto derivado da espécie, quando ela é conhecida) e mostra o resultado de cada um como miniatura com contagem, área e Feret. Passar o mouse mostra a proposta tracejada sobre a imagem. Nada é aplicado sem “Usar esta”. Ligue em Funcionalidades.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Rodar a mesma receita em várias imagens (Lote)',
+        detalhe:
+          'Escolha a fonte — a fila carregada, as regiões de uma digitalização ou uma pasta —, a receita, e rode. Cada linha mostra uma miniatura com os contornos encontrados, para você conferir antes de aceitar; o resumo mostra o total, a mediana por imagem e a dispersão, que é o que denuncia uma receita instável. Nada vira sessão sem aceite, duplicata é avisada, e o lote sobrevive a fechar a aba.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Perfil morfométrico medido por classe',
+        detalhe:
+          '“Medir esta pasta” roda a nossa própria segmentação em cada foto de um conjunto de classificação e monta o perfil de cada classe (n, área, Feret, solidez). No inspetor, esse perfil aparece como “Referência (medida)” acima da referência de literatura — números feitos nas nossas condições, não em outro scanner.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Escala gráfica que se arrasta até a semente',
+        detalhe:
+          'A barra de escala do canto mostra mm e px, e pode ser puxada pelo cabo até um objeto para comparar o tamanho a olho — ou ancorada em qualquer canto. Sem calibração ela aparece do mesmo jeito, em pixels, dizendo “sem escala”.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Ver de onde saem comprimento e largura',
+        detalhe:
+          'Um botão nos controles de zoom desenha os eixos que a medida usa (PCA) e os calibradores de Feret. Quando os dois discordam mais de 15%, aparece um “≠”: a forma não é elíptica — encostadas, quebrada ou contorno vazado — e a medida é palpite.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Espécie no cabeçalho configura a bancada',
+        detalhe:
+          'Um chip ao lado das abas com busca nas espécies conhecidas, nas já usadas nas suas sessões e nas classes do dataset aberto. Escolher preenche a identificação, sugere o protocolo e lembra o jeito típico de digitalizar.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'O rodapé diz qual imagem as automações estão lendo',
+        detalhe:
+          'A onda e o Encontrar leem a imagem ajustada — quem segmenta quer que o algoritmo veja o que o olho vê; o modelo de IA lê sempre a original, porque foi treinado nela e degrada em imagem alterada. Clicar força a original, para responder “piorou por causa do ajuste?” com um clique.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Contagem, medidas, índices e CSV passaram a falar do mesmo objeto',
+        detalhe:
+          'Uma semente detectada por IA sem marcação era contada, mas não tinha linha no CSV, número ao apertar 2, nem medida na morfometria — e os números do canvas eram por classe, diferentes do objeto_id do CSV. Agora existe uma lista só, e todo mundo lê dela.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Detecção assistida virou “Encontrar”, com limites que não dependem do tamanho da imagem',
+        detalhe:
+          'O tamanho mínimo pode ser dito em mm², em fração da mediana dos objetos encontrados (que transfere entre imagens e culturas) ou em px². O painel mostra o que decidiu sobre o fundo e deixa inverter; o resultado aparece tracejado até você aplicar; a receita ajustada pode ser salva por espécie.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Painéis laterais recolhem dos dois lados, e as instruções ganharam o Fluxo',
+        detalhe:
+          'A lateral esquerda vira um trilho de ícones como a direita, os exemplos ficam numa caixa que abre e fecha, e as instruções ganharam uma aba que mostra o caminho de uma amostra — do arquivo ao laudo — em diagrama ou em lista.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Marca nova e o app 12% mais leve para abrir',
+        detalhe:
+          'A marca passou a ser a semente com o contorno tracejado que a onda propõe — a mesma convenção que o canvas usa. E a compactação de exportação só é baixada quando você exporta.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'A borda tracejada que piscava sozinha sobre a cena',
+        detalhe:
+          'O filtro em lote já vinha com um critério escolhido, e a simulação rodava sem ninguém pedir. Agora começa em “Nenhum — não simular”, e o tracejado não pisca mais.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Cliques da onda que não respondiam',
+        detalhe: 'O painel Encontrar rodava sozinho ao abrir e ao trocar de imagem, ocupando a thread — e o clique se perdia.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: '“Exibir canal” não mudava nada',
+        detalhe: 'A prévia usava só filtro de tela, e não existe filtro de tela que isole um canal: virava cinza. Agora o canvas recebe a imagem processada.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Importar uma sessão inválida ficava em silêncio',
+        detalhe: 'Faltava esperar a leitura do arquivo, e o aviso de “formato inválido” nunca aparecia.',
+      },
+    ],
+  },
+  {
+    numero: '3.4.0',
+    data: '2026-09-15',
+    titulo: 'Prancheta, painel com abas e a medida que vem da própria imagem',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Inspetor e galeria viraram abas do painel direito',
+        detalhe:
+          'Eram janelas flutuantes que cobriam o canvas e escondiam o próprio X atrás do zoom. Agora o painel direito tem três abas — Resultados, Inspetor, Galeria — e clicar num contorno abre o inspetor no lugar dele, sem tapar nada. Fechar é trocar de aba.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Prancheta: cota (R), seta (A), área de interesse (B) e texto (T)',
+        detalhe:
+          'Ferramentas de documentação sobre a imagem, todas por arrastar e soltar. A cota mede em px, ou em mm quando a cena está calibrada; a seta e a área destacam um fungo ou uma anomalia sem criar semente.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Abre TIFF do scanner',
+        detalhe:
+          'Antes o aplicativo pedia para converter para PNG. Agora decodifica TIFF de 8 e 16 bits direto (multipágina abre a primeira e avisa).',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Diâmetro de Feret no inspetor e no CSV',
+        detalhe:
+          'Maior e menor largura do contorno medidas por calibradores rotativos — a medida padrão do ImageJ e a que mapeia em peneira comercial. Colunas feret_max e feret_min em px e em mm.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Aviso de aglomerado calibrado pela própria imagem',
+        detalhe:
+          'O limiar deixou de ser uma constante por espécie: sai da mediana e da dispersão dos contornos da cena. Medido: em orquídea, sementes sadias acusadas caíram de 78% para 13%; em soja, 0% antes e depois.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Referência de literatura no inspetor, sem veredito',
+        detalhe:
+          'Os valores típicos de solidez e circularidade por espécie aparecem como referência ("fora da faixa típica"), nunca como diagnóstico. Quem decide é quem olha.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Detecção por IA não trava mais o arraste',
+        detalhe: 'A inferência roda num worker separado; se o worker falhar, volta para o modo antigo sem você notar.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Como o modelo foi treinado, escrito no painel',
+        detalhe:
+          'O critério de anotação (vermelho = viável, branco = inviável, vazia = fundo) fica visível antes do botão de detectar — para ninguém esperar do modelo o que ele não aprendeu.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Mouse: botão direito inverte a classe; botão do meio arrasta a imagem; roda dá zoom no cursor',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Ocultar marcações não escondia os pontos desenhados na imagem',
+        detalhe: 'O botão de máscara escondia os contornos mas os pontos continuavam pintados. Agora esconde os dois.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Propor corte no inspetor aplicava o corte no segundo clique',
+        detalhe: 'Agora só seleciona e mostra a linha; cortar continua sendo o botão Separar. Há um teste que impede a regressão.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Modais fecham com Esc e com clique fora, e atalhos ficam suspensos enquanto um modal está aberto',
+      },
+    ],
+  },
+  {
     numero: '3.3.0',
     data: '2026-09-10',
     titulo: 'Desfazer de verdade, e o contorno na mão',
@@ -86,6 +270,18 @@ export const VERSOES: Versao[] = [
         titulo: 'Instruções de uso completas',
         detalhe:
           'A ajuda da barra lateral passou a listar todas as ferramentas — onda, ajuste, desenho, máscara, galeria — com os gestos de cada uma. Um teste confere que nenhum atalho fica de fora.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Classificar cada semente por subclasse, direto na galeria',
+        detalhe:
+          'Normal, anormal, dura, dormente, morta ou vazia — um seletor em cada célula, sem mexer no que já conta como viável/inviável na imagem. O rodapé da galeria consolida a germinação na hora e avisa quantas sementes ainda faltam classificar; o laudo ganha um bloco "Teste de germinação" com a contagem e a porcentagem por classe.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Uso anônimo do aplicativo passou a ser medido',
+        detalhe:
+          'Estatística de acesso (Google Analytics), para saber quais partes do aplicativo são realmente usadas. Imagem, sessão e laudo continuam só na sua máquina — isso não muda.',
       },
     ],
   },
@@ -230,6 +426,229 @@ export const VERSOES: Versao[] = [
         detalhe:
           'Não precisa mais ligar o modo laudo. Escolher a espécie mostra o alvo de tamanho e ajusta o corte de sementes encostadas à forma dela.',
       },
+    ],
+  },
+  {
+    numero: '3.1.0',
+    data: '2026-09-08',
+    titulo: 'Medidas em milímetro, e a segmentação por clique',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Segmentação por clique (a "onda")',
+        detalhe:
+          'Tecla S: clique numa semente e o contorno cresce sozinho até a borda, sem precisar de modelo nem de espécie treinados. A marcação sempre conta, mesmo quando a onda não encontra uma borda confiável — nesse caso o aviso pede para clicar mais para dentro da semente. Corrigido no caminho: doze cliques estavam sendo contados como vinte e quatro sementes, porque a marcação e o contorno do mesmo clique somavam em dobro.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Medidas em milímetro, e cor por objeto',
+        detalhe:
+          'Comprimento, largura e área agora saem em mm além de pixel, na tela e na exportação. Corrigido junto: o casamento entre marcação e contorno falhava em imagens de resolução alta ("não está encontrando nada") — a tolerância passa a acompanhar o tamanho do objeto, em vez de um raio fixo em pixels.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Comparação longitudinal com eixo de tempo configurável',
+        detalhe:
+          'Dias após plantio (germinação) ou dias de armazenamento (forrageira) — cada um mostra só os índices que fazem sentido para ele, em vez de calcular velocidade de germinação sobre uma curva de deterioração.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Cenas de exemplo e ensaios simulados',
+        detalhe:
+          'Para experimentar contagem, medida e estatística sem ter uma imagem própria à mão. Sempre identificados como demonstração — nunca entram como sessão real.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Região desenhada com o mouse restringe os dois motores de detecção',
+        detalhe:
+          'Antes só o detector clássico aceitava a região; a IA sempre varria a imagem inteira. Agora os dois respeitam o retângulo, e o painel mostra quantas janelas vai rodar antes de começar.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Tela branca ao abrir o aplicativo em produção',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Comparação de médias quebrava com poucas repetições',
+        detalhe:
+          'Um ensaio com 3 ou 4 repetições era declarado "não normal" por um erro de cálculo, e escolher Tukey travava a análise inteira.',
+      },
+    ],
+  },
+  {
+    numero: '3.0.0',
+    data: '2026-09-03',
+    titulo: 'Identidade visual Bancada Óptica, e três perdas de dados corrigidas',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Novo visual: Bancada Óptica',
+        detalhe:
+          'Tipografia própria (Archivo e IBM Plex Mono) e uma paleta de cores consistente em todo o aplicativo — cabeçalho, rodapé, ferramentas, zoom e exportação redesenhados.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'O botão de tema (sol/lua) não tinha efeito nenhum na tela',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Tema claro ficou difícil de ler depois do novo visual',
+        detalhe: 'Contraste de texto pequeno ajustado para o mínimo legível.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Ícone do aplicativo instalado (PWA) não funcionava',
+        detalhe:
+          'O navegador recusava o ícone para o prompt de instalação. Corrigido, com uma marca própria — e o pacote instalável ficou bem mais leve.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'A marca do ícone tinha um fundo sólido feio atrás dela',
+        detalhe: 'Agora é transparente.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Trocar de imagem na fila apagava a contagem da imagem anterior',
+        detalhe: 'Sem aviso e sem como desfazer. Agora cada imagem guarda a sua própria contagem.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Clicar numa marcação para arrastar podia trocar viável por inviável sem querer',
+        detalhe: 'Agora troca com Ctrl+clique; o clique simples fica livre para arrastar.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Exportações saíam com nome ilegível, e o que a pessoa digitava podia se perder',
+        detalhe:
+          'O nome do arquivo agora traz projeto, tratamento, placa e data; e preencher os campos rapidamente não derruba mais uma letra digitada antes.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Dividir uma digitalização em vários pedaços, e recortar o campo circular',
+        detalhe:
+          'Uma folha de scanner com várias sub-amostras é fatiada e entra direto na fila. Fotos por lupa têm o campo circular da ocular recortado automaticamente, descartando o entorno escuro.',
+      },
+    ],
+  },
+  {
+    numero: '2.1.0',
+    data: '2026-09-03',
+    titulo: 'Classificação incerta, e exportar para treinar IA',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Terceira opção de classificação: "incerto"',
+        detalhe:
+          'Além de viável e inviável, para quando a imagem não deixa decidir. O resumo de resultados foi redesenhado para mostrar as três.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Exportar dataset para treinar IA (YOLO) sai do experimental',
+        detalhe: 'Fica ligado por padrão — empacota as anotações que você já fez.',
+      },
+    ],
+  },
+  {
+    numero: '2.0.0',
+    data: '2026-08-23',
+    titulo: 'Remoção de fundo, e o fluxo em etapas',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Remover o fundo da imagem',
+        detalhe: 'Com limiar que se adapta à imagem, em vez de um valor fixo.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Sementes encostadas eram separadas do jeito errado',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Interface reorganizada em etapas',
+        detalhe: 'Abrir, ajustar, contar, exportar — cada etapa dobrável, em vez de tudo aberto de uma vez.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Uma falha de build travava a instalação do aplicativo (PWA)',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Detecção assistida parou de funcionar, e foi reconstruída',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'O modelo de IA só carrega quando é realmente usado',
+        detalhe: 'Quem não usa a detecção assistida nem baixa o modelo — o aplicativo abre mais rápido.',
+      },
+    ],
+  },
+  {
+    numero: '1.0.0',
+    data: '2026-08-19',
+    titulo: 'Câmera, detecção assistida e calibração',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Capturar direto da câmera',
+        detalhe: 'Celular ou lupa digital, sem precisar passar pelo scanner primeiro.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Detecção assistida por IA',
+        detalhe:
+          'Um modelo (AI Pointer) sugere onde estão as sementes, para revisar em vez de marcar uma por uma.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Correções na detecção assistida',
+        detalhe: 'Menos sugestões fora do lugar.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Calibração espacial por vários métodos',
+        detalhe: 'Régua na tela e arraste de pontos, além da entrada manual.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Morfometria',
+        detalhe: 'Comprimento, largura e outras medidas de forma de cada semente.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Painel de funcionalidades',
+        detalhe: 'Para ver o que o aplicativo sabe fazer, num só lugar.',
+      },
+      { tipo: 'melhorado', titulo: 'Réguas no canvas, e créditos do projeto atualizados' },
+    ],
+  },
+  {
+    numero: '0.2.0',
+    data: '2026-05-20',
+    titulo: 'Modo Diferencial, e aplicativo instalável',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Modo Diferencial',
+        detalhe: 'Compara a contagem atual com uma contagem anterior salva da mesma placa.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Aplicativo instalável (PWA)',
+        detalhe: 'Funciona sem precisar abrir o navegador toda vez.',
+      },
+      { tipo: 'melhorado', titulo: 'Informações de créditos atualizadas' },
+      { tipo: 'corrigido', titulo: 'Importar uma sessão do histórico falhava' },
+    ],
+  },
+  {
+    numero: '0.1.0',
+    data: '2026-05-13',
+    titulo: 'Primeira versão',
+    mudancas: [
+      { tipo: 'novo', titulo: 'Primeira versão do contador de sementes por clique' },
+      { tipo: 'novo', titulo: 'Aplicativo em português' },
+      { tipo: 'novo', titulo: 'Alternar entre tema claro e escuro' },
+      { tipo: 'novo', titulo: 'Modo de navegação por arraste (panning) na imagem' },
     ],
   },
 ];

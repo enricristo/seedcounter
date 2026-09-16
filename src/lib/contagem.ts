@@ -23,6 +23,9 @@
 // =============================================================================
 
 import type { Mark, YoloSegmentation } from '../types';
+import { enumerarObjetos, contornoRepresentaSemente } from './objetos';
+
+export { contornoRepresentaSemente };
 
 export interface Contagem {
   viaveis: number;
@@ -31,25 +34,13 @@ export interface Contagem {
 }
 
 /**
- * Um contorno representa uma semente por si só?
- *
- * Exportado porque a resposta é a parte fácil de errar, e quem precisar da
- * regra em outro lugar deve usar esta, não reescrever o `filter`.
+ * Conta o que `enumerarObjetos` enumera — e só isso. A contagem não tem
+ * regra própria: se ela e a tabela de medidas divergissem, o laudo diria um
+ * número e o CSV outro. Uma lista, um número.
  */
-export function contornoRepresentaSemente(seg: YoloSegmentation): boolean {
-  return seg.visible !== false && seg.origem !== 'clique';
-}
-
 export function contarObjetos(marks: Mark[], segmentacoes: YoloSegmentation[]): Contagem {
-  const contornos = segmentacoes.filter(contornoRepresentaSemente);
-
-  const viaveis =
-    marks.filter((m) => m.type === 'viable').length +
-    contornos.filter((s) => s.category === 'viable').length;
-
-  const inviaveis =
-    marks.filter((m) => m.type === 'inviable').length +
-    contornos.filter((s) => s.category === 'inviable').length;
-
-  return { viaveis, inviaveis, total: viaveis + inviaveis };
+  const objetos = enumerarObjetos(marks, segmentacoes);
+  const viaveis = objetos.filter((o) => o.categoria === 'viable').length;
+  const inviaveis = objetos.length - viaveis;
+  return { viaveis, inviaveis, total: objetos.length };
 }

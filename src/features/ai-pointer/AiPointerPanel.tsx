@@ -15,7 +15,6 @@ import {
   SquareDashedMousePointer,
 } from 'lucide-react';
 import {
-  detectWithYolo,
   isModelAvailable,
   resolveBestModel,
   DEFAULT_MODEL_URL,
@@ -23,9 +22,11 @@ import {
   type YoloDetection,
   type ModelQuality,
 } from '../../lib/yolo-onnx';
+import { detectarNoWorker } from '../../lib/yolo-worker-client';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
 import { contarJanelas, limitarRegiao, type Regiao } from '../../lib/region';
 import { formatLengthDual, formatAreaDual } from '../../lib/calibration';
+import { CRITERIO_DO_MODELO, CONSEQUENCIA_DO_CRITERIO } from '../../lib/criterio-do-modelo';
 import type { Mark, YoloSegmentation } from '../../types';
 import type { DetectionPreview } from '../../components/canvas/MarkingCanvas';
 
@@ -135,7 +136,23 @@ export function AiPointerPanel({
     // a pessoa ve quando rolou a barra lateral para outro lugar.
     const encerrar = iniciarAtividade('yolo', 'Detectando sementes…');
     try {
-      const result = await detectWithYolo(image, {
+      // A inferencia roda num worker (Task 7): o arraste e o zoom nao travam
+      // mais enquanto o modelo processa. So ImageData atravessa a fronteira
+      // de thread, entao os pixels sao lidos aqui, uma vez, antes de
+      // despachar — detectarNoWorker cai sozinha para esta mesma thread se o
+      // worker nao existir ou falhar.
+      const w = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
+      const h = image instanceof HTMLImageElement ? image.naturalHeight : image.height;
+      const canvasLeitura = document.createElement('canvas');
+      canvasLeitura.width = w;
+      canvasLeitura.height = h;
+      const ctxLeitura = canvasLeitura.getContext('2d', { willReadFrequently: true });
+      if (!ctxLeitura) throw new Error('Canvas 2D não disponível para ler a imagem.');
+      ctxLeitura.drawImage(image, 0, 0);
+      const dadosDaImagem = ctxLeitura.getImageData(0, 0, w, h);
+
+      const inicioDaMedicao = performance.now();
+      const result = await detectarNoWorker(dadosDaImagem, {
         confThreshold: confidence / 100,
         withMasks: withMorphometry,
         roi: regiao ?? undefined,
@@ -144,6 +161,9 @@ export function AiPointerPanel({
           if (total > 0) atualizarProgresso('yolo', done / total);
         },
       });
+      console.info(
+        `[yolo] inferência: ${(performance.now() - inicioDaMedicao).toFixed(0)} ms, ${result.length} objetos`
+      );
       setDetections(result);
     } catch (err) {
       console.error('[AI Pointer] falha na inferência:', err);
@@ -364,6 +384,24 @@ export function AiPointerPanel({
           </div>
         </div>
       )}
+
+      {/* O modelo aprendeu um criterio de anotacao que nunca apareceu na
+          interface: quem usa sem saber interpreta o numero errado, achando
+          que o app estima quantas sementes do lote estao vazias — ele so
+          distingue as que tem embriao. Fica aqui, visivel, antes de rodar. */}
+      <details className="border-line rounded-lg border p-2">
+        <summary className="text-ink-2 cursor-pointer text-[11px] font-bold tracking-wide uppercase">
+          Como o modelo foi treinado
+        </summary>
+        <ul className="mt-2 space-y-1">
+          {CRITERIO_DO_MODELO.map((c) => (
+            <li key={c.classe} className="text-ink-3 text-[11px] leading-snug">
+              <span className="text-ink-1 font-semibold">{c.classe}</span> — {c.regra}
+            </li>
+          ))}
+        </ul>
+        <p className="text-ink-3 mt-2 text-[11px] leading-snug">{CONSEQUENCIA_DO_CRITERIO}</p>
+      </details>
 
       <button
         onClick={handleRun}

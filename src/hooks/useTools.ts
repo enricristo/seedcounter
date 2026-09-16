@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 
-export type ToolId = 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'eraser' | 'pan';
+export type ToolId = 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'cota' | 'seta' | 'caixa' | 'chamada' | 'eraser' | 'pan';
 
 /**
  * A que grupo a ferramenta pertence. A barra separa os grupos com um fio.
@@ -71,6 +71,34 @@ export const TOOLS: ToolDefinition[] = [
     grupo: 'instrumento',
   },
   {
+    id: 'cota',
+    label: 'Cota (Régua)',
+    shortcut: 'r',
+    hint: 'Arraste para criar uma cota de medida dimensional',
+    grupo: 'instrumento',
+  },
+  {
+    id: 'seta',
+    label: 'Seta',
+    shortcut: 'a',
+    hint: 'Arraste para desenhar uma seta apontando',
+    grupo: 'instrumento',
+  },
+  {
+    id: 'caixa',
+    label: 'Área de interesse',
+    shortcut: 'b',
+    hint: 'Arraste para desenhar uma caixa delimitadora',
+    grupo: 'instrumento',
+  },
+  {
+    id: 'chamada',
+    label: 'Anotação textual',
+    shortcut: 't',
+    hint: 'Clique para inserir um texto de chamada',
+    grupo: 'instrumento',
+  },
+  {
     id: 'eraser',
     label: 'Borracha',
     shortcut: 'e',
@@ -86,13 +114,14 @@ export const TOOLS: ToolDefinition[] = [
   },
 ];
 
-export function useTools() {
+export function useTools(options?: { disabled?: boolean }) {
   const [activeTool, setActiveTool] = useState<ToolId>('viable');
   const [eraserRadius, setEraserRadius] = useState(20);
   /** Guarda a ferramenta anterior ao segurar Alt (borracha temporária). */
   const [tempTool, setTempTool] = useState<ToolId | null>(null);
 
   const effectiveTool: ToolId = tempTool ?? activeTool;
+  const disabled = options?.disabled ?? false;
 
   useEffect(() => {
     const isTyping = (t: EventTarget | null) => {
@@ -103,7 +132,7 @@ export function useTools() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.ctrlKey || e.metaKey) return;
+      if (disabled || isTyping(e.target) || e.ctrlKey || e.metaKey) return;
 
       // Alt segurado = borracha temporária (solta e volta ao normal).
       if (e.key === 'Alt' && !tempTool) {
@@ -148,7 +177,7 @@ export function useTools() {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [tempTool]);
+  }, [tempTool, disabled]);
 
   const cycleTool = useCallback(() => {
     setActiveTool((prev) => {

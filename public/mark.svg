@@ -1,14 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SeedCounter">
-  <title>SeedCounter — Retículo</title>
+  <title>SeedCounter — a semente e o contorno proposto</title>
   <!--
     Fundo transparente: a marca flutua sobre a barra do navegador, que pode ser
-    clara ou escura. Por isso as duas cores foram escolhidas por contraste nos
-    DOIS fundos, nao pela paleta de tema:
+    clara ou escura. As duas cores foram escolhidas por contraste nos DOIS
+    fundos, nao pela paleta de tema:
       #0d8ea1  3,89:1 sobre branco   4,66:1 sobre grafite-950
       #e0651f  3,47:1 sobre branco   5,22:1 sobre grafite-950
-    O par tambem carrega a tese do sistema: instrumento frio, especime quente.
+    O par carrega a tese do sistema: instrumento frio, especime quente. E o
+    tracejado carrega a convencao da interface: proposta ainda nao aceita.
   -->
-  <circle cx="32" cy="32" r="19" fill="none" stroke="#0d8ea1" stroke-width="3"/>
-  <path d="M32 13.8v4.7M32 50.2v-4.7M13.8 32h4.7M50.2 32h-4.7" stroke="#0d8ea1" stroke-width="3" stroke-linecap="round"/>
-  <ellipse cx="30" cy="34" rx="8" ry="4.8" transform="rotate(-30 30 34)" fill="#e0651f"/>
+  <ellipse cx="32" cy="34" rx="13.5" ry="9.5" transform="rotate(-22 32 34)" fill="#e0651f"/>
+  <ellipse cx="32" cy="34" rx="19" ry="14.5" transform="rotate(-22 32 34)" fill="none"
+           stroke="#0d8ea1" stroke-width="4.2" stroke-dasharray="11 7.5"/>
+  <circle cx="32" cy="34" r="2.6" fill="#0d8ea1"/>
 </svg>

@@ -5,7 +5,11 @@ import { MetadataForm } from '../sidebar/MetadataForm';
 import { DifferentialMode } from '../sidebar/DifferentialMode';
 import { HelpTip } from '../sidebar/HelpTip';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
+import { ExemplosSection } from '../sidebar/ImageActions';
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Upload, Database, Ruler, ScanSearch, SlidersHorizontal, ClipboardList } from 'lucide-react';
 import type { Metadata, Session } from '../../types';
+import type { ExemploReal } from '../../features/demo/exemplos-reais';
 import type { PresetDeCena } from '../../lib/synthetic-scene';
 
 interface SidebarProps {
@@ -34,8 +38,15 @@ interface SidebarProps {
   onOpenRoi?: () => void;
   onCarregarExemplo?: (preset: PresetDeCena) => void;
   exemploCarregando?: PresetDeCena | null;
+  onCarregarExemploReal?: (e: ExemploReal) => void;
+  exemploRealCarregando?: string | null;
+  /** Recolhida = só um trilho de ícones; cada ícone expande e cai na seção. */
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   /** Abre a identificação normativa (BAS/BASO). Ausente = botão oculto. */
   onAbrirIdentificacao?: () => void;
+  /** Abre a aba Datasets do painel direito. Ausente = botão oculto. */
+  onAbrirDatasets?: () => void;
 
   // --- Painéis opcionais, agrupados por etapa do fluxo ---
   /** Etapa 1 — ajuste de imagem. */
@@ -48,6 +59,10 @@ interface SidebarProps {
   calibrationSummary?: string;
   /** true quando ainda não há calibração (destaca a etapa). */
   needsCalibration?: boolean;
+  /** Indica se há imagem carregada no momento. */
+  hasImage?: boolean;
+  /** Oculta totalizadores na barra esquerda (quando exibidos na barra direita). */
+  hideCounters?: boolean;
 }
 
 export function Sidebar({
@@ -72,84 +87,185 @@ export function Sidebar({
   onOpenRoi,
   onCarregarExemplo,
   exemploCarregando,
+  onCarregarExemploReal,
+  exemploRealCarregando,
+  isCollapsed = false,
+  onToggleCollapse,
   onAbrirIdentificacao,
+  onAbrirDatasets,
   adjustSlot,
   calibrationSlot,
   detectionSlot,
   calibrationSummary,
   needsCalibration,
+  hasImage = false,
+  hideCounters = false,
 }: SidebarProps) {
+  /** Pedidos de abertura por seção (contador); ver CollapsibleSection. */
+  const [abrir, setAbrir] = useState<Record<string, number>>({});
+  const irPara = (secao: string) => {
+    onToggleCollapse?.();
+    setAbrir((a) => ({ ...a, [secao]: (a[secao] ?? 0) + 1 }));
+    // Depois que a lateral expandiu e a seção abriu.
+    setTimeout(() => document.getElementById(secao)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+
+  const TRILHO: { secao: string; rotulo: string; icone: React.ReactNode }[] = [
+    { secao: 'sec-abrir', rotulo: 'Abrir imagem', icone: <Upload size={20} /> },
+    { secao: 'sec-exemplos', rotulo: 'Exemplos', icone: <Database size={20} /> },
+    { secao: 'sec-calibrar', rotulo: 'Calibrar escala', icone: <Ruler size={20} /> },
+    { secao: 'sec-encontrar', rotulo: 'Encontrar objetos', icone: <ScanSearch size={20} /> },
+    { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={20} /> },
+    { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={20} /> },
+  ];
+
+  if (isCollapsed) {
+    return (
+      <aside className="border-line bg-surface-1 flex w-12 shrink-0 flex-col items-center gap-2 border-r py-3">
+        <button
+          onClick={onToggleCollapse}
+          title="Expandir painel de entrada e preparo"
+          aria-label="Expandir painel esquerdo"
+          className="border-line bg-surface-2 hover:bg-surface-3 text-ink-2 hover:text-ink-1 rounded-lg border p-1.5 transition-colors"
+        >
+          <ChevronRight size={20} />
+        </button>
+        <div className="bg-line my-1 h-px w-6" />
+        {TRILHO.map((t) => (
+          <button
+            key={t.secao}
+            onClick={() => irPara(t.secao)}
+            title={t.rotulo}
+            aria-label={t.rotulo}
+            className="text-ink-3 hover:bg-surface-2 hover:text-ink-1 rounded-lg p-2 transition-colors"
+          >
+            {t.icone}
+          </button>
+        ))}
+      </aside>
+    );
+  }
+
   return (
     <aside className="w-80 border-r border-neutral-200 dark:border-zinc-800 bg-surface-1 flex flex-col shrink-0 overflow-y-auto custom-scrollbar transition-colors duration-300">
       <div className="flex flex-col p-4 gap-4 min-h-max">
-        {/* Resultado primeiro: é o produto do trabalho */}
-        <Counters
-          viableCount={viableCount}
-          inviableCount={inviableCount}
-          viablePercent={viablePercent}
-          inviablePercent={inviablePercent}
-          totalCount={totalCount}
-          visualMode={visualMode}
-          setVisualMode={setVisualMode}
-          activeClassification={activeClassification}
-          setActiveClassification={setActiveClassification}
-          plateId={metadata.plate}
-          sessions={sessions}
-        />
-
-        {/* Entrada de imagem — ação mais frequente depois de contar */}
-        <ImageActions
-          fileInputRef={fileInputRef}
-          importInputRef={importInputRef}
-          handleFileUpload={handleFileUpload}
-          handleImportJSON={handleImportJSON}
-          onOpenCamera={onOpenCamera}
-          onOpenSplit={onOpenSplit}
-          onOpenRoi={onOpenRoi}
-          onCarregarExemplo={onCarregarExemplo}
-          exemploCarregando={exemploCarregando}
-        />
-
-        {/* Etapas de preparo e análise — recolhidas por padrão */}
-        <div className="space-y-2">
-          {adjustSlot && (
-            <CollapsibleSection step={1} title="Preparar imagem">
-              {adjustSlot}
-            </CollapsibleSection>
+        {/* Cabeçalho com o botão de recolher — espelho do painel direito. */}
+        <div className="border-line-soft flex items-center justify-between border-b pb-2">
+          <span className="text-ink-2 text-xs font-bold uppercase tracking-wider">Entrada & preparo</span>
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              title="Recolher painel esquerdo"
+              aria-label="Recolher painel esquerdo"
+              className="text-ink-3 hover:text-ink-1 hover:bg-surface-2 rounded p-1 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
           )}
+        </div>
 
+        {/* Totalizadores (caso não estejam na barra lateral direita) */}
+        {!hideCounters && (
+          <Counters
+            viableCount={viableCount}
+            inviableCount={inviableCount}
+            viablePercent={viablePercent}
+            inviablePercent={inviablePercent}
+            totalCount={totalCount}
+            visualMode={visualMode}
+            setVisualMode={setVisualMode}
+            activeClassification={activeClassification}
+            setActiveClassification={setActiveClassification}
+            plateId={metadata.plate}
+            sessions={sessions}
+          />
+        )}
+
+        {/* Sem imagem: uma frase que aponta para as duas portas — abrir ou exemplo. */}
+        {!hasImage && (
+          <div className="p-3 bg-surface-2 border border-line-soft rounded-xl text-xs space-y-1">
+            <div className="font-bold text-accent uppercase tracking-wider text-[10px]">Entrada de amostra</div>
+            <div className="text-ink-2 leading-relaxed">
+              Carregue uma digitalização, use a câmera, ou abra um exemplo real na caixa abaixo.
+            </div>
+          </div>
+        )}
+
+        {/* 0. Abrir imagem — sempre à vista: é por onde tudo começa. */}
+        <div id="sec-abrir" className="scroll-mt-3">
+          <ImageActions
+            fileInputRef={fileInputRef}
+            importInputRef={importInputRef}
+            handleFileUpload={handleFileUpload}
+            handleImportJSON={handleImportJSON}
+            onOpenCamera={onOpenCamera}
+            onOpenSplit={onOpenSplit}
+            onOpenRoi={onOpenRoi}
+            onAbrirDatasets={onAbrirDatasets}
+          />
+        </div>
+
+        {/* Exemplos numa caixa: aberta quando não há imagem, fechada quando há. */}
+        {(onCarregarExemplo || onCarregarExemploReal) && (
+          <CollapsibleSection
+            id="sec-exemplos"
+            title="Exemplos"
+            summary="3 simulados · reais de 19 datasets"
+            icon={<Database size={14} className="text-ink-3" />}
+            defaultOpen={!hasImage}
+            pedidoDeAbertura={abrir['sec-exemplos']}
+          >
+            <ExemplosSection
+              onCarregarExemplo={onCarregarExemplo}
+              exemploCarregando={exemploCarregando}
+              onCarregarExemploReal={onCarregarExemploReal}
+              exemploRealCarregando={exemploRealCarregando}
+            />
+          </CollapsibleSection>
+        )}
+
+        {/* Etapas: calibrar → encontrar → preparar. */}
+        <div className="space-y-2">
           {calibrationSlot && (
             <CollapsibleSection
-              step={2}
+              id="sec-calibrar"
+              step={1}
               title="Calibrar escala"
               summary={calibrationSummary}
-              attention={needsCalibration}
+              attention={needsCalibration && hasImage}
+              defaultOpen={needsCalibration && hasImage}
+              pedidoDeAbertura={abrir['sec-calibrar']}
             >
               {calibrationSlot}
             </CollapsibleSection>
           )}
 
           {detectionSlot && (
-            <CollapsibleSection step={3} title="Detectar automaticamente">
+            <CollapsibleSection id="sec-encontrar" step={2} title="Encontrar objetos" pedidoDeAbertura={abrir['sec-encontrar']}>
               {detectionSlot}
             </CollapsibleSection>
           )}
+
+          {adjustSlot && (
+            <CollapsibleSection id="sec-preparar" step={3} title="Preparar imagem" pedidoDeAbertura={abrir['sec-preparar']}>
+              {adjustSlot}
+            </CollapsibleSection>
+          )}
+
+          <CollapsibleSection
+            id="sec-amostra"
+            step={4}
+            title="Identificar amostra"
+            summary={[metadata.amostra?.especieNomeCientifico, metadata.project].filter(Boolean).join(' · ') || undefined}
+            defaultOpen={hasImage}
+            pedidoDeAbertura={abrir['sec-amostra']}
+          >
+            <div className="space-y-3">
+              <DifferentialMode metadata={metadata} updateMetadata={updateMetadata} sessions={sessions} />
+              <MetadataForm metadata={metadata} updateMetadata={updateMetadata} onAbrirIdentificacao={onAbrirIdentificacao} />
+            </div>
+          </CollapsibleSection>
         </div>
-
-        <hr className="border-neutral-100 dark:border-zinc-800" />
-
-        {/* Contexto da amostra */}
-        <DifferentialMode metadata={metadata} updateMetadata={updateMetadata} sessions={sessions} />
-
-        <hr className="border-neutral-100 dark:border-zinc-800" />
-
-        <MetadataForm
-          metadata={metadata}
-          updateMetadata={updateMetadata}
-          onAbrirIdentificacao={onAbrirIdentificacao}
-        />
-
-        <hr className="border-neutral-100 dark:border-zinc-800" />
 
         <HelpTip />
       </div>

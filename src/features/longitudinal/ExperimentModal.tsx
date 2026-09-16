@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Experiment, Treatment, CultureMedium } from '../../types';
 import { useExperiments } from '../../hooks/useExperiments';
 import { CULTURE_MEDIUM_LABELS } from '../../types';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface ExperimentModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ interface ExperimentModalProps {
 }
 
 export function ExperimentModal({ isOpen, onClose, experiment, onSave }: ExperimentModalProps) {
+  useModalEscape(isOpen, onClose);
+
   const { addExperiment, updateExperiment } = useExperiments();
 
   // Form states
@@ -20,7 +23,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
   const [species, setSpecies] = useState('');
   const [seedLot, setSeedLot] = useState('');
   const [responsible, setResponsible] = useState('');
-  const [institution, setInstitution] = useState('GPEOrq / Unoeste');
+  const [institution, setInstitution] = useState('GPEOrq / GPSEM');
   const [sowingDate, setSowingDate] = useState('');
   const [cultureMedia, setCultureMedia] = useState<CultureMedium>('KC');
   const [cultureMediaNotes, setCultureMediaNotes] = useState('');
@@ -63,7 +66,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
       setSpecies('');
       setSeedLot('');
       setResponsible('');
-      setInstitution('GPEOrq / Unoeste');
+      setInstitution('GPEOrq / GPSEM');
       setSowingDate(new Date().toISOString().split('T')[0]);
       setCultureMedia('KC');
       setCultureMediaNotes('');
@@ -172,11 +175,15 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
+        onClick={(e) => e.stopPropagation()}
         className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-line transition-all duration-300"
       >
         {/* Header */}
@@ -190,7 +197,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                 {experiment ? 'Editar Experimento' : 'Novo Experimento'}
               </h2>
               <p className="text-[10px] text-ink-3 font-semibold uppercase tracking-wider">
-                GPEOrq / Unoeste • Lab. de Sementes e Tecido Vegetal
+                GPEOrq / GPSEM • Lab. de Sementes e Tecido Vegetal
               </p>
             </div>
           </div>
@@ -270,7 +277,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
                 type="text"
                 value={institution}
                 onChange={(e) => setInstitution(e.target.value)}
-                placeholder="Ex: GPEOrq / Unoeste"
+                placeholder="Ex: GPEOrq / GPSEM"
                 className="w-full px-3 py-2 border border-line bg-surface-1 rounded-xl text-sm text-ink-1 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>

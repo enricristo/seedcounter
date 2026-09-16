@@ -3,6 +3,7 @@ import { X, Download, AlertTriangle, FileCheck, Layers, Settings, Eye } from 'lu
 import { motion, AnimatePresence } from 'motion/react';
 import type { Session } from '../../types';
 import { generateYOLODataset, getExportSummary } from '../../lib/yolo-exporter';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 interface YoloExportModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface YoloExportModalProps {
 }
 
 export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalProps) {
+  useModalEscape(isOpen, onClose);
+
   // Option states
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [trainValSplit, setTrainValSplit] = useState(80); // percentage for train
@@ -100,11 +103,15 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
+        onClick={(e) => e.stopPropagation()}
         className="bg-surface-1 flex flex-col rounded-3xl shadow-2xl w-full max-w-4xl h-full max-h-[85vh] overflow-hidden border border-line transition-all duration-300"
       >
         {/* Header */}

@@ -1,8 +1,10 @@
 import React from 'react';
-import { Upload, FolderUp, Camera, Grid3x3, Crosshair, Sparkles } from 'lucide-react';
+import { Upload, Camera, Grid3x3, Crosshair, Sparkles, FolderOpen } from 'lucide-react';
 // Do módulo específico, NÃO do barril: o barril reexporta o DemoDataPanel, que
 // puxa o demo-store e com ele o Dexie para dentro da barra lateral.
 import { EXEMPLOS } from '../../features/demo/exemplos';
+import { ExemplosReais } from '../../features/demo/ExemplosReais';
+import type { ExemploReal } from '../../features/demo/exemplos-reais';
 import type { PresetDeCena } from '../../lib/synthetic-scene';
 
 interface ImageActionsProps {
@@ -20,6 +22,10 @@ interface ImageActionsProps {
   onCarregarExemplo?: (preset: PresetDeCena) => void;
   /** Preset sendo gerado no momento, para desabilitar os botões. */
   exemploCarregando?: PresetDeCena | null;
+  onCarregarExemploReal?: (e: ExemploReal) => void;
+  exemploRealCarregando?: string | null;
+  /** Abre a aba Datasets do painel direito (explorador — Lote B). Ausente = botão oculto. */
+  onAbrirDatasets?: () => void;
 }
 
 export function ImageActions({
@@ -32,6 +38,9 @@ export function ImageActions({
   onOpenRoi,
   onCarregarExemplo,
   exemploCarregando,
+  onCarregarExemploReal,
+  exemploRealCarregando = null,
+  onAbrirDatasets,
 }: ImageActionsProps) {
   const botao =
     'rounded-panel border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:border-accent group flex w-full items-center gap-3 border px-4 py-3 font-bold transition-all';
@@ -100,14 +109,9 @@ export function ImageActions({
           </button>
         )}
 
-        {/* Import Session Button */}
-        <button
-          onClick={() => importInputRef.current?.click()}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-surface-2 hover:bg-surface-2 rounded-xl border border-line hover:border-line transition-all text-ink-2 hover:text-ink-1 font-bold group"
-        >
-          <FolderUp size={17} className="text-ink-3 group-hover:text-ink-2 transition-colors" />
-          <span className="text-xs uppercase tracking-wide">Importar Sessão (JSON)</span>
-        </button>
+        {/* O botao de importar sessao subiu para o cabecalho, junto de Salvar e
+            Exportar — e I/O de sessao, nao de imagem. O input escondido fica
+            aqui porque e quem tem a ref; o cabecalho so dispara o clique. */}
         <input
           type="file"
           ref={importInputRef}
@@ -116,10 +120,45 @@ export function ImageActions({
           className="hidden"
         />
 
-        {/* Exemplos simulados — para o app não abrir vazio para quem chega
-            sem imagem. O aviso fica visível, não escondido atrás do clique. */}
+        {/* Explorador de datasets (Lote B) — abaixo dos exemplos reais: os
+            exemplos são a demonstração; a pasta de datasets é o material de
+            verdade que a pessoa quer usar. O painel em si (conjuntos,
+            miniaturas, "Carregar referência") vive na aba Datasets do painel
+            direito; este botão só leva até lá. */}
+        {onAbrirDatasets && (
+          <button onClick={onAbrirDatasets} className={`${botao} mt-1`} title="Explorar pasta de datasets local">
+            <FolderOpen
+              size={16}
+              strokeWidth={2}
+              className="text-ink-3 group-hover:text-accent transition-colors"
+              aria-hidden="true"
+            />
+            <span className="text-xs tracking-wide uppercase">Abrir pasta de datasets…</span>
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Exemplos — simulados e reais — como seção própria da lateral.
+ *
+ * Saíram de dentro de "Abrir imagem" porque ali competiam com o botão de
+ * carregar: quem tem imagem não precisa deles à vista, quem não tem os
+ * encontra numa caixa que abre e fecha. A caixa é do Sidebar; aqui só o
+ * conteúdo.
+ */
+export function ExemplosSection({
+  onCarregarExemplo,
+  exemploCarregando,
+  onCarregarExemploReal,
+  exemploRealCarregando = null,
+}: Pick<ImageActionsProps, 'onCarregarExemplo' | 'exemploCarregando' | 'onCarregarExemploReal' | 'exemploRealCarregando'>) {
+  return (
+    <div className="space-y-2">
         {onCarregarExemplo && (
-          <div className="pt-1 space-y-1.5">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-1.5">
               <Sparkles size={12} className="text-ink-3" />
               <span className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
@@ -145,7 +184,10 @@ export function ImageActions({
             </p>
           </div>
         )}
-      </div>
-    </section>
+        {onCarregarExemploReal && (
+          <ExemplosReais onCarregar={onCarregarExemploReal} carregando={exemploRealCarregando} />
+        )}
+
+    </div>
   );
 }

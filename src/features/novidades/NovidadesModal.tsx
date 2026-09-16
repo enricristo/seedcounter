@@ -12,6 +12,7 @@
 import React from 'react';
 import { X, Sparkles, Plus, ArrowUp, Wrench } from 'lucide-react';
 import { ROTULOS, VERSOES, type TipoDeMudanca, type Versao } from '../../lib/novidades';
+import { useModalEscape } from '../../hooks/useModalEscape';
 
 const ICONE: Record<TipoDeMudanca, React.ElementType> = {
   novo: Plus,
@@ -40,6 +41,8 @@ interface NovidadesModalProps {
 }
 
 export function NovidadesModal({ isOpen, onClose, versoes }: NovidadesModalProps) {
+  useModalEscape(isOpen, onClose);
+
   if (!isOpen) return null;
   const lista = versoes?.length ? versoes : VERSOES;
 

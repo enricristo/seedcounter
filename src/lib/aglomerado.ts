@@ -278,6 +278,74 @@ export function medianaDaCena(areas: number[], minimo = 5): number {
 }
 
 // ---------------------------------------------------------------------------
+// Limiar relativo à população da imagem
+// ---------------------------------------------------------------------------
+
+export interface EstatisticaRobusta {
+  mediana: number;
+  /** Desvio absoluto mediano — o "sigma" que não se deixa puxar por outlier. */
+  mad: number;
+  n: number;
+}
+
+export function estatisticaRobusta(valores: number[]): EstatisticaRobusta | null {
+  const v = valores.filter((x) => Number.isFinite(x)).sort((a, b) => a - b);
+  if (v.length === 0) return null;
+  const med = (arr: number[]) =>
+    arr.length % 2 ? arr[(arr.length - 1) / 2] : (arr[arr.length / 2 - 1] + arr[arr.length / 2]) / 2;
+  const mediana = med(v);
+  const desvios = v.map((x) => Math.abs(x - mediana)).sort((a, b) => a - b);
+  return { mediana, mad: med(desvios), n: v.length };
+}
+
+/** Quantos MADs acima da mediana viram "suspeito". */
+const K_DA_POPULACAO = 3.5;
+/** Piso do MAD: numa cena de discos perfeitos o MAD é zero e o limiar colaria na mediana. */
+const MAD_MINIMO_SOLIDEZ = 0.01;
+const MAD_MINIMO_PROFUNDIDADE = 0.02;
+
+/**
+ * Limiares derivados da POPULAÇÃO da imagem.
+ *
+ * A LIÇÃO QUE ESTE MÓDULO APRENDEU TRÊS VEZES: constante não serve, porque a
+ * forma da semente muda o sinal. Os padrões absolutos reprovam 78% das
+ * orquídeas sadias — e servem bem à soja. O que distingue os dois casos não é
+ * a espécie: é o que a MAIORIA dos contornos desta imagem tem.
+ *
+ * Então o limiar é mediana + k*MAD sobre a própria cena. Semente de testa
+ * irregular puxa a mediana da profundidade para cima, e o par — que é outlier
+ * em qualquer espécie — continua acima do limiar.
+ *
+ * Mediana e MAD, e não média e desvio: um par fundido na cena é exatamente o
+ * outlier que arrastaria a média.
+ */
+export function limiaresDaPopulacao(
+  contornos: Ponto[][],
+  minimo = 8
+): LimiaresDeAglomerado | null {
+  const solidez: number[] = [];
+  const profundidade: number[] = [];
+  for (const c of contornos) {
+    const s = analisarContorno(c);
+    if (s.veredito === 'nao-avaliavel') continue;
+    solidez.push(s.solidez);
+    profundidade.push(s.profundidadeRelativa);
+  }
+  if (solidez.length < minimo) return null;
+
+  const es = estatisticaRobusta(solidez)!;
+  const ep = estatisticaRobusta(profundidade)!;
+
+  return {
+    // Solidez cai quando há cintura: limiar ABAIXO da mediana.
+    solidezMinima: es.mediana - K_DA_POPULACAO * Math.max(es.mad, MAD_MINIMO_SOLIDEZ),
+    // Profundidade sobe quando há cintura: limiar ACIMA da mediana.
+    profundidadeMaxima: ep.mediana + K_DA_POPULACAO * Math.max(ep.mad, MAD_MINIMO_PROFUNDIDADE),
+    razaoDeAreaMaxima: PADROES.razaoDeAreaMaxima,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Análise
 // ---------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 // =============================================================================
 // SeedCounter — Inferência YOLOv8-seg no navegador (ONNX Runtime Web)
-// GPEOrq / Unoeste · Lab. de Sementes e Tecido Vegetal
+// GPEOrq / GPSEM · Lab. de Sementes e Tecido Vegetal
 // =============================================================================
 // Modelo: YOLOv8m-seg treinado no dataset de sementes de orquídea (TCC),
 // imgsz 960, classes: 0 = inviavel, 1 = viavel.
@@ -45,6 +45,28 @@ export type ModelQuality = 'full' | 'quantized';
 export interface ResolvedModel {
   url: string;
   quality: ModelQuality;
+}
+
+// ---------------------------------------------------------------------------
+// Base para resolver os caminhos relativos dos modelos (`models/...`)
+// ---------------------------------------------------------------------------
+// Na thread principal, `fetch` resolve um caminho relativo contra a URL da
+// PÁGINA — certo, é onde `public/models/` é servido. Dentro do worker (Task
+// 7) isso resolveria contra a URL do PRÓPRIO SCRIPT do worker, que fica em
+// outro lugar (`/src/workers/...` no dev, `/assets/...` no build) — o fetch
+// pegava o HTML de fallback do Vite em vez do `.onnx`, e o ONNX Runtime
+// falhava com "protobuf parsing failed" (medido: era exatamente isso).
+// `yolo-worker-client.ts` manda a `document.baseURI` da página junto com o
+// primeiro pedido; só dentro do worker essa base é preenchida.
+let baseParaModelos: string | null = null;
+
+/** Chamado só pelo worker, uma vez, com a URL da página que o criou. */
+export function definirBaseDosModelos(base: string): void {
+  baseParaModelos = base;
+}
+
+function resolverUrlDoModelo(caminho: string): string {
+  return baseParaModelos ? new URL(caminho, baseParaModelos).href : caminho;
 }
 
 /**
@@ -166,7 +188,7 @@ export async function loadModel(modelUrl?: string): Promise<OrtSession> {
       /* ambiente sem suporte a threads — segue single-thread */
     }
 
-    return ort.InferenceSession.create(url, {
+    return ort.InferenceSession.create(resolverUrlDoModelo(url), {
       executionProviders: providers,
       graphOptimizationLevel: 'all',
     });
@@ -201,17 +223,37 @@ interface TilePrep {
   padY: number;
 }
 
+/** Fonte aceita para recortar uma janela: os dois de sempre, mais o canvas
+ * fora da tela que reconstrói a imagem dentro do worker (sem `document`). */
+type FonteDeImagem = HTMLImageElement | HTMLCanvasElement | OffscreenCanvas;
+
+/**
+ * Cria um canvas de trabalho, na thread principal ou dentro de um worker.
+ *
+ * `document` não existe dentro de um worker; `OffscreenCanvas` existe nos
+ * dois lugares nos navegadores atuais. Este é o único ponto do
+ * pré-processamento que precisava saber onde está rodando — o resto (recorte,
+ * letterbox, tensor) é o mesmo código nos dois ambientes.
+ */
+function criarCanvasDeTrabalho(width: number, height: number): HTMLCanvasElement | OffscreenCanvas {
+  if (typeof OffscreenCanvas !== 'undefined') {
+    return new OffscreenCanvas(width, height);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
 function prepareTile(
-  source: HTMLImageElement | HTMLCanvasElement,
+  source: FonteDeImagem,
   sx: number,
   sy: number,
   sw: number,
   sh: number,
   imgSize: number
 ): TilePrep | null {
-  const canvas = document.createElement('canvas');
-  canvas.width = imgSize;
-  canvas.height = imgSize;
+  const canvas = criarCanvasDeTrabalho(imgSize, imgSize);
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
 
@@ -439,8 +481,16 @@ function buildPolygon(
 // ---------------------------------------------------------------------------
 // Inferência completa (com recorte em janelas)
 // ---------------------------------------------------------------------------
-export async function detectWithYolo(
-  image: HTMLImageElement | HTMLCanvasElement,
+/**
+ * O núcleo da inferência — recorte em janelas, tensor, NMS, máscara.
+ *
+ * `FonteDeImagem` inclui `OffscreenCanvas` só para isto ter UM corpo: tanto
+ * `detectWithYolo` (thread principal, `HTMLImageElement`/`HTMLCanvasElement`)
+ * quanto `detectWithYoloEmImageData` (worker, `ImageData`) terminam aqui, sem
+ * duplicar a varredura em janelas.
+ */
+async function executarDeteccao(
+  image: FonteDeImagem,
   options: InferenceOptions = {}
 ): Promise<YoloDetection[]> {
   const opts = { ...DEFAULTS, ...options };
@@ -448,8 +498,12 @@ export async function detectWithYolo(
   const ort = ortModule;
   if (!ort) throw new Error('ONNX Runtime não inicializado.');
 
-  const srcW = image instanceof HTMLImageElement ? image.naturalWidth : image.width;
-  const srcH = image instanceof HTMLImageElement ? image.naturalHeight : image.height;
+  // `HTMLImageElement` não existe dentro de um worker — a checagem de tipo
+  // teria lançado ReferenceError ali dentro a cada detecção. `typeof` evita
+  // isso; no worker, `image` é sempre o canvas reconstruído de `ImageData`.
+  const ehImagemDom = typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement;
+  const srcW = ehImagemDom ? (image as HTMLImageElement).naturalWidth : image.width;
+  const srcH = ehImagemDom ? (image as HTMLImageElement).naturalHeight : image.height;
 
   // Área a varrer: a região pedida, recortada aos limites da imagem, ou a
   // imagem inteira quando nenhuma região foi dada.
@@ -517,10 +571,41 @@ export async function detectWithYolo(
   return final;
 }
 
+/**
+ * Detecta sementes numa imagem carregada no DOM. Caminho de sempre, usado na
+ * thread principal.
+ */
+export async function detectWithYolo(
+  image: HTMLImageElement | HTMLCanvasElement,
+  options: InferenceOptions = {}
+): Promise<YoloDetection[]> {
+  return executarDeteccao(image, options);
+}
+
+/**
+ * Mesma detecção de `detectWithYolo`, a partir de pixels já lidos.
+ *
+ * Existe para o worker (Task 7): a única forma de a imagem atravessar a
+ * fronteira de thread é `ImageData`, transferida por buffer sem cópia — um
+ * worker não tem `document` para ler um `HTMLImageElement`. Aqui os pixels
+ * viram um canvas de origem e caem no MESMO `executarDeteccao` que
+ * `detectWithYolo` usa: nenhuma linha da varredura em janelas é duplicada.
+ */
+export async function detectWithYoloEmImageData(
+  dados: ImageData,
+  options: InferenceOptions = {}
+): Promise<YoloDetection[]> {
+  const canvas = criarCanvasDeTrabalho(dados.width, dados.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D não disponível para reconstruir a imagem recebida.');
+  ctx.putImageData(dados, 0, 0);
+  return executarDeteccao(canvas, options);
+}
+
 /** Verifica se o modelo existe no servidor, sem baixar tudo. */
 export async function isModelAvailable(url: string = DEFAULT_MODEL_URL): Promise<boolean> {
   try {
-    const res = await fetch(url, { method: 'HEAD' });
+    const res = await fetch(resolverUrlDoModelo(url), { method: 'HEAD' });
     return res.ok;
   } catch {
     return false;

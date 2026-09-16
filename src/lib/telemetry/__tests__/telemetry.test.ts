@@ -1,3 +1,4 @@
+/* global RequestInit, HeadersInit */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '../../db';
 import {

@@ -1,6 +1,6 @@
 // =============================================================================
 // Feature Flag Registry
-// SeedCounter — GPEOrq / Unoeste
+// SeedCounter — GPEOrq / GPSEM
 // =============================================================================
 // Flags are persisted in localStorage under key 'sc:featureFlags'.
 // Stable flags are ON by default; experimental flags require explicit opt-in.
@@ -17,6 +17,8 @@ export type FeatureKey =
   | 'splitScan' // Fase G — Divisão de digitalização em pedaços
   | 'circularRoi' // Fase G — Recorte circular do campo da ocular
   | 'modoLaudo' // Fase H — Identificação e campos normativos (BAS/BASO)
+  | 'menuRadial' // Spike — classificar pela direção do arraste do botão direito
+  | 'ensaioAoCarregar' // Fase I — roda receitas ao carregar; a pessoa escolhe uma ou nenhuma
   | 'debugPanel'; // Dev — Feature flags debug panel
 
 export interface FeatureFlag {
@@ -122,6 +124,33 @@ export const FEATURE_REGISTRY: FeatureFlag[] = [
     phase: 'Fase H',
     description:
       'Coleta a identificação do laboratório e da amostra que o Boletim de Análise de Sementes exige, e aponta os campos obrigatórios ainda em branco',
+  },
+  {
+    // Spike, nao produto: o criterio de promocao e medido, nao opinado —
+    // cronometrar 20 classificacoes pelo radial contra 20 pela tecla X (mesma
+    // imagem). Se o radial nao for mais rapido, ele fica atras desta flag
+    // para sempre, e isso e um resultado, nao um fracasso.
+    key: 'menuRadial',
+    label: 'Menu radial (spike)',
+    defaultEnabled: false,
+    stable: false,
+    phase: 'Spike',
+    description: 'Segure o botão direito sobre um contorno e arraste para classificar. Experimento de velocidade.',
+  },
+  {
+    // Experimental por medição pendente: numa espécie nova, ninguém sabe qual
+    // parâmetro funciona, e rodar três conjuntos ao carregar é barato (uma
+    // vez, na thread principal, cedendo a tela em lotes). Mas nada entra no
+    // estado sem "Usar esta" — a ferramenta propõe, nunca decide sozinha — e
+    // fica atrás de flag até a medição do Enrico dizer que a taxa de contorno
+    // rejeitado (Nenhuma) é baixa o bastante para ligar por padrão.
+    key: 'ensaioAoCarregar',
+    label: 'Ensaio ao carregar (experimental)',
+    defaultEnabled: false,
+    stable: false,
+    phase: 'Fase I',
+    description:
+      'Ao abrir uma imagem, roda 3 conjuntos de parâmetros e mostra os resultados lado a lado para você escolher.',
   },
   {
     key: 'debugPanel',
