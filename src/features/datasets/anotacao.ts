@@ -147,9 +147,19 @@ export async function lerAnotacaoDe(
       return { classesDaImagem: [classe], classes: reconhecido.classes };
     }
 
-    default:
-      // 'mascara-de-instancia', 'mascara-binaria', 'solto': fora do escopo
-      // desta tarefa (ver plano B3 — só yolo, multiclass e pasta-por-classe).
+    case 'mascara-de-instancia':
+    case 'mascara-binaria':
+    case 'solto':
+      // Fora do escopo desta tarefa (ver plano B3 — só yolo, multiclass e
+      // pasta-por-classe).
       return null;
+
+    default: {
+      // Casos explícitos em cima, não um catch-all: se `FormatoDeDataset`
+      // ganhar um valor novo sem que este switch seja atualizado, isto para
+      // de compilar em vez de cair aqui em silêncio.
+      const _exaustivo: never = reconhecido.formato;
+      return _exaustivo;
+    }
   }
 }
