@@ -23,6 +23,13 @@ export interface ResultadoDoEnsaio {
   /** Pontos localizados em que a onda escapou. Informa, não some. */
   escapes: number;
   duracaoMs: number;
+  /**
+   * Verdadeiro quando a imagem tinha mais pontos localizados do que o teto
+   * por receita e a receita rodou só sobre uma amostra. Quem chama (App.tsx)
+   * decide o teto e preenche este campo — o executor em si não localiza
+   * nada, então não sabe se houve corte.
+   */
+  limitado?: boolean;
 }
 
 /**

@@ -105,6 +105,10 @@ import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
+import { RECEITAS } from './features/ensaio/receitas';
+import { executarReceita, type ResultadoDoEnsaio } from './features/ensaio/executar';
+import { EnsaioPanel } from './features/ensaio/EnsaioPanel';
+import { detectObjects } from './lib/detect';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
@@ -234,6 +238,10 @@ export default function App() {
   // Spike (Tarefa 8, Degrau 1): desligada por padrao. So muda o botao direito
   // no canvas quando ligada — ver `MarkingCanvas` e `flags.ts`.
   const isMenuRadialEnabled = useFeatureFlag('menuRadial');
+  // Fase I — o ensaio ao carregar. Desligado por padrão: a ferramenta propõe,
+  // nunca decide sozinha, e fica atrás de flag até a medição dizer que a taxa
+  // de "Nenhuma" é baixa o bastante para ligar por padrão.
+  const isEnsaioAoCarregarEnabled = useFeatureFlag('ensaioAoCarregar');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [detectionPreview, setDetectionPreview] = useState<DetectionPreview | null>(null);
 
@@ -453,6 +461,20 @@ export default function App() {
   const marcasRef = useRef<Mark[]>([]);
   const segmentacoesRef = useRef<YoloSegmentation[]>([]);
 
+  /**
+   * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
+   *
+   * `resultados` acumula um `ResultadoDoEnsaio` por receita conforme cada uma
+   * termina — a pessoa vê os cartões aparecerem, não espera as três de uma
+   * vez. `ensaioCancelado` é lido dentro de `executarReceita`, que cede a tela
+   * em lotes; é ref, não estado, porque o loop já está rodando quando "Parar"
+   * é clicado e precisa ler o valor mais recente sem re-render.
+   */
+  const [ensaio, setEnsaio] = useState<{ resultados: ResultadoDoEnsaio[]; emAndamento: boolean } | null>(
+    null
+  );
+  const ensaioCancelado = useRef(false);
+
   // Multi-image Queue state
   const {
     image,
@@ -497,6 +519,49 @@ export default function App() {
       if (containerRef.current) {
         const container = containerRef.current;
         fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
+      }
+
+      // Ensaio ao carregar: roda as receitas sobre a imagem RECÉM-CHEGADA
+      // (o parâmetro `img`, não `imagemDeTrabalho` — que neste fecho ainda é o
+      // valor do render anterior, da imagem que acabou de sair da fila).
+      if (isEnsaioAoCarregarEnabled) {
+        ensaioCancelado.current = false;
+        setEnsaio({ resultados: [], emAndamento: true });
+        abrirAbaDireita('inspetor');
+
+        (async () => {
+          for (const receita of RECEITAS) {
+            if (ensaioCancelado.current) break;
+
+            const deteccao = detectObjects(img, receita.localizacao);
+            // Ferramenta cara em imagem grande: 400 pontos por receita é o
+            // teto — acima disso o ensaio ao carregar deixaria de ser barato,
+            // que é a premissa dele existir sem worker.
+            const limitado = deteccao.objects.length > 400;
+            const pontos = (limitado ? deteccao.objects.slice(0, 400) : deteccao.objects).map((o) => ({
+              x: o.x,
+              y: o.y,
+            }));
+
+            const resultado = await executarReceita(
+              receita,
+              pontos,
+              (p, opcoesDaOnda) => {
+                const r = segmentarNoCanvas(img, p, opcoesDaOnda);
+                return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
+              },
+              { cancelado: () => ensaioCancelado.current }
+            );
+            if (!resultado || ensaioCancelado.current) break;
+
+            console.info(`[ensaio] ${resultado.receita.id} ${resultado.duracaoMs.toFixed(0)}ms`);
+            setEnsaio((prev) => ({
+              resultados: [...(prev?.resultados ?? []), { ...resultado, limitado }],
+              emAndamento: true,
+            }));
+          }
+          setEnsaio((prev) => (prev ? { ...prev, emAndamento: false } : prev));
+        })();
       }
     },
   });
@@ -2018,6 +2083,41 @@ export default function App() {
   }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
 
   /**
+   * "Usar esta": o único caminho que leva os contornos de uma receita do
+   * ensaio ao estado da aplicação. `addYoloSegmentations` SUBSTITUI a lista
+   * inteira — correto aqui porque o ensaio dispara ao carregar a imagem,
+   * quando ainda não há contorno manual para perder.
+   *
+   * Origem 'modelo' porque é proposta aceita sem marcação manual correspondente
+   * (mesma semântica do AI Pointer — conta como semente). Suspeitos de
+   * aglomerado entram também: a pessoa já vê o tracejado na miniatura, e o
+   * inspetor os sinaliza de novo depois; filtrar aqui seria a ferramenta
+   * decidindo por ela.
+   */
+  const handleUsarEnsaio = useCallback(
+    (r: ResultadoDoEnsaio) => {
+      addYoloSegmentations(
+        r.propostos.map((p, i) => {
+          const { width, height } = calculateSeedDimensions(p.contorno);
+          return {
+            id: Date.now() + i,
+            category: 'viable' as const,
+            class_name: 'viavel',
+            confidence: 1,
+            polygon_points: p.contorno,
+            visible: true,
+            width,
+            height,
+            origem: 'modelo' as const,
+          };
+        })
+      );
+      setEnsaio(null);
+    },
+    [addYoloSegmentations]
+  );
+
+  /**
    * Foca o canvas numa semente vinda da Galeria (zoom + pan centralizado + seleção de contorno).
    */
   const handleFocarNoCanvas = useCallback(
@@ -2657,16 +2757,34 @@ export default function App() {
                   }}
                 />
               ) : (
-                <ListaDeSementes
-                  segmentations={yoloSegmentations}
-                  umPerPixel={metadata.umPerPixel}
-                  medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
-                  limiares={limiaresDaCena}
-                  onSelecionar={(id) => {
-                    setContornoSelecionado(id);
-                    setActiveTool('contorno');
-                  }}
-                />
+                <div className="flex flex-col gap-4">
+                  {/* Ensaio ao carregar: enquanto roda, ou com resultados ainda não
+                      decididos, fica acima da lista — some assim que "Usar esta" ou
+                      "Nenhuma" resolve. Não compete com o inspetor de um contorno
+                      selecionado (ramo acima). */}
+                  {ensaio && (ensaio.emAndamento || ensaio.resultados.length > 0) && (imagemDeTrabalho ?? image) && (
+                    <EnsaioPanel
+                      imagem={(imagemDeTrabalho ?? image)!}
+                      resultados={ensaio.resultados}
+                      emAndamento={ensaio.emAndamento}
+                      onUsar={handleUsarEnsaio}
+                      onNenhuma={() => setEnsaio(null)}
+                      onParar={() => {
+                        ensaioCancelado.current = true;
+                      }}
+                    />
+                  )}
+                  <ListaDeSementes
+                    segmentations={yoloSegmentations}
+                    umPerPixel={metadata.umPerPixel}
+                    medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
+                    limiares={limiaresDaCena}
+                    onSelecionar={(id) => {
+                      setContornoSelecionado(id);
+                      setActiveTool('contorno');
+                    }}
+                  />
+                </div>
               )
             }
             galeriaContent={
