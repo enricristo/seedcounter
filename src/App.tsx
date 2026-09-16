@@ -410,6 +410,23 @@ export default function App() {
 
   // Manual marking class toggle
   const [activeClassification, setActiveClassification] = useState<'viable' | 'inviable'>('viable');
+
+  /**
+   * Escolher a classe nos cartões de resultado também troca a ferramenta.
+   *
+   * Clicar em "viável" ali é dizer "agora eu vou marcar viáveis" — e ter de
+   * ir até a barra de ferramentas depois disso é um passo que a pessoa não
+   * pediu. Só muda quando a ferramenta atual é de marcação ou nenhuma: quem
+   * está no meio de um ajuste de contorno ou com a borracha na mão não quer
+   * ser arrancado dali por um clique no painel.
+   */
+  const escolherClasse = useCallback(
+    (tipo: 'viable' | 'inviable') => {
+      setActiveClassification(tipo);
+      setActiveTool((atual) => (atual === 'viable' || atual === 'inviable' ? tipo : atual));
+    },
+    [setActiveTool]
+  );
   const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
 
   // DOM Refs
@@ -2855,7 +2872,7 @@ export default function App() {
             visualMode={visualMode}
             setVisualMode={setVisualMode}
             activeClassification={activeClassification}
-            setActiveClassification={setActiveClassification}
+            setActiveClassification={escolherClasse}
             metadata={metadata}
             updateMetadata={updateMetadata}
             sessions={sessions}
@@ -3253,7 +3270,7 @@ export default function App() {
             visualMode={visualMode}
             setVisualMode={setVisualMode}
             activeClassification={activeClassification}
-            setActiveClassification={setActiveClassification}
+            setActiveClassification={escolherClasse}
             plateId={metadata.plate}
             sessions={sessions}
             resumo={resumoDeMorfometria}
