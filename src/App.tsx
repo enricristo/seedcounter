@@ -1911,6 +1911,15 @@ export default function App() {
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
     lerPreferencia('sc:painelDireitoRecolhido', false)
   );
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(() =>
+    lerPreferencia('sc:painelEsquerdoRecolhido', false)
+  );
+  const handleToggleLeftSidebar = useCallback(() => {
+    setIsLeftSidebarCollapsed((prev) => {
+      gravarPreferencia('sc:painelEsquerdoRecolhido', !prev);
+      return !prev;
+    });
+  }, []);
   const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets') => {
     setRightSidebarTab(aba);
     setIsRightSidebarCollapsed(false);
@@ -2579,6 +2588,8 @@ export default function App() {
             exemploCarregando={exemploCarregando}
             onCarregarExemploReal={handleCarregarExemploReal}
             exemploRealCarregando={exemploRealCarregando}
+            isCollapsed={isLeftSidebarCollapsed}
+            onToggleCollapse={handleToggleLeftSidebar}
             onAbrirDatasets={() => abrirAbaDireita('datasets')}
             onAbrirIdentificacao={
               isModoLaudoEnabled ? () => setIsIdentificacaoOpen(true) : undefined

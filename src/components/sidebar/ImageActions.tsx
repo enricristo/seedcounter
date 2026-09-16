@@ -120,10 +120,45 @@ export function ImageActions({
           className="hidden"
         />
 
-        {/* Exemplos simulados — para o app não abrir vazio para quem chega
-            sem imagem. O aviso fica visível, não escondido atrás do clique. */}
+        {/* Explorador de datasets (Lote B) — abaixo dos exemplos reais: os
+            exemplos são a demonstração; a pasta de datasets é o material de
+            verdade que a pessoa quer usar. O painel em si (conjuntos,
+            miniaturas, "Carregar referência") vive na aba Datasets do painel
+            direito; este botão só leva até lá. */}
+        {onAbrirDatasets && (
+          <button onClick={onAbrirDatasets} className={`${botao} mt-1`} title="Explorar pasta de datasets local">
+            <FolderOpen
+              size={16}
+              strokeWidth={2}
+              className="text-ink-3 group-hover:text-accent transition-colors"
+              aria-hidden="true"
+            />
+            <span className="text-xs tracking-wide uppercase">Abrir pasta de datasets…</span>
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Exemplos — simulados e reais — como seção própria da lateral.
+ *
+ * Saíram de dentro de "Abrir imagem" porque ali competiam com o botão de
+ * carregar: quem tem imagem não precisa deles à vista, quem não tem os
+ * encontra numa caixa que abre e fecha. A caixa é do Sidebar; aqui só o
+ * conteúdo.
+ */
+export function ExemplosSection({
+  onCarregarExemplo,
+  exemploCarregando,
+  onCarregarExemploReal,
+  exemploRealCarregando = null,
+}: Pick<ImageActionsProps, 'onCarregarExemplo' | 'exemploCarregando' | 'onCarregarExemploReal' | 'exemploRealCarregando'>) {
+  return (
+    <div className="space-y-2">
         {onCarregarExemplo && (
-          <div className="pt-1 space-y-1.5">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-1.5">
               <Sparkles size={12} className="text-ink-3" />
               <span className="text-[10px] font-bold text-ink-3 uppercase tracking-widest">
@@ -153,23 +188,6 @@ export function ImageActions({
           <ExemplosReais onCarregar={onCarregarExemploReal} carregando={exemploRealCarregando} />
         )}
 
-        {/* Explorador de datasets (Lote B) — abaixo dos exemplos reais: os
-            exemplos são a demonstração; a pasta de datasets é o material de
-            verdade que a pessoa quer usar. O painel em si (conjuntos,
-            miniaturas, "Carregar referência") vive na aba Datasets do painel
-            direito; este botão só leva até lá. */}
-        {onAbrirDatasets && (
-          <button onClick={onAbrirDatasets} className={`${botao} mt-1`} title="Explorar pasta de datasets local">
-            <FolderOpen
-              size={16}
-              strokeWidth={2}
-              className="text-ink-3 group-hover:text-accent transition-colors"
-              aria-hidden="true"
-            />
-            <span className="text-xs tracking-wide uppercase">Abrir pasta de datasets…</span>
-          </button>
-        )}
-      </div>
-    </section>
+    </div>
   );
 }

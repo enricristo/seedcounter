@@ -18,6 +18,13 @@ interface CollapsibleSectionProps {
   defaultOpen?: boolean;
   /** Destaca a seção quando exige atenção (ex.: sem calibração). */
   attention?: boolean;
+  /** Âncora para navegação (trilho da lateral recolhida). */
+  id?: string;
+  /**
+   * Contador: cada incremento ABRE a seção, vindo de fora — o trilho da
+   * lateral recolhida usa isso para expandir e já cair na seção certa.
+   */
+  pedidoDeAbertura?: number;
   children: React.ReactNode;
 }
 
@@ -28,13 +35,21 @@ export function CollapsibleSection({
   icon,
   defaultOpen = false,
   attention = false,
+  id,
+  pedidoDeAbertura,
   children,
 }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const toggle = useCallback(() => setOpen((v) => !v), []);
+  const [ultimoPedido, setUltimoPedido] = useState(pedidoDeAbertura);
+  // Derivado durante a renderização, sem efeito: quando o pedido muda, abre.
+  if (pedidoDeAbertura !== ultimoPedido) {
+    setUltimoPedido(pedidoDeAbertura);
+    if (pedidoDeAbertura !== undefined && !open) setOpen(true);
+  }
 
   return (
-    <section className="rounded-xl border border-neutral-200 dark:border-zinc-800 overflow-hidden">
+    <section id={id} className="rounded-xl border border-neutral-200 dark:border-zinc-800 overflow-hidden scroll-mt-3">
       <button
         onClick={toggle}
         aria-expanded={open}
