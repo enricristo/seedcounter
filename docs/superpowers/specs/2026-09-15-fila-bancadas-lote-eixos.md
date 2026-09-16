@@ -144,3 +144,15 @@ Fila: C5 (em curso) → **C7** → B4 → C1 → C4.1 → C6 → C2.
 **Easter eggs — onde cabem sem atrapalhar (som sempre opt-in, regra registrada):** (1) clicar 7× na versão no rodapé → "florescer" já existe (`features/easter/Florescer`); (2) a 100ª/1000ª semente contada numa sessão → confete de sementes por 1 s; (3) sequência de teclas "germinar" no canvas → os contornos "brotam" (animação de 2 s) e voltam; (4) escala gráfica arrastada até o logo → a marca "mede" a si mesma ("1 semente ≈ 24 px"); (5) 1º de abril: os exemplos simulados ganham a cena "forrageira-vazia" com 0 sementes cheias e a mensagem "amostra só de palha"; (6) tetrazólio com 100% viáveis em ≥ 100 sementes → "lote de campeão", uma vez por sessão. Tudo atrás da flag `easterEggs` (já existe? conferir `useEasterEggs`). Pequeno; junto com C8.
 
 Fila: C5 (em curso) → C7 → **C8** → B4 → C1 → C4.1 → C6 → C2.
+
+---
+
+## Estado em 16/09 — o que fechou nesta rodada
+
+**Entregue e no ar (`develop`, 915 testes):** A3 ensaio, A4 fixtures, C3 eixos + auditoria (DPI 4800), B1–B3 explorador, A5 exemplos reais (54), C5 Encontrar/Modelo/ensaio num fluxo, C7 chip de espécie, C10 cenas compostas (6, com verdade), governança de dados (`lib/objetos.ts`), escala gráfica arrastável, barra inferior em grupos, lateral esquerda recolhível, instruções com Fluxo (diagrama + lista), easter eggs (`fucik`, `germinar`, nome → dissertação), e o indicador **"Automação lê"** com o gatilho de forçar a original.
+
+**Corrigido nesta rodada, com a causa:** onda que não clicava (o painel Encontrar rodava sozinho ao montar e ao trocar de imagem); borda tracejada piscando (regra semi-automática já vinha selecionada — agora "Nenhum — não simular" — e o `animate-pulse` saiu); chip de classe do dataset grudado na imagem seguinte; galeria desalinhada na aba de 336 px; "Exibir canal" que virava cinza (não existe filtro CSS de canal); soja recortada no canto do scanner; halo nas cenas compostas; 22 erros de eslint acumulados.
+
+**Aguardando decisão do Enrico:** a marca (3 propostas em `docs/marca/`, recomendação registrada); o desenho das bancadas (C2); o nome do arquivo da imagem de trigo "com coisas misturadas" para virar exemplo.
+
+**Fila daqui:** B4 (perfil medido por classe, em curso) → C1 (lote) → C4.1 (sessões na conta) → C6 (saúde do código: imports dinâmicos, strict por flag) → C2 (bancadas) → C9 (geolocalização por IP, se o Enrico disser para quê).
