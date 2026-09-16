@@ -48,6 +48,22 @@ const LOCALIZACAO_REDUZIDA: DetectionOptions = {
   minArea: 40,
 };
 
+/**
+ * Por que existe um plano B no centro da foto.
+ *
+ * O formato garante UMA semente por foto, quase sempre centrada e ocupando
+ * boa parte do quadro. Nessa condição a localização por limiar às vezes não
+ * devolve nada — a semente encosta na borda, ou o filtro de área a descarta
+ * por ser grande demais para o que o preset espera. Desistir aí seria
+ * descartar a foto inteira por causa de uma etapa que a premissa do formato
+ * já dispensa: se há uma semente e ela está no meio, jogar a onda do centro
+ * é a leitura certa. O que não se faz é inventar contorno: se a onda também
+ * não fechar, a foto é descartada e entra na contagem.
+ */
+function pontoCentral(w: number, h: number) {
+  return { x: Math.round(w / 2), y: Math.round(h / 2) };
+}
+
 const ONDA_PADRAO: OpcoesDaOnda = {};
 
 export interface OpcoesDeMedicao {
@@ -129,10 +145,12 @@ export async function medirUmaFoto(
     // Maior objeto detectado = a semente da foto — é a premissa do próprio
     // formato (uma semente por imagem) que classifica o conjunto.
     const deteccao = detectObjects(canvas, localizacao);
-    if (deteccao.objects.length === 0) return null;
-    const maior = deteccao.objects.reduce((a, b) => (b.area > a.area ? b : a));
+    const alvo =
+      deteccao.objects.length > 0
+        ? deteccao.objects.reduce((a, b) => (b.area > a.area ? b : a))
+        : pontoCentral(canvas.width, canvas.height);
 
-    const resultado = segmentarNoCanvas(canvas, { x: maior.x, y: maior.y }, onda);
+    const resultado = segmentarNoCanvas(canvas, { x: alvo.x, y: alvo.y }, onda);
     if (!resultado || resultado.contorno.length < 3) return null;
 
     const areaPx = areaDoPoligono(resultado.contorno);

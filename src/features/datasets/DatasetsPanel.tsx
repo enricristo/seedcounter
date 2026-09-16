@@ -99,6 +99,12 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
   const { perfis: perfisMedidos, gravar: gravarPerfis } = usePerfisMedidos(conjuntoSelecionado ?? undefined);
   const [medindo, setMedindo] = useState(false);
   const [progressoMedicao, setProgressoMedicao] = useState<{ feito: number; total: number } | null>(null);
+  /**
+   * O que a última medição produziu. Existe porque o painel ficava MUDO
+   * quando nenhuma foto podia ser medida: a pessoa clicava, a barra corria,
+   * e não aparecia tabela nem explicação — parecia que o botão não fez nada.
+   */
+  const [resultadoDaMedicao, setResultadoDaMedicao] = useState<{ medidas: number; descartadas: number } | null>(null);
   const canceladoRef = useRef(false);
 
   const handleAbrirPasta = useCallback(async () => {
@@ -275,6 +281,7 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
         cancelado: () => canceladoRef.current,
         progresso: (feito, total) => setProgressoMedicao({ feito, total }),
       });
+      setResultadoDaMedicao({ medidas: resultado.medidas.length, descartadas: resultado.descartadas });
       const porClasse = agregarPorClasse(resultado.medidas);
       const paraGravar = new Map(
         [...porClasse].map(([classe, perfil]) => [classe, { perfil, descartadas: resultado.descartadas }])
@@ -545,6 +552,31 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
                   </button>
                 )}
               </div>
+
+              {/* O que o botão faz — e o que ele NÃO faz. A confusão registrada
+                  em 16/09: a pessoa clicou esperando ver marcações no canvas. */}
+              {!medindo && (
+                <p className="text-[10px] leading-snug text-ink-3">
+                  Mede cada foto da pasta com a nossa segmentação e monta o perfil por classe. Não marca
+                  nada no canvas nem altera a imagem aberta — o perfil aparece aqui e, ao inspecionar uma
+                  semente dessa classe, como “Referência (medida)”.
+                </p>
+              )}
+
+              {/* O desfecho, sempre — inclusive quando nada pôde ser medido. */}
+              {!medindo && resultadoDaMedicao && (
+                <p
+                  className={`text-[10px] font-semibold ${
+                    resultadoDaMedicao.medidas === 0 ? 'text-amber-700 dark:text-amber-400' : 'text-ink-2'
+                  }`}
+                >
+                  {resultadoDaMedicao.medidas === 0
+                    ? `Nenhuma das ${resultadoDaMedicao.descartadas} fotos pôde ser medida — a segmentação não fechou um contorno utilizável nelas. Confira se a pasta é de fotos de UMA semente por imagem.`
+                    : `${resultadoDaMedicao.medidas} fotos medidas${
+                        resultadoDaMedicao.descartadas > 0 ? ` · ${resultadoDaMedicao.descartadas} descartadas` : ''
+                      }.`}
+                </p>
+              )}
 
               {medindo && progressoMedicao && (
                 <div className="flex flex-col gap-1">

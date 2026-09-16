@@ -326,7 +326,8 @@ export function LotePanel({
       </div>
       <p className="text-ink-3 text-[10px] leading-snug">
         Uma receita, várias imagens. Rodar só preenche a tabela — nada vira sessão sem você aceitar,
-        imagem a imagem ou todas de uma vez.
+        imagem a imagem ou todas de uma vez. O lote não marca a imagem que está aberta no canvas: cada
+        resultado aceito vira uma sessão própria, que você abre pelo histórico.
       </p>
 
       {/* Fonte */}
