@@ -59,7 +59,7 @@ import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
 import { NovidadesModal } from './features/novidades';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
-import { useEasterEggs, Florescer, tocarMarca } from './features/easter';
+import { useEasterEggs, Florescer, PassoDaMontanha, tocarMarca } from './features/easter';
 import {
   CartaoDeSugestao,
   sugerir,
@@ -290,7 +290,7 @@ export default function App() {
   // Easter eggs: `semente` liga o tic ao marcar, `orquidea` floresce. O gancho
   // tem o proprio ouvinte de teclado e nao passa por useKeyboardShortcuts —
   // easter egg nao se anuncia na ajuda.
-  const { florescendo, encerrarFlorescer, recado: recadoDoEaster } = useEasterEggs();
+  const { florescendo, encerrarFlorescer, recado: recadoDoEaster, passoDaMontanha, encerrarPassoDaMontanha } = useEasterEggs();
 
 
   // Notas de versao: abre sozinha so quando a versao avancou desde a ultima
@@ -3403,6 +3403,7 @@ export default function App() {
       />
 
       <Florescer ativo={florescendo} onFim={encerrarFlorescer} />
+      <PassoDaMontanha ativo={passoDaMontanha} onFim={encerrarPassoDaMontanha} />
 
       {recadoDoEaster && (
         <div

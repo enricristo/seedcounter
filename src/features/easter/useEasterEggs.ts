@@ -21,6 +21,10 @@ import { somLigado, ligarSom, desligarSom } from './som';
 const SEQUENCIAS: Record<string, string> = {
   semente: 'semente',
   orquidea: 'orquidea',
+  // O passo da montanha: a onda do app É um, e a dissertação do Enrico prova
+  // a primeira curva de Fučik com ele. Duas grafias, um segredo.
+  fucik: 'fucik',
+  montanha: 'montanha',
 };
 
 /** Quanto tempo o recado fica na tela antes de sumir sozinho. */
@@ -33,10 +37,14 @@ export interface UseEasterEggsResultado {
   encerrarFlorescer: () => void;
   /** Uma frase breve para mostrar; some sozinho em ~2,5s. null quando não há nada a dizer. */
   recado: string | null;
+  /** O cartão do passo da montanha está aberto — passe direto para `PassoDaMontanha`. */
+  passoDaMontanha: boolean;
+  encerrarPassoDaMontanha: () => void;
 }
 
 export function useEasterEggs(): UseEasterEggsResultado {
   const [florescendo, setFlorescendo] = useState(false);
+  const [passoDaMontanha, setPassoDaMontanha] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
 
   // O detector é criado uma vez só e vive pela vida do gancho — ref, não
@@ -81,6 +89,8 @@ export function useEasterEggs(): UseEasterEggsResultado {
         }
       } else if (completou === 'orquidea') {
         setFlorescendo(true);
+      } else if (completou === 'fucik' || completou === 'montanha') {
+        setPassoDaMontanha(true);
       }
     };
 
@@ -92,6 +102,7 @@ export function useEasterEggs(): UseEasterEggsResultado {
   }, [mostrarRecado]);
 
   const encerrarFlorescer = useCallback(() => setFlorescendo(false), []);
+  const encerrarPassoDaMontanha = useCallback(() => setPassoDaMontanha(false), []);
 
-  return { florescendo, encerrarFlorescer, recado };
+  return { florescendo, encerrarFlorescer, recado, passoDaMontanha, encerrarPassoDaMontanha };
 }
