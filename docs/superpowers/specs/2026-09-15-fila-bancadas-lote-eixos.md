@@ -109,3 +109,14 @@ Hoje a conta (`features/conta`) lembra a bancada (metadados) e nada mais; sessõ
 **Onde:** `features/detection/DetectionPanel.tsx` (reescrita), `features/ensaio/receitas.ts` (receita salva + conversão de limites), `lib/detect.ts` sem mudança de assinatura (a conversão para px² acontece antes). Depende de A3 (feito). Não toca C1 (lote) — o lote roda a receita que sair daqui.
 
 **Fila atualizada:** B3 (em curso) → recolher barra esquerda → **C5** → B4 → C1 → C4.1 → C2.
+
+---
+
+## C6 — Saúde do código (varredura com as skills react-best-practices e typescript-advanced-types, 16/09)
+
+- **Bundle:** chunk principal 1,15 MB. `jszip` (exportação YOLO), `jstat` (estatísticas) e `@google/genai` (AI Pointer) carregam para todo mundo; virar `import()` no clique. `pdf-export` e `recharts` já estão separados; ONNX vem de CDN.
+- **`App.tsx`** ~3.000 linhas, todo o estado num componente: é a refatoração `useBancada` do C2 — não fazer duas vezes.
+- **`tsconfig` sem `strict`** (`noImplicitAny` desligado): `tsc` limpo prova menos do que parece. Ligar por flag — `strictNullChecks`, depois `noImplicitAny` — um commit cada, com a contagem de erros como métrica.
+- **Uniões exaustivas:** `origem`, `natureza` (`ObjetoDaCena`), `FormatoDeDataset` viram `switch` com `never` no default, para o próximo caso esquecido falhar em compilação.
+
+Ordem: depois de C5; a parte de `App.tsx` junto com C2.
