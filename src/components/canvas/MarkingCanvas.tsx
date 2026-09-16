@@ -18,6 +18,7 @@ import {
 import { TAXONOMIA } from '../../lib/normas/taxonomia';
 import { fatiaDoAngulo } from '../../features/radial/geometria';
 import { MenuRadial, type OpcaoRadial } from '../../features/radial/MenuRadial';
+import { EixosOverlay } from './overlays/EixosOverlay';
 
 /**
  * Opcoes do spike do menu radial (Tarefa 8): as raizes de TAXONOMIA, que sao
@@ -165,10 +166,19 @@ interface MarkingCanvasProps {
 
   // --- Prancheta Metrológica ---
   onAddAnotacaoVisual?: (anotacao: import('../../types').AnotacaoVisual) => void;
-  
+
   // --- Simulação de Regras em Lote (Data Flywheel) ---
   /** Array de objectId (1-based index de marks) das sementes que atendem à regra ativa no painel */
   sementesSimuladas?: number[];
+
+  // --- Eixos de medida (C3.1) ---
+  /**
+   * Desenha os eixos PCA/Feret (`EixosOverlay`) em TODOS os contornos
+   * visíveis, sem rótulo — além do contorno selecionado, que sempre ganha
+   * eixos com rótulo quando existe. Default desligado: eixo em toda semente
+   * de uma varredura cheia vira ruído visual sem que a pessoa peça.
+   */
+  mostrarEixosDeTodos?: boolean;
 
   // --- Composição ---
   children?: React.ReactNode;
@@ -219,6 +229,7 @@ export function MarkingCanvas({
   onClassificarRadial,
   onAddAnotacaoVisual,
   sementesSimuladas = [],
+  mostrarEixosDeTodos = false,
   children,
 }: MarkingCanvasProps) {
   const [hoveredSeg, setHoveredSeg] = useState<YoloSegmentation | null>(null);
@@ -1356,6 +1367,16 @@ export function MarkingCanvas({
 
           {/* GhostSeedsOverlay movido para componente filho */}
         </svg>
+      )}
+
+      {/* Eixos de medida (C3.1): PCA e Feret do contorno selecionado, e de
+          todos quando o toggle está ligado. */}
+      {mostrarContornos && (contornoSelecionado != null || mostrarEixosDeTodos) && (
+        <EixosOverlay
+          yoloSegmentations={yoloSegmentations}
+          contornoSelecionado={contornoSelecionado}
+          mostrarEixosDeTodos={mostrarEixosDeTodos}
+        />
       )}
 
       {/* Floating details tooltip on hover of YOLO polygons */}
