@@ -15,6 +15,7 @@ import { VisualAnnotationsOverlay } from './components/canvas/overlays/VisualAnn
 import { MarkingCanvas, type DetectionPreview } from './components/canvas/MarkingCanvas';
 import { SeedInspector } from './components/canvas/SeedInspector';
 import { ListaDeSementes } from './components/canvas/ListaDeSementes';
+import { EscalaGrafica } from './components/canvas/EscalaGrafica';
 import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-reais';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
@@ -251,6 +252,9 @@ export default function App() {
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   /** A galeria grande (janela) continua existindo, aberta pelo Expandir da aba. */
   const [galeriaGrande, setGaleriaGrande] = useState(false);
+  /** Escala gráfica e eixos: preferências de quem mede, lembradas. */
+  const [mostrarEscala, setMostrarEscala] = useState(() => lerPreferencia('sc:escalaGrafica', true));
+  const [mostrarEixos, setMostrarEixos] = useState(() => lerPreferencia('sc:eixosDasMedidas', false));
   /** Proposta do ensaio sob o mouse, mostrada tracejada no canvas para comparar receitas. */
   const [propostaDestacada, setPropostaDestacada] = useState<[number, number][][]>([]);
   const { laboratorio } = useLaboratorio();
@@ -2616,6 +2620,7 @@ export default function App() {
                   yoloSegmentations={yoloSegmentations}
                   anotacoesVisuais={anotacoesVisuais}
                   mostrarContornos={mostraContornos(mascara)}
+                  mostrarEixosDeTodos={mostrarEixos}
                   mostrarPontos={mostraPontos(mascara)}
                   contornoSelecionado={contornoSelecionado}
                   onSelecionarContorno={setContornoSelecionado}
@@ -2742,8 +2747,23 @@ export default function App() {
                 zoomOut={zoomOut}
                 zoomLevel={zoomLevel}
                 onFitToScreen={handleFitToScreen}
+                mostrarEscala={mostrarEscala}
+                onToggleEscala={() => {
+                  setMostrarEscala((v) => {
+                    gravarPreferencia('sc:escalaGrafica', !v);
+                    return !v;
+                  });
+                }}
+                mostrarEixos={mostrarEixos}
+                onToggleEixos={() => {
+                  setMostrarEixos((v) => {
+                    gravarPreferencia('sc:eixosDasMedidas', !v);
+                    return !v;
+                  });
+                }}
               />
             )}
+            {image && mostrarEscala && <EscalaGrafica umPerPixel={metadata.umPerPixel} zoomLevel={zoomLevel} />}
           </div>
 
           {/* 3. Painel Lateral Direito — RESULTADOS E ANÁLISE BIOMÉTRICA */}
@@ -2893,6 +2913,8 @@ export default function App() {
           filename={filename}
           imageWidth={image?.width}
           imageHeight={image?.height}
+          zoomLevel={image ? zoomLevel : undefined}
+          totalDeObjetos={image ? totalCount : undefined}
           onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
           bancada={{
             especie: metadata.amostra?.especieNomeCientifico,

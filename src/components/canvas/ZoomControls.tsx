@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hand, ZoomIn, ZoomOut } from 'lucide-react';
+import { Hand, ZoomIn, ZoomOut, Ruler, Axis3d } from 'lucide-react';
 
 interface ZoomControlsProps {
   isPanningMode: boolean;
@@ -8,6 +8,12 @@ interface ZoomControlsProps {
   zoomOut: () => void;
   zoomLevel: number;
   onFitToScreen: () => void;
+  /** Escala gráfica (barra de mapa) sobre a imagem. */
+  mostrarEscala?: boolean;
+  onToggleEscala?: () => void;
+  /** Eixos PCA/Feret em todos os contornos. */
+  mostrarEixos?: boolean;
+  onToggleEixos?: () => void;
 }
 
 export function ZoomControls({
@@ -17,6 +23,10 @@ export function ZoomControls({
   zoomOut,
   zoomLevel,
   onFitToScreen,
+  mostrarEscala = false,
+  onToggleEscala,
+  mostrarEixos = false,
+  onToggleEixos,
 }: ZoomControlsProps) {
   const botao =
     'rounded-control text-ink-2 hover:bg-surface-2 hover:text-ink-1 cursor-pointer p-2 transition-colors';
@@ -72,6 +82,40 @@ export function ZoomControls({
       >
         <ZoomOut size={16} strokeWidth={2} aria-hidden="true" />
       </button>
+
+      {(onToggleEscala || onToggleEixos) && <div className="bg-line h-px w-full" />}
+
+      {onToggleEscala && (
+        <button
+          onClick={onToggleEscala}
+          aria-pressed={mostrarEscala}
+          className={`rounded-control cursor-pointer border p-2 transition-all ${
+            mostrarEscala
+              ? 'bg-accent-tint border-accent text-accent'
+              : 'text-ink-2 hover:bg-surface-2 hover:text-ink-1 border-transparent'
+          }`}
+          title="Escala gráfica sobre a imagem (barra de mapa)"
+          aria-label="Escala gráfica"
+        >
+          <Ruler size={16} strokeWidth={2} aria-hidden="true" />
+        </button>
+      )}
+
+      {onToggleEixos && (
+        <button
+          onClick={onToggleEixos}
+          aria-pressed={mostrarEixos}
+          className={`rounded-control cursor-pointer border p-2 transition-all ${
+            mostrarEixos
+              ? 'bg-accent-tint border-accent text-accent'
+              : 'text-ink-2 hover:bg-surface-2 hover:text-ink-1 border-transparent'
+          }`}
+          title="Eixos de comprimento e largura (PCA e Feret) em todos os contornos"
+          aria-label="Eixos das medidas"
+        >
+          <Axis3d size={16} strokeWidth={2} aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
