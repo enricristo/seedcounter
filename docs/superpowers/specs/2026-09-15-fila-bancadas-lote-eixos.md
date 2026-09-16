@@ -82,3 +82,13 @@ Hoje a conta (`features/conta`) lembra a bancada (metadados) e nada mais; sessõ
 **Pré-condição que só o Enrico resolve:** hospedagem com **disco persistente** (o HF Space é efêmero); sem isso, 2 e 3 não podem existir. 1, 4, 5 e 6 são pequenos e cabem no que já há.
 
 **Onde entra na fila:** C4.1 (lista de sessões + continuar) logo depois do B2 — usa a mesma tela de "abrir" (pasta local · conta · exemplos).
+
+---
+
+## Estado em 16/09 (fim da sessão)
+
+**Fechado:** A3 (ensaio ao carregar, flag `ensaioAoCarregar`), A4 (fixtures reais), C3.1 (eixos PCA/Feret, botão nos controles de zoom), C3.2 (auditoria da régua: **DPI efetivo ≈ 4735, não 3600** — `docs/datasets/auditoria-de-medida.md`), C3.4 (leitura de código: sem furo provado), B1 (leitores de datasets), B2 (pasta local + Dexie v7), A5 (54 exemplos reais com metadados, seletor por cultura), escala gráfica, barra inferior. **Governança de dados:** `lib/objetos.ts` — uma enumeração para contagem, medidas, índices (tecla 2), lista do inspetor, fantasmas das regras e CSV; contorno do modelo sem marca agora tem linha, índice e medida.
+
+**Consequência da auditoria para o app (pendente):** `DEFAULT_LAB_DPI = 3600` está errado para as digitalizações do grupo — o scanner entrega ~4735–4814 DPI. Antes de trocar a constante, medir a régua em mais 3 digitalizações (`scripts/auditar-regua.py`); se confirmar, o padrão vira o medido e a calibração por DPI ganha aviso "conferir com régua".
+
+**Próximos, na ordem:** B3 (painel do explorador + carregar referência), B4 (perfil medido por classe), C1 (lote), C4.1 (sessões na conta), C2 (bancadas — aguarda o sim ao desenho). Barras superiores: pedido registrado, sem desenho ainda — dizer o que incomoda nelas.
