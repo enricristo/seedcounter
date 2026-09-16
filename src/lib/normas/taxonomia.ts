@@ -46,7 +46,7 @@ export function caminhoValido(caminho: string[]): boolean {
   if (caminho.length === 0) return false;
   let nivel: NoDaTaxonomia[] | undefined = TAXONOMIA;
   for (const chave of caminho) {
-    const no = nivel?.find((n) => n.chave === chave);
+    const no: NoDaTaxonomia | undefined = nivel?.find((n) => n.chave === chave);
     if (!no) return false;
     nivel = no.filhos;
   }
@@ -57,7 +57,7 @@ export function rotuloDoCaminho(caminho: string[]): string {
   const rotulos: string[] = [];
   let nivel: NoDaTaxonomia[] | undefined = TAXONOMIA;
   for (const chave of caminho) {
-    const no = nivel?.find((n) => n.chave === chave);
+    const no: NoDaTaxonomia | undefined = nivel?.find((n) => n.chave === chave);
     if (!no) break;
     rotulos.push(no.rotulo);
     nivel = no.filhos;
