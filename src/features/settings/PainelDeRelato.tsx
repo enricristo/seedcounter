@@ -69,7 +69,7 @@ export function PainelDeRelato({ contexto }: PainelDeRelatoProps) {
         </h3>
       </div>
 
-      <div className="border-line space-y-3 rounded-xl border p-3">
+      <div className="border-line rounded-control space-y-3 border p-3">
         <p className="text-ink-2 text-[11px] leading-relaxed">
           Se o programa travou, contou errado ou fez algo que você não esperava, gere o relatório
           logo depois de acontecer — ele guarda a sequência das últimas ações desta sessão, que é o
@@ -105,7 +105,7 @@ export function PainelDeRelato({ contexto }: PainelDeRelatoProps) {
           </p>
         )}
         {copiado === 'falhou' && (
-          <p className="text-[10px] leading-relaxed text-amber-700 dark:text-amber-400">
+          <p className="text-warn text-[10px] leading-relaxed">
             Este navegador não deixou copiar. Use o botão de baixar o relatório.
           </p>
         )}

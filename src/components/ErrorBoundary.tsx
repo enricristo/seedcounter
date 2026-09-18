@@ -70,9 +70,9 @@ export class ErrorBoundary extends React.Component<Props, Estado> {
 
     return (
       <div className="bg-surface-0 text-ink-1 flex h-screen w-screen items-center justify-center p-6 font-sans">
-        <div className="border-line bg-surface-1 w-full max-w-lg space-y-5 rounded-2xl border p-6 shadow-2xl">
+        <div className="border-line bg-surface-1 rounded-panel w-full max-w-lg space-y-5 border p-6 shadow-lg">
           <div className="flex items-start gap-3">
-            <AlertTriangle size={22} className="mt-0.5 shrink-0 text-amber-500" />
+            <AlertTriangle size={22} className="text-warn mt-0.5 shrink-0" />
             <div>
               <h1 className="text-ink-1 text-base font-bold">
                 O programa parou de desenhar esta tela
@@ -85,7 +85,7 @@ export class ErrorBoundary extends React.Component<Props, Estado> {
 
           {/* A primeira pergunta de quem está contando há uma hora. Responder
               antes de ela ser feita é metade da calma desta tela. */}
-          <div className="border-line bg-surface-2 rounded-xl border p-3">
+          <div className="border-line bg-surface-2 rounded-control border p-3">
             <p className="text-ink-2 text-[12px] leading-relaxed">
               <strong className="text-ink-1">Seu trabalho salvo continua aí.</strong> As sessões
               gravadas ficam neste navegador e sobrevivem a recarregar a página. O que se perde é
