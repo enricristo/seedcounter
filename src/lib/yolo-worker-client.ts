@@ -16,6 +16,7 @@
 // =============================================================================
 
 import { detectWithYoloEmImageData, type InferenceOptions, type YoloDetection } from './yolo-onnx';
+import { registrarErro, registrarEvento } from './diagnostico/trilha';
 
 type Resultado = YoloDetection[];
 
@@ -84,6 +85,10 @@ function obterWorker(): Worker {
   // chega aqui, não no onmessage — é sinal de que o worker inteiro não presta
   // mais nesta sessão.
   worker.onerror = (ev) => {
+    // Trilha: worker que não carrega derruba a detecção inteira e o sintoma na
+    // tela é "não achou nada" — indistinguível de uma receita ruim sem isto.
+    registrarErro(ev.message || 'Falha ao carregar o worker de inferência.', 'manual');
+    registrarEvento('worker:falhou', { qual: 'yolo', pendentes: pendentes.size });
     workerIndisponivel = true;
     for (const [, p] of pendentes) {
       p.reject(new Error(ev.message || 'Falha ao carregar o worker de inferência.'));

@@ -140,6 +140,8 @@ import {
 } from './lib/image-adjust';
 import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
+import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
+import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
 
 // Types
 import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
@@ -499,6 +501,18 @@ export default function App() {
     // pelo mesmo motivo do `ativa` em `useBancadas`: o compilador não sabe
     // que os quatro slots sempre existem.
     const alvo = bancadas.todas[indice] ?? bancadas.todas[0];
+
+    // Trilha: o defeito mais comum de abertura é de FORMATO e de TAMANHO — um
+    // TIFF de 16 bits, uma digitalização de 7992×3672. Extensão e bytes
+    // explicam isso; o nome do arquivo não explicaria nada a mais e é dado de
+    // quem usa (ver `lib/diagnostico/trilha.ts`).
+    registrarEvento('imagem:abrir', {
+      largura: img.width,
+      altura: img.height,
+      extensao: extensaoDe(file.name),
+      bytes: file.size,
+      bancada: indice,
+    });
 
     // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
     const vinculo = datasetPendente.current;
@@ -1298,6 +1312,9 @@ export default function App() {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const csv = measurementsToCSV(rows, ctx);
+    // Trilha: quantas linhas saíram é o que separa "exportou vazio" de
+    // "exportou errado" — dois relatos que chegam com a mesma frase.
+    registrarEvento('exportar', { tipo: 'CSV', saida: 'medidas', linhas: rows.length });
     downloadBlob(csv, generateExportName('csv', 'medidas'), 'text/csv;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
@@ -1305,6 +1322,7 @@ export default function App() {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const sql = measurementsToSQL(rows, ctx);
+    registrarEvento('exportar', { tipo: 'SQL', linhas: rows.length });
     downloadBlob(sql, generateExportName('sql', 'medidas'), 'text/plain;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
@@ -1344,6 +1362,7 @@ export default function App() {
       .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
+    registrarEvento('exportar', { tipo: 'CSV', saida: 'contagem', total: totalCount });
     downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
   };
 
@@ -1444,6 +1463,7 @@ export default function App() {
   };
 
   const handleExportPDF = async () => {
+    registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
     const r = await comAtividade('pdf', 'Gerando o laudo…', () =>
       exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
@@ -1463,6 +1483,7 @@ export default function App() {
   };
 
   const handleExportHistoryBatchPDF = async () => {
+    registrarEvento('exportar', { tipo: 'PDF', saida: 'historico', sessoes: sessions.length });
     const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
       exportarLaudosEmLote(sessions, {
         visualMode,
@@ -2508,6 +2529,14 @@ export default function App() {
    */
   const handleUsarEnsaio = useCallback(
     (r: ResultadoDoEnsaio) => {
+      // Trilha: a receita e o número de objetos são o par que explica
+      // "contou 3 quando eram 300". Sem os dois juntos, nenhum dos dois
+      // sozinho aponta para nada.
+      registrarEvento('receita:aplicar', {
+        origem: 'ensaio',
+        receita: r.receita.id,
+        objetos: r.propostos.length,
+      });
       addYoloSegmentations(propostosParaSegmentacoes(r.propostos));
       setReceitaAtiva(r.receita);
       setEnsaio(null);
@@ -2522,9 +2551,14 @@ export default function App() {
    */
   const handleAplicarEncontrado = useCallback(
     (propostos: ContornoProposto[]) => {
+      registrarEvento('receita:aplicar', {
+        origem: 'encontrar',
+        receita: receitaAtiva?.id ?? 'ajustada-a-mao',
+        objetos: propostos.length,
+      });
       addYoloSegmentations(propostosParaSegmentacoes(propostos));
     },
-    [addYoloSegmentations, propostosParaSegmentacoes]
+    [addYoloSegmentations, propostosParaSegmentacoes, receitaAtiva]
   );
 
   /** Salva a receita ajustada no painel Encontrar — 4ª opção do ensaio depois. */
@@ -2776,6 +2810,41 @@ export default function App() {
     hasPrevImage: currentImageIndex > 0,
     disabled: isAnyModalOpen,
   });
+
+  /**
+   * As condições da medição em curso, para o relatório de problema.
+   *
+   * É FUNÇÃO porque o painel que a consome fica montado com o modal fechado —
+   * um objeto congelaria o estado de quando o modal abriu, e o que interessa é
+   * o de quando a pessoa clicou em relatar.
+   *
+   * O que entra aqui é o mínimo que explica um defeito: escala, espécie,
+   * tamanho da imagem, contagem, receita, bancadas. Nada de pixel, nada do
+   * nome do arquivo — só a extensão (ver `lib/diagnostico/trilha.ts`).
+   */
+  const contextoDeDiagnostico = useCallback(
+    (): ContextoDoRelatorio => ({
+      umPerPixel: metadata.umPerPixel,
+      especie: metadata.amostra?.especieNomeCientifico,
+      imagem: image ? { largura: image.width, altura: image.height } : undefined,
+      extensaoDaImagem: image ? extensaoDe(filename) : undefined,
+      contagem: { viaveis: viableCount, inviaveis: inviableCount, total: totalCount },
+      receita: receitaAtiva?.id,
+      bancadas: { abertas: bancadas.abertas, ativa: bancadas.indiceAtivo },
+    }),
+    [
+      metadata.umPerPixel,
+      metadata.amostra?.especieNomeCientifico,
+      image,
+      filename,
+      viableCount,
+      inviableCount,
+      totalCount,
+      receitaAtiva,
+      bancadas.abertas,
+      bancadas.indiceAtivo,
+    ]
+  );
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-surface-0 text-ink-1 transition-colors duration-300 font-sans">
@@ -3454,6 +3523,7 @@ export default function App() {
           }
           totalDeObjetos={image ? totalCount : undefined}
           onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+          onRelatarProblema={() => setIsFeaturesOpen(true)}
           bancada={{
             especie: metadata.amostra?.especieNomeCientifico,
             umPerPixel: metadata.umPerPixel,
@@ -3621,6 +3691,7 @@ export default function App() {
           setIsFeaturesOpen(false);
           setNovidades({ aberto: true, versoes: [] });
         }}
+        contextoDeDiagnostico={contextoDeDiagnostico}
       />
 
       <BarraDeAtividade />

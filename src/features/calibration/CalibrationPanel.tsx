@@ -21,6 +21,7 @@ import {
   type LengthUnit,
 } from '../../lib/calibration';
 import { TAMANHOS, acharPorNome, conferirEscala } from '../../lib/normas/tamanhos-de-semente';
+import { registrarEvento } from '../../lib/diagnostico/trilha';
 
 interface CalibrationPanelProps {
   /** Escala atual (µm/px). */
@@ -126,8 +127,13 @@ export function CalibrationPanel({
   const needsMeasure = (method === 'reference' || method === 'stage_micrometer') && !measuredPixels;
 
   const handleApply = useCallback(() => {
-    if (computed > 0) onChange(computed);
-  }, [computed, onChange]);
+    if (computed <= 0) return;
+    // Trilha: a escala errada é a causa silenciosa de metade das medidas
+    // absurdas, e o MÉTODO diz onde procurar — DPI declarado pelo driver não
+    // erra do mesmo jeito que régua clicada com a mão.
+    registrarEvento('calibrar', { metodo: method, umPerPixel: computed });
+    onChange(computed);
+  }, [computed, method, onChange]);
 
   const applyPreset = useCallback((length: number, unit: LengthUnit, label: string) => {
     setRefLength(length);

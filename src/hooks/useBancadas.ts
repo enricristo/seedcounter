@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useBancada, type Bancada } from './useBancada';
 import { NEUTRAL_ADJUSTMENTS } from '../lib/image-adjust';
 import { ESTADO_INICIAL as MASCARA_INICIAL } from '../features/mascara';
+import { registrarEvento } from '../lib/diagnostico/trilha';
 
 /** Hooks não podem ser chamados em laço condicional — por isso são sempre quatro. */
 export const MAXIMO_DE_BANCADAS = 4;
@@ -107,6 +108,9 @@ export function useBancadas(opcoes?: {
 
   const ativar = (indice: number) => {
     if (indice < 0 || indice >= abertas) return;
+    // Trilha: quatro cenas vivas ao mesmo tempo produzem o relato "os números
+    // mudaram sozinhos", que quase sempre é uma troca de bancada esquecida.
+    registrarEvento('bancada:trocar', { de: indiceAtivo, para: indice, abertas });
     setIndiceAtivo(indice);
   };
 

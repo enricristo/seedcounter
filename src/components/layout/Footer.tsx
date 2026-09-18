@@ -1,4 +1,5 @@
 import React from 'react';
+import { LifeBuoy } from 'lucide-react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 import { DISSERTACAO } from '../../features/easter/fucik';
 import type { FonteDeUmaAutomacao } from '../../lib/fonte-da-automacao';
@@ -15,6 +16,14 @@ interface FooterProps {
   version?: string;
   /** Abre as notas de versão. Ausente = o número fica só informativo. */
   onAbrirNovidades?: () => void;
+  /**
+   * Leva a "Relatar problema", nas Configurações. Ausente = o ícone some.
+   *
+   * O rodapé é CAMINHO, não destino: quem acabou de ver algo errado olha para
+   * a linha que já mostra a versão, e é de lá que ele precisa sair para o
+   * lugar certo. O relato em si mora no painel de Configurações.
+   */
+  onRelatarProblema?: () => void;
   /**
    * As condições de medição em curso: espécie, escala, protocolo. É o
    * contexto que toda medida carrega; sem ele, "285 px" não diz nada.
@@ -78,6 +87,7 @@ export function Footer({
   totalDeObjetos,
   version,
   onAbrirNovidades,
+  onRelatarProblema,
   bancada,
   fonteDaAutomacao,
 }: FooterProps) {
@@ -222,6 +232,21 @@ export function Footer({
           {versaoExibida}
           <span className="text-ink-3 ml-1 font-normal">{__BUILD_COMMIT__}</span>
         </button>
+        {/* Discreto de propósito: um ícone sem rótulo, do tamanho do resto da
+            barra. Um botão de erro em destaque permanente sugere que erro é
+            esperado — mas ele precisa existir aqui, porque é para a linha da
+            versão que se olha quando alguma coisa dá errado. */}
+        {onRelatarProblema && (
+          <button
+            type="button"
+            onClick={onRelatarProblema}
+            title="Relatar um problema — gera um relatório sem imagem nem dado pessoal"
+            aria-label="Relatar um problema"
+            className="text-ink-3 rounded-control hover:text-accent focus-visible:ring-accent/40 cursor-pointer p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          >
+            <LifeBuoy size={13} />
+          </button>
+        )}
       </div>
     </footer>
   );
