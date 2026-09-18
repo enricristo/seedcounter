@@ -33,6 +33,12 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 // Hooks
 import { useTheme } from './hooks/useTheme';
 import { useBancadas } from './hooks/useBancadas';
+import { useCronometro } from './hooks/useCronometro';
+import {
+  sugerirDoArquivo,
+  quantasSugestoes,
+  type SugestoesDaAmostra,
+} from './lib/sugestoes-do-arquivo';
 import { useSessions } from './hooks/useSessions';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
@@ -453,6 +459,15 @@ export default function App() {
   const datasetPendente = useRef<Metadata['dataset'] | null>(null);
   /** O chip de classe do dataset foi fechado para este arquivo. */
   const [chipDeClasseDispensado, setChipDeClasseDispensado] = useState<string | null>(null);
+  /**
+   * O que o nome do arquivo e a pasta já contam sobre a amostra.
+   *
+   * Fica em estado separado do metadado de propósito: sugestão NÃO é dado.
+   * Ela só vira metadado quando alguém clica em "Usar" — a mesma regra do
+   * resto do produto, e a única que impede um palpite de espécie de entrar
+   * calado num laudo.
+   */
+  const [sugestoes, setSugestoes] = useState<SugestoesDaAmostra | null>(null);
 
   /**
    * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
@@ -513,6 +528,14 @@ export default function App() {
       bytes: file.size,
       bancada: indice,
     });
+
+    // O que o arquivo já conta. Proposta, não preenchimento — ver
+    // `lib/sugestoes-do-arquivo.ts`. `webkitRelativePath` existe quando a
+    // pessoa abriu uma PASTA; com arquivo solto não há pasta a considerar, e
+    // inventar uma a partir do caminho do disco não é possível no navegador.
+    const caminho = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+    const pasta = caminho ? caminho.split('/').slice(-2, -1)[0] : undefined;
+    setSugestoes(sugerirDoArquivo({ nomeDoArquivo: file.name, pasta }));
 
     // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
     const vinculo = datasetPendente.current;
@@ -619,6 +642,7 @@ export default function App() {
     loadImageFromFile,
     paginasDoTiff,
     paginaDoTiff,
+    dpiDeclarado,
     abrirPaginaDoTiff,
   } = bancada.fila;
   const {
@@ -1297,18 +1321,46 @@ export default function App() {
     }
   }, [image]);
 
+  // O cronômetro é POR CENA: a chave junta bancada, arquivo e página, então
+  // trocar de página do TIFF zera — é outra espécie, é outra amostra, é outro
+  // tempo. Ver `useCronometro`, decisão 3.
+  const cronometro = useCronometro(`${bancada.id}|${filename}|${paginaDoTiff}`);
+
+  /**
+   * O que produziu estes números: versão, página, escala e custo.
+   *
+   * Montado na hora de exportar, e não guardado no estado, porque o tempo muda
+   * a cada segundo e guardá-lo obrigaria a regravar metadado o tempo todo. O
+   * valor que importa é o do instante em que o dado sai.
+   */
+  const montarProcedencia = useCallback((): Metadata['procedencia'] => {
+    const t = cronometro.ler();
+    return {
+      versaoDoApp: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : undefined,
+      commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : undefined,
+      paginaDaImagem: paginasDoTiff > 1 ? paginaDoTiff + 1 : undefined,
+      totalDePaginas: paginasDoTiff > 1 ? paginasDoTiff : undefined,
+      dpiDeclarado: dpiDeclarado ?? undefined,
+      modo: t.modo,
+      tempoAtivoMs: t.ativoMs,
+      tempoParedeMs: t.paredeMs,
+    };
+  }, [cronometro, paginasDoTiff, paginaDoTiff, dpiDeclarado]);
+
   const buildMeasurementContext = useCallback(
     () => ({
       marks,
       segmentations: yoloSegmentations,
-      metadata,
+      // A procedência é acrescentada AQUI, na saída, e não guardada no estado:
+      // é o único lugar por onde todo export passa.
+      metadata: { ...metadata, procedencia: montarProcedencia() },
       filename,
       imageData: lerPixelsDaImagem(),
       // Uma semente de orquídea a 3600 DPI tem milhares de pixels; ler um de
       // cada quatro não muda a média e corta o custo em 4x.
       colorSampling: 2,
     }),
-    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem]
+    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem, montarProcedencia]
   );
 
   const handleExportMeasurementsCSV = useCallback(() => {
@@ -3165,6 +3217,79 @@ export default function App() {
                   </div>
                 )}
 
+              {/* O que o arquivo já contou.
+                  Aparece sobre a imagem, some ao aceitar ou ao dispensar, e
+                  NUNCA preenche sozinho. Mostra o trecho que originou cada
+                  proposta — "li isto aqui" — porque é o que permite julgar em
+                  um segundo se faz sentido, sem abrir o painel de metadados. */}
+              {image && sugestoes && quantasSugestoes(sugestoes) > 0 && (
+                <div className="bg-surface-1/95 rounded-panel border-accent/40 absolute top-4 left-1/2 z-30 flex max-w-[70%] -translate-x-1/2 items-center gap-3 border px-3 py-2 shadow-lg backdrop-blur">
+                  <div className="min-w-0">
+                    <p className="text-ink-3 text-[10px] font-bold tracking-wide uppercase">
+                      O nome do arquivo sugere
+                    </p>
+                    <p className="text-ink-1 truncate text-[11px] font-semibold">
+                      {sugestoes.especieNomeCientifico && (
+                        <span className="mr-2">
+                          <em>{sugestoes.especieNomeCientifico.valor}</em>
+                          {sugestoes.especieNomeCientifico.confianca === 'deduzido' && (
+                            <span
+                              className="text-warn ml-1"
+                              title="A grafia foge da convenção do nome científico — confira antes de aceitar."
+                            >
+                              ?
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {sugestoes.repeticao && (
+                        <span className="text-ink-2 mr-2">rep. {sugestoes.repeticao.valor}</span>
+                      )}
+                      {sugestoes.pagina && (
+                        <span className="text-ink-2 mr-2">{sugestoes.pagina.origem}</span>
+                      )}
+                    </p>
+                    <p className="text-ink-3 truncate text-[10px]">
+                      lido em: {[sugestoes.especieNomeCientifico?.origem, sugestoes.repeticao?.origem]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Só o que foi proposto entra. Campo já preenchido pela
+                      // pessoa não é sobrescrito: ela sabe mais que o nome do
+                      // arquivo.
+                      const esp = sugestoes.especieNomeCientifico?.valor;
+                      if (esp && !metadata.amostra?.especieNomeCientifico) {
+                        updateMetadata('amostra', {
+                          ...(metadata.amostra ?? {}),
+                          especieNomeCientifico: esp,
+                        });
+                      }
+                      const rep = sugestoes.repeticao?.valor;
+                      if (rep !== undefined && !metadata.plate) {
+                        updateMetadata('plate', String(rep));
+                      }
+                      setSugestoes(null);
+                    }}
+                    className="bg-accent text-accent-on hover:bg-accent-strong rounded-control shrink-0 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Usar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSugestoes(null)}
+                    className="text-ink-3 hover:text-ink-1 shrink-0 rounded p-0.5"
+                    aria-label="Dispensar sugestões"
+                    title="Dispensar — nada é preenchido"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+
               {/* O corte proposto. Fica sobre a imagem, ao lado da linha tracejada */}
               {corteProposto && (
                 <div className="border-accent bg-surface-1/95 rounded-panel absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border px-4 py-2.5 shadow-xl backdrop-blur">
@@ -3513,6 +3638,9 @@ export default function App() {
       {/* 5. Footer Status Bar */}
       {currentView === 'counter' && (
         <Footer
+          tempoAtivoMs={image ? cronometro.tempo.ativoMs : undefined}
+          modoDeAnalise={cronometro.tempo.modo}
+          onTrocarModo={cronometro.definirModo}
           filename={filename}
           imageWidth={image?.width}
           imageHeight={image?.height}

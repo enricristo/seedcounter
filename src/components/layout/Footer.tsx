@@ -3,6 +3,7 @@ import { LifeBuoy } from 'lucide-react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 import { DISSERTACAO } from '../../features/easter/fucik';
 import type { FonteDeUmaAutomacao } from '../../lib/fonte-da-automacao';
+import { formatarTempo } from '../../lib/cronometro-de-analise';
 
 interface FooterProps {
   filename?: string;
@@ -12,6 +13,18 @@ interface FooterProps {
   zoomLevel?: number;
   /** Total de objetos contados na cena. */
   totalDeObjetos?: number;
+  /**
+   * Tempo de trabalho efetivo nesta cena, em milissegundos, e o modo
+   * declarado. Ausente = o cronômetro não está ligado nesta tela.
+   *
+   * Fica no rodapé e não num painel porque a única forma de alguém confiar no
+   * número é ver que ele estava correndo o tempo todo. Cronômetro escondido é
+   * cronômetro de que se desconfia depois.
+   */
+  tempoAtivoMs?: number;
+  modoDeAnalise?: 'manual' | 'assistida' | 'automatica';
+  /** Troca o modo. Ausente = o modo fica só informativo. */
+  onTrocarModo?: (modo: 'manual' | 'assistida' | 'automatica') => void;
   /** Sobrescreve a versão do build. Normalmente não é passado. */
   version?: string;
   /** Abre as notas de versão. Ausente = o número fica só informativo. */
@@ -90,6 +103,9 @@ export function Footer({
   onRelatarProblema,
   bancada,
   fonteDaAutomacao,
+  tempoAtivoMs,
+  modoDeAnalise,
+  onTrocarModo,
 }: FooterProps) {
   const versaoExibida = version ?? `v${__APP_VERSION__}`;
   const separador = <span className="bg-line h-6 w-px shrink-0" aria-hidden="true" />;
@@ -121,6 +137,35 @@ export function Footer({
           )}
           {zoomLevel != null && <Item rotulo="Zoom">{Math.round(zoomLevel * 100)}%</Item>}
           {totalDeObjetos != null && <Item rotulo="Objetos">{totalDeObjetos}</Item>}
+          {tempoAtivoMs != null && (
+            <Item rotulo="Tempo">
+              <span
+                className="tabular-nums"
+                title={
+                  'Tempo de trabalho efetivo nesta imagem. Para quando a aba sai de vista ou ' +
+                  'quando ninguém mexe em nada por um minuto — não conta aba esquecida aberta.'
+                }
+              >
+                {formatarTempo(tempoAtivoMs)}
+              </span>
+              {modoDeAnalise && onTrocarModo && (
+                <select
+                  value={modoDeAnalise}
+                  onChange={(e) => onTrocarModo(e.target.value as 'manual' | 'assistida' | 'automatica')}
+                  className="border-line bg-surface-1 text-ink-2 rounded-control ml-1 cursor-pointer border px-1 py-px text-[10px]"
+                  title={
+                    'Como esta contagem está sendo feita. É DECLARADO por você, não adivinhado: ' +
+                    'é o que separa os dois braços de uma comparação de tempo.'
+                  }
+                  aria-label="Modo de análise"
+                >
+                  <option value="manual">manual</option>
+                  <option value="assistida">assistida</option>
+                  <option value="automatica">automática</option>
+                </select>
+              )}
+            </Item>
+          )}
         </div>
       ) : (
         <Item rotulo="Imagem">nenhuma aberta</Item>
