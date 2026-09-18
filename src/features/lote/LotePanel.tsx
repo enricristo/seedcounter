@@ -64,6 +64,7 @@ import { useModalEscape } from '../../hooks/useModalEscape';
 import { calcularGrade, gradeParaTotal, recortarRetangulo, nomeDaPeca, type Retangulo } from '../../lib/image-crop';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
 import { baixarArquivo, nomeDeExportacao } from '../../lib/download';
+import { registrarEvento } from '../../lib/diagnostico/trilha';
 import type { ArquivoDoDataset, PastaAberta } from '../datasets/fonte';
 import type { Session, Metadata, YoloSegmentation } from '../../types';
 
@@ -402,6 +403,15 @@ export function LotePanel({
     const { resultados: obtidos } = await executarLote(itens, receitaEscolhida, processar, {
       cancelado: () => pararRef.current,
       progresso: (feito, total) => setProgresso({ feito, total }),
+    });
+
+    // Trilha: quantas imagens entraram e quantas falharam. O lote é a operação
+    // longa do aplicativo, e o relato dele chega sempre como "parou no meio".
+    registrarEvento('lote:rodar', {
+      imagens: itens.length,
+      fonte,
+      receita: receitaEscolhida.id,
+      comErro: obtidos.filter((r) => r.erro).length,
     });
 
     setResultados(obtidos);

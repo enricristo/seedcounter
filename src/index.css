@@ -204,3 +204,63 @@
     animation: correr 1.4s ease-in-out infinite;
   }
 }
+
+/* =============================================================================
+   Polimento de quem usa o dia inteiro
+
+   Nada aqui muda comportamento: são as arestas que só incomodam na oitava hora
+   de bancada, e que por isso nunca aparecem num teste.
+   ========================================================================== */
+
+/* Números que não dançam.
+   A contagem, as medidas e a escala trocam de valor o tempo todo, e em fonte
+   proporcional o "1" é mais estreito que o "8": o número inteiro pula de
+   largura a cada semente marcada, e o olho persegue o movimento em vez de ler
+   o valor. Toda a família monoespaçada do produto é numérica por vocação — é
+   onde vivem contagem, µm/px e coordenada. */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Seleção de texto na cor do sistema.
+   O azul padrão do navegador é a única cor que atravessa as três linguagens da
+   Bancada Óptica sem pedir licença — e aparece toda vez que alguém arrasta o
+   cursor sobre um número para copiar, que é gesto de todo dia. */
+::selection {
+  background-color: var(--color-accent-tint);
+  color: var(--color-ink-1);
+}
+.dark ::selection {
+  background-color: var(--color-accent);
+  color: var(--color-accent-on);
+}
+
+/* Barra de rolagem no Firefox, que ignora ::-webkit-scrollbar. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+/* Foco visível como piso, nunca como enfeite.
+   Quem marca semente com uma mão no teclado precisa saber onde está. Vale só
+   para foco por teclado (:focus-visible), então o clique de mouse continua sem
+   anel. Componentes que já definem o próprio anel sobrescrevem este. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Quem pediu menos movimento recebe menos movimento.
+   Vale para a barra de atividade, para o crescimento das flores e para toda
+   transição do produto. Não desliga: reduz ao instante, que é o que a
+   preferência do sistema significa. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

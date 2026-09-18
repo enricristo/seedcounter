@@ -15,8 +15,22 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
   /** Última falha de carregamento, para a interface poder dizer o que houve. */
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // -------------------------------------------------------------------------
+  // TIFF de várias páginas
+  // -------------------------------------------------------------------------
+  // Guardamos o FILE, não o ArrayBuffer. Uma digitalização de tetrazólio com
+  // dez espécies tem 1,1 GB; manter esse buffer vivo só para poder trocar de
+  // página custaria a aba inteira. O File é um ponteiro barato para o disco, e
+  // reler custa segundos — que é o preço certo para uma ação que a pessoa faz
+  // dez vezes por sessão, não dez vezes por segundo.
+  const [arquivoTiff, setArquivoTiff] = useState<File | null>(null);
+  const [paginasDoTiff, setPaginasDoTiff] = useState(1);
+  const [paginaDoTiff, setPaginaDoTiff] = useState(0);
+  /** O DPI que o arquivo DECLARA. Palpite de escala; a régua é quem decide. */
+  const [dpiDeclarado, setDpiDeclarado] = useState<number | null>(null);
+
   const loadImageFromFile = useCallback(
-    (file: File) => {
+    (file: File, pagina = 0) => {
       // TIFF passa no filtro image/* mas nenhum navegador o decodifica.
       // Scanner de laboratório grava TIFF (8/16 bits, com ou sem LZW), então
       // decodificamos aqui com `utif` e entregamos o mesmo <img> do PNG —
@@ -28,7 +42,7 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
         file
           .arrayBuffer()
           .then((buffer) => {
-            const dec = decodificarTiff(buffer);
+            const dec = decodificarTiff(buffer, pagina);
             if (!dec) throw new Error('não é um TIFF que este leitor entenda');
             const canvas = document.createElement('canvas');
             canvas.width = dec.width;
@@ -48,10 +62,13 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
                 img.src = url;
               }, 'image/png');
             }).then((img) => {
-              if (dec.paginas > 1) {
-                // Aviso, não erro: a primeira página abriu.
-                setLoadError(`"${file.name}" tem ${dec.paginas} páginas; foi aberta a primeira.`);
-              }
+              // Deixou de ser AVISO e virou ESTADO: antes o app dizia "tem dez
+              // páginas, abri a primeira" e não havia o que fazer com a
+              // informação. Agora a interface oferece as outras.
+              setArquivoTiff(file);
+              setPaginasDoTiff(dec.paginas);
+              setPaginaDoTiff(dec.pagina);
+              setDpiDeclarado(dec.dpiDeclarado ?? null);
               return img;
             });
           })
@@ -70,6 +87,12 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
 
       setFilename(file.name);
       setLoadError(null);
+      // Imagem comum não tem página nem DPI declarado: zerar aqui evita que o
+      // seletor da digitalização anterior continue na tela mentindo.
+      setArquivoTiff(null);
+      setPaginasDoTiff(1);
+      setPaginaDoTiff(0);
+      setDpiDeclarado(null);
 
       // Uma digitalizacao de scanner leva segundos para decodificar, e sem isto
       // a tela fica parada sem sinal — indistinguivel de travada.
@@ -145,12 +168,33 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
     return false;
   }, [currentImageIndex, loadImageFromFile]);
 
+  /**
+   * Abre outra página do TIFF já carregado.
+   *
+   * Relê o arquivo do disco de propósito — ver a nota no estado acima. Pedir a
+   * página que já está aberta não faz nada: é o clique repetido de quem não
+   * viu que já chegou, e reprocessar 1 GB por causa dele seria cruel.
+   */
+  const abrirPaginaDoTiff = useCallback(
+    (pagina: number) => {
+      if (!arquivoTiff) return;
+      if (pagina === paginaDoTiff) return;
+      if (!Number.isInteger(pagina) || pagina < 0 || pagina >= paginasDoTiff) return;
+      loadImageFromFile(arquivoTiff, pagina);
+    },
+    [arquivoTiff, paginaDoTiff, paginasDoTiff, loadImageFromFile]
+  );
+
   const resetQueue = useCallback(() => {
     setImage(null);
     setLoadError(null);
     setFilename('');
     setImageQueue([]);
     setCurrentImageIndex(0);
+    setArquivoTiff(null);
+    setPaginasDoTiff(1);
+    setPaginaDoTiff(0);
+    setDpiDeclarado(null);
   }, []);
 
   return {
@@ -164,6 +208,12 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
     setCurrentImageIndex,
     loadError,
     setLoadError,
+
+    // TIFF de várias páginas
+    paginasDoTiff,
+    paginaDoTiff,
+    dpiDeclarado,
+    abrirPaginaDoTiff,
 
     // Actions
     loadFiles,

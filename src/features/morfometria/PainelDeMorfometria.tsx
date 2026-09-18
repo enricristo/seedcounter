@@ -31,6 +31,7 @@ import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import type { EstatisticaDeMedida, ResumoDeMorfometria } from './resumo';
 import { formatar, medido } from '../../lib/normas/valor-de-boletim';
+import { CardVolumes } from './CardVolumes';
 import { acharPorNome } from '../../lib/normas/tamanhos-de-semente';
 
 interface PainelDeMorfometriaProps {
@@ -296,6 +297,14 @@ export function PainelDeMorfometria({
                   )}
                 </div>
               )}
+
+              {/* Volumes e as equações que os produzem. Fica no fim do painel
+                  porque é o passo DEPOIS de medir — e só faz sentido com a
+                  escala já conferida. */}
+              <CardVolumes
+                comprimentoMm={resumo!.comprimentoMm?.mediana ?? null}
+                larguraMm={resumo!.larguraMm?.mediana ?? null}
+              />
             </>
           )}
         </div>

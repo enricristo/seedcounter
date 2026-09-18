@@ -334,6 +334,17 @@ export interface CsvOptions {
  * em cada linha para que vários arquivos possam ser concatenados numa única
  * planilha sem perder a procedência.
  */
+/** Milissegundos em segundos com uma casa. Vazio quando não foi medido —
+ *  zero seria a afirmação "levou zero", e isso nunca foi verdade. */
+function msEmSegundos(ms: number | undefined): string {
+  return typeof ms === 'number' && Number.isFinite(ms) ? (ms / 1000).toFixed(1) : '';
+}
+
+/** Arredonda para o CSV, mantendo vazio o que não existe. */
+function arredondar(v: number | undefined, casas: number): string {
+  return typeof v === 'number' && Number.isFinite(v) ? v.toFixed(casas) : '';
+}
+
 export function measurementsToCSV(
   rows: SeedMeasurement[],
   ctx: MeasurementContext,
@@ -354,6 +365,34 @@ export function measurementsToCSV(
         { label: 'quadrante', value: metadata.quadrant ?? '' },
         { label: 'um_por_px', value: metadata.umPerPixel ?? '' },
         { label: 'origem_imagem', value: metadata.imageSource ?? '' },
+        // ---------------------------------------------------------------
+        // A espécie, que faltava — e sem ela a planilha não agrupa.
+        //
+        // Uma digitalização de tetrazólio traz DEZ espécies, uma por página
+        // do arquivo. Sem esta coluna, as dez viram um monte só de linhas com
+        // nomes de arquivo parecidos, e a primeira pergunta de qualquer
+        // análise — "compare as espécies" — exige reconstruir à mão o que o
+        // aplicativo já sabia.
+        { label: 'especie', value: metadata.amostra?.especieNomeCientifico ?? '' },
+        { label: 'especie_comum', value: metadata.amostra?.especieNomeComum ?? '' },
+        { label: 'lote', value: metadata.amostra?.lote ?? '' },
+        // ---------------------------------------------------------------
+        // Procedência: de onde saiu e quanto custou.
+        //
+        // Vai em TODA linha, repetido, e isso é de propósito: um CSV longo é o
+        // formato que toda ferramenta de análise visual lê sem preparo, e
+        // nele o contexto precisa viajar na linha. Normalizar em duas tabelas
+        // economizaria bytes e custaria o `group by` de quem abrir.
+        { label: 'pagina', value: metadata.procedencia?.paginaDaImagem ?? '' },
+        { label: 'modo_analise', value: metadata.procedencia?.modo ?? '' },
+        { label: 'tempo_ativo_s', value: msEmSegundos(metadata.procedencia?.tempoAtivoMs) },
+        { label: 'tempo_parede_s', value: msEmSegundos(metadata.procedencia?.tempoParedeMs) },
+        { label: 'dpi_declarado', value: metadata.procedencia?.dpiDeclarado ?? '' },
+        { label: 'dpi_medido', value: arredondar(metadata.procedencia?.dpiMedido, 1) },
+        { label: 'calibracao_n', value: metadata.procedencia?.leiturasDeCalibracao ?? '' },
+        { label: 'calibracao_cv_pct', value: arredondar(metadata.procedencia?.cvDaCalibracaoPercent, 3) },
+        { label: 'versao_app', value: metadata.procedencia?.versaoDoApp ?? '' },
+        { label: 'commit', value: metadata.procedencia?.commit ?? '' },
       ]
     : [];
 
