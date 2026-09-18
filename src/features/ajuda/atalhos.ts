@@ -71,6 +71,24 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
       { teclas: 'Ctrl + E', acao: 'Exportar' },
     ],
   },
+  {
+    titulo: 'Bancadas',
+    atalhos: [
+      {
+        teclas: 'Ctrl + Alt + 1',
+        acao: 'Ativar a bancada 1',
+        nota: 'O seletor no cabeçalho (perto do chip de espécie) faz o mesmo com o mouse — é o caminho normal.',
+      },
+      { teclas: 'Ctrl + Alt + 2', acao: 'Ativar a bancada 2' },
+      { teclas: 'Ctrl + Alt + 3', acao: 'Ativar a bancada 3' },
+      { teclas: 'Ctrl + Alt + 4', acao: 'Ativar a bancada 4' },
+      {
+        teclas: 'Ctrl + Alt + N',
+        acao: 'Abrir uma nova bancada',
+        nota: 'Até quatro ao mesmo tempo; clicar em qualquer ponto de uma bancada também a ativa.',
+      },
+    ],
+  },
 ];
 
 export interface InstrucaoDoMouse {
@@ -194,8 +212,8 @@ export interface PassoDoFluxo {
 export const FLUXO_DE_TRABALHO: PassoDoFluxo[] = [
   {
     titulo: 'Abrir',
-    como: 'Digitalização (PNG, JPG ou TIFF), câmera, um exemplo real, ou uma pasta de datasets.',
-    onde: 'Lateral esquerda — Abrir imagem / Exemplos; aba Datasets à direita.',
+    como: 'Digitalização (PNG, JPG ou TIFF), câmera, um exemplo real, ou uma pasta de datasets. No modo Multibancada, até quatro cenas ao mesmo tempo.',
+    onde: 'Lateral esquerda — Abrir imagem / Exemplos; aba Datasets à direita; Multibancada no cabeçalho.',
   },
   {
     titulo: 'Calibrar',

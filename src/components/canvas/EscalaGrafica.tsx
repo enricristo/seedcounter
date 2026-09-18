@@ -46,8 +46,15 @@ export function EscalaGrafica({ umPerPixel, zoomLevel }: EscalaGraficaProps) {
   };
 
   return (
+    // `pointer-events-none` no contêiner: a escala é uma faixa larga
+    // ancorada num canto do viewport, e sem isso ela roubava cliques do
+    // canvas por baixo dela mesmo nas áreas "vazias" da faixa (fundo, texto,
+    // o SVG da barra) — quem tentava marcar uma semente perto do canto
+    // clicava na escala sem perceber. Só religa `pointer-events-auto` no que
+    // é de fato interativo: o cabo de arrastar, os quatro quadradinhos de
+    // canto e o botão de ancorar.
     <div
-      className={`bg-surface-1/90 border-line rounded-control text-ink-1 group absolute z-10 flex select-none items-stretch gap-1.5 border px-1.5 py-1 font-mono text-[10px] tabular-nums shadow-md backdrop-blur ${CLASSE_DO_CANTO[canto]}`}
+      className={`bg-surface-1/90 border-line rounded-control text-ink-1 group pointer-events-none absolute z-10 flex select-none items-stretch gap-1.5 border px-1.5 py-1 font-mono text-[10px] tabular-nums shadow-md backdrop-blur ${CLASSE_DO_CANTO[canto]}`}
       style={solta ? { transform: `translate3d(${position.x}px, ${position.y}px, 0)` } : undefined}
       aria-label={`Escala gráfica: ${e.rotulo}`}
       role="group"
@@ -59,7 +66,7 @@ export function EscalaGrafica({ umPerPixel, zoomLevel }: EscalaGraficaProps) {
           setSolta(true);
           handlers.onPointerDown(ev);
         }}
-        className={`text-ink-3 hover:text-ink-1 flex items-center rounded px-0.5 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`text-ink-3 hover:text-ink-1 pointer-events-auto flex items-center rounded px-0.5 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         title="Arraste a escala até um objeto para comparar o tamanho"
         aria-label="Arrastar a escala"
       >
@@ -83,7 +90,11 @@ export function EscalaGrafica({ umPerPixel, zoomLevel }: EscalaGraficaProps) {
 
       {/* Ancorar: os quatro cantos. Aparece ao passar o mouse, ou sempre quando solta. */}
       <div
-        className={`flex flex-col justify-center transition-opacity ${solta ? '' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}
+        className={`flex flex-col justify-center transition-opacity ${
+          solta
+            ? 'pointer-events-auto'
+            : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100'
+        }`}
         title="Ancorar num canto"
       >
         <div className="grid grid-cols-2 gap-px">
@@ -104,7 +115,7 @@ export function EscalaGrafica({ umPerPixel, zoomLevel }: EscalaGraficaProps) {
         <button
           type="button"
           onClick={() => ancorar(canto)}
-          className="text-ink-3 hover:text-ink-1 flex items-center px-0.5"
+          className="text-ink-3 hover:text-ink-1 pointer-events-auto flex items-center px-0.5"
           title="Voltar ao canto"
           aria-label="Voltar ao canto"
         >

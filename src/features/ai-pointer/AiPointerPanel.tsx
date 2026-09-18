@@ -3,7 +3,7 @@
 // Detecção automática com o modelo YOLOv8m-seg treinado (TCC) via ONNX Runtime Web.
 // =============================================================================
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { atualizarProgresso, iniciarAtividade } from '../atividade/atividade';
 import {
   Brain,
@@ -23,6 +23,7 @@ import {
   type ModelQuality,
 } from '../../lib/yolo-onnx';
 import { detectarNoWorker } from '../../lib/yolo-worker-client';
+import { resultadoAindaVale } from '../../lib/resultado-por-bancada';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
 import { contarJanelas, limitarRegiao, type Regiao } from '../../lib/region';
 import { formatLengthDual, formatAreaDual } from '../../lib/calibration';
@@ -38,6 +39,14 @@ interface AiPointerPanelProps {
    * o componente sempre soube receber.
    */
   image: HTMLImageElement | HTMLCanvasElement | null;
+  /**
+   * Bancada (C2) que este painel representa NESTE render — sempre a ATIVA,
+   * porque só a ativa recebe o painel direito. A inferência é assíncrona e
+   * pode terminar depois que a pessoa já trocou de bancada; sem isto, o
+   * resultado de uma bancada cairia sobre a cena de outra (ver
+   * `resultado-por-bancada.ts`).
+   */
+  bancadaId: string;
   marks: Mark[];
   onAddMarks: (marks: Mark[]) => void;
   onPreviewChange: (preview: DetectionPreview | null) => void;
@@ -62,6 +71,7 @@ const DEDUPE_RADIUS = 12;
 
 export function AiPointerPanel({
   image,
+  bancadaId,
   marks,
   onAddMarks,
   onPreviewChange,
@@ -79,6 +89,21 @@ export function AiPointerPanel({
   const [error, setError] = useState<string | null>(null);
   const [modelPresent, setModelPresent] = useState<boolean | null>(null);
   const [quality, setQuality] = useState<ModelQuality | null>(null);
+
+  // Espelho síncrono de `bancadaId` para ler o valor MAIS RECENTE dentro do
+  // `.then`/`await` de `handleRun` — o fecho da função captura o valor de
+  // quando o pedido começou, não o de quando o resultado chega.
+  const bancadaIdRef = useRef(bancadaId);
+  useEffect(() => {
+    bancadaIdRef.current = bancadaId;
+  }, [bancadaId]);
+
+  // Trocar de bancada descarta qualquer detecção pendente de confirmação: sem
+  // isto, "Confirmar" aplicaria à bancada nova um resultado computado para a
+  // imagem da bancada antiga.
+  useEffect(() => {
+    setDetections(null);
+  }, [bancadaId]);
 
   // Verifica uma vez qual modelo esta instalação tem. O fp32 local vence quando existe.
   useEffect(() => {
@@ -135,6 +160,9 @@ export function AiPointerPanel({
     // digitalizacao grande. O painel ja mostra progresso, mas o rodape e o que
     // a pessoa ve quando rolou a barra lateral para outro lugar.
     const encerrar = iniciarAtividade('yolo', 'Detectando sementes…');
+    // Capturado ANTES do await: é a bancada que PEDIU, não a que estiver
+    // ativa quando o resultado chegar (ver `resultado-por-bancada.ts`).
+    const pedidoDeId = bancadaId;
     try {
       // A inferencia roda num worker (Task 7): o arraste e o zoom nao travam
       // mais enquanto o modelo processa. So ImageData atravessa a fronteira
@@ -164,6 +192,14 @@ export function AiPointerPanel({
       console.info(
         `[yolo] inferência: ${(performance.now() - inicioDaMedicao).toFixed(0)} ms, ${result.length} objetos`
       );
+      // A bancada pode ter trocado enquanto o worker calculava, sem que
+      // ninguém cancelasse esta chamada (cancelamento só acontece quando uma
+      // NOVA detecção começa — ver `yolo-worker-client.ts`). Aplicar aqui
+      // jogaria o resultado da bancada antiga sobre a cena nova.
+      if (!resultadoAindaVale(pedidoDeId, bancadaIdRef.current)) {
+        console.info(`[yolo] resultado de ${pedidoDeId} descartado: a bancada ativa agora é ${bancadaIdRef.current}`);
+        return;
+      }
       setDetections(result);
     } catch (err) {
       console.error('[AI Pointer] falha na inferência:', err);
@@ -180,7 +216,7 @@ export function AiPointerPanel({
       setIsRunning(false);
       setProgress(null);
     }
-  }, [image, confidence, withMorphometry, regiao]);
+  }, [image, bancadaId, confidence, withMorphometry, regiao]);
 
   /**
    * Quantas janelas a varredura vai exigir.

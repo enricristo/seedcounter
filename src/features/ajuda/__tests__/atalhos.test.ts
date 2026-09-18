@@ -77,6 +77,27 @@ describe('ajuda de teclado', () => {
     expect(acoes).toContain('desfazer');
     expect(acoes).toContain('refazer');
   });
+
+  /**
+   * Ctrl+Alt+1..4 e Ctrl+Alt+N (bancadas, C2/Task 3) são tratados num `if`,
+   * não num `case` — disputam a tecla com o modo de visualização ('1'/'2'
+   * sem Ctrl), então o `return` antecipado é obrigatório e o teste acima
+   * (que só lê `case '...'`) não os cobre. Este cobre à parte.
+   *
+   * É Ctrl+Alt, não Ctrl sozinho nem Ctrl+Shift: o navegador e o sistema já
+   * são donos de Ctrl+1..4 (trocar de aba) e Ctrl+Shift+N (aba anônima) —
+   * ninguém conseguia disparar o atalho de verdade.
+   */
+  it('os atalhos de bancada (Ctrl+Alt+1..4 e Ctrl+Alt+N) estão na ajuda', () => {
+    const fonte = readFileSync(join(HOOKS, 'useKeyboardShortcuts.ts'), 'utf8');
+    expect(fonte).toMatch(/e\.altKey && \/\^\[1-4\]\$\/\.test\(e\.key\)/);
+    expect(fonte).toMatch(/e\.altKey && e\.key\.toLowerCase\(\) === 'n'/);
+
+    for (const n of [1, 2, 3, 4]) {
+      expect(TECLAS_LISTADAS, `Ctrl + Alt + ${n}`).toContain(`ctrl + alt + ${n}`);
+    }
+    expect(TECLAS_LISTADAS).toContain('ctrl + alt + n');
+  });
 });
 
 describe('ajuda de mouse', () => {

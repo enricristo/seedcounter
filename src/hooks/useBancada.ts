@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useImageQueue } from './useImageQueue';
 import { useMarks } from './useMarks';
 import { useMetadata } from './useMetadata';
@@ -9,6 +9,16 @@ import { ESTADO_INICIAL as MASCARA_INICIAL, type Mascara } from '../features/mas
 import { NEUTRAL_ADJUSTMENTS, type ImageAdjustments } from '../lib/image-adjust';
 import type { Regiao } from '../lib/region';
 import type { AnotacaoCarregada } from '../features/datasets/anotacao';
+import type { Mark, YoloSegmentation } from '../types';
+
+/**
+ * Chave de uma imagem na fila: nome + tamanho, não índice — senão reordenar
+ * a fila trocaria a contagem de lugar. Pura, sem estado: não precisa ser um
+ * hook.
+ */
+function chaveDaImagem(file: File): string {
+  return `${file.name}:${file.size}`;
+}
 
 /**
  * Uma cena: imagem, marcações, contornos, histórico, metadados, calibração e
@@ -23,14 +33,21 @@ import type { AnotacaoCarregada } from '../features/datasets/anotacao';
  * vínculo com uma imagem específica (`anotacaoAtual`, `datasetContexto`) mas
  * têm nome próprio no App e por isso ficam fora da lista do teste.
  *
- * O que NÃO mora aqui ainda: as refs `marcasRef`, `segmentacoesRef`,
- * `anotacoesPorImagem` e `chaveAtual`, que o `onImageLoaded` do App usa para
- * lembrar a anotação da imagem anterior ao trocar na fila. Elas SÃO estado de
- * cena por natureza, mas nesta Task 1 `onImageLoaded` continua no App (não
- * sabe de bancada) e as lê direto — migram para dentro de `useBancada` na
- * Task 2, quando `onImageLoaded` passar a receber o índice da bancada e puder
- * indexar por bancada em vez de globalmente. Migração pela metade seria pior
- * que a honestidade de deixar isto escrito.
+ * `marcasRef`, `segmentacoesRef`, `anotacoesPorImagem` e `chaveAtual` — que
+ * guardam a anotação da imagem anterior ao trocar na fila — migraram do App
+ * para cá na Task 2. No App elas eram UMA cópia só; com quatro bancadas isso
+ * viraria estado COMPARTILHADO entre elas — o cache da bancada 1 serviria a
+ * imagem da bancada 3. Aqui, cada `useBancada` tem o seu próprio `Map` e a
+ * sua própria chave atual, e o próprio hook cuida de salvar a anotação que
+ * sai e carregar a que entra sempre que a fila troca de imagem — é por isso
+ * que `useImageQueue` recebe `onImageLoadedNaFila` (interno) em vez do
+ * `onImageLoaded` que a bancada recebeu de fora: aquele cuida da cena, este
+ * cuida do resto (dataset pendente, ensaio ao carregar, ajuste do zoom).
+ *
+ * `anotacoesPorImagem` e a função `chaveDaImagem` ficam só aqui dentro —
+ * nada fora de `useBancada` precisa delas. `chaveAtual`, `marcasRef` e
+ * `segmentacoesRef` continuam expostas por `cena`: o App ainda lê e zera
+ * esses três em alguns pontos (restaurar sessão, cortar contorno, borracha).
  */
 export interface EstadoDaCena {
   fundoAchatado: HTMLImageElement | null;
@@ -56,6 +73,21 @@ export interface EstadoDaCena {
   setDatasetContexto: Dispatch<SetStateAction<{ conjunto: string; caminho: string } | null>>;
   referenciaJaCarregada: boolean;
   setReferenciaJaCarregada: Dispatch<SetStateAction<boolean>>;
+  /**
+   * Espelhos de `anotacoes.marks`/`anotacoes.yoloSegmentations`, para leitura
+   * dentro de callbacks (corte, borracha, arraste de vértice) sem depender do
+   * fecho do render — o mesmo motivo que já valia quando essas refs moravam
+   * no App.
+   */
+  marcasRef: MutableRefObject<Mark[]>;
+  segmentacoesRef: MutableRefObject<YoloSegmentation[]>;
+  /**
+   * Chave (nome+tamanho) da imagem atualmente aberta NESTA bancada, para o
+   * cache de anotações por imagem. Exposta porque restaurar uma sessão troca
+   * a imagem sem passar pela fila — quem restaura precisa zerá-la para a
+   * próxima imagem da fila não ser guardada sob a chave da sessão anterior.
+   */
+  chaveAtual: MutableRefObject<string | null>;
 }
 
 export interface Bancada {
@@ -75,10 +107,55 @@ export function useBancada(
   opcoes?: { onImageLoaded?: (img: HTMLImageElement, file: File) => void }
 ): Bancada {
   const anotacoes = useMarks();
-  const meta = useMetadata();
+  const meta = useMetadata(id);
   const zoom = useZoom();
   const pan = usePanning();
-  const fila = useImageQueue({ onImageLoaded: opcoes?.onImageLoaded });
+
+  // Cache de anotações por imagem desta bancada (ver comentário do topo do
+  // arquivo). `marcasRef`/`segmentacoesRef` espelham o estado corrente de
+  // `anotacoes` para leitura síncrona dentro do cache e de callbacks do App.
+  const anotacoesPorImagem = useRef<
+    Map<string, { marks: Mark[]; yoloSegmentations: YoloSegmentation[] }>
+  >(new Map());
+  const chaveAtual = useRef<string | null>(null);
+  const marcasRef = useRef<Mark[]>(anotacoes.marks);
+  const segmentacoesRef = useRef<YoloSegmentation[]>(anotacoes.yoloSegmentations);
+
+  useEffect(() => {
+    marcasRef.current = anotacoes.marks;
+  }, [anotacoes.marks]);
+  useEffect(() => {
+    segmentacoesRef.current = anotacoes.yoloSegmentations;
+  }, [anotacoes.yoloSegmentations]);
+
+  const onImageLoadedNaFila = (img: HTMLImageElement, file: File) => {
+    // As anotações da imagem que estava aberta são guardadas ANTES de a nova
+    // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
+    // aviso — e numa fila de 12 pedaços de scanner isso é perder o trabalho
+    // de uma folha inteira. A leitura vem das refs, não do estado: este
+    // callback roda dentro do fecho assíncrono do `FileReader`, onde o valor
+    // capturado pelo fecho pode estar velho.
+    if (chaveAtual.current) {
+      anotacoesPorImagem.current.set(chaveAtual.current, {
+        marks: marcasRef.current,
+        yoloSegmentations: segmentacoesRef.current,
+      });
+    }
+
+    const chave = chaveDaImagem(file);
+    chaveAtual.current = chave;
+
+    // Trocar de imagem RECOMEÇA o histórico: o Ctrl+Z desta imagem não pode
+    // desfazer o que se fez na anterior.
+    const guardado = anotacoesPorImagem.current.get(chave);
+    anotacoes.carregar(
+      guardado ? { marks: guardado.marks, segmentacoes: guardado.yoloSegmentations } : {}
+    );
+
+    opcoes?.onImageLoaded?.(img, file);
+  };
+
+  const fila = useImageQueue({ onImageLoaded: onImageLoadedNaFila });
 
   const [fundoAchatado, setFundoAchatado] = useState<HTMLImageElement | null>(null);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(NEUTRAL_ADJUSTMENTS);
@@ -124,6 +201,9 @@ export function useBancada(
       setDatasetContexto,
       referenciaJaCarregada,
       setReferenciaJaCarregada,
+      marcasRef,
+      segmentacoesRef,
+      chaveAtual,
     },
   };
 }

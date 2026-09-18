@@ -1,12 +1,14 @@
 <div align="center">
 
-<img src="public/logo-gpeorq.png" alt="GPEOrq" height="60" />&nbsp;&nbsp;<img src="public/logo-gpsem.png" alt="GPSEM" height="60" />
+<img src="public/mark.svg" alt="" height="72" />
 
-# Contador de Sementes
+# SeedCounter
 
-**Análise de imagem para sementes — contagem, classificação e morfometria diretamente no navegador.**
+**Contar · medir · laudar** — análise de imagem de sementes que roda inteira no navegador.
 
-[![App](https://img.shields.io/badge/app-produção-10b981?style=flat-square)](https://seedcounter.vercel.app)
+<sub>A marca é o que o aplicativo faz: a semente, e em volta o contorno tracejado que a segmentação propõe — ainda não aceito, esperando o olho de quem analisa.</sub>
+
+[![App](https://img.shields.io/badge/app-produção%20v3.5.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
 [![Beta](https://img.shields.io/badge/beta-versão%20de%20teste-f0b45a?style=flat-square)](https://seedcounter-teste.vercel.app)
 [![PWA](https://img.shields.io/badge/PWA-offline-5a0fc8?style=flat-square)](#privacidade-e-dados)
 [![Licença](https://img.shields.io/badge/licença-MIT-3b82f6?style=flat-square)](LICENSE)
@@ -21,7 +23,7 @@
 
 Contar e medir sementes é trabalho manual, lento e sujeito a variação entre operadores. Em sementes de orquídea — que medem entre 0,2 e 2,0 mm — uma única placa pode conter centenas de unidades, e a avaliação de viabilidade depende de julgamento visual repetido milhares de vezes.
 
-O Contador de Sementes reduz esse esforço mantendo o pesquisador no controle: a máquina propõe, o pesquisador confere.
+O SeedCounter reduz esse esforço sem trocar o julgamento por automação cega: **a máquina propõe, a pessoa confere**. Toda proposta aparece tracejada antes de virar dado, toda medida diz de onde veio, e nada entra na contagem sem alguém aceitar.
 
 ## A solução
 
@@ -29,11 +31,28 @@ Uma aplicação web que roda **inteiramente no navegador**, sem servidor, sem en
 
 | | |
 |---|---|
-| **Aquisição** | Scanner de mesa, lupa, estereomicroscópio, celular ou tablet |
-| **Calibração** | Quatro métodos, para que toda medida tenha unidade física real |
-| **Contagem** | Manual assistida, segmentação por clique e detecção por modelo |
-| **Análise** | Estatística de germinação, morfometria, cor e acompanhamento longitudinal |
-| **Saída** | CSV por semente, banco SQL, PDF, imagem anotada e dataset YOLO |
+| **Aquisição** | Scanner de mesa (PNG, JPG e **TIFF**), lupa, estereomicroscópio, celular ou tablet |
+| **Calibração** | Quatro métodos, e a régua da própria imagem para conferir o que o driver declara |
+| **Contagem** | Manual assistida, segmentação por clique, receitas de detecção e modelo embarcado |
+| **Medida** | Área, comprimento × largura, **Feret**, solidez — com os eixos visíveis e aviso quando a forma não é elíptica |
+| **Escala** | Conjuntos de imagens: abrir a pasta de datasets, rodar a mesma receita em lote, medir perfil por classe |
+| **Comparação** | **Modo Multibancada**: até quatro cenas abertas, cada uma com imagem, medidas e calibração próprias |
+| **Saída** | CSV por objeto (com a origem de cada um), banco SQL, laudo PDF, imagem anotada e dataset YOLO |
+
+## O que a versão 3.5.0 trouxe
+
+**A escala estava 32% errada — e o aplicativo agora sabe disso.** O padrão do laboratório assumia 3600 DPI porque é o que o driver do scanner informa. Medindo a régua colada na própria digitalização, em duas imagens independentes, o aparelho entrega ~4735 e ~4771 DPI — e a resolução óptica dele é 4800. O padrão foi corrigido, e o painel de calibração passou a dizer, com todas as letras, que **o DPI do driver é uma declaração; a régua na imagem é a conferência**. Contagens não mudam; medidas em milímetros, sim. Método e números em [`docs/datasets/auditoria-de-medida.md`](docs/datasets/auditoria-de-medida.md).
+
+Esse é o tipo de achado que resume a postura do projeto: preferir o número medido ao número declarado, e escrever a diferença.
+
+| | |
+|---|---|
+| **Explorador de datasets** | Aponte a pasta uma vez; o aplicativo reconhece o formato de cada conjunto (YOLO caixa ou polígono, multiclasse por CSV, pasta por classe, máscara), lista com miniaturas e carrega a anotação como referência — marcada como tal no CSV. Nada é copiado. |
+| **Exemplos reais** | 54 recortes de 19 conjuntos e 6 cenas compostas, com espécie, origem e escala já preenchidas ao abrir. |
+| **Ensaio ao carregar** | Três receitas de detecção lado a lado — mais uma derivada da espécie declarada — com a proposta tracejada ao passar o mouse. Nada é aplicado sem escolher. |
+| **Lote** | A mesma receita em N imagens, com miniatura por linha para conferir antes de aceitar, resumo com dispersão, aviso de duplicata e retomada depois de fechar a aba. |
+| **Perfil medido por classe** | A versão honesta dos priores: os números vêm da nossa própria segmentação, nas nossas condições, e aparecem acima da referência de literatura. |
+| **Modo Multibancada** | Até quatro cenas abertas ao mesmo tempo: quatro imagens para comparar, ou a mesma placa em quatro datas. |
 
 ## Recursos
 
@@ -128,7 +147,7 @@ Cinco lotes avaliados por tetrazólio de duas formas — sob estereomicroscópio
 
 O protocolo de tetrazólio em orquídeas que o aplicativo representa vem de:
 
-> CUSTÓDIO, C.C.; HOSOMI, S.T.; MACHADO NETO, N.B. Teste de tetrazólio em sementes de orquídeas. **Boletim de Pesquisa PPGA/Unoeste**, v. 2, n. 2, p. 54–59, 2021.
+> CUSTÓDIO, C.C.; HOSOMI, S.T.; MACHADO NETO, N.B. Teste de tetrazólio em sementes de orquídeas. **Boletim de Pesquisa PPGA**, v. 2, n. 2, p. 54–59, 2021.
 
 Dele saem o pré-condicionamento em sacarose (necessário porque a semente de orquídea não tem o aparato para reativar sozinha o metabolismo respiratório), o clareamento e a escarificação com hipoclorito por gênero, e as condições fixas: **40 °C, 24 h, no escuro, 10 a 20 mg de semente por repetição** — que é a ordem de milhares de sementes por imagem, e a razão de existir da contagem assistida.
 
@@ -140,8 +159,10 @@ Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensai
 
 | Versão | Endereço | Conteúdo |
 |---|---|---|
-| **Produção** | https://seedcounter.vercel.app | Recursos validados para uso em pesquisa |
-| **Teste** | https://seedcounter-teste.vercel.app | Recursos em avaliação, incluindo detecção automática |
+| **Produção** | https://seedcounter.vercel.app | v3.5.0 — recursos validados para uso em pesquisa |
+| **Teste** | https://seedcounter-teste.vercel.app | O que está sendo avaliado antes de virar produção |
+
+O histórico completo, em linguagem de quem usa, está dentro do aplicativo (número da versão no rodapé) e, em detalhe técnico, no [`CHANGELOG.md`](CHANGELOG.md).
 
 Recursos experimentais ficam desativados por padrão e podem ser ligados individualmente no painel de Funcionalidades. Números produzidos por recursos experimentais devem ser conferidos antes de uso científico.
 
@@ -213,15 +234,16 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 
 | Lacuna | Por que importa | Estado |
 |---|---|---|
-| **Registro de curadoria** | Hoje não há como responder "o modelo está ajudando ou criando retrabalho?". Cada objeto precisa carregar origem (manual, clássico, modelo, clique) e decisão (aceita, corrigida, rejeitada) | Desenhado |
+| **Registro de curadoria** | A metade fácil está feita: cada objeto já carrega a origem (manual, ia, modelo, referência) no CSV. Falta a decisão — aceita, corrigida, rejeitada —, que é o que responde "o modelo ajuda ou cria retrabalho?" | Metade feita |
 | **Classificador calibrável** | Um limiar sobre o a\* que se recalibra com o que a pessoa curou — auditável, ao contrário de uma rede | Desenhado; depende do registro |
 | **Regressão polinomial** | Os ensaios de estresse osmótico têm fator **quantitativo** (MPa), e a análise publicada é regressão com ponto de ótimo — não separação de médias por letras. Para esse ensaio o aplicativo entrega a análise errada | Lacuna aberta |
 | **Blocos casualizados (DBC)** | Delineamento dos ensaios de campo de produção de sementes. A ANOVA atual é só de um fator | Lacuna aberta |
 | **Classes dinâmicas** | Em forrageira, semente não germinada pode ser dormente, dura, vazia ou morta. A dicotomia viável/inviável não cobre, e contar espigueta vazia como semente produz porcentagem errada | Lacuna aberta |
 | **Protocolo por espécie** | Pré-condicionamento, escarificação e clareamento variam por gênero — a Tabela 1 do boletim de 2021 é um catálogo pronto | Lacuna aberta |
-| **Separação de sementes encostadas** | A onda usa vizinhança-4 e não junta sementes que se tocam numa quina, mas não separa as que se fundem. Watershed com marcadores é a resposta; a transformada de distância já existe | Lacuna aberta |
+| **Separação de sementes encostadas** | O corte por concavidade separa 95,8% dos pares reais, e o aviso de aglomerado passou a sair da própria população da imagem (falso alarme em orquídea caiu de 78% para 13%). O que falta é separar automaticamente sem a pessoa pedir — e em semente alongada o watershed comprovadamente fatia a semente ao meio | Parcialmente resolvido |
 | **Textura (GLCM)** | As 28 características que faltam para completar as 54 do AIseed. Servem para pureza física e cariopse vazia, não para tetrazólio — por isso não são prioridade | Adiado com motivo |
 | **Validação da morfometria** | Contra medição manual com paquímetro. Espera dados de outras culturas | Aguardando dados |
+| **Teste de interface** | O projeto não tem biblioteca de teste de componente: tipos, 964 testes de lógica e testes estáticos de estrutura são a rede, mas nenhum deles renderiza tela. Cada entrega de interface depende de um roteiro manual — que fica escrito nos planos, não na cabeça de ninguém | Decisão consciente |
 | **Verificação do pacote de produção** | O CI compila mas nunca **abre** a página compilada. Um ciclo entre pedaços do empacotamento derrubou o site em 2026-09-06 com todo o portão de qualidade verde — foi verificado que o empacotador não avisa desse caso | Risco conhecido |
 
 ## Equipe
@@ -242,7 +264,7 @@ Fluxo de branches e boas práticas em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Como citar
 
-> AMBROSIO, E. S.; FIGUEIREDO, M. O. V.; MACHADO NETO, N. B. *Contador de Sementes (SeedCounter): ferramenta client-side para contagem, classificação e morfometria de sementes*. GPEOrq/GPSEM — Laboratório de Sementes e Tecido Vegetal, Universidade do Oeste Paulista, 2026. Disponível em: https://seedcounter.vercel.app
+> AMBROSIO, E. S.; FIGUEIREDO, M. O. V.; MACHADO NETO, N. B. *SeedCounter: ferramenta client-side para contagem, classificação e morfometria de sementes*. GPEOrq / GPSEM — Laboratório de Sementes e Tecido Vegetal, 2026. Disponível em: https://seedcounter.vercel.app
 
 ## Licença
 

@@ -25,6 +25,10 @@ interface HeaderProps {
   contaSlot?: React.ReactNode;
   /** O chip de especie (C7), ao lado das abas. Ausente = nada no lugar dele. */
   especieSlot?: React.ReactNode;
+  /** O seletor de bancadas (C2), logo depois do chip de espécie — mesmo
+   * motivo: contexto de navegação, não ferramenta. Ausente = nada no lugar
+   * dele. */
+  bancadasSlot?: React.ReactNode;
   onUndo: () => void;
   undoDisabled: boolean;
   onRedo: () => void;
@@ -112,6 +116,7 @@ export function Header({
   openHistory,
   contaSlot,
   especieSlot,
+  bancadasSlot,
   onUndo,
   undoDisabled,
   onRedo,
@@ -213,6 +218,12 @@ export function Header({
           {/* Espécie da bancada (C7): logo depois das abas — é contexto de
             navegação, não ferramenta, por isso mora na linha 1. */}
           {especieSlot}
+
+          {/* Seletor de bancadas (C2): mesmo motivo do chip de espécie, e é
+            o ÚNICO jeito de abrir/trocar/fechar bancadas com o mouse — antes
+            só existiam atalhos que o navegador toma. Com uma bancada aberta
+            (o caso comum) ele próprio decide mostrar só um "+" discreto. */}
+          {bancadasSlot}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -250,23 +261,30 @@ export function Header({
       {/* ---- Linha 2: as acoes da vista. So existe quando ha acao. ---- */}
       {currentView === 'counter' && (
         <div className="border-line bg-surface-1 flex h-11 items-center justify-between gap-2 border-t px-4 xl:px-6">
+          {/* Histórico e o trio desfazer/refazer/limpar formam UM grupo — as
+              checagens `currentView === 'counter'` repetidas em cada botão
+              (já redundantes: o bloco inteiro só existe dentro desse `if`)
+              deixavam cada botão como um item solto para o React, e o trio
+              de instrumento (desfazer/refazer/limpar) ficava com o mesmo
+              respiro do divisor, sem nada que dissesse "isto aqui é um
+              conjunto". O trio agora tem o próprio `gap-1`, mais apertado
+              que o `gap-2` entre grupos — é o que fecha o buraco que o
+              Enrico circulou. */}
           <div className="flex items-center gap-2">
-            {currentView === 'counter' && (
-              <button
-                onClick={openHistory}
-                className="rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all"
-              >
-                <History size={16} strokeWidth={2} aria-hidden="true" />
-                <span>Histórico</span>
-                <span className="bg-surface-2 text-ink-2 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
-                  {sessionsCount}
-                </span>
-              </button>
-            )}
+            <button
+              onClick={openHistory}
+              className="rounded-control border-line text-ink-2 hover:text-ink-1 hover:bg-surface-2 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all"
+            >
+              <History size={16} strokeWidth={2} aria-hidden="true" />
+              <span>Histórico</span>
+              <span className="bg-surface-2 text-ink-2 rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
+                {sessionsCount}
+              </span>
+            </button>
 
-            {currentView === 'counter' && <div className="bg-line mx-1 h-6 w-px" />}
+            <div className="bg-line h-6 w-px" />
 
-            {currentView === 'counter' && (
+            <div className="flex items-center gap-1">
               <button
                 onClick={onUndo}
                 disabled={undoDisabled}
@@ -276,9 +294,7 @@ export function Header({
               >
                 <Undo2 size={16} strokeWidth={2} aria-hidden="true" />
               </button>
-            )}
 
-            {currentView === 'counter' && (
               <button
                 onClick={onRedo}
                 disabled={redoDisabled}
@@ -288,9 +304,7 @@ export function Header({
               >
                 <Redo2 size={16} strokeWidth={2} aria-hidden="true" />
               </button>
-            )}
 
-            {currentView === 'counter' && (
               <button
                 onClick={onReset}
                 disabled={resetDisabled}
@@ -300,11 +314,11 @@ export function Header({
               >
                 <Eraser size={16} strokeWidth={2} aria-hidden="true" />
               </button>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {currentView === 'counter' && hasImageQueue && (
+            {hasImageQueue && (
               <div className="border-line bg-surface-2 rounded-control mr-1 flex items-center gap-1 border p-1">
                 <button
                   onClick={onPrevImage}

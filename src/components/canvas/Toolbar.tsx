@@ -98,6 +98,22 @@ interface ToolbarProps {
 
 const INATIVO = 'border-transparent text-ink-2 hover:bg-surface-2 hover:text-ink-1';
 
+/**
+ * O bloco do controle deslizante vertical (tamanho do ponto, espessura da
+ * raspagem, raio da borracha). Sem largura e altura PRÓPRIAS — herdando só
+ * o `w-10` dos botões de 40px — o polegar do `<input type=range>` rotacionado
+ * transbordava por baixo da barra e o rótulo ficava desalinhado (achado do
+ * Enrico). `writingMode: vertical-lr` gira o eixo do controle; largura e
+ * altura em `style` fixam a espessura e o comprimento do traço
+ * independentemente da rotação, e `items-center` no bloco centraliza tudo.
+ */
+const blocoDoDeslizante = 'border-line mt-0.5 flex flex-col items-center gap-1 border-t pt-1.5';
+const estiloDoDeslizante: React.CSSProperties = {
+  writingMode: 'vertical-lr' as React.CSSProperties['writingMode'],
+  width: '6px',
+  height: '72px',
+};
+
 export function Toolbar({
   activeTool,
   onSelect,
@@ -117,7 +133,14 @@ export function Toolbar({
 }: ToolbarProps) {
   const IconeDaMascara = mascara ? ICONE_DA_MASCARA[mascara] : Eye;
   return (
-    <div className="border-line bg-surface-1/95 rounded-panel absolute top-1/2 left-3 z-20 flex -translate-y-1/2 flex-col gap-1.5 border p-1.5 shadow-xl backdrop-blur">
+    // `max-h` + `overflow-y-auto`: numa tela baixa, os grupos de ferramentas
+    // mais o bloco do deslizante podem passar da altura da janela — sem
+    // rolagem o último item (galeria ou o próprio deslizante) ficava cortado
+    // embaixo, fora de vista, sem aviso.
+    // Coluna própria na borda do espaço de trabalho, não mais flutuando
+    // sobre a imagem: com quatro bancadas, flutuar sobre a ativa roubava
+    // espaço da cena e parecia que cada bancada tinha a sua barra.
+    <div className="border-line bg-surface-1 z-20 flex max-h-full shrink-0 flex-col gap-1.5 self-stretch overflow-x-hidden overflow-y-auto border-r p-1.5">
       {TOOLS.map((tool, i) => {
         const Icon = ICONS[tool.id];
         const isActive = activeTool === tool.id;
@@ -205,7 +228,7 @@ export function Toolbar({
       {ajusteDaMarca !== undefined &&
         onAjusteDaMarcaChange &&
         (activeTool === 'viable' || activeTool === 'inviable') && (
-          <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+          <div className={blocoDoDeslizante}>
             <input
               type="range"
               min={AJUSTE_MINIMO}
@@ -215,8 +238,8 @@ export function Toolbar({
               onChange={(e) => onAjusteDaMarcaChange(Number(e.target.value))}
               title="Tamanho do ponto na imagem"
               aria-label="Tamanho do ponto"
-              className="accent-accent w-10"
-              style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+              className="accent-accent shrink-0"
+              style={estiloDoDeslizante}
             />
             <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
               {ajusteDaMarca.toFixed(1)}x
@@ -225,7 +248,7 @@ export function Toolbar({
         )}
 
       {activeTool === 'contorno' && raioDaRaspagem !== undefined && onRaioDaRaspagemChange && (
-        <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+        <div className={blocoDoDeslizante}>
           <input
             type="range"
             min={4}
@@ -235,8 +258,8 @@ export function Toolbar({
             onChange={(e) => onRaioDaRaspagemChange(Number(e.target.value))}
             title="Espessura do traço que raspa a borda"
             aria-label="Espessura do traço"
-            className="accent-accent w-10"
-            style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+            className="accent-accent shrink-0"
+            style={estiloDoDeslizante}
           />
           <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
             {raioDaRaspagem}
@@ -245,7 +268,7 @@ export function Toolbar({
       )}
 
       {activeTool === 'eraser' && (
-        <div className="border-line mt-0.5 space-y-1 border-t pt-1.5">
+        <div className={blocoDoDeslizante}>
           <input
             type="range"
             min={5}
@@ -255,8 +278,8 @@ export function Toolbar({
             onChange={(e) => onEraserRadiusChange(Number(e.target.value))}
             title="Tamanho da borracha ( [ e ] )"
             aria-label="Tamanho da borracha"
-            className="accent-danger w-10"
-            style={{ writingMode: 'vertical-lr' as React.CSSProperties['writingMode'] }}
+            className="accent-danger shrink-0"
+            style={estiloDoDeslizante}
           />
           <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">{eraserRadius}</p>
         </div>

@@ -14,7 +14,24 @@ const defaultMetadata: Metadata = {
   useDifferential: false,
 };
 
-const METADATA_ID = 'current_metadata';
+/**
+ * O registro de metadados é POR BANCADA.
+ *
+ * Era um só (`current_metadata`) porque só havia uma cena. Com quatro, as
+ * quatro instâncias do hook escreveriam no mesmo registro — e metadados
+ * carregam a CALIBRAÇÃO: duas digitalizações de escalas diferentes abertas
+ * lado a lado se sobrescreveriam, e as medidas em mm de uma sairiam com o
+ * µm/px da outra. Um erro silencioso, do tipo que só aparece no laudo.
+ *
+ * A bancada 1 mantém a chave antiga de propósito: é a bancada de quem já usa
+ * o app, e a identificação da bancada (pesquisador, projeto, laboratório) que
+ * ele deixou salva continua aparecendo onde sempre apareceu.
+ */
+const METADATA_ID_PADRAO = 'current_metadata';
+
+export function idDoRegistroDeMetadados(bancada?: string): string {
+  return !bancada || bancada === 'b1' ? METADATA_ID_PADRAO : `metadata_${bancada}`;
+}
 
 /**
  * Fila de escrita dos metadados.
@@ -27,18 +44,23 @@ const METADATA_ID = 'current_metadata';
  * A fila é de módulo, não de componente: precisa sobreviver às re-renderizações
  * para de fato serializar.
  */
-let filaDeEscrita: Promise<unknown> = Promise.resolve();
+const filasDeEscrita = new Map<string, Promise<unknown>>();
 
-function enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
+function enfileirar<T>(registro: string, tarefa: () => Promise<T>): Promise<T> {
+  // Uma fila POR REGISTRO: serializar gravações da mesma bancada é o que
+  // corrige o bug de digitação; serializar bancadas diferentes entre si seria
+  // fazer uma esperar a outra sem nenhum motivo.
+  const anterior = filasDeEscrita.get(registro) ?? Promise.resolve();
   // O catch mantém a fila viva: uma gravação que falhe não pode travar as
   // seguintes.
-  const proxima = filaDeEscrita.catch(() => {}).then(tarefa);
-  filaDeEscrita = proxima.catch(() => {});
+  const proxima = anterior.catch(() => {}).then(tarefa);
+  filasDeEscrita.set(registro, proxima.catch(() => {}));
   return proxima;
 }
 
-export function useMetadata() {
-  const storedMetadata = useLiveQuery(() => db.metadataStore.get(METADATA_ID));
+export function useMetadata(bancada?: string) {
+  const METADATA_ID = idDoRegistroDeMetadados(bancada);
+  const storedMetadata = useLiveQuery(() => db.metadataStore.get(METADATA_ID), [METADATA_ID]);
   const metadata = storedMetadata?.data ?? defaultMetadata;
 
   // Migration from localStorage
@@ -64,7 +86,7 @@ export function useMetadata() {
 
   const setMetadata = useCallback(
     (newMetadata: Metadata | ((prev: Metadata) => Metadata)) =>
-      enfileirar(async () => {
+      enfileirar(METADATA_ID, async () => {
         if (typeof newMetadata === 'function') {
           const existing = await db.metadataStore.get(METADATA_ID);
           const current = existing?.data ?? defaultMetadata;
@@ -78,7 +100,7 @@ export function useMetadata() {
 
   const updateMetadata = useCallback(
     <K extends keyof Metadata>(key: K, value: Metadata[K]) =>
-      enfileirar(async () => {
+      enfileirar(METADATA_ID, async () => {
         const existing = await db.metadataStore.get(METADATA_ID);
         const current = existing?.data ?? defaultMetadata;
         await db.metadataStore.put({
