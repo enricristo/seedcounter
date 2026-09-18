@@ -28,6 +28,11 @@ import {
 import { TOOLS, type ToolId } from '../../hooks/useTools';
 import { descrever, type Mascara } from '../../features/mascara/mascara';
 import { AJUSTE_MAXIMO, AJUSTE_MINIMO } from '../../lib/escala-da-marca';
+import {
+  ESTILOS_DA_MARCA,
+  OPACIDADE_MINIMA,
+  type EstiloDaMarca,
+} from '../../theme/specimen';
 
 /** Icone de cada estado da mascara. O disco vazado e "so pontos". */
 const ICONE_DA_MASCARA: Record<Mascara, React.ElementType> = {
@@ -91,6 +96,11 @@ interface ToolbarProps {
   /** Multiplicador do tamanho da marca. Ausente = controle oculto. */
   ajusteDaMarca?: number;
   onAjusteDaMarcaChange?: (v: number) => void;
+  /** Estilo do desenho da marca e quanto ela deixa ver da semente. */
+  estiloDaMarca?: EstiloDaMarca;
+  onEstiloDaMarcaChange?: (v: EstiloDaMarca) => void;
+  opacidadeDaMarca?: number;
+  onOpacidadeDaMarcaChange?: (v: number) => void;
   /** Raio do traço da borracha de contorno. */
   raioDaRaspagem?: number;
   onRaioDaRaspagemChange?: (v: number) => void;
@@ -128,6 +138,10 @@ export function Toolbar({
   totalDeObjetos = 0,
   ajusteDaMarca,
   onAjusteDaMarcaChange,
+  estiloDaMarca,
+  onEstiloDaMarcaChange,
+  opacidadeDaMarca,
+  onOpacidadeDaMarcaChange,
   raioDaRaspagem,
   onRaioDaRaspagemChange,
 }: ToolbarProps) {
@@ -244,6 +258,51 @@ export function Toolbar({
             <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
               {ajusteDaMarca.toFixed(1)}x
             </p>
+          </div>
+        )}
+
+      {/* Estilo e opacidade da marca.
+          Ficam ao lado do tamanho porque respondem à mesma queixa — "não
+          consigo ver a semente embaixo da marca" — e porque numa amostra densa
+          o ajuste certo costuma ser os três juntos: menor, vazado e mais
+          translúcido. Aparecem só com a ferramenta de marcar ativa, como o
+          tamanho. */}
+      {estiloDaMarca &&
+        onEstiloDaMarcaChange &&
+        (activeTool === 'viable' || activeTool === 'inviable') && (
+          <div className="flex w-full flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const i = ESTILOS_DA_MARCA.findIndex((e) => e.valor === estiloDaMarca);
+                const proximo = ESTILOS_DA_MARCA[(i + 1) % ESTILOS_DA_MARCA.length];
+                onEstiloDaMarcaChange(proximo.valor);
+              }}
+              className="border-line text-ink-2 hover:border-accent hover:text-accent rounded-control w-full border px-1 py-1 text-[9px] font-bold tracking-wide uppercase transition-colors"
+              title={ESTILOS_DA_MARCA.find((e) => e.valor === estiloDaMarca)?.ajuda}
+              aria-label="Trocar o estilo da marca"
+            >
+              {ESTILOS_DA_MARCA.find((e) => e.valor === estiloDaMarca)?.rotulo}
+            </button>
+            {opacidadeDaMarca !== undefined && onOpacidadeDaMarcaChange && (
+              <div className={blocoDoDeslizante}>
+                <input
+                  type="range"
+                  min={OPACIDADE_MINIMA}
+                  max={1}
+                  step={0.05}
+                  value={opacidadeDaMarca}
+                  onChange={(e) => onOpacidadeDaMarcaChange(Number(e.target.value))}
+                  title="Opacidade da marca — abaixe para ver a semente por baixo"
+                  aria-label="Opacidade da marca"
+                  className="accent-accent shrink-0"
+                  style={estiloDoDeslizante}
+                />
+                <p className="text-ink-3 text-center font-mono text-[9px] tabular-nums">
+                  {Math.round(opacidadeDaMarca * 100)}%
+                </p>
+              </div>
+            )}
           </div>
         )}
 

@@ -75,7 +75,13 @@ import {
 } from './features/sugestoes';
 import { PainelDeMorfometria, resumir } from './features/morfometria';
 import { aplicarRegra, simularRegra, REGRAS_PADRAO, type RegraParametrica } from './features/morfometria/regras';
-import { lerPreferencia, gravarPreferencia, CHAVE_SUGESTOES } from './features/settings/preferencias';
+import {
+  lerPreferencia,
+  gravarPreferencia,
+  lerPreferenciaTexto,
+  gravarPreferenciaTexto,
+  CHAVE_SUGESTOES,
+} from './features/settings/preferencias';
 import { conferirForma } from './lib/normas/tamanhos-de-semente';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
 import { BarraDeAtividade } from './features/atividade/BarraDeAtividade';
@@ -153,7 +159,14 @@ import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
 import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
-import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
+import {
+  ESPECIME,
+  ESPECIME_FILL,
+  corDoEspecime,
+  desenharMarca,
+  OPACIDADE_MINIMA,
+  type EstiloDaMarca,
+} from './theme/specimen';
 import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
 import { enumerarObjetos } from './lib/objetos';
 import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
@@ -184,7 +197,9 @@ function renderMarksToContext(
   mode: 'dots' | 'numbers',
   larguraDaImagem: number,
   ajusteDaMarca = AJUSTE_PADRAO,
-  segmentacoes: YoloSegmentation[] = []
+  segmentacoes: YoloSegmentation[] = [],
+  estiloDaMarca: EstiloDaMarca = 'disco',
+  opacidadeDaMarca = 1
 ) {
   // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
   // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
@@ -205,7 +220,7 @@ function renderMarksToContext(
     if (mode === 'dots') {
       // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
       // Contorno sem marca não ganha ponto: o polígono já o mostra.
-      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio);
+      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio, estiloDaMarca, opacidadeDaMarca);
     } else {
       // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
       // vazada. A redundancia vira um anel externo escuro so no inviavel.
@@ -280,6 +295,16 @@ export default function App() {
   const [propostaDestacada, setPropostaDestacada] = useState<[number, number][][]>([]);
   const { laboratorio } = useLaboratorio();
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
+  // Estilo e opacidade ficam em PREFERÊNCIA, não em estado da sessão: é gosto
+  // de quem trabalha e tipo de amostra, não propriedade do dado. Quem analisa
+  // orquídea densa escolhe uma vez e não escolhe de novo a cada imagem.
+  const [estiloDaMarca, setEstiloDaMarca] = useState<EstiloDaMarca>(
+    () => lerPreferenciaTexto('sc:estiloDaMarca', 'disco') as EstiloDaMarca
+  );
+  const [opacidadeDaMarca, setOpacidadeDaMarca] = useState<number>(() => {
+    const bruto = Number(lerPreferenciaTexto('sc:opacidadeDaMarca', '1'));
+    return Number.isFinite(bruto) && bruto >= OPACIDADE_MINIMA && bruto <= 1 ? bruto : 1;
+  });
   const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
   // mascara, contornoSelecionado, fundoAchatado e forcarOriginalNasAutomacoes
   // sao estado de CENA — moram no hook de bancada (Task 1) e chegam via
@@ -878,9 +903,27 @@ export default function App() {
 
     // Draw manual marks
     if (mostraPontos(mascara)) {
-      renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca, yoloSegmentations);
+      renderMarksToContext(
+        ctx,
+        marks,
+        visualMode,
+        base.width,
+        ajusteDaMarca,
+        yoloSegmentations,
+        estiloDaMarca,
+        opacidadeDaMarca
+      );
     }
-  }, [fonteDoCanvas, marks, visualMode, ajusteDaMarca, mascara, yoloSegmentations]);
+  }, [
+    fonteDoCanvas,
+    marks,
+    visualMode,
+    ajusteDaMarca,
+    mascara,
+    yoloSegmentations,
+    estiloDaMarca,
+    opacidadeDaMarca,
+  ]);
 
   useEffect(() => {
     if (imagemDeTrabalho && canvasRef.current) {
@@ -3154,6 +3197,16 @@ export default function App() {
                 totalDeObjetos={marks.length + yoloSegmentations.length}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
+                estiloDaMarca={estiloDaMarca}
+                onEstiloDaMarcaChange={(v) => {
+                  setEstiloDaMarca(v);
+                  gravarPreferenciaTexto('sc:estiloDaMarca', v);
+                }}
+                opacidadeDaMarca={opacidadeDaMarca}
+                onOpacidadeDaMarcaChange={(v) => {
+                  setOpacidadeDaMarca(v);
+                  gravarPreferenciaTexto('sc:opacidadeDaMarca', String(v));
+                }}
                 raioDaRaspagem={raioDaRaspagem}
                 onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
