@@ -21,6 +21,7 @@ import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { Bancadas } from './features/bancadas/Bancadas';
 import { SeletorDeBancadas } from './features/bancadas/SeletorDeBancadas';
+import { PainelDeComparacao } from './features/bancadas/PainelDeComparacao';
 import { DropZone } from './components/shared/DropZone';
 import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
@@ -762,6 +763,20 @@ export default function App() {
 
   const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : '0';
   const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : '0';
+
+  // `PainelDeComparacao` (aba Resultados) só existe com DUAS OU MAIS bancadas
+  // COM IMAGEM — com uma só, a aba não pode mudar nada (Global Constraints do
+  // plano de bancadas). A contagem mora AQUI, e não só dentro do painel,
+  // porque `RightSidebar` decide o separador (`<hr>`) pela PRESENÇA do prop
+  // `comparacaoContent`, e um elemento React é "presente" mesmo quando o
+  // componente que ele instancia devolve `null` — passar o elemento sempre e
+  // deixar só o componente se recusar deixaria o separador sobrando com uma
+  // bancada só.
+  const bancadasComImagemParaComparar = bancadas.todas
+    .slice(0, bancadas.abertas)
+    .filter((b) => !!b.fila.image).length;
+  const comparacaoContent =
+    bancadasComImagemParaComparar >= 2 ? <PainelDeComparacao bancadas={bancadas} /> : undefined;
 
   // Imagem com os ajustes aplicados.
   //
@@ -3272,6 +3287,7 @@ export default function App() {
             medicoes={medicoesDeMorfometria}
             especie={especieDeclarada}
             calibrado={!!metadata.umPerPixel && metadata.umPerPixel > 0}
+            comparacaoContent={comparacaoContent}
             onExport={() => setIsExportModalOpen(true)}
             onDestacarSementes={handleDestacarSementes}
             onAplicarRegra={handleAplicarRegra}

@@ -62,6 +62,13 @@ interface RightSidebarProps {
   datasetsContent?: React.ReactNode;
   /** A mesma receita em várias imagens (Task C1) — quinta aba. */
   loteContent?: React.ReactNode;
+  /**
+   * Comparação entre bancadas (C2, Task 5) — aparece dentro da aba
+   * Resultados, abaixo dos contadores, só quando há duas ou mais bancadas
+   * abertas com imagem. `RightSidebar` não decide isso: recebe o conteúdo
+   * pronto (ou `undefined`) do mesmo jeito que `datasetsContent`/`loteContent`.
+   */
+  comparacaoContent?: React.ReactNode;
 }
 
 export function RightSidebar({
@@ -96,6 +103,7 @@ export function RightSidebar({
   galeriaContent,
   datasetsContent,
   loteContent,
+  comparacaoContent,
 }: RightSidebarProps) {
 
   return (
@@ -194,6 +202,13 @@ export function RightSidebar({
                 plateId={plateId}
                 sessions={sessions}
               />
+
+              {comparacaoContent && (
+                <>
+                  <hr className="border-neutral-100 dark:border-zinc-800" />
+                  {comparacaoContent}
+                </>
+              )}
 
               <button
                 onClick={onExport}
