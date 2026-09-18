@@ -156,3 +156,24 @@ Fila: C5 (em curso) → C7 → **C8** → B4 → C1 → C4.1 → C6 → C2.
 **Aguardando decisão do Enrico:** a marca (3 propostas em `docs/marca/`, recomendação registrada); o desenho das bancadas (C2); o nome do arquivo da imagem de trigo "com coisas misturadas" para virar exemplo.
 
 **Fila daqui:** B4 (perfil medido por classe, em curso) → C1 (lote) → C4.1 (sessões na conta) → C6 (saúde do código: imports dinâmicos, strict por flag) → C2 (bancadas) → C9 (geolocalização por IP, se o Enrico disser para quê).
+
+---
+
+## Estado em 17/09 — onde estamos
+
+**Em produção (`main`, 3.5.0 + PR #39):** tudo do Degrau 1, o Lote A e B inteiros, C1 (lote), C3 (eixos + auditoria de escala), C5 (Encontrar/ensaio/regras num fluxo), C6 (saúde do código), C7 (chip de espécie), C8 (marca), C10 (cenas compostas), e o **modo Multibancada** com as Tasks 1–3 das bancadas.
+
+**Fechado e não medido ainda:** a troca entre bancadas com digitalizações grandes — o número que decide a urgência da Task 4.
+
+### O que falta, por frente
+
+| frente | o que falta | por que importa |
+|---|---|---|
+| **Bancadas (C2)** | **Task 4** memória (inativa solta o bitmap cheio, fica com ≤ 2000 px) · **Task 5** comparação entre bancadas e série no tempo · **Task 6** espaço de trabalho no Dexie | Task 4 é o que torna 3–4 cenas seguras num tablet; Task 5 é o que transforma Multibancada em ferramenta de acompanhamento — o trabalho da Profa. Ceci e do Prof. Nelson |
+| **Lote** | item 6 da spec de 16/09: **comparar duas receitas** na mesma fonte, lado a lado | responde "qual receita usar nesta bancada" com número, e alimenta a receita salva por espécie |
+| **Conta (C4.1)** | lista de sessões e "continuar"; depende de hospedagem com disco persistente | é o que faz a bancada existir em dois computadores |
+| **Degrau 2 pendentes** | 2.2 regras em mm editáveis · 2.3 peneira pelo Feret · 2.4 histograma com clipping · 2.5 ghost da onda · 2.6 classes pela galeria · 2.7 tolerâncias (bloqueado pela Tabela 4.1) · 2.12 watershed para redonda (com gate na soja) | cada um é pequeno e tem critério de aceite escrito |
+| **Degrau 3** | captura ao vivo: UVC (travar exposição), anti-flicker, flat-field, focus peaking, pedal, e a **esteira** (3.8) | agora tem hardware para medir: microscópio USB, scanner, webcam, celular |
+| **C9 (DB-IP)** | aguarda o Enrico dizer **para quê** | dado pessoal entra opt-in, com propósito declarado |
+
+**Ordem proposta:** Task 4 + Task 5 (paralelas, arquivos disjuntos) → Task 6 → comparar receitas no lote → 2.3/2.4 (pequenos e úteis) → Degrau 3 quando a lupa virar fluxo.
