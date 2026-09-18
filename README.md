@@ -252,8 +252,8 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 |---|---|
 | **Desenvolvimento** | Enrico S. Ambrosio — Matemático, graduando em Agronomia · [enrico.ambrosio@unesp.br](mailto:enrico.ambrosio@unesp.br) |
 | **Orientação** | Prof. Dr. Nelson Barbosa Machado Neto |
-| **Aplicação e validação** | Mayara de Oliveira Vidotto Figueiredo (doutoranda) |
 | **Coorientação científica** | Profa. Dra. Ceci Castilho Custódio |
+| **Aplicação e validação** | Mayara de Oliveira Vidotto Figueiredo (doutoranda) |
 
 GPEOrq · GPSEM
 [@gpeorq](https://www.instagram.com/gpeorq) · [@gpsem_2000](https://www.instagram.com/gpsem_2000/)
@@ -264,7 +264,9 @@ Fluxo de branches e boas práticas em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Como citar
 
-> AMBROSIO, E. S.; FIGUEIREDO, M. O. V.; MACHADO NETO, N. B. *SeedCounter: ferramenta client-side para contagem, classificação e morfometria de sementes*. GPEOrq / GPSEM — Laboratório de Sementes e Tecido Vegetal, 2026. Disponível em: https://seedcounter.vercel.app
+> AMBROSIO, E. S.; MACHADO NETO, N. B.; CUSTÓDIO, C. C.; FIGUEIREDO, M. O. V. *SeedCounter: ferramenta client-side para contagem, classificação e morfometria de sementes*. GPEOrq / GPSEM — Laboratório de Sementes e Tecido Vegetal, 2026. Disponível em: https://seedcounter.vercel.app
+
+Em formato legível por máquina (Zotero, Mendeley, GitHub): [`CITATION.cff`](CITATION.cff).
 
 ## Licença
 
