@@ -617,6 +617,9 @@ export default function App() {
     handleNextImage,
     handlePrevImage,
     loadImageFromFile,
+    paginasDoTiff,
+    paginaDoTiff,
+    abrirPaginaDoTiff,
   } = bancada.fila;
   const {
     marks,
@@ -2897,6 +2900,9 @@ export default function App() {
         hasImageQueue={imageQueue.length > 0}
         currentImageIndex={currentImageIndex}
         imageQueueLength={imageQueue.length}
+        paginasDoTiff={paginasDoTiff}
+        paginaDoTiff={paginaDoTiff}
+        onAbrirPaginaDoTiff={abrirPaginaDoTiff}
         onPrevImage={handlePrevImage}
         onNextImage={handleNextImage}
         onSaveSession={() => saveCurrentSession(false)}
