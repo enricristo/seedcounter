@@ -10,6 +10,9 @@ import { NEUTRAL_ADJUSTMENTS, type ImageAdjustments } from '../lib/image-adjust'
 import type { Regiao } from '../lib/region';
 import type { AnotacaoCarregada } from '../features/datasets/anotacao';
 import type { Mark, YoloSegmentation } from '../types';
+import { ehTiff } from '../lib/image-crop';
+import { decodificarTiff } from '../lib/tiff';
+import { deveReduzir, dimensoesReduzidas } from '../lib/reduzir-imagem';
 
 /**
  * Chave de uma imagem na fila: nome + tamanho, não índice — senão reordenar
@@ -18,6 +21,94 @@ import type { Mark, YoloSegmentation } from '../types';
  */
 function chaveDaImagem(file: File): string {
   return `${file.name}:${file.size}`;
+}
+
+/**
+ * Decodifica um `File` para `HTMLImageElement`, EM RESOLUÇÃO CHEIA, sem
+ * nenhum efeito colateral de fila ou de cache de anotações — é usada só para
+ * RECARREGAR a cheia depois de uma redução (Task 4), quando trocar de imagem
+ * não é o que está acontecendo.
+ *
+ * Duplica (de propósito) o decodificador TIFF/normal de `useImageQueue.ts`:
+ * extrair um utilitário compartilhado tocaria um arquivo fora do escopo desta
+ * task (`useImageQueue.ts` não está entre os arquivos da Task 4), e os dois
+ * decodificadores são pequenos o bastante para a duplicação ser mais barata
+ * que o risco de mexer num hook usado por todas as bancadas.
+ */
+function decodificarImagemDeArquivo(file: File): Promise<HTMLImageElement> {
+  if (ehTiff(file)) {
+    return file.arrayBuffer().then((buffer) => {
+      const dec = decodificarTiff(buffer);
+      if (!dec) throw new Error('não é um TIFF que este leitor entenda');
+      const canvas = document.createElement('canvas');
+      canvas.width = dec.width;
+      canvas.height = dec.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('canvas indisponível');
+      ctx.putImageData(new ImageData(dec.rgba, dec.width, dec.height), 0, 0);
+      return new Promise<HTMLImageElement>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error('não foi possível converter')); return; }
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem inválida')); };
+          img.src = url;
+        }, 'image/png');
+      });
+    });
+  }
+
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('imagem inválida ou corrompida'));
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('falha ao ler o arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Gera uma versão reduzida (via canvas) de uma imagem já decodificada. Sai
+ * como JPEG: é só para EXIBIÇÃO de uma bancada inativa — ninguém mede em
+ * cima dela — e o formato com perda economiza ainda mais memória que reduzir
+ * as dimensões sozinho.
+ *
+ * NÃO revoga a URL do blob no `onload`: `MarkingCanvas` (com `fundoEstatico`,
+ * usado pela cena inativa) lê `image.src` num `<img>` PRÓPRIO, separado deste
+ * objeto — revogar aqui quebraria esse `<img>` na primeira vez que tentasse
+ * carregar. Quem revoga é `recarregarImagemCheia`, quando a reduzida deixa
+ * de ser exibida.
+ */
+function gerarImagemReduzida(
+  origem: HTMLImageElement,
+  largura: number,
+  altura: number
+): Promise<HTMLImageElement> {
+  const canvas = document.createElement('canvas');
+  canvas.width = largura;
+  canvas.height = altura;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('canvas indisponível'));
+  ctx.drawImage(origem, 0, 0, largura, altura);
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) { reject(new Error('não foi possível gerar a versão reduzida')); return; }
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem reduzida inválida')); };
+        img.src = url;
+      },
+      'image/jpeg',
+      0.85
+    );
+  });
 }
 
 /**
@@ -88,6 +179,27 @@ export interface EstadoDaCena {
    * próxima imagem da fila não ser guardada sob a chave da sessão anterior.
    */
   chaveAtual: MutableRefObject<string | null>;
+  /**
+   * Task 4 (memória): ao SAIR de ativa, gera uma reduzida (maior lado
+   * ≤ 2000px) e troca `fila.image` por ela, SEM guardar a cheia em lugar
+   * nenhum — é isso que de fato libera o bitmap para o coletor de lixo. Ao
+   * VOLTAR a ativa, `recarregarImagemCheia` decodifica a cheia DE NOVO a
+   * partir do `File` de origem (mais lento que ter mantido em memória, mas é
+   * o ponto: aqui o recurso escasso é memória, não tempo). Enquanto a cheia
+   * recarrega, a reduzida continua em `fila.image` — nada pisca (regra 1). A
+   * reduzida tem `.width`/`.height` FORÇADOS para o tamanho da cheia, então
+   * quem lê `image.width` (marcas, contornos, viewBox do SVG em
+   * `MarkingCanvas`) não vê diferença — só o bitmap por trás é menor
+   * (regra 2). Sem `File` de origem (sessão restaurada — ver `chaveAtual`)
+   * ou abaixo do piso de 2500px no maior lado, estas duas funções não fazem
+   * nada: mantêm a cheia (regras 4 e 5).
+   *
+   * Quem chama é `Bancadas.tsx`, reagindo à troca de bancada ativa — nunca a
+   * própria bancada, que não sabe se é a ativa (isso é estado de
+   * `useBancadas`, fora do escopo desta task).
+   */
+  liberarImagemCheia: () => void;
+  recarregarImagemCheia: () => void;
 }
 
 export interface Bancada {
@@ -128,6 +240,109 @@ export function useBancada(
     segmentacoesRef.current = anotacoes.yoloSegmentations;
   }, [anotacoes.yoloSegmentations]);
 
+  // --- Task 4 (memória): estado da redução de imagem, por bancada --------
+  // `arquivoPorChave` guarda o `File` de origem de cada imagem que já passou
+  // por esta bancada, indexado pela MESMA chave do cache de anotações acima
+  // — é o que permite recarregar a cheia depois de reduzir. Uma sessão
+  // restaurada zera `chaveAtual` sem passar por aqui (ver `App.handleLoadSession`),
+  // então a busca por `chaveAtual.current` nesse caso não encontra `File`
+  // nenhum — é assim que a regra 4 ("sem File, não libere a cheia") se aplica
+  // sem precisar de um sinal explícito vindo de fora.
+  const arquivoPorChave = useRef<Map<string, File>>(new Map());
+  // `true` quando `fila.image` está mostrando a REDUZIDA desta bancada. Não
+  // guarda o bitmap cheio em lugar NENHUM — só um `File` (metadado leve, sem
+  // o decodificado por trás) e um booleano. É isso que de fato LIBERA o
+  // bitmap: se guardássemos a referência à cheia "para reaproveitar depois",
+  // o coletor de lixo nunca poderia recolhê-la, e a Task 4 não economizaria
+  // memória nenhuma — só trocaria de nome o problema. `recarregarImagemCheia`
+  // paga o preço de decodificar de novo do zero, de propósito.
+  // `reduzindoOuRecarregando` evita duas operações assíncronas disputando o
+  // mesmo `fila.image` ao mesmo tempo; `intencaoAtual` é o desempate quando a
+  // bancada ativa/inativa troca DE NOVO enquanto a primeira ainda está em
+  // voo — vence a intenção mais recente no momento em que a promessa
+  // termina, não a que a iniciou.
+  const estaReduzida = useRef(false);
+  const reduzindoOuRecarregando = useRef(false);
+  const intencaoAtual = useRef<'ativa' | 'inativa'>('ativa');
+
+  const arquivoDeOrigemAtual = (): File | null => {
+    const chave = chaveAtual.current;
+    if (!chave) return null;
+    return arquivoPorChave.current.get(chave) ?? null;
+  };
+
+  const liberarImagemCheia = () => {
+    intencaoAtual.current = 'inativa';
+    const imagemAtual = fila.image;
+    if (!imagemAtual) return; // nada carregado ainda
+    if (estaReduzida.current) return; // já é a reduzida — idempotente
+    if (reduzindoOuRecarregando.current) return; // já há uma troca em voo
+    if (!deveReduzir(imagemAtual.width, imagemAtual.height)) return; // abaixo do piso (regra 5)
+    const arquivo = arquivoDeOrigemAtual();
+    if (!arquivo) return; // sem File de origem: não haveria como recarregar depois (regra 4)
+
+    reduzindoOuRecarregando.current = true;
+    const { width, height } = dimensoesReduzidas(imagemAtual.width, imagemAtual.height);
+    gerarImagemReduzida(imagemAtual, width, height)
+      .then((reduzida) => {
+        // A reduzida herda o tamanho DECLARADO da cheia (`.width`/`.height`,
+        // não o tamanho real do bitmap) — regra 2: a geometria não muda.
+        reduzida.width = imagemAtual.width;
+        reduzida.height = imagemAtual.height;
+        // A bancada pode ter voltado a ficar ativa (ou até trocado de
+        // imagem) enquanto a reduzida gerava — só aplica se ainda for a
+        // mesma cheia na tela E a intenção mais recente continuar sendo
+        // ficar inativa. Regra 3: a ativa nunca mostra a reduzida. Depois
+        // deste `setImage`, NADA nesta função continua segurando `imagemAtual`
+        // — é o que deixa o bitmap cheio livre para o coletor de lixo.
+        if (fila.image === imagemAtual && intencaoAtual.current === 'inativa') {
+          estaReduzida.current = true;
+          fila.setImage(reduzida);
+        } else {
+          URL.revokeObjectURL(reduzida.src); // nunca chegou a ser exibida
+        }
+      })
+      .catch(() => {
+        // Falhar em reduzir não é motivo para travar nada: fica com a cheia.
+      })
+      .finally(() => {
+        reduzindoOuRecarregando.current = false;
+      });
+  };
+
+  const recarregarImagemCheia = () => {
+    intencaoAtual.current = 'ativa';
+    if (!estaReduzida.current) return; // já está com a cheia — nada a fazer
+    if (reduzindoOuRecarregando.current) return; // já há uma troca em voo
+    const arquivo = arquivoDeOrigemAtual();
+    if (!arquivo) return; // não deveria faltar (só reduzimos quando havia File), mas não presume
+
+    const reduzidaNaTela = fila.image; // fica na tela até a cheia terminar — regra 1, nada pisca
+    reduzindoOuRecarregando.current = true;
+    decodificarImagemDeArquivo(arquivo)
+      .then((cheia) => {
+        if (fila.image === reduzidaNaTela && intencaoAtual.current === 'ativa') {
+          fila.setImage(cheia);
+          estaReduzida.current = false;
+          if (reduzidaNaTela) URL.revokeObjectURL(reduzidaNaTela.src);
+        } else if (reduzidaNaTela) {
+          // A bancada já trocou de imagem, ou voltou a ficar inativa antes
+          // de a cheia terminar de decodificar — descarta o resultado tardio
+          // e libera o blob da reduzida que ficou para trás.
+          URL.revokeObjectURL(reduzidaNaTela.src);
+        }
+      })
+      .catch(() => {
+        // Sem a cheia, fica com a reduzida na tela em vez de travar a
+        // bancada — mesma política de `loadError` do resto da fila, só que
+        // sem lugar na UI de uma bancada inativa para mostrar o aviso.
+        console.error('Não foi possível recarregar a imagem em resolução completa; mantendo a reduzida.');
+      })
+      .finally(() => {
+        reduzindoOuRecarregando.current = false;
+      });
+  };
+
   const onImageLoadedNaFila = (img: HTMLImageElement, file: File) => {
     // As anotações da imagem que estava aberta são guardadas ANTES de a nova
     // entrar. Sem isto, navegar na fila apagava a contagem anterior sem
@@ -144,6 +359,12 @@ export function useBancada(
 
     const chave = chaveDaImagem(file);
     chaveAtual.current = chave;
+    arquivoPorChave.current.set(chave, file);
+    // Toda imagem NOVA entra sempre em resolução cheia — zera o estado de
+    // redução do ciclo anterior desta bancada. Sem isto, fechar uma bancada
+    // reduzida e reabrir o slot com outra imagem faria essa imagem nova
+    // parecer "já reduzida" sem nunca ter sido.
+    estaReduzida.current = false;
 
     // Trocar de imagem RECOMEÇA o histórico: o Ctrl+Z desta imagem não pode
     // desfazer o que se fez na anterior.
@@ -204,6 +425,8 @@ export function useBancada(
       marcasRef,
       segmentacoesRef,
       chaveAtual,
+      liberarImagemCheia,
+      recarregarImagemCheia,
     },
   };
 }
