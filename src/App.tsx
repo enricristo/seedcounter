@@ -298,6 +298,12 @@ export default function App() {
   // Estilo e opacidade ficam em PREFERÊNCIA, não em estado da sessão: é gosto
   // de quem trabalha e tipo de amostra, não propriedade do dado. Quem analisa
   // orquídea densa escolhe uma vez e não escolhe de novo a cada imagem.
+  /** A conferência da última calibração, para virar coluna do CSV. */
+  const [calibracaoConferida, setCalibracaoConferida] = useState<{
+    dpiMedido: number;
+    leituras: number;
+    cvPercent?: number;
+  } | null>(null);
   const [estiloDaMarca, setEstiloDaMarca] = useState<EstiloDaMarca>(
     () => lerPreferenciaTexto('sc:estiloDaMarca', 'disco') as EstiloDaMarca
   );
@@ -1384,11 +1390,14 @@ export default function App() {
       paginaDaImagem: paginasDoTiff > 1 ? paginaDoTiff + 1 : undefined,
       totalDePaginas: paginasDoTiff > 1 ? paginasDoTiff : undefined,
       dpiDeclarado: dpiDeclarado ?? undefined,
+      dpiMedido: calibracaoConferida?.dpiMedido,
+      leiturasDeCalibracao: calibracaoConferida?.leituras,
+      cvDaCalibracaoPercent: calibracaoConferida?.cvPercent,
       modo: t.modo,
       tempoAtivoMs: t.ativoMs,
       tempoParedeMs: t.paredeMs,
     };
-  }, [cronometro, paginasDoTiff, paginaDoTiff, dpiDeclarado]);
+  }, [cronometro, paginasDoTiff, paginaDoTiff, dpiDeclarado, calibracaoConferida]);
 
   const buildMeasurementContext = useCallback(
     () => ({
@@ -3086,6 +3095,7 @@ export default function App() {
                 }}
                 measuredPixels={measuredPixels}
                 isMeasuring={isMeasuring}
+                onCalibracaoConferida={setCalibracaoConferida}
                 especie={
                   metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum
                 }
