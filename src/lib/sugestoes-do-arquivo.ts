@@ -112,7 +112,7 @@ export function acharBinomio(
 
 /** "Repetição 2", "rep 3", "R4" — o número da repetição, quando declarado. */
 function acharRepeticao(texto: string): { n: number; trecho: string } | null {
-  const re = /\b(?:repeti[cç][aã]o|repeticao|rep|r)\s*[:\-]?\s*(\d{1,2})\b/iu;
+  const re = /\b(?:repeti[cç][aã]o|repeticao|rep|r)\s*[:-]?\s*(\d{1,2})\b/iu;
   const m = texto.match(re);
   if (!m) return null;
   const n = Number(m[1]);
