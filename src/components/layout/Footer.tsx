@@ -2,6 +2,12 @@ import React from 'react';
 import { LifeBuoy } from 'lucide-react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 import { DISSERTACAO } from '../../features/easter/fucik';
+
+/** Currículos Lattes da orientação. Endereços públicos do CNPq. */
+const LATTES = {
+  nelson: 'http://lattes.cnpq.br/3785894121274991',
+  ceci: 'http://lattes.cnpq.br/3380611668628327',
+} as const;
 import type { FonteDeUmaAutomacao } from '../../lib/fonte-da-automacao';
 import { formatarTempo } from '../../lib/cronometro-de-analise';
 
@@ -258,7 +264,29 @@ export function Footer({
             </a>
           </span>
           <span className="text-ink-3 text-[9px]">
-            Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
+            {/* Os nomes levam ao Lattes, pela mesma razão que o do autor leva à
+                dissertação: quem clica num nome quer saber quem é, e o
+                currículo é a resposta oficial. */}
+            Orientação:{' '}
+            <a
+              href={LATTES.nelson}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Currículo Lattes"
+              className="hover:text-accent decoration-current/25 underline underline-offset-2 transition-colors"
+            >
+              Dr. Nelson Barbosa Machado Neto
+            </a>{' '}
+            e{' '}
+            <a
+              href={LATTES.ceci}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Currículo Lattes"
+              className="hover:text-accent decoration-current/25 underline underline-offset-2 transition-colors"
+            >
+              Dra. Ceci Castilho Custódio
+            </a>
           </span>
         </div>
         {/* O número da versão é o gancho para as notas. Cromo neutro: ciano e
