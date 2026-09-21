@@ -121,7 +121,7 @@ import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
 import {
-  RECEITAS,
+  RECEITAS_DO_ENSAIO,
   receitaPelaEspecie,
   receitaDeSalva,
   type Receita,
@@ -553,7 +553,9 @@ export default function App() {
         .filter((r): r is ReceitaSalva & { id: number } => r.id != null)
         .map(receitaDeSalva);
       const receitasParaRodar: Receita[] = [
-        ...RECEITAS,
+        // Só as que cabem na premissa do ensaio (barato, sem worker). Ver
+        // `RECEITAS_DO_ENSAIO` para o porquê de a IA ficar de fora daqui.
+        ...RECEITAS_DO_ENSAIO,
         ...(receitaDaEspecie ? [receitaDaEspecie] : []),
         ...receitasSalvasConvertidas,
       ];

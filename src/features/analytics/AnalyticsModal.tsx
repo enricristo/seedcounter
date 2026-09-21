@@ -139,7 +139,7 @@ export function AnalyticsModal({ onClose, sessions, getMedicoesCompletas }: Anal
         {/* Header */}
         <header className="flex shrink-0 items-center justify-between border-b border-line px-6 py-4 bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-on">
               <Activity className="h-5 w-5" />
             </div>
             <div>
@@ -150,7 +150,7 @@ export function AnalyticsModal({ onClose, sessions, getMedicoesCompletas }: Anal
           <div className="flex items-center gap-3">
             <button
               onClick={handleExportarPDF}
-              className="flex items-center gap-2 bg-accent hover:bg-accent-strong text-white px-4 py-2 rounded-md text-sm font-bold tracking-wider uppercase transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 bg-accent hover:bg-accent-strong text-accent-on px-4 py-2 rounded-md text-sm font-bold tracking-wider uppercase transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               disabled={carregando}
             >
               <Download size={16} /> Exportar Lote (PDF)

@@ -127,7 +127,7 @@ export function ImageExportModal({
         <div className="p-6 border-t border-line shrink-0 bg-surface-1 rounded-b-2xl flex flex-col gap-3">
           <button
             onClick={() => onExport({ includeViable, includeInviable, includeAgglomerated: false, overlayType }, 'single')}
-            className="w-full py-3 bg-accent hover:bg-accent/90 text-white font-bold rounded-xl shadow-lg shadow-accent/20 transition-all cursor-pointer"
+            className="w-full py-3 bg-accent hover:bg-accent/90 text-accent-on font-bold rounded-xl shadow-lg shadow-accent/20 transition-all cursor-pointer"
           >
             Baixar Somente Esta (PNG)
           </button>

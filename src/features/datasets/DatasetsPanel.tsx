@@ -719,7 +719,7 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar, onAdicio
                       onAdicionarAFila(arquivos);
                       setSelecionados(new Set());
                     }}
-                    className="text-[10px] font-bold uppercase tracking-wide bg-accent text-white px-2 py-1 rounded hover:bg-accent/90 transition-colors"
+                    className="text-[10px] font-bold uppercase tracking-wide bg-accent text-accent-on px-2 py-1 rounded hover:bg-accent/90 transition-colors"
                   >
                     Adicionar à Fila
                   </button>

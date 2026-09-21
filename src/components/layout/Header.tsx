@@ -358,7 +358,7 @@ export function Header({
                   {onProcessarFilaIA && (
                     <button
                       onClick={onProcessarFilaIA}
-                      className="ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-accent text-white rounded hover:bg-accent/90 transition-colors"
+                      className="ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-accent text-accent-on rounded hover:bg-accent/90 transition-colors"
                       title="Rodar IA em toda a fila e salvar no histórico"
                     >
                       Processar Fila

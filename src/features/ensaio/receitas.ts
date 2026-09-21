@@ -64,6 +64,19 @@ export const RECEITAS: Receita[] = [
 ];
 
 /**
+ * As receitas que o ENSAIO AO CARREGAR pode rodar.
+ *
+ * O ensaio existe com uma premissa: ser barato o suficiente para rodar sem
+ * worker toda vez que uma imagem abre. A receita de IA quebra a premissa — e
+ * pior: `detectObjects` ignora `usaModeloDeIA`, então a prévia rotulada
+ * "IA (YOLO)" seria na verdade a localização clássica a 50% de sensibilidade,
+ * com o nome errado em cima. Um resultado com rótulo errado é pior que
+ * nenhum. A IA continua disponível onde é tratada de verdade: no Lote
+ * (`processar-imagem.ts`) e em "Processar Fila".
+ */
+export const RECEITAS_DO_ENSAIO: Receita[] = RECEITAS.filter((r) => !r.localizacao.usaModeloDeIA);
+
+/**
  * Converte uma receita salva no Dexie (`useReceitasSalvas`) de volta para o
  * formato que o ensaio e o painel Encontrar entendem. O `id` ganha o prefixo
  * `salva-` para não colidir com os ids fixos de `RECEITAS` nem com o
