@@ -32,7 +32,7 @@ interface ExportModalProps {
   measurementCount?: number;
   hasMorphometry?: boolean;
   exportJSON: () => void;
-  exportAnnotatedImage: () => void;
+  onOpenImageExport: () => void;
   exportPDF: () => void;
 
   // YOLO beta export
@@ -56,7 +56,7 @@ export function ExportModal({
   measurementCount = 0,
   hasMorphometry = false,
   exportJSON,
-  exportAnnotatedImage,
+  onOpenImageExport,
   exportPDF,
   isYoloExportEnabled = false,
   onOpenYoloExport,
@@ -202,7 +202,7 @@ export function ExportModal({
               {/* Annotated Image */}
               <div className="col-span-2">
                 <button
-                  onClick={exportAnnotatedImage}
+                  onClick={onOpenImageExport}
                   className="w-full flex items-center justify-center gap-2.5 p-3 rounded-xl border border-line hover:border-line bg-surface-2 hover:bg-surface-2 hover:shadow-sm transition-all text-ink-2 font-bold text-xs uppercase tracking-wide cursor-pointer group active:scale-[0.99]"
                 >
                   <ImageIcon
