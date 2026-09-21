@@ -66,6 +66,7 @@ describe('a tabela modo → visibilidade', () => {
       identificarAmostra: false,
       lateralDireita: true,
       morfometria: true,
+      ensaioAoCarregar: true,
       rodape: true,
     };
     expect(visibilidadePadrao('apresentacao')).toEqual(esperado);
@@ -80,6 +81,15 @@ describe('a tabela modo → visibilidade', () => {
     expect(v.morfometria).toBe(false);
     expect(v.identificarAmostra).toBe(false);
     expect(v.prepararImagem).toBe(false);
+  });
+
+  it("'contagem' é o único modo que desliga o ensaio ao carregar", () => {
+    // O que o modo esconde também não custa: contar não roda três receitas
+    // por imagem. Os outros três continuam com o ensaio (atrás da flag).
+    expect(visibilidadePadrao('contagem').ensaioAoCarregar).toBe(false);
+    for (const modo of MODOS.filter((m) => m !== 'contagem')) {
+      expect(visibilidadePadrao(modo).ensaioAoCarregar, modo).toBe(true);
+    }
   });
 
   it("'laudo' mantém metadados e morfometria", () => {

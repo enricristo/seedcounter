@@ -122,4 +122,43 @@ describe('Motor de Regras Analíticas', () => {
     expect(resultado.marks.find((m) => m.id === 102)?.type).toBe('viable');
     expect(resultado.segmentacoes.find((s) => s.id === 201)?.category).toBe('inviable');
   });
+  it('alcança a semente que só o modelo viu (contorno sem marca)', () => {
+    // Antes `objectId - 1` virava índice de `marks`: o objeto 2 não tinha
+    // marca, `marks[1]` era undefined e a regra passava sem afetar nada.
+    const quadrado = (cx: number, cy: number): [number, number][] => [
+      [cx - 5, cy - 5],
+      [cx + 5, cy - 5],
+      [cx + 5, cy + 5],
+      [cx - 5, cy + 5],
+    ];
+    const marks: Mark[] = [{ id: 101, x: 10, y: 10, type: 'viable' }];
+    const segs: YoloSegmentation[] = [
+      { id: 301, category: 'viable', class_name: 'viavel', confidence: 0.9, polygon_points: quadrado(200, 200), visible: true, origem: 'modelo' },
+    ];
+    // objectId 1 = marca 101; objectId 2 = contorno órfão 301 (ordem de `enumerarObjetos`).
+    const medicoes: SeedMeasurement[] = [
+      mockMedida({ objectId: 1, circularidade: 0.9 }),
+      mockMedida({ objectId: 2, circularidade: 0.5, origem: 'ia' }),
+    ];
+    const regra: RegraParametrica = {
+      id: 'r3',
+      tipo: 'limiar-viabilidade',
+      nome: 'Chocha',
+      descricao: '',
+      campo: 'circularidade',
+      operador: '<',
+      limiar: 0.65,
+      acao: 'marcar-inviavel',
+    };
+
+    const reclassificado = aplicarRegra(marks, segs, medicoes, regra);
+    expect(reclassificado.totalAfetadas).toBe(1);
+    expect(reclassificado.marks[0].type).toBe('viable');
+    expect(reclassificado.segmentacoes[0].category).toBe('inviable');
+    expect(reclassificado.segmentacoes[0].class_name).toBe('inviavel');
+
+    const removido = aplicarRegra(marks, segs, medicoes, { ...regra, acao: 'remover' });
+    expect(removido.marks.map((m) => m.id)).toEqual([101]);
+    expect(removido.segmentacoes).toEqual([]);
+  });
 });

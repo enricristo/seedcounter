@@ -14,16 +14,7 @@
 // =============================================================================
 
 import { Download } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
+import { sobDemanda } from '../../lib/sob-demanda';
 import type { Bancadas as BancadasEstado } from '../../hooks/useBancadas';
 import {
   compararBancadas,
@@ -33,6 +24,11 @@ import {
   type LinhaDeComparacao,
 } from './comparacao';
 import { baixarArquivo, nomeDeExportacao } from '../../lib/download';
+
+// O gráfico é a única parte que pesa (`recharts`); a tabela chega na hora.
+const GraficoDaComparacao = sobDemanda(() =>
+  import('./GraficoDaComparacao').then((m) => m.GraficoDaComparacao)
+);
 
 interface PainelDeComparacaoProps {
   bancadas: BancadasEstado;
@@ -200,32 +196,7 @@ export function PainelDeComparacao({ bancadas }: PainelDeComparacaoProps) {
 
       {serie && (
         <div className="h-[160px] w-full pt-1">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={serie.pontos} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line-soft)" />
-              <XAxis
-                dataKey="rotulo"
-                stroke="var(--color-ink-3)"
-                fontSize={10}
-                tickLine={false}
-                fontFamily="monospace"
-              />
-              <YAxis stroke="var(--color-ink-3)" fontSize={10} tickLine={false} fontFamily="monospace" allowDecimals={false} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--color-surface-1)',
-                  borderColor: 'var(--color-line)',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  color: 'var(--color-ink-1)',
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '10px' }} />
-              <Line type="monotone" dataKey="total" name="Total" stroke="var(--color-series-1)" strokeWidth={2} dot />
-              <Line type="monotone" dataKey="viaveis" name="Viáveis" stroke="var(--color-ov-viable)" strokeWidth={2} dot />
-              <Line type="monotone" dataKey="inviaveis" name="Inviáveis" stroke="var(--color-ov-inviable)" strokeWidth={2} dot />
-            </LineChart>
-          </ResponsiveContainer>
+          <GraficoDaComparacao pontos={serie.pontos} />
         </div>
       )}
     </section>

@@ -460,6 +460,7 @@ export function Header({
               <button
                 onClick={onSaveSession}
                 disabled={!hasImage}
+                title="Salvar a sessão no histórico (Ctrl+S)"
                 className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
               >
                 <Save size={16} strokeWidth={2} aria-hidden="true" />
@@ -472,6 +473,7 @@ export function Header({
               <button
                 onClick={onExport}
                 disabled={!hasImage}
+                title="Exportar (Ctrl+E)"
                 className="rounded-control bg-accent text-accent-on hover:bg-accent-strong flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-wider uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
               >
                 <Download size={16} strokeWidth={2} aria-hidden="true" />

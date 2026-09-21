@@ -12,10 +12,18 @@ import {
   FileText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PlateViabilityChart } from '../charts/PlateViabilityChart';
-import { SessionTrendChart } from '../charts/SessionTrendChart';
+import { sobDemanda } from '../../lib/sob-demanda';
 import type { Session } from '../../types';
 import { useModalEscape } from '../../hooks/useModalEscape';
+
+// Os dois gráficos são o único uso de `recharts` neste modal; a lista de
+// sessões e as exportações não dependem deles. Ver `lib/sob-demanda.tsx`.
+const PlateViabilityChart = sobDemanda(() =>
+  import('../charts/PlateViabilityChart').then((m) => m.PlateViabilityChart)
+);
+const SessionTrendChart = sobDemanda(() =>
+  import('../charts/SessionTrendChart').then((m) => m.SessionTrendChart)
+);
 
 interface HistoryModalProps {
   isOpen: boolean;

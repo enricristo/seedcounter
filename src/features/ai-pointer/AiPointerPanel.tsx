@@ -23,6 +23,7 @@ import {
   type ModelQuality,
 } from '../../lib/yolo-onnx';
 import { detectarNoWorker } from '../../lib/yolo-worker-client';
+import { categoriaDaDeteccao } from '../../lib/classe-do-modelo';
 import { resultadoAindaVale } from '../../lib/resultado-por-bancada';
 import { calculateSeedDimensions } from '../../lib/pca-utils';
 import { contarJanelas, limitarRegiao, type Regiao } from '../../lib/region';
@@ -143,7 +144,7 @@ export function AiPointerPanel({
         radius: Math.max(3, Math.round(Math.min(d.bbox.width, d.bbox.height) / 2)),
         bbox: d.bbox,
         // Reutiliza o estilo tracejado para destacar a classe "inviável".
-        split: d.className === 'inviavel',
+        split: categoriaDaDeteccao(d) === 'inviable',
       })),
       showMask: false,
     });
@@ -241,8 +242,8 @@ export function AiPointerPanel({
       newDetections.map((d, i) => ({
         x: d.x,
         y: d.y,
-        // O modelo já classifica: 'viavel' / 'inviavel'.
-        type: d.className === 'viavel' ? ('viable' as const) : ('inviable' as const),
+        // O modelo já classifica; a tradução é a mesma da fila e do importador.
+        type: categoriaDaDeteccao(d),
         id: base + i + Math.random(),
       }))
     );
@@ -253,7 +254,7 @@ export function AiPointerPanel({
       onAddSegmentations(
         withPolygons.map((d, i) => ({
           id: base + 1_000_000 + i,
-          category: d.className === 'viavel' ? ('viable' as const) : ('inviable' as const),
+          category: categoriaDaDeteccao(d),
           class_name: d.className,
           confidence: d.confidence,
           polygon_points: d.polygon as [number, number][],
@@ -267,8 +268,8 @@ export function AiPointerPanel({
 
   const counts = useMemo(
     () => ({
-      viavel: newDetections.filter((d) => d.className === 'viavel').length,
-      inviavel: newDetections.filter((d) => d.className === 'inviavel').length,
+      viavel: newDetections.filter((d) => categoriaDaDeteccao(d) === 'viable').length,
+      inviavel: newDetections.filter((d) => categoriaDaDeteccao(d) === 'inviable').length,
     }),
     [newDetections]
   );

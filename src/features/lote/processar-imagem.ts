@@ -28,6 +28,7 @@
 // =============================================================================
 
 import { detectObjects } from '../../lib/detect';
+import { categoriaDaDeteccao } from '../../lib/classe-do-modelo';
 import { segmentarNoCanvas } from '../segmentacao/onda-no-canvas';
 import { executarReceita } from '../ensaio/executar';
 import { resumir, type Receita, type ContornoProposto, type ResumoDaReceita } from '../ensaio/receitas';
@@ -99,10 +100,9 @@ function desenharPreviaComContornos(origem: HTMLCanvasElement, propostos: Contor
 // O desvio para o modelo
 // ---------------------------------------------------------------------------
 
-/** A classe do modelo, no vocabulário do app. Só `className` decide: `classId === 1` é 'viavel' em `YOLO_CLASSES`, não inviável. */
-export function categoriaDaDeteccao(det: Pick<YoloDetection, 'className'>): 'viable' | 'inviable' {
-  return det.className === 'inviavel' ? 'inviable' : 'viable';
-}
+// A tradução da classe vive em `lib/classe-do-modelo.ts`, ao lado da tabela
+// do treino; aqui só se reexporta para quem já importava deste módulo.
+export { categoriaDaDeteccao };
 
 /**
  * Converte o que o modelo devolveu no MESMO formato que a onda devolve.

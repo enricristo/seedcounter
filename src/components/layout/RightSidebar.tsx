@@ -19,7 +19,7 @@ import {
 import { Counters } from '../sidebar/Counters';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { CardEstatisticasPopulacionais } from '../../features/morfometria/CardEstatisticasPopulacionais';
-import { CardHistogramas } from '../../features/morfometria/CardHistogramas';
+import { CardHistogramas } from '../../features/morfometria/CardHistogramas.sob-demanda';
 import { CardRegrasSemiAutomaticas } from '../../features/morfometria/CardRegrasSemiAutomaticas';
 import type { ResumoDeMorfometria } from '../../features/morfometria/resumo';
 import type { SeedMeasurement } from '../../lib/measurements';

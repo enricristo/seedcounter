@@ -90,8 +90,10 @@ describe('ajuda de teclado', () => {
    */
   it('os atalhos de bancada (Ctrl+Alt+1..4 e Ctrl+Alt+N) estão na ajuda', () => {
     const fonte = readFileSync(join(HOOKS, 'useKeyboardShortcuts.ts'), 'utf8');
-    expect(fonte).toMatch(/e\.altKey && \/\^\[1-4\]\$\/\.test\(e\.key\)/);
-    expect(fonte).toMatch(/e\.altKey && e\.key\.toLowerCase\(\) === 'n'/);
+    // Por `e.code` (Digit1..4 / KeyN): ver o comentário no gancho sobre AltGr.
+    expect(fonte).toMatch(/Digit\(\[1-4\]\)/);
+    expect(fonte).toMatch(/e\.altKey && digito !== null/);
+    expect(fonte).toMatch(/e\.altKey && \(e\.code === 'KeyN'/);
 
     for (const n of [1, 2, 3, 4]) {
       expect(TECLAS_LISTADAS, `Ctrl + Alt + ${n}`).toContain(`ctrl + alt + ${n}`);

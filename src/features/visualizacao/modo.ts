@@ -22,6 +22,17 @@
 // barra de menu crescer, a tabela cresce junto — mas sempre com uma chave por
 // coisa visível, nunca por "feature".
 //
+// O QUE O MODO ESCONDE TAMBÉM NÃO CUSTA.
+//
+// `ensaioAoCarregar` é o primeiro caso de uma parte que não é um painel, e
+// sim um TRABALHO: as três receitas que rodam sobre cada imagem que chega
+// (`App.tsx`, `onImageLoaded`). Numa digitalização grande são segundos de
+// processamento na thread principal — e o modo "contagem" não mostra os
+// cartões do ensaio a ninguém, então não há motivo para computá-los.
+// Esconder uma parte tem que valer para o custo dela, não só para o pixel;
+// senão o modo "leve" só parece leve. A regra fica escrita aqui porque é
+// aqui que a próxima pessoa vai procurar quando outra parte cara aparecer.
+//
 // 'apresentacao' É O ANTIGO `?mode=enterprise`, E NÃO PODE MUDAR DE CARA.
 //
 // É o modo usado para gravar vídeo agora. O teste em `__tests__/modo.test.ts`
@@ -77,6 +88,13 @@ export interface Visibilidade {
   lateralDireita: boolean;
   /** Biometria populacional, distribuição e regras semi-automáticas, na aba Resultados. */
   morfometria: boolean;
+  /**
+   * As receitas que rodam ao abrir uma imagem, com os cartões na aba
+   * Inspetor. É trabalho, não painel — ver o cabeçalho do arquivo. Continua
+   * atrás da flag `ensaioAoCarregar`: o modo só pode DESLIGAR o que a flag
+   * ligou, nunca ligar o que ela mantém desligado.
+   */
+  ensaioAoCarregar: boolean;
 
   // --- Rodapé ---
   rodape: boolean;
@@ -101,6 +119,7 @@ export const PARTES: readonly ParteDaInterface[] = [
   'identificarAmostra',
   'lateralDireita',
   'morfometria',
+  'ensaioAoCarregar',
   'rodape',
 ];
 
@@ -121,6 +140,7 @@ export const ROTULO_DA_PARTE: Record<ParteDaInterface, string> = {
   identificarAmostra: 'Identificar amostra',
   lateralDireita: 'Painel direito',
   morfometria: 'Morfometria',
+  ensaioAoCarregar: 'Ensaio ao carregar a imagem',
   rodape: 'Rodapé',
 };
 
@@ -141,6 +161,7 @@ const TUDO: Visibilidade = {
   identificarAmostra: true,
   lateralDireita: true,
   morfometria: true,
+  ensaioAoCarregar: true,
   rodape: true,
 };
 
@@ -148,7 +169,7 @@ const TUDO: Visibilidade = {
  * A tabela modo → visibilidade.
  *
  * Cada modo é descrito como um DESVIO do completo, para que o diff entre dois
- * modos seja legível aqui, sem precisar comparar dezesseis booleanos.
+ * modos seja legível aqui, sem precisar comparar dezessete booleanos.
  */
 export function visibilidadePadrao(modo: ModoDeVisualizacao): Visibilidade {
   switch (modo) {
@@ -158,7 +179,8 @@ export function visibilidadePadrao(modo: ModoDeVisualizacao): Visibilidade {
     case 'contagem':
       // Só o que serve para contar: a imagem, o que encontra objetos, e os
       // totais. Calibração, morfometria e metadados são etapas de laudo, não
-      // de contagem — ficam a um clique no menu, não na frente.
+      // de contagem — ficam a um clique no menu, não na frente. O ensaio sai
+      // pelo custo: contar não precisa de três receitas por imagem.
       return {
         ...TUDO,
         botaoDeRecursos: false,
@@ -167,6 +189,7 @@ export function visibilidadePadrao(modo: ModoDeVisualizacao): Visibilidade {
         prepararImagem: false,
         identificarAmostra: false,
         morfometria: false,
+        ensaioAoCarregar: false,
       };
 
     case 'laudo':

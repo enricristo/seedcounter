@@ -45,6 +45,17 @@ import {
 import { useSessions } from './hooks/useSessions';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
+import {
+  DialogoDeCarregar,
+  decidirAoCarregar,
+  haTrabalhoNaoSalvo,
+  proporContinuidade,
+  aplicarContinuidade,
+  type Continuidade,
+  type ConfirmacaoDeCarregar,
+  type CampoDeContinuidade,
+  type PropostaDeContinuidade,
+} from './features/carregar';
 import { useViewNavigation } from './hooks/useViewNavigation';
 import { useTools } from './hooks/useTools';
 import {
@@ -65,8 +76,8 @@ import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
-import { AnalyticsPanel } from './features/analytics/AnalyticsPanel';
-import { AnalyticsModal } from './features/analytics/AnalyticsModal';
+// Sob demanda: os dois carregam o `recharts` (ver `features/analytics/index.ts`).
+import { AnalyticsPanel, AnalyticsModal } from './features/analytics';
 import { NovidadesModal } from './features/novidades';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
 import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
@@ -145,6 +156,7 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
+import { categoriaImportada, categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -449,6 +461,29 @@ export default function App() {
   const [sugestoes, setSugestoes] = useState<SugestoesDaAmostra | null>(null);
 
   /**
+   * Carregar com cena ocupada (ver `features/carregar`): os arquivos ficam
+   * aqui, SEGURADOS, enquanto o diálogo pergunta o que fazer. Cancelar zera
+   * isto e nada abre. Vários arquivos de uma vez = uma pergunta só, sobre o
+   * primeiro; os outros seguem o mesmo destino.
+   */
+  const [carregamentoPendente, setCarregamentoPendente] = useState<{
+    arquivos: File[];
+    continuidade: Continuidade;
+  } | null>(null);
+  /**
+   * A continuidade que a pessoa confirmou, à espera da imagem que ela
+   * descreve. É aplicada em `onImageLoaded`, quando ESSA imagem abre — e não
+   * no clique — porque "adicionar à fila" deixa a cena atual na tela, e
+   * escrever "T8" no metadado da placa que ainda está sendo contada seria
+   * errado. A chave é nome+tamanho, a mesma de `useBancada`.
+   */
+  const continuidadePendente = useRef<{
+    chave: string;
+    proposta: PropostaDeContinuidade;
+    marcados: Set<CampoDeContinuidade>;
+  } | null>(null);
+
+  /**
    * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
    *
    * `resultados` acumula um `ResultadoDoEnsaio` por receita conforme cada uma
@@ -488,6 +523,12 @@ export default function App() {
   // entra) NÃO mora mais aqui: é `useBancada` quem cuida disso agora, porque
   // é estado da CENA que carregou a imagem, não deste callback global (ver
   // `useBancada.ts`).
+  // O modo de visualização decide se o ensaio roda (ver `modo.ts`, "o que o
+  // modo esconde também não custa"). Lido aqui, e não no `useVisibilidade` do
+  // rodapé mais abaixo, porque este fecho é declarado antes dele — e um
+  // segundo `useContext` custa nada.
+  const { visibilidade: visibilidadeDoModo } = useVisibilidade();
+
   const onImageLoaded = (indice: number, img: HTMLImageElement, file: File) => {
     // A bancada que carregou a imagem — não necessariamente a ativa (Task 3
     // ainda não liga `ativar` a nenhuma interação, então hoje é sempre a
@@ -524,6 +565,17 @@ export default function App() {
     );
     setChipDeClasseDispensado(null);
 
+    // Continuidade confirmada no diálogo de carregar, se for ESTA imagem:
+    // só os campos marcados entram (ver `aplicarContinuidade`). Outra imagem
+    // abrindo antes — a pessoa navegou na fila — não consome a pendência.
+    const continuidade = continuidadePendente.current;
+    if (continuidade && continuidade.chave === `${file.name}:${file.size}`) {
+      continuidadePendente.current = null;
+      alvo.meta.setMetadata((prev) =>
+        aplicarContinuidade(prev, continuidade.proposta, continuidade.marcados)
+      );
+    }
+
     if (containerRef.current) {
       const container = containerRef.current;
       alvo.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
@@ -537,7 +589,14 @@ export default function App() {
     // bancada que não está em tela não pode disparar um ensaio caro que
     // ninguém vai ver — com quatro bancadas isso multiplicaria o trabalho por
     // até quatro sem nenhum ganho.
-    if (isEnsaioAoCarregarEnabled && indice === bancadas.indiceAtivo) {
+    //
+    // E só nos modos que MOSTRAM o ensaio: "contagem" o desliga
+    // (`visibilidadePadrao('contagem').ensaioAoCarregar === false`), e o
+    // menu Exibir permite ligar ou desligar por cima do modo. É o primeiro
+    // caso de "o que o modo esconde também não custa": rodar três receitas
+    // sobre uma digitalização grande são segundos que quem só conta não
+    // pediu. A flag continua mandando — o modo só desliga, nunca liga.
+    if (isEnsaioAoCarregarEnabled && visibilidadeDoModo.ensaioAoCarregar && indice === bancadas.indiceAtivo) {
       ensaioCancelado.current = false;
       abrirAbaDireita('inspetor');
 
@@ -617,7 +676,7 @@ export default function App() {
     loadError,
     setLoadError,
     loadFiles,
-    handleFileUpload,
+    adicionarAFila,
     handleNextImage,
     handlePrevImage,
     loadImageFromFile,
@@ -686,6 +745,85 @@ export default function App() {
     referenciaJaCarregada,
     setReferenciaJaCarregada,
   } = bancada.cena;
+
+  // --- Carregar imagem com cena aberta (ver `features/carregar`) -------------
+  //
+  // A porta de entrada de quem ESCOLHE um arquivo: o botão da barra lateral e
+  // o arrastar-e-soltar. Com a cena vazia (ou sem marcação) abre direto, como
+  // sempre abriu; com cena ocupada segura os arquivos e pergunta. Os outros
+  // caminhos que chamam `loadFiles` — exemplo, dataset, câmera, dividir,
+  // recorte — NÃO passam por aqui: cada um deles já escreve metadado ou troca
+  // a própria imagem no mesmo gesto, e um diálogo no meio quebraria isso.
+  const carregarArquivos = useCallback(
+    (files: File[]) => {
+      const decisao = decidirAoCarregar({
+        temImagem: image !== null,
+        totalDeMarcas: marks.length,
+        totalDeContornos: yoloSegmentations.length,
+        ultimaGravacao,
+      });
+      if (decisao === 'abrir' || files.length === 0) {
+        loadFiles(files);
+        return;
+      }
+      const primeiro = files[0];
+      const caminho = (primeiro as File & { webkitRelativePath?: string }).webkitRelativePath;
+      const pasta = caminho ? caminho.split('/').slice(-2, -1)[0] : undefined;
+      const continuidade = proporContinuidade(
+        {
+          researcher: metadata.researcher,
+          project: metadata.project,
+          treatment: metadata.treatment,
+          plate: metadata.plate,
+          especie: metadata.amostra?.especieNomeCientifico,
+        },
+        sugerirDoArquivo({ nomeDoArquivo: primeiro.name, pasta }),
+        primeiro.name
+      );
+      setCarregamentoPendente({ arquivos: files, continuidade });
+    },
+    [image, marks.length, yoloSegmentations.length, ultimaGravacao, metadata, loadFiles]
+  );
+
+  /** Mesma assinatura do `handleFileUpload` da fila — a barra lateral não muda. */
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      carregarArquivos(Array.from(e.target.files || []));
+      e.target.value = '';
+    },
+    [carregarArquivos]
+  );
+
+  const cancelarCarregamento = useCallback(() => {
+    registrarEvento('carregar:decisao', { escolha: 'cancelar' });
+    setCarregamentoPendente(null);
+  }, []);
+
+  const confirmarCarregamento = useCallback(
+    ({ escolha, tipo, marcados }: ConfirmacaoDeCarregar) => {
+      if (!carregamentoPendente) return;
+      const { arquivos, continuidade } = carregamentoPendente;
+      setCarregamentoPendente(null);
+      // Só a escolha e o tipo — nunca o nome do arquivo (ver `trilha.ts`).
+      registrarEvento('carregar:decisao', { escolha, continuidade: tipo, campos: marcados.size });
+
+      const proposta = continuidade.propostas.find((p) => p.tipo === tipo);
+      const primeiro = arquivos[0];
+      if (proposta && marcados.size > 0) {
+        continuidadePendente.current = {
+          chave: `${primeiro.name}:${primeiro.size}`,
+          proposta,
+          marcados,
+        };
+      } else {
+        continuidadePendente.current = null;
+      }
+
+      if (escolha === 'substituir') loadFiles(arquivos);
+      else adicionarAFila(arquivos, escolha === 'adicionar-e-ir');
+    },
+    [carregamentoPendente, loadFiles, adicionarAFila]
+  );
 
   // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
   // maior lado dos contornos ja segmentados. E o que permite conferir se a
@@ -1143,15 +1281,15 @@ export default function App() {
               const polygon_points = seg.polygon_points || seg.points || [];
               const { width, height } = calculateSeedDimensions(polygon_points);
 
-              let category: 'viable' | 'inviable' = 'viable';
-              if (seg.category === 'inviable' || seg.class_name === 'inviavel' || seg.class === 1) {
-                category = 'inviable';
-              }
+              // `category` → `class_name` (com ou sem acento) → índice pela tabela
+              // do treino. Antes `class === 1` virava inviável aqui, mas 1 é
+              // VIÁVEL em `YOLO_CLASSES` — o mesmo engano que a fila com IA teve.
+              const category = categoriaImportada(seg);
 
               return {
                 id: seg.id ?? idx,
                 category,
-                class_name: category === 'viable' ? 'viavel' : 'inviavel',
+                class_name: nomeDaCategoria(category),
                 confidence: seg.confidence ?? 1.0,
                 polygon_points,
                 visible: seg.visible !== false,
@@ -1218,13 +1356,14 @@ export default function App() {
       const jsons = files.filter((f) => f.name.endsWith('.json') || f.type === 'application/json');
 
       if (images.length > 0) {
-        loadFiles(images);
+        // Mesmo caminho do botão: com cena ocupada, pergunta antes de abrir.
+        carregarArquivos(images);
       }
       if (jsons.length > 0) {
         processJSONFile(jsons[0]);
       }
     },
-    [loadFiles, processJSONFile]
+    [carregarArquivos, processJSONFile]
   );
 
   const { isDragActive } = useDragDrop({ onFilesDropped });
@@ -1751,9 +1890,8 @@ export default function App() {
    */
   const normalizarClasseExterna = useCallback(
     (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
-      const c = classe.trim().toLowerCase();
-      if (c === 'viavel' || c === 'viável') return { category: 'viable', class_name: 'viavel' };
-      if (c === 'inviavel' || c === 'inviável') return { category: 'inviable', class_name: 'inviavel' };
+      const category = categoriaDoNome(classe);
+      if (category) return { category, class_name: nomeDaCategoria(category) };
       return { category: 'viable', class_name: 'viavel', classeExterna: classe };
     },
     []
@@ -3234,7 +3372,7 @@ export default function App() {
                 mascara={mascara}
                 onCiclarMascara={ciclarMascara}
                 onAbrirGaleria={() => abrirAbaDireita('galeria')}
-                totalDeObjetos={marks.length + yoloSegmentations.length}
+                totalDeObjetos={contagem.total}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
                 estiloDaMarca={estiloDaMarca}
@@ -3794,7 +3932,7 @@ export default function App() {
             exportCSV={handleExportCSV}
             exportMeasurementsCSV={handleExportMeasurementsCSV}
             exportSQL={handleExportSQL}
-            measurementCount={marks.length}
+            measurementCount={contagem.total}
             hasMorphometry={yoloSegmentations.some(
               (s) => s.visible !== false && s.polygon_points?.length >= 3
             )}
@@ -3936,6 +4074,28 @@ export default function App() {
               'Tratamento',
               'Imagem carregada',
             ]}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Carregar com cena ocupada — substituir ou enfileirar, e o que a
+          imagem nova é. Esc cancela e nada abre (ver `features/carregar`). */}
+      <AnimatePresence>
+        {carregamentoPendente && (
+          <DialogoDeCarregar
+            key={`${carregamentoPendente.arquivos[0].name}:${carregamentoPendente.arquivos[0].size}`}
+            nomeDoArquivo={carregamentoPendente.arquivos[0].name}
+            quantosArquivos={carregamentoPendente.arquivos.length}
+            avisoDeNaoSalvo={haTrabalhoNaoSalvo({
+              temImagem: image !== null,
+              totalDeMarcas: marks.length,
+              totalDeContornos: yoloSegmentations.length,
+              ultimaGravacao,
+            })}
+            continuidade={carregamentoPendente.continuidade}
+            metadata={metadata}
+            onCancelar={cancelarCarregamento}
+            onConfirmar={confirmarCarregamento}
           />
         )}
       </AnimatePresence>
