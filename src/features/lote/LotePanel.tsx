@@ -57,6 +57,7 @@ import { executarLote, type ItemDoLote, type ResultadoDeUmaImagem } from './lote
 import { processarImagemDoLote } from './processar-imagem';
 import { resumirLote } from './resumo';
 import { ehDuplicata } from './duplicata';
+import { decodificarParaCanvas } from './abrir-imagem';
 import { RECEITAS, receitaDeSalva, type Receita, type ContornoProposto } from '../ensaio/receitas';
 import { useReceitasSalvas } from '../../hooks/useReceitasSalvas';
 import { useLotes } from '../../hooks/useLotes';
@@ -466,20 +467,11 @@ export function LotePanel({
       const item = itensRef.current.get(resultado.id);
       let imageData: string | undefined;
       if (item) {
+        // Pelo mesmo decodificador de `processar-imagem.ts`: `createImageBitmap`
+        // direto falhava em TIFF, e a digitalização de tetrazólio é TIFF.
         const file = await item.obterFile();
-        const bitmap = await createImageBitmap(file);
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = bitmap.width;
-          canvas.height = bitmap.height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(bitmap, 0, 0);
-            imageData = canvas.toDataURL('image/jpeg', 0.85);
-          }
-        } finally {
-          bitmap.close();
-        }
+        const canvas = await decodificarParaCanvas(file);
+        imageData = canvas.toDataURL('image/jpeg', 0.85);
       } else {
         // Lote retomado: sem `File` original, a prévia com contornos já
         // desenhada em `processar-imagem.ts` é o que sobrou.
@@ -496,6 +488,10 @@ export function LotePanel({
         metadata: {
           ...metadataBase,
           receita: { id: receita.id, parametros: { localizacao: receita.localizacao, onda: receita.onda } },
+          // A pessoa conferiu a miniatura e aceitou a linha, não cada objeto:
+          // para a procedência isso é contagem AUTOMÁTICA, e o laudo/CSV
+          // precisam saber que nenhuma semente foi conferida uma a uma.
+          procedencia: { ...metadataBase.procedencia, modo: 'automatica' },
         },
         marks: [],
         yoloSegmentations,
