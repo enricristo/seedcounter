@@ -54,6 +54,73 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.6.0',
+    data: '2026-09-21',
+    titulo: 'Pronto para a bancada: medida conferida, tempo medido, e o app sabe quando quebra',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Calibração conferida em vários pontos',
+        detalhe:
+          'No método "Referência", cada medição da régua pode ser guardada e repetida em outro ponto do campo. O painel mostra a escala média, o CV entre as leituras, a diferença contra o DPI que o arquivo declara, e avisa quando as leituras discordam ou quando a escala muda de um lado para o outro da mesa. Com leituras guardadas, é a média que vale. Erro de escala é sistemático: entra igual em todas as amostras e não aparece na repetição — por isso ele precisa ser conferido, não assumido.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'TIFF com várias páginas: escolha a página',
+        detalhe:
+          'Uma digitalização de tetrazólio com dez espécies chega como um arquivo de dez páginas. Antes o app abria a primeira e avisava; agora há um seletor no cabeçalho, com setas e lista. O DPI declarado pelo arquivo é lido junto — como declaração, não como medida.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Cronômetro por imagem, com o modo declarado',
+        detalhe:
+          'No rodapé, o tempo de trabalho efetivo nesta cena: para quando a aba some e quando ninguém mexe em nada por um minuto, e zera ao trocar de imagem ou de página. Ao lado, você declara se a contagem é manual, assistida ou automática. É o dado que permite comparar os dois jeitos na mesma imagem — e que nenhum software da área publica, porque nenhum mede.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Quatro estilos de marca e opacidade',
+        detalhe:
+          'O disco preenchido tapava a semente numa amostra densa. Agora há disco, anel, ponto e cruz, mais um controle de opacidade. Em todos, viável e inviável têm formas diferentes — a distinção sobrevive ao daltonismo e à impressão em preto e branco.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Volumes da semente, do embrião e do ar — com as equações na tela',
+        detalhe:
+          'No fim do painel de Morfometria: embrião como esferoide prolato, semente como dois cones pela base, ar por subtração. As equações ficam escritas ao lado do resultado, para quem apresenta poder apontar e dizer "é esta, com estes valores". O embrião é digitado (vem do microscópio); a convenção da altura do cone é escolhida na tela, porque as duas leituras diferem por um fator de 2.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'O nome do arquivo sugere espécie e repetição',
+        detalhe:
+          'Ao abrir uma imagem, o app lê o nome do arquivo e da pasta e propõe espécie, repetição e data — mostrando o trecho de onde tirou cada uma. Sugere, nunca preenche: "Usar" só entra em campo vazio.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'CSV com procedência: de onde saiu cada número',
+        detalhe:
+          'Espécie, lote e página do arquivo; modo de análise e tempo; DPI declarado e DPI medido; quantas leituras de calibração e o CV; versão e commit. Repetido em toda linha, para qualquer ferramenta de análise ler sem preparo. Campo vazio significa "não foi medido" — nunca é preenchido com o provável.',
+      },
+      {
+        tipo: 'novo',
+        titulo: '"Relatar problema" e uma tela calma quando algo quebra',
+        detalhe:
+          'Um erro que antes deixava a tela branca agora mostra o que aconteceu em linguagem humana, avisa que o trabalho salvo continua no navegador, e oferece baixar um relatório: versão, navegador e a sequência do que foi feito. Sem imagem, sem pixel, sem nome de arquivo — só extensão e tamanho. Fica em Configurações, com um atalho ao lado da versão no rodapé.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Detalhes de quem usa o dia inteiro',
+        detalhe:
+          'Os números pararam de mudar de largura a cada semente marcada; a seleção de texto usa a cor do sistema; a barra de rolagem do Firefox foi arrumada; o foco por teclado é visível; e quem pede menos movimento ao sistema recebe menos movimento.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Autores e citação',
+        detalhe:
+          'A citação passou a listar os quatro autores na ordem oficial, e o repositório ganhou um CITATION.cff — o GitHub, o Zotero e o Mendeley leem direto dele. Os nomes da orientação no rodapé levam ao Lattes.',
+      },
+    ],
+  },
+  {
     numero: '3.5.0',
     data: '2026-09-16',
     titulo: 'Os datasets entram no app, e a medida passa a ser conferida',

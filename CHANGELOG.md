@@ -3,6 +3,28 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.6.0] — 2026-09-21
+
+O que a primeira usuária real precisa na bancada. Detalhe em linguagem de quem
+usa: `src/lib/novidades.ts`. Roteiro para ela: `docs/roteiros/`.
+
+### Adicionado
+- `lib/calibracao-multiponto.ts` + painel: N leituras do alvo → µm/px médio, CV, divergência do DPI declarado, correlação da escala com a posição; a média é aplicada, e a conferência vai para o CSV.
+- `lib/tiff.ts`: `decodificarTiff(buffer, pagina)` e DPI declarado (tags 282/296); seletor de página no cabeçalho; a fila guarda o `File`, não o `ArrayBuffer`.
+- `lib/cronometro-de-analise.ts` + `hooks/useCronometro.ts`: tempo ativo por cena (ouvintes passivos em captura, estado em ref, apara no ocioso de 60 s), modo declarado, no rodapé.
+- `theme/specimen.ts`: `EstiloDaMarca` (disco/anel/ponto/cruz) e opacidade com piso de 25%; forma redundante preservada em todos.
+- `lib/morfometria-volumetrica.ts` + `CardVolumes`: Eq. 1 (esferoide prolato), Eq. 2 (cone × 2) e ar; convenção da altura explícita.
+- `lib/sugestoes-do-arquivo.ts`: espécie/repetição/data do nome do arquivo e da pasta; pares deslizantes; epíteto maiúsculo aceito como "deduzido".
+- `Metadata.procedencia` e colunas novas no CSV de medidas (espécie, página, modo, tempos, DPI declarado/medido, calibração, versão, commit).
+- `lib/diagnostico/` (trilha, relatório, captura global), `ErrorBoundary` por fora do provedor, `PainelDeRelato` em Configurações.
+- `CITATION.cff`; `docs/referencias/seedcounter.bib`; `docs/mercado/`; `docs/backend/revisao-2026-09-18.md`; `docs/roteiros/`.
+- Lattes da orientação no rodapé.
+
+### Alterado
+- `index.css`: `tabular-nums` na família mono, `::selection`, `scrollbar-color`, `:focus-visible`, `prefers-reduced-motion`.
+- Citação com quatro autores na ordem oficial; menções à instituição removidas de `docs/index.html`.
+- Testes: 987 → 1059.
+
 ## [3.5.0] — 2026-09-16
 
 Datasets dentro do app, medida conferida, e o lote. Detalhe em linguagem de
