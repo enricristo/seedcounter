@@ -41,6 +41,8 @@ export interface Mark {
    * 'humano') é o caso de sempre: alguém clicou na imagem.
    */
   origem?: 'humano' | 'referencia';
+  /** Classe original carregada de um arquivo multiclasse */
+  classeExterna?: string;
 }
 
 export interface YoloSegmentation {

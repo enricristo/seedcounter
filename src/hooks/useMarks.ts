@@ -110,9 +110,9 @@ export function useMarks() {
   // VINCULAR os dois. Sem o id, o vinculo ficava implicito (ponto dentro do
   // poligono), e implicito quebra quando o poligono e cortado ao meio.
   const addMark = useCallback(
-    (x: number, y: number, type: 'viable' | 'inviable', op?: OpcoesDeRegistro): number => {
+    (x: number, y: number, type: 'viable' | 'inviable', classeExterna?: string, op?: OpcoesDeRegistro): number => {
       const id = Date.now() + Math.random();
-      setMarks((prev) => [...prev, { x, y, type, id }], op);
+      setMarks((prev) => [...prev, { x, y, type, id, classeExterna }], op);
       return id;
     },
     [setMarks]

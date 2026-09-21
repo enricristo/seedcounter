@@ -26,7 +26,9 @@ import { DropZone } from './components/shared/DropZone';
 import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
 // Modals
+// import { CameraModal } from './components/modals/CameraModal';
 import { ExportModal } from './components/modals/ExportModal';
+import { ImageExportModal } from './components/modals/ImageExportModal';
 import { HistoryModal } from './components/modals/HistoryModal';
 import { ConfirmDialog } from './components/modals/ConfirmDialog';
 
@@ -62,6 +64,8 @@ import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
+import { AnalyticsPanel } from './features/analytics/AnalyticsPanel';
+import { AnalyticsModal } from './features/analytics/AnalyticsModal';
 import { NovidadesModal } from './features/novidades';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
 import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
@@ -190,68 +194,7 @@ function centroide(pontos: [number, number][]): [number, number] {
   return [sx / pontos.length, sy / pontos.length];
 }
 
-// Render marks overlay helper for the canvas context
-function renderMarksToContext(
-  ctx: CanvasRenderingContext2D,
-  marks: Mark[],
-  mode: 'dots' | 'numbers',
-  larguraDaImagem: number,
-  ajusteDaMarca = AJUSTE_PADRAO,
-  segmentacoes: YoloSegmentation[] = [],
-  estiloDaMarca: EstiloDaMarca = 'disco',
-  opacidadeDaMarca = 1
-) {
-  // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
-  // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
-  // tela. Agora acompanha a imagem, como o alvo de clique sempre acompanhou.
-  const raio = raioDaMarca(larguraDaImagem, ajusteDaMarca);
-  const traco = espessuraNaImagem(larguraDaImagem, 1.5);
-
-  // O índice é o de `enumerarObjetos` — o mesmo do CSV, da lista do inspetor
-  // e da contagem. Antes cada classe tinha a própria sequência e os contornos
-  // do modelo não recebiam número: "índice 7" no canvas não era a linha 7.
-  const objetos = enumerarObjetos(marks, segmentacoes);
-
-  objetos.forEach((objeto) => {
-    const { x, y, categoria } = objeto;
-    const num = objeto.indice;
-    const soContorno = objeto.natureza === 'contorno';
-
-    if (mode === 'dots') {
-      // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
-      // Contorno sem marca não ganha ponto: o polígono já o mostra.
-      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio, estiloDaMarca, opacidadeDaMarca);
-    } else {
-      // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
-      // vazada. A redundancia vira um anel externo escuro so no inviavel.
-      const cor = corDoEspecime(categoria);
-      const raioDoIndice = raio * 1.8;
-      ctx.beginPath();
-      ctx.arc(x, y, raioDoIndice, 0, Math.PI * 2);
-      ctx.fillStyle = cor;
-      ctx.fill();
-      ctx.strokeStyle = ESPECIME.halo;
-      ctx.lineWidth = traco;
-      ctx.stroke();
-
-      if (categoria === 'inviable') {
-        ctx.beginPath();
-        ctx.arc(x, y, raioDoIndice * 1.3, 0, Math.PI * 2);
-        ctx.strokeStyle = cor;
-        ctx.lineWidth = traco;
-        ctx.stroke();
-      }
-
-      // Tinta escura sobre ciano e magenta, que sao claros: texto branco
-      // sumiria.
-      ctx.fillStyle = '#101719';
-      ctx.font = `bold ${corpoDaFonte(raioDoIndice)}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(num.toString(), x, y + 0.5);
-    }
-  });
-}
+import { renderMarksToContext } from './lib/render-marks';
 
 export default function App() {
   // Theme & Darkmode State
@@ -288,6 +231,7 @@ export default function App() {
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   /** A galeria grande (janela) continua existindo, aberta pelo Expandir da aba. */
   const [galeriaGrande, setGaleriaGrande] = useState(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   /** Escala gráfica e eixos: preferências de quem mede, lembradas. */
   const [mostrarEscala, setMostrarEscala] = useState(() => lerPreferencia('sc:escalaGrafica', true));
   const [mostrarEixos, setMostrarEixos] = useState(() => lerPreferencia('sc:eixosDasMedidas', false));
@@ -376,6 +320,7 @@ export default function App() {
   // Modal Open states
   const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImageExportModalOpen, setIsImageExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSplitOpen, setIsSplitOpen] = useState(false);
@@ -415,6 +360,7 @@ export default function App() {
 
   const isAnyModalOpen =
     isExportModalOpen ||
+    isImageExportModalOpen ||
     isHistoryModalOpen ||
     isYoloExportModalOpen ||
     isExperimentModalOpen ||
@@ -426,6 +372,7 @@ export default function App() {
     isFeaturesOpen ||
     novidades.aberto ||
     galeriaGrande ||
+    analyticsModalOpen ||
     isIdentificacaoOpen;
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
@@ -1008,13 +955,17 @@ export default function App() {
    * neste gesto (politica de autoplay), entao chamar sempre e seguro: sem
    * preferencia ligada, silencio.
    */
+  const classeExternaDaImagem = metadata.dataset?.classesDaImagem && metadata.dataset.classesDaImagem.length > 0
+    ? metadata.dataset.classesDaImagem.join(' + ')
+    : undefined;
+
   const marcarComSom = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      const id = addMark(x, y, tipo);
+      const id = addMark(x, y, tipo, classeExternaDaImagem);
       tocarMarca(tipo);
       return id;
     },
-    [addMark]
+    [addMark, classeExternaDaImagem]
   );
 
   const segmentarComOnda = useCallback(
@@ -1059,6 +1010,7 @@ export default function App() {
         id: Date.now() + Math.floor(Math.random() * 1000),
         category: tipo,
         class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        classeExterna: classeExternaDaImagem,
         // Não é probabilidade de modelo: foi a pessoa que apontou a semente.
         confidence: 1,
         polygon_points: r.contorno,
@@ -1073,7 +1025,7 @@ export default function App() {
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
     },
-    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel]
+    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel, classeExternaDaImagem]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -1473,105 +1425,124 @@ export default function App() {
     downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
   };
 
-  const handleExportAnnotatedImage = () => {
-    if (!canvasRef.current || !image) return;
-
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = image.width;
-    offscreenCanvas.height = image.height;
-    const ctx = offscreenCanvas.getContext('2d');
-    if (!ctx) return;
-
-    // Draw base image
-    ctx.drawImage(image, 0, 0);
-
-    // Draw YOLO segmentations
-    if (segmentsVisible && yoloSegmentations.length > 0) {
-      yoloSegmentations
-        .filter((seg) => seg.visible !== false)
-        .forEach((seg) => {
-          ctx.beginPath();
-          const first = seg.polygon_points[0];
-          if (first) {
-            ctx.moveTo(first[0], first[1]);
-            for (let i = 1; i < seg.polygon_points.length; i++) {
-              ctx.lineTo(seg.polygon_points[i][0], seg.polygon_points[i][1]);
-            }
-            ctx.closePath();
-
-            const isViable = seg.category === 'viable';
-            ctx.fillStyle = isViable ? ESPECIME_FILL.viable : ESPECIME_FILL.inviable;
-            ctx.fill();
-
-            ctx.strokeStyle = corDoEspecime(isViable ? 'viable' : 'inviable');
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
-        });
-    }
-
-    // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode, image.width, ajusteDaMarca);
-
-    // Summary Box
-    const padding = 20;
-    const hasMoreDetails = !!(metadata.plate || metadata.quadrant);
-    const boxW = 340;
-    const boxH = hasMoreDetails ? 160 : 140;
-
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-
-    ctx.fillStyle = 'rgba(23, 23, 23, 0.85)';
-    ctx.beginPath();
-    ctx.roundRect(padding, padding, boxW, boxH, 12);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`Relatório de Contagem`, padding + 24, padding + 24);
-
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#a3a3a3';
-    ctx.fillText(`Amostra: ${filename}`, padding + 24, padding + 56);
-
-    let statsY = padding + 80;
-
-    if (hasMoreDetails) {
-      ctx.fillText(
-        `Placa: ${metadata.plate || '-'} | Q: ${metadata.quadrant || '-'}`,
-        padding + 24,
-        padding + 76
+  const handleImageExportWithOptions = async (options: import('./lib/export-image').ImageExportOptions, scope: 'single' | 'batch') => {
+    setIsImageExportModalOpen(false);
+    
+    if (scope === 'single') {
+      if (!image) return;
+      
+      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = image.width;
+      offscreenCanvas.height = image.height;
+      
+      drawAnnotatedImageToCanvas(
+        offscreenCanvas,
+        image,
+        metadata,
+        marks,
+        yoloSegmentations,
+        options,
+        visualMode,
+        ajusteDaMarca
       );
-      statsY = padding + 104;
+      
+      offscreenCanvas.toBlob((blob) => {
+        if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
+      }, 'image/png');
+      registrarEvento('exportar', { tipo: 'PNG', saida: 'anotada' });
+    } else {
+      // BATCH EXPORT (Fila Inteira do Histórico)
+      if (sessions.length === 0) return;
+      
+      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      await comAtividade('png-batch', `Exportando ${sessions.length} fotos...`, async () => {
+        for (let i = 0; i < sessions.length; i++) {
+          const sessao = sessions[i];
+          if (!sessao.imageData) continue;
+          
+          const img = new Image();
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = sessao.imageData!;
+          });
+          
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = img.width;
+          offscreenCanvas.height = img.height;
+          
+          drawAnnotatedImageToCanvas(
+            offscreenCanvas,
+            img,
+            sessao.metadata,
+            sessao.marks || [],
+            sessao.yoloSegmentations || [],
+            options,
+            visualMode,
+            ajusteDaMarca
+          );
+          
+          const blob = await new Promise<Blob | null>((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
+          if (blob) {
+            const fileName = sessao.filename.replace(/\.[^/.]+$/, "") + `_anotada.png`;
+            zip.file(fileName, blob);
+          }
+        }
+      });
+      
+      const content = await zip.generateAsync({ type: 'blob' });
+      baixarArquivo(content, `Lote_PNGs_Anotados.zip`, 'application/zip');
+      registrarEvento('exportar', { tipo: 'PNG-Batch', total: sessions.length });
     }
-
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillStyle = ESPECIME.viable;
-    ctx.fillText(`Viáveis: ${viableCount}`, padding + 24, statsY);
-
-    ctx.fillStyle = ESPECIME.inviable;
-    ctx.fillText(`Inviáveis: ${inviableCount}`, padding + 160, statsY);
-
-    // toBlob em vez de toDataURL: uma data: URL de uma digitalização grande
-    // vira uma string de dezenas de MB, e o mesmo defeito da âncora destacada
-    // fazia o arquivo sair sem nome nem extensão.
-    offscreenCanvas.toBlob((blob) => {
-      if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
-    }, 'image/png');
   };
 
   const handleExportPDF = async () => {
     registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
-    const r = await comAtividade('pdf', 'Gerando o laudo…', () =>
+    
+    let metricasAvancadas = undefined;
+    if (image && (yoloSegmentations.length > 0 || marks.length > 0)) {
+      const ctx = buildMeasurementContext();
+      const { buildMeasurements } = await import('./lib/measurements');
+      const medicoes = buildMeasurements(ctx);
+      
+      let aMeanAcc = 0;
+      let lMeanAcc = 0;
+      let bMeanAcc = 0;
+      let areaPxAcc = 0;
+      let qty = 0;
+      for (const m of medicoes) {
+        if (m.aMean !== undefined) {
+           aMeanAcc += m.aMean;
+           lMeanAcc += m.lMean!;
+           bMeanAcc += m.bMean!;
+           areaPxAcc += m.areaPx ?? 0;
+           qty++;
+        }
+      }
+      
+      if (qty > 0) {
+        const aM = (aMeanAcc / qty).toFixed(1);
+        const lM = (lMeanAcc / qty).toFixed(1);
+        const bM = (bMeanAcc / qty).toFixed(1);
+        const areaM = (areaPxAcc / qty).toFixed(0);
+        
+        metricasAvancadas = {
+           titulo: 'Métricas Avançadas',
+           campos: [
+             { rotulo: 'Sinal Tetrazólio (a* CIELAB)', valor: `${aM}` },
+             { rotulo: 'Luminosidade (L* CIELAB)', valor: `${lM}` },
+             { rotulo: 'Tom (b* CIELAB)', valor: `${bM}` },
+             { rotulo: 'Área Média (pixels)', valor: `${areaM}` }
+           ]
+        };
+      }
+    }
+
+    const r = await comAtividade('pdf', 'Gerando o laudo.', () =>
       exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
       metadata,
@@ -1584,6 +1555,7 @@ export default function App() {
       laboratorio,
       versaoDoApp: `v${__APP_VERSION__}`,
       commitDoBuild: __BUILD_COMMIT__,
+      metricasAvancadas,
       })
     );
     if (!r.ok && r.erro) alert(r.erro);
@@ -2111,7 +2083,7 @@ export default function App() {
           marcaId = marcaOriginal!.id;
         } else {
           const [cx, cy] = centroide(pontos);
-          marcaId = addMark(cx, cy, alvo.category);
+          marcaId = addMark(cx, cy, alvo.category, alvo.classeExterna);
           criouMarca = true;
         }
       }
@@ -2135,7 +2107,94 @@ export default function App() {
     setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
   }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
 
-  // --- Segmentacao em lote a partir das marcacoes ---------------------------
+  const handleProcessarFilaIA = useCallback(async () => {
+    if (imageQueue.length === 0) return;
+    setSegmentandoLote({ feitas: 0, total: imageQueue.length });
+
+    try {
+      const { detectarNoWorker } = await import('./lib/yolo-worker-client');
+      const { ehTiff } = await import('./lib/image-crop');
+      const { decodificarTiff } = await import('./lib/tiff');
+
+      for (let i = 0; i < imageQueue.length; i++) {
+        if (ensaioCancelado.current) break; // Reusing the cancel ref
+        
+        const file = imageQueue[i];
+        let bitmapCompleto: ImageBitmap;
+        
+        if (ehTiff(file)) {
+          const buffer = await file.arrayBuffer();
+          const dec = decodificarTiff(buffer, 0);
+          if (!dec) continue;
+          const canvasTiff = document.createElement('canvas');
+          canvasTiff.width = dec.width;
+          canvasTiff.height = dec.height;
+          const ctxT = canvasTiff.getContext('2d');
+          if (!ctxT) continue;
+          ctxT.putImageData(new ImageData(dec.rgba, dec.width, dec.height), 0, 0);
+          const blob = await new Promise<Blob>((res, rej) => canvasTiff.toBlob((b) => b ? res(b) : rej(), 'image/png'));
+          bitmapCompleto = await createImageBitmap(blob);
+        } else {
+          bitmapCompleto = await createImageBitmap(file);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmapCompleto.width;
+        canvas.height = bitmapCompleto.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) continue;
+        
+        ctx.drawImage(bitmapCompleto, 0, 0);
+        bitmapCompleto.close();
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const imageDataStr = canvas.toDataURL('image/jpeg', 0.85);
+
+        const detections = await detectarNoWorker(imageData);
+        const resultados: YoloSegmentation[] = detections.map((det, index) => {
+          let category: 'viable' | 'inviable' = 'viable';
+          if (det.className === 'inviavel' || det.classId === 1) category = 'inviable';
+          return {
+            id: index,
+            category,
+            class_name: det.className,
+            confidence: det.confidence,
+            polygon_points: det.polygon ?? [],
+            visible: true,
+            width: det.bbox.width,
+            height: det.bbox.height,
+          };
+        });
+
+        const viableCount = resultados.filter(s => s.category === 'viable').length;
+        const inviableCount = resultados.filter(s => s.category === 'inviable').length;
+
+        const session: Session = {
+          id: Date.now().toString() + '-' + i,
+          date: new Date().toISOString(),
+          filename: file.name,
+          viableCount,
+          inviableCount,
+          metadata: { ...metadata },
+          marks: [],
+          yoloSegmentations: resultados,
+          imageData: imageDataStr,
+        };
+
+        addSession(session);
+        setSegmentandoLote({ feitas: i + 1, total: imageQueue.length });
+      }
+      
+      alert(`Processamento da Fila (IA) concluído: ${imageQueue.length} imagens analisadas e salvas no Histórico.`);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao processar fila com IA.');
+    } finally {
+      setSegmentandoLote(null);
+    }
+  }, [imageQueue, metadata, addSession]);
+
+
 
   /**
    * As marcacoes que ainda NAO tem contorno.
@@ -2274,7 +2333,7 @@ export default function App() {
    * trocar de aba, e o canvas nunca fica coberto.
    */
   const [rightSidebarTab, setRightSidebarTab] = useState<
-    'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote'
+    'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics'
   >('resultados');
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
     lerPreferencia('sc:painelDireitoRecolhido', false)
@@ -2288,7 +2347,7 @@ export default function App() {
       return !prev;
     });
   }, []);
-  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote') => {
+  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics') => {
     setRightSidebarTab(aba);
     setIsRightSidebarCollapsed(false);
   }, []);
@@ -2529,6 +2588,7 @@ export default function App() {
         id: Date.now(),
         category: marca.type,
         class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+        classeExterna: marca.classeExterna,
         confidence: 1,
         polygon_points: r.contorno,
         visible: true,
@@ -2563,6 +2623,7 @@ export default function App() {
             id: Date.now() + i,
             category: marca.type,
             class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+            classeExterna: marca.classeExterna,
             confidence: 1,
             polygon_points: r.contorno,
             visible: true,
@@ -2607,22 +2668,30 @@ export default function App() {
    * miniatura/fantasma, e o inspetor os sinaliza de novo depois; filtrar
    * aqui seria a ferramenta decidindo por ela.
    */
-  const propostosParaSegmentacoes = useCallback((propostos: ContornoProposto[]): YoloSegmentation[] => {
-    return propostos.map((p, i) => {
-      const { width, height } = calculateSeedDimensions(p.contorno);
-      return {
-        id: Date.now() + i,
-        category: 'viable' as const,
-        class_name: 'viavel',
-        confidence: 1,
-        polygon_points: p.contorno,
-        visible: true,
-        width,
-        height,
-        origem: 'modelo' as const,
-      };
-    });
-  }, []);
+  const propostosParaSegmentacoes = useCallback(
+    (propostos: ContornoProposto[]): YoloSegmentation[] => {
+      const classesDaImagem = metadata.dataset?.classesDaImagem;
+      const classeExterna =
+        classesDaImagem && classesDaImagem.length > 0 ? classesDaImagem.join(' + ') : undefined;
+
+      return propostos.map((p, i) => {
+        const { width, height } = calculateSeedDimensions(p.contorno);
+        return {
+          id: Date.now() + i,
+          category: 'viable' as const,
+          class_name: 'viavel',
+          classeExterna,
+          confidence: 1,
+          polygon_points: p.contorno,
+          visible: true,
+          width,
+          height,
+          origem: 'modelo' as const,
+        };
+      });
+    },
+    [metadata.dataset?.classesDaImagem]
+  );
 
   /**
    * "Usar esta": o único caminho que leva os contornos de uma receita do
@@ -2742,7 +2811,7 @@ export default function App() {
       let marcaId = orfa?.id;
       if (marcaId == null) {
         const [cx, cy] = centroide(pontos);
-        marcaId = addMark(cx, cy, tipo);
+        marcaId = addMark(cx, cy, tipo, classeExternaDaImagem);
       }
 
       const { width, height } = calculateSeedDimensions(pontos);
@@ -2750,6 +2819,7 @@ export default function App() {
         id: Date.now(),
         category: tipo,
         class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        classeExterna: orfa?.classeExterna ?? classeExternaDaImagem,
         confidence: 1,
         polygon_points: pontos,
         visible: true,
@@ -2765,7 +2835,7 @@ export default function App() {
         texto: orfa ? 'Contorno desenhado e vinculado à marcação.' : 'Contorno desenhado.',
       });
     },
-    [activeClassification, addMark, appendYoloSegmentation]
+    [activeClassification, addMark, appendYoloSegmentation, classeExternaDaImagem, bancada.cena.marcasRef, bancada.cena.segmentacoesRef]
   );
 
   const handleRaspar = useCallback(
@@ -3012,6 +3082,7 @@ export default function App() {
         onSaveSession={() => saveCurrentSession(false)}
         onExport={() => setIsExportModalOpen(true)}
         hasImage={!!image}
+        onProcessarFilaIA={handleProcessarFilaIA}
 
         currentView={currentView}
         onViewChange={navigate}
@@ -3647,6 +3718,13 @@ export default function App() {
                 pastaAberta={pastaDeDatasets}
                 onPastaAberta={setPastaDeDatasets}
                 onCarregar={handleCarregarDoDataset}
+                onAdicionarAFila={async (arquivos) => {
+                  const files = await Promise.all(arquivos.map(a => a.obterFile()));
+                  setImageQueue(prev => [...prev, ...files]);
+                  if (!image && files.length > 0) {
+                    loadFiles(files);
+                  }
+                }}
               />
             }
             loteContent={
@@ -3661,6 +3739,15 @@ export default function App() {
                 sessions={sessions}
                 addSession={addSession}
                 deleteSession={deleteSession}
+              />
+            }
+            analyticsContent={
+              <AnalyticsPanel 
+                medicoes={medicoesDeMorfometria}
+                totalCount={totalCount}
+                viableCount={viableCount}
+                inviableCount={inviableCount}
+                onExpand={() => setAnalyticsModalOpen(true)}
               />
             }
           />
@@ -3753,13 +3840,27 @@ export default function App() {
               (s) => s.visible !== false && s.polygon_points?.length >= 3
             )}
             exportJSON={handleExportJSON}
-            exportAnnotatedImage={handleExportAnnotatedImage}
+            onOpenImageExport={() => {
+              setIsExportModalOpen(false);
+              setIsImageExportModalOpen(true);
+            }}
             exportPDF={handleExportPDF}
             isYoloExportEnabled={isYoloExportEnabled}
             onOpenYoloExport={() => {
               setIsExportModalOpen(false);
               setIsYoloExportModalOpen(true);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isImageExportModalOpen && (
+          <ImageExportModal
+            isOpen={isImageExportModalOpen}
+            onClose={() => setIsImageExportModalOpen(false)}
+            hasImageQueue={sessions.length > 0}
+            onExport={handleImageExportWithOptions}
           />
         )}
       </AnimatePresence>
@@ -3944,6 +4045,14 @@ export default function App() {
         medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
         limiares={limiaresDaCena}
       />
+
+      {analyticsModalOpen && (
+        <AnalyticsModal
+          onClose={() => setAnalyticsModalOpen(false)}
+          sessions={sessions}
+          getMedicoesCompletas={() => buildMeasurements(buildMeasurementContext())}
+        />
+      )}
 
       <IdentificacaoModal
         isOpen={isIdentificacaoOpen}

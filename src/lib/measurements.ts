@@ -27,6 +27,8 @@ export interface SeedMeasurement {
   classe: string;
   /** Origem do dado: manual, ia ou assistida. */
   origem: string;
+  /** Classe extra herdada do dataset multiclasse ou YOLO */
+  classeExterna?: string;
   /** Centro em pixels da imagem. */
   x: number;
   y: number;
@@ -175,6 +177,7 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
     const row: SeedMeasurement = {
       objectId: objeto.indice,
       classe: objeto.categoria === 'viable' ? 'viavel' : 'inviavel',
+      classeExterna: objeto.marca?.classeExterna || objeto.contorno?.classeExterna,
       origem: origemDaLinha(objeto),
       x: Math.round(objeto.x),
       y: Math.round(objeto.y),

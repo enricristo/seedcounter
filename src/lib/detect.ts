@@ -21,6 +21,7 @@ export type ThresholdMode = 'otsu' | 'adaptive';
 export type GrayChannel = 'luminance' | 'r' | 'g' | 'b';
 
 export interface DetectionOptions {
+  usaModeloDeIA?: boolean;
   sensitivity?: number;
   minArea?: number;
   maxArea?: number;
