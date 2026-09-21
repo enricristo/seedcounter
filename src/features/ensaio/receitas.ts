@@ -54,6 +54,13 @@ export const RECEITAS: Receita[] = [
     localizacao: { sensitivity: 35, splitTouching: false, denoise: 2, maxElongation: 4 },
     onda: { recuoDoEscape: 0.05 },
   },
+  {
+    id: 'ia',
+    nome: 'IA (YOLO)',
+    quando: 'Orquídeas, forrageiras ou sementes muito pequenas/aglomeradas.',
+    localizacao: { usaModeloDeIA: true, sensitivity: 50 },
+    onda: {},
+  },
 ];
 
 /**
@@ -145,6 +152,7 @@ export interface ContornoProposto {
   areaPx: number;
   /** Marcado por `analisarContorno` com o limiar da própria população. */
   suspeitoDeAglomerado: boolean;
+  categoria?: 'viable' | 'inviable';
 }
 
 export interface ResumoDaReceita {

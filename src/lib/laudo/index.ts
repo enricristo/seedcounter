@@ -43,6 +43,7 @@ export interface OpcoesDeExportacao {
   norma?: VersaoDaNorma;
   versaoDoApp?: string;
   commitDoBuild?: string;
+  metricasAvancadas?: EntradaDoLaudo['metricasAvancadas'];
 }
 
 export interface ResultadoDaExportacao {
@@ -88,6 +89,7 @@ export async function exportarLaudo(op: OpcoesDeExportacao): Promise<ResultadoDa
       commitDoBuild: op.commitDoBuild,
       umPerPixel: op.metadata.umPerPixel,
       marcas: op.marks,
+      metricasAvancadas: op.metricasAvancadas,
       ...contarProcedencia(segmentacoes),
     });
 
@@ -132,6 +134,44 @@ export async function exportarLaudosEmLote(
       const segmentacoes = sessao.yoloSegmentations ?? [];
       const imagem = sessao.imageData ? await carregarImagem(sessao.imageData) : null;
 
+      let metricasAvancadas = undefined;
+      if (imagem && (segmentacoes.length > 0 || (sessao.marks && sessao.marks.length > 0))) {
+        const cvs = document.createElement('canvas');
+        cvs.width = imagem.width;
+        cvs.height = imagem.height;
+        const ct = cvs.getContext('2d');
+        if (ct) {
+          ct.drawImage(imagem, 0, 0);
+          const imgData = ct.getImageData(0, 0, cvs.width, cvs.height);
+          const { buildMeasurements } = await import('../measurements');
+            const medicoes = buildMeasurements({
+              marks: sessao.marks || [],
+              segmentations: segmentacoes,
+              metadata: sessao.metadata,
+              filename: sessao.filename,
+              imageData: imgData,
+              colorSampling: 2,
+            });
+          let aMeanAcc = 0; let lMeanAcc = 0; let bMeanAcc = 0; let areaPxAcc = 0; let qty = 0;
+          for (const m of medicoes) {
+            if (m.aMean !== undefined) {
+               aMeanAcc += m.aMean; lMeanAcc += m.lMean!; bMeanAcc += m.bMean!; areaPxAcc += m.areaPx ?? 0; qty++;
+            }
+          }
+          if (qty > 0) {
+            metricasAvancadas = {
+               titulo: 'Métricas Avançadas',
+               campos: [
+                 { rotulo: 'Sinal Tetrazólio (a* CIELAB)', valor: `${(aMeanAcc / qty).toFixed(1)}` },
+                 { rotulo: 'Luminosidade (L* CIELAB)', valor: `${(lMeanAcc / qty).toFixed(1)}` },
+                 { rotulo: 'Tom (b* CIELAB)', valor: `${(bMeanAcc / qty).toFixed(1)}` },
+                 { rotulo: 'Área Média (pixels)', valor: `${(areaPxAcc / qty).toFixed(0)}` }
+               ]
+            };
+          }
+        }
+      }
+
       const imagens = imagem
         ? renderizarImagensDoLaudo({
             imagem,
@@ -152,6 +192,7 @@ export async function exportarLaudosEmLote(
         commitDoBuild: op.commitDoBuild,
         umPerPixel: sessao.metadata.umPerPixel,
         marcas: sessao.marks,
+        metricasAvancadas,
         ...contarProcedencia(segmentacoes),
       });
 
