@@ -17,6 +17,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { AppView } from '../../types';
+import { useVisibilidade } from '../../features/visualizacao/useModoDeVisualizacao';
+import { MenuExibir } from '../../features/visualizacao/MenuExibir';
 
 interface HeaderProps {
   isDarkMode: boolean;
@@ -41,6 +43,9 @@ interface HeaderProps {
   currentImageIndex: number;
   imageQueueLength: number;
   onProcessarFilaIA?: () => void;
+  /** A fila com IA está rodando agora. Troca "Processar" por "Parar". */
+  filaIARodando?: boolean;
+  onPararFilaIA?: () => void;
   /** Quantas páginas tem o TIFF aberto. 1 (ou 0) esconde o seletor. */
   paginasDoTiff?: number;
   /** Página aberta, base 0. */
@@ -135,6 +140,8 @@ export function Header({
   currentImageIndex,
   imageQueueLength,
   onProcessarFilaIA,
+  filaIARodando = false,
+  onPararFilaIA,
   paginasDoTiff = 1,
   paginaDoTiff = 0,
   onAbrirPaginaDoTiff,
@@ -151,8 +158,11 @@ export function Header({
   isStatsEnabled = true,
   onOpenFeatures,
 }: HeaderProps) {
-  const isEnterpriseMode = typeof window !== 'undefined' && window.location.search.includes('mode=enterprise');
-  
+  // O que este cabeçalho mostra é decidido pelo modo de visualização
+  // (`features/visualizacao`), não por um parâmetro de URL lido aqui. O antigo
+  // `?mode=enterprise` continua valendo: vira o modo 'apresentacao' lá.
+  const { visibilidade } = useVisibilidade();
+
   const aba = (ativa: boolean) =>
     `rounded-control flex cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-all ${
       ativa
@@ -186,7 +196,7 @@ export function Header({
             <MarcaSemente size={30} />
             <div>
               <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
-                SeedCounter {isEnterpriseMode && <span className="text-accent text-[10px] ml-1 uppercase">Analytics</span>}
+                SeedCounter {visibilidade.seloDoModo && <span className="text-accent text-[10px] ml-1 uppercase">Analytics</span>}
               </h1>
               {/* "Edição Acadêmica" saiu: não dizia nada a quem usa. No lugar,
                   o que o app faz — e os grupos continuam no rodapé, com as
@@ -199,7 +209,7 @@ export function Header({
 
           {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
             embaixo, não por cor de texto: cor sozinha não carrega estado. */}
-          {!isEnterpriseMode && (
+          {visibilidade.abasDeNavegacao && (
           <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">
             <button
               onClick={() => onViewChange('counter')}
@@ -233,13 +243,13 @@ export function Header({
 
           {/* Espécie da bancada (C7): logo depois das abas — é contexto de
             navegação, não ferramenta, por isso mora na linha 1. */}
-          {especieSlot}
+          {visibilidade.chipDeEspecie && especieSlot}
 
           {/* Seletor de bancadas (C2): mesmo motivo do chip de espécie, e é
             o ÚNICO jeito de abrir/trocar/fechar bancadas com o mouse — antes
             só existiam atalhos que o navegador toma. Com uma bancada aberta
             (o caso comum) ele próprio decide mostrar só um "+" discreto. */}
-          {bancadasSlot}
+          {visibilidade.seletorDeBancadas && bancadasSlot}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -259,7 +269,11 @@ export function Header({
             )}
           </button>
 
-          {!isEnterpriseMode && onOpenFeatures && (
+          {/* "Exibir": modos de visualização e partes da interface. Sempre
+            visível, inclusive em apresentação — é por onde se sai dela. */}
+          <MenuExibir />
+
+          {visibilidade.botaoDeRecursos && onOpenFeatures && (
             <button
               onClick={onOpenFeatures}
               className={`${botaoIcone} hover:border-accent hover:text-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40`}
@@ -275,7 +289,7 @@ export function Header({
       </div>
 
       {/* ---- Linha 2: as acoes da vista. So existe quando ha acao. ---- */}
-      {currentView === 'counter' && (
+      {currentView === 'counter' && visibilidade.barraDeAcoes && (
         <div className="border-line bg-surface-1 flex h-11 items-center justify-between gap-2 border-t px-4 xl:px-6">
           {/* Histórico e o trio desfazer/refazer/limpar formam UM grupo — as
               checagens `currentView === 'counter'` repetidas em cada botão
@@ -355,13 +369,28 @@ export function Header({
                   >
                     Próxima
                   </button>
-                  {onProcessarFilaIA && (
+                  {/* Um botão só, que muda de papel: enquanto a fila roda ele é
+                      "Parar" — o único gesto que faz sentido nesse momento, e
+                      o lugar onde a pessoa vai procurar. A fila para na
+                      próxima imagem; a que está em andamento não vira sessão. */}
+                  {onProcessarFilaIA && !filaIARodando && (
                     <button
+                      type="button"
                       onClick={onProcessarFilaIA}
-                      className="ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-accent text-accent-on rounded hover:bg-accent/90 transition-colors"
-                      title="Rodar IA em toda a fila e salvar no histórico"
+                      className="bg-accent text-accent-on hover:bg-accent-strong rounded-control ml-1 px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors"
+                      title="Rodar a IA em toda a fila e gravar cada imagem como sessão na Galeria"
                     >
                       Processar Fila
+                    </button>
+                  )}
+                  {onPararFilaIA && filaIARodando && (
+                    <button
+                      type="button"
+                      onClick={onPararFilaIA}
+                      className="border-danger text-danger hover:bg-danger hover:text-accent-on rounded-control ml-1 border px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors"
+                      title="Para na próxima imagem. A imagem em andamento não é gravada."
+                    >
+                      Parar fila
                     </button>
                   )}
                 </div>
@@ -416,7 +445,7 @@ export function Header({
               </div>
             )}
 
-            {currentView === 'counter' && onImportSession && (
+            {visibilidade.botoesDeExportacao && onImportSession && (
               <button
                 onClick={onImportSession}
                 title="Abre uma sessão salva em JSON — imagem, marcações e contornos"
@@ -427,7 +456,7 @@ export function Header({
               </button>
             )}
 
-            {currentView === 'counter' && (
+            {visibilidade.botoesDeExportacao && (
               <button
                 onClick={onSaveSession}
                 disabled={!hasImage}
@@ -439,7 +468,7 @@ export function Header({
             )}
 
             {/* Única ação primária da barra, e o único uso de fundo de acento. */}
-            {currentView === 'counter' && (
+            {visibilidade.botoesDeExportacao && (
               <button
                 onClick={onExport}
                 disabled={!hasImage}
