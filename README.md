@@ -269,7 +269,7 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 | **Textura (GLCM)** | As 28 características que faltam para completar as 54 do AIseed. Servem para pureza física e cariopse vazia, não para tetrazólio — por isso não são prioridade | Adiado com motivo |
 | **Validação da morfometria** | Contra medição manual com paquímetro. Espera dados de outras culturas | Aguardando dados |
 | **Teste de interface** | O projeto não tem biblioteca de teste de componente: tipos, quase 1 500 testes de lógica e testes estáticos de estrutura (fonte única, tokens de design com catraca, dependências, atalhos) são a rede, mas nenhum deles renderiza tela. Cada entrega de interface depende de um roteiro manual — que fica escrito nos planos, não na cabeça de ninguém | Decisão consciente |
-| **Verificação do pacote de produção** | O CI compila mas nunca **abre** a página compilada. Um ciclo entre pedaços do empacotamento derrubou o site em 2026-09-06 com todo o portão de qualidade verde — foi verificado que o empacotador não avisa desse caso | Risco conhecido |
+| **Verificação do pacote de produção** | O CI compila mas nunca **abre** a página compilada. Um ciclo entre pedaços do empacotamento derrubou o site em 2026-09-06 com todo o portão de qualidade verde — o empacotador não avisa desse caso | Fechado na 3.8.0 para a causa conhecida: `scripts/verificar-dist.mjs` roda depois do build (local e no CI) e reprova ciclo de importação estática entre pedaços e arquivo pedido que não existe. Abrir a página de verdade continua fora do CI |
 
 ## Equipe
 
