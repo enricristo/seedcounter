@@ -108,6 +108,12 @@ export const VERSOES: Versao[] = [
       },
       {
         tipo: 'corrigido',
+        titulo: 'Três sugestões que não faziam nada, e a fila com IA presa em "Parar"',
+        detalhe:
+          '"Mostrar eixos", "Carregar referência" e "Abrir funcionalidades" apareciam no painel de sugestões e o clique não fazia nada; "Abrir calibração" rolava para lugar nenhum. Agora cada botão faz o que diz — e um teste garante que toda sugestão tem quem a atenda. E o cabeçalho da fila com IA, que ficava em "Parar" depois de a fila terminar, volta a "Processar".',
+      },
+      {
+        tipo: 'corrigido',
         titulo: 'Arquivo JSON malformado era aceito e virava contorno inválido',
         detalhe:
           'Importar um JSON com campo do tipo errado (uma lista de pontos que não era lista) entrava no estado como lixo. Agora é recusado com uma frase que diz o índice e o campo: "Segmentação 3: polygon_points deveria ser uma lista de pares [x, y]".',
