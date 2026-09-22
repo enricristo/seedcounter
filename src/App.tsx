@@ -69,6 +69,7 @@ import { useExperiments } from './hooks/useExperiments';
 import { LongitudinalView, ExperimentModal, PlateRunModal } from './features/longitudinal';
 import { StatsView } from './features/stats';
 import { YoloExportModal } from './features/yolo-export';
+import { useExportacoes } from './features/exportar';
 import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
@@ -117,7 +118,7 @@ import {
 } from './lib/edicao-de-contorno';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
-import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
+import { atualizarProgresso, iniciarAtividade } from './features/atividade/atividade';
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
 import { acharPorNome, TAMANHOS } from './lib/normas/tamanhos-de-semente';
 import {
@@ -160,15 +161,13 @@ import { categoriaImportada, categoriaDoNome, nomeDaCategoria } from './lib/clas
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
-import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
+import { buildMeasurements } from './lib/measurements';
 import {
   applyAdjustments,
   exigePixels,
   isNeutral,
   toCssFilter,
 } from './lib/image-adjust';
-import { exportarLaudo, exportarLaudosEmLote, montarMetricasAvancadas } from './lib/laudo';
-import { baixarArquivo, nomeDeExportacao } from './lib/download';
 import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
 import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
 
@@ -187,14 +186,6 @@ import {
 import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
 import { enumerarObjetos } from './lib/objetos';
 import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
-
-// Delega para src/lib/download.ts. A versão anterior criava a âncora sem
-// anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
-// chegavam com nome de UUID e sem extensão, parecendo que a exportação não
-// tinha funcionado.
-function downloadBlob(content: string, filename: string, contentType: string) {
-  baixarArquivo(content, filename, contentType);
-}
 
 /** Centro de massa dos vertices. Suficiente para posicionar uma marca. */
 function centroide(pontos: [number, number][]): [number, number] {
@@ -1368,102 +1359,6 @@ export default function App() {
 
   const { isDragActive } = useDragDrop({ onFilesDropped });
 
-  // Unified filename generation helper
-  /**
-   * Nome de arquivo rastreável: projeto, tratamento, placa, quadrante,
-   * amostra, tipo e carimbo de data.
-   *
-   * Ordenar a pasta por nome passa a agrupar por projeto e depois por
-   * tratamento — que é como o pesquisador procura — em vez de por ordem de
-   * exportação, que não significa nada.
-   */
-  const generateExportName = (extension: string, tipo?: string) =>
-    nomeDeExportacao(
-      {
-        arquivo: filename,
-        projeto: metadata.project,
-        tratamento: metadata.treatment,
-        placa: metadata.plate,
-        quadrante: metadata.quadrant,
-        tipo,
-      },
-      extension
-    );
-
-  // EXPORTS
-  const handleExportTextReport = () => {
-    const content =
-      `Relatório de Contagem de Sementes\n` +
-      `----------------------------------\n` +
-      `Arquivo da Imagem: ${filename}\n` +
-      `Data: ${new Date().toLocaleString()}\n\n` +
-      `[ Metadados ]\n` +
-      `Usuário / Pesquisador: ${metadata.researcher || '-'}\n` +
-      `Projeto de Pesquisa: ${metadata.project || '-'}\n` +
-      `Tratamento / Experimento: ${metadata.treatment || '-'}\n` +
-      `Placa: ${metadata.plate || '-'}\n` +
-      `Quadrante: ${metadata.quadrant || '-'}\n` +
-      `Comentários: ${metadata.notes || '-'}\n\n` +
-      `[ Resultados ]\n` +
-      `Sementes Viáveis (Vermelho): ${viableCount} (${viablePercent}%)\n` +
-      `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
-      `Total: ${totalCount}\n`;
-
-    downloadBlob(content, generateExportName('txt', 'relatorio'), 'text/plain');
-  };
-
-  const handleExportJSON = () => {
-    const data = {
-      filename,
-      date: new Date().toISOString(),
-      metadata,
-      results: {
-        viableCount,
-        inviableCount,
-        totalCount,
-        viablePercent: Number(viablePercent),
-        inviablePercent: Number(inviablePercent),
-      },
-      marks,
-      yoloSegmentations,
-    };
-    downloadBlob(
-      JSON.stringify(data, null, 2),
-      generateExportName('json', 'sessao'),
-      'application/json'
-    );
-  };
-
-  // --- Exportação por objeto (uma linha por semente) ---------------------
-  // Funciona em qualquer cenário: sem calibração sai em pixels, sem
-  // segmentação sai só posição e classe. Nenhuma camada é obrigatória.
-  /**
-   * Lê os pixels da imagem em exibição, para as medidas de cor por objeto.
-   *
-   * Feito sob demanda, só na hora de exportar: manter um ImageData de uma
-   * digitalização de 7992×3672 vivo o tempo todo custaria ~117 MB de RAM por
-   * imagem, e a contagem manual não precisa dele.
-   *
-   * Devolve undefined se algo falhar — as colunas de cor saem vazias e a
-   * morfometria continua inteira, porque ela não depende dos pixels.
-   */
-  const lerPixelsDaImagem = useCallback(() => {
-    if (!image) return undefined;
-    try {
-      const off = document.createElement('canvas');
-      off.width = image.width;
-      off.height = image.height;
-      const ctx = off.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return undefined;
-      ctx.drawImage(image, 0, 0);
-      return ctx.getImageData(0, 0, image.width, image.height);
-    } catch {
-      // Imagem de outra origem marca o canvas como contaminado e getImageData
-      // lança. Não é motivo para abortar a exportação inteira.
-      return undefined;
-    }
-  }, [image]);
-
   // O cronômetro é POR CENA: a chave junta bancada, arquivo e página, então
   // trocar de página do TIFF zera — é outra espécie, é outra amostra, é outro
   // tempo. Ver `useCronometro`, decisão 3.
@@ -1472,285 +1367,36 @@ export default function App() {
   // Só o rodapé precisa disto aqui: Header e laterais leem o contexto sozinhos.
   const { visibilidade } = useVisibilidade();
 
-  /**
-   * O que produziu estes números: versão, página, escala e custo.
-   *
-   * Montado na hora de exportar, e não guardado no estado, porque o tempo muda
-   * a cada segundo e guardá-lo obrigaria a regravar metadado o tempo todo. O
-   * valor que importa é o do instante em que o dado sai.
-   */
-  const montarProcedencia = useCallback((): Metadata['procedencia'] => {
-    const t = cronometro.ler();
-    return {
-      versaoDoApp: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : undefined,
-      commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : undefined,
-      paginaDaImagem: paginasDoTiff > 1 ? paginaDoTiff + 1 : undefined,
-      totalDePaginas: paginasDoTiff > 1 ? paginasDoTiff : undefined,
-      dpiDeclarado: dpiDeclarado ?? undefined,
-      dpiMedido: calibracaoConferida?.dpiMedido,
-      leiturasDeCalibracao: calibracaoConferida?.leituras,
-      cvDaCalibracaoPercent: calibracaoConferida?.cvPercent,
-      modo: t.modo,
-      tempoAtivoMs: t.ativoMs,
-      tempoParedeMs: t.paredeMs,
-    };
-  }, [cronometro, paginasDoTiff, paginaDoTiff, dpiDeclarado, calibracaoConferida]);
-
-  const buildMeasurementContext = useCallback(
-    () => ({
-      marks,
-      segmentations: yoloSegmentations,
-      // A procedência é acrescentada AQUI, na saída, e não guardada no estado:
-      // é o único lugar por onde todo export passa.
-      metadata: { ...metadata, procedencia: montarProcedencia() },
-      filename,
-      imageData: lerPixelsDaImagem(),
-      // Uma semente de orquídea a 3600 DPI tem milhares de pixels; ler um de
-      // cada quatro não muda a média e corta o custo em 4x.
-      colorSampling: 2,
-    }),
-    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem, montarProcedencia]
-  );
-
-  const handleExportMeasurementsCSV = useCallback(() => {
-    const ctx = buildMeasurementContext();
-    const rows = buildMeasurements(ctx);
-    const csv = measurementsToCSV(rows, ctx);
-    // Trilha: quantas linhas saíram é o que separa "exportou vazio" de
-    // "exportou errado" — dois relatos que chegam com a mesma frase.
-    registrarEvento('exportar', { tipo: 'CSV', saida: 'medidas', linhas: rows.length });
-    downloadBlob(csv, generateExportName('csv', 'medidas'), 'text/csv;charset=utf-8;');
-  }, [buildMeasurementContext, filename]);
-
-  const handleExportSQL = useCallback(() => {
-    const ctx = buildMeasurementContext();
-    const rows = buildMeasurements(ctx);
-    const sql = measurementsToSQL(rows, ctx);
-    registrarEvento('exportar', { tipo: 'SQL', linhas: rows.length });
-    downloadBlob(sql, generateExportName('sql', 'medidas'), 'text/plain;charset=utf-8;');
-  }, [buildMeasurementContext, filename]);
-
-  const handleExportCSV = () => {
-    const headers = [
-      'Data',
-      'Imagem',
-      'Pesquisador',
-      'Projeto',
-      'Tratamento',
-      'Placa',
-      'Quadrante',
-      'Viaveis',
-      'Inviaveis',
-      'Total',
-      '% Viavel',
-      '% Inviavel',
-      'Comentarios',
-    ];
-    const row = [
-      new Date().toLocaleString(),
-      filename,
-      metadata.researcher,
-      metadata.project,
-      metadata.treatment,
-      metadata.plate,
-      metadata.quadrant,
-      viableCount.toString(),
-      inviableCount.toString(),
-      totalCount.toString(),
-      viablePercent,
-      inviablePercent,
-      metadata.notes.replace(/(\r\n|\n|\r)/gm, ' '),
-    ];
-
-    const csvContent = [headers, row]
-      .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    registrarEvento('exportar', { tipo: 'CSV', saida: 'contagem', total: totalCount });
-    downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
-  };
-
-  const handleImageExportWithOptions = async (options: import('./lib/export-image').ImageExportOptions, scope: 'single' | 'batch') => {
-    setIsImageExportModalOpen(false);
-    
-    if (scope === 'single') {
-      if (!image) return;
-      
-      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
-      const offscreenCanvas = document.createElement('canvas');
-      offscreenCanvas.width = image.width;
-      offscreenCanvas.height = image.height;
-      
-      drawAnnotatedImageToCanvas(
-        offscreenCanvas,
-        image,
-        metadata,
-        marks,
-        yoloSegmentations,
-        options,
-        visualMode,
-        ajusteDaMarca,
-        // O PNG sai com a MESMA marca que a pessoa conferiu na tela — antes
-        // saía sempre disco opaco, e a imagem exportada contradizia o canvas.
-        { estiloDaMarca, opacidadeDaMarca }
-      );
-      
-      offscreenCanvas.toBlob((blob) => {
-        if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
-      }, 'image/png');
-      registrarEvento('exportar', { tipo: 'PNG', saida: 'anotada' });
-    } else {
-      // BATCH EXPORT (Fila Inteira do Histórico)
-      if (sessions.length === 0) return;
-      
-      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-      
-      await comAtividade('png-batch', `Exportando ${sessions.length} fotos...`, async () => {
-        for (let i = 0; i < sessions.length; i++) {
-          const sessao = sessions[i];
-          // Guardado numa constante para o TypeScript estreitar o tipo: dentro
-          // do fechamento abaixo o `!` era a única forma, e `!` é promessa sem
-          // fiador.
-          const fonteDaImagem = sessao.imageData;
-          if (!fonteDaImagem) continue;
-          
-          const img = new Image();
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = reject;
-            img.src = fonteDaImagem;
-          });
-          
-          const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = img.width;
-          offscreenCanvas.height = img.height;
-          
-          drawAnnotatedImageToCanvas(
-            offscreenCanvas,
-            img,
-            sessao.metadata,
-            sessao.marks || [],
-            sessao.yoloSegmentations || [],
-            options,
-            visualMode,
-            ajusteDaMarca,
-            { estiloDaMarca, opacidadeDaMarca }
-          );
-          
-          const blob = await new Promise<Blob | null>((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
-          if (blob) {
-            const fileName = sessao.filename.replace(/\.[^/.]+$/, "") + `_anotada.png`;
-            zip.file(fileName, blob);
-          }
-        }
-      });
-      
-      const content = await zip.generateAsync({ type: 'blob' });
-      baixarArquivo(content, `Lote_PNGs_Anotados.zip`, 'application/zip');
-      registrarEvento('exportar', { tipo: 'PNG-Batch', total: sessions.length });
-    }
-  };
-
-  const handleExportPDF = async () => {
-    registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
-    
-    // Métricas por classe (área média, a*, L*, b*) a partir da MESMA tabela
-    // do CSV. Os pixels são lidos sob demanda por `buildMeasurementContext`
-    // (~117 MB numa digitalização) e morrem com esta chamada — nada fica no
-    // estado. Sem imagem a área ainda sai (vem do contorno); só a cor não.
-    const metricasAvancadas =
-      yoloSegmentations.length > 0 || marks.length > 0
-        ? (montarMetricasAvancadas(buildMeasurements(buildMeasurementContext())) ?? undefined)
-        : undefined;
-
-    const r = await comAtividade('pdf', 'Gerando o laudo.', () =>
-      exportarLaudo({
-      filename: filename || 'sem-titulo.jpg',
-      metadata,
-      viableCount,
-      inviableCount,
-      marks,
-      yoloSegmentations,
-      imageElement: image,
-      visualMode,
-      laboratorio,
-      versaoDoApp: `v${__APP_VERSION__}`,
-      commitDoBuild: __BUILD_COMMIT__,
-      metricasAvancadas,
-      })
-    );
-    if (!r.ok && r.erro) alert(r.erro);
-  };
-
-  const handleExportHistoryBatchPDF = async () => {
-    registrarEvento('exportar', { tipo: 'PDF', saida: 'historico', sessoes: sessions.length });
-    const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
-      exportarLaudosEmLote(sessions, {
-        visualMode,
-        laboratorio,
-        versaoDoApp: `v${__APP_VERSION__}`,
-        commitDoBuild: __BUILD_COMMIT__,
-      })
-    );
-    if (!r.ok && r.erro) alert(r.erro);
-  };
-
-  const handleExportHistoryCSV = () => {
-    if (sessions.length === 0) return;
-    const headers = [
-      'Data',
-      'Imagem',
-      'Pesquisador',
-      'Projeto',
-      'Tratamento',
-      'Placa',
-      'Quadrante',
-      'Viaveis',
-      'Inviaveis',
-      'Total',
-      '% Viavel',
-      '% Inviavel',
-      'Comentarios',
-    ];
-
-    const rows = sessions.map((s) => {
-      const total = s.viableCount + s.inviableCount;
-      const vPct = total > 0 ? ((s.viableCount / total) * 100).toFixed(1) : '0';
-      const iPct = total > 0 ? ((s.inviableCount / total) * 100).toFixed(1) : '0';
-      return [
-        new Date(s.date).toLocaleString(),
-        s.filename,
-        s.metadata.researcher,
-        s.metadata.project,
-        s.metadata.treatment,
-        s.metadata.plate,
-        s.metadata.quadrant,
-        s.viableCount.toString(),
-        s.inviableCount.toString(),
-        total.toString(),
-        vPct,
-        iPct,
-        s.metadata.notes.replace(/(\r\n|\n|\r)/gm, ' '),
-      ];
-    });
-
-    const csvContent = [headers, ...rows]
-      .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    downloadBlob(csvContent, 'historico_contagens.csv', 'text/csv');
-  };
-
-  const handleExportHistoryJSON = () => {
-    if (sessions.length === 0) return;
-    downloadBlob(
-      JSON.stringify(sessions, null, 2),
-      `seed-counter-backup-${new Date().toISOString().split('T')[0]}.json`,
-      'application/json'
-    );
-  };
+  // As exportações moram em `features/exportar` (ver o cabeçalho de
+  // `useExportacoes.ts`). O hook recebe a cena e devolve os mesmos handlers
+  // que os modais sempre receberam; a procedência continua montada na hora
+  // de exportar, a partir de `cronometro.ler`.
+  const {
+    buildMeasurementContext,
+    handleExportTextReport,
+    handleExportJSON,
+    handleExportCSV,
+    handleExportMeasurementsCSV,
+    handleExportSQL,
+    handleImageExportWithOptions,
+    handleExportPDF,
+    handleExportHistoryBatchPDF,
+    handleExportHistoryCSV,
+    handleExportHistoryJSON,
+  } = useExportacoes({
+    marks,
+    segmentacoes: yoloSegmentations,
+    metadata,
+    filename,
+    image,
+    sessions,
+    contagem: { viableCount, inviableCount, totalCount, viablePercent, inviablePercent },
+    aparencia: { visualMode, ajusteDaMarca, estiloDaMarca, opacidadeDaMarca },
+    laboratorio,
+    lerTempo: cronometro.ler,
+    pagina: { paginasDoTiff, paginaDoTiff, dpiDeclarado },
+    calibracaoConferida,
+  });
 
   const handleImportHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3957,7 +3603,12 @@ export default function App() {
             isOpen={isImageExportModalOpen}
             onClose={() => setIsImageExportModalOpen(false)}
             hasImageQueue={sessions.length > 0}
-            onExport={handleImageExportWithOptions}
+            onExport={(opcoes, escopo) => {
+              // Fecha antes de desenhar, como sempre: o estado do modal é do
+              // App (alimenta `isAnyModalOpen`), não da exportação.
+              setIsImageExportModalOpen(false);
+              void handleImageExportWithOptions(opcoes, escopo);
+            }}
           />
         )}
       </AnimatePresence>
