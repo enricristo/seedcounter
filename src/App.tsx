@@ -72,6 +72,7 @@ import { PainelDeGerminacao } from './features/germinacao';
 import { YoloExportModal } from './features/yolo-export';
 import { useExportacoes } from './features/exportar';
 import { useImportacao } from './features/importar';
+import { useSessao } from './features/sessao';
 import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
@@ -174,19 +175,11 @@ import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
 import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
 
 // Types
-import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
+import type { Mark, YoloSegmentation, Experiment, PlateRun, Metadata } from './types';
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
-import {
-  ESPECIME,
-  ESPECIME_FILL,
-  corDoEspecime,
-  desenharMarca,
-  OPACIDADE_MINIMA,
-  type EstiloDaMarca,
-} from './theme/specimen';
-import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
-import { enumerarObjetos } from './lib/objetos';
+import { OPACIDADE_MINIMA, type EstiloDaMarca } from './theme/specimen';
+import { AJUSTE_PADRAO } from './lib/escala-da-marca';
 import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
 
 /** Centro de massa dos vertices. Suficiente para posicionar uma marca. */
@@ -684,7 +677,6 @@ export default function App() {
     yoloSegmentations,
     anotacoesVisuais,
     setYoloSegmentations,
-    segmentsVisible,
     addMark,
     removeMark,
     removerMarcas,
@@ -704,7 +696,7 @@ export default function App() {
     carregar,
   } = bancada.anotacoes;
   const { metadata, setMetadata, updateMetadata } = bancada.meta;
-  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = bancada.zoom;
+  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, fitToScreen } = bancada.zoom;
   const {
     isPanningMode,
     setIsPanningMode,
@@ -1179,82 +1171,33 @@ export default function App() {
     }));
   };
 
-  // Save local history session
-  const saveCurrentSession = (silent = false) => {
-    if (!filename) return;
-
-    let imageDataStr: string | undefined = undefined;
-    if (image) {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(image, 0, 0);
-        imageDataStr = canvas.toDataURL('image/jpeg', 0.85); // High quality but compressed
-      }
-    }
-
-    const newSession: Session = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      filename,
-      viableCount,
-      inviableCount,
-      metadata: { ...metadata },
-      marks,
-      yoloSegmentations,
-      imageData: imageDataStr,
-    };
-    addSession(newSession);
-    setUltimaGravacao(Date.now());
-    if (!silent) {
-      alert('Sessão salva com sucesso no histórico local!');
-    }
-  };
-
-  const handleLoadSession = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-
-    // A sessão restaurada é um contexto próprio: não faz parte da fila de
-    // imagens carregada antes. Limpar a fila esconde "Anterior/Próxima", que
-    // até aqui continuava apontando para os arquivos antigos e trocava a
-    // imagem por baixo da sessão recém-aberta.
-    setImageQueue([]);
-    setCurrentImageIndex(0);
-    bancada.cena.chaveAtual.current = null;
-
-    setMetadata(session.metadata);
-    setFilename(session.filename);
-    carregar({ marks: session.marks, segmentacoes: session.yoloSegmentations });
-
-    // Restore image if available
-    if (session.imageData) {
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        setZoomLevel(1);
-        setIsHistoryModalOpen(false);
-        navigate('counter');
-      };
-      img.onerror = () => {
-        alert('Erro ao carregar a imagem salva da sessão.');
-      };
-      img.src = session.imageData;
-    } else {
-      setIsHistoryModalOpen(false);
-      navigate('counter');
-      alert(
-        `Sessão carregada, mas esta sessão antiga não possui a imagem salva no banco.\nPor favor, carregue o arquivo de imagem "${session.filename}" manualmente.`
-      );
-    }
-  };
-
-  const saveAndNext = () => {
-    saveCurrentSession(true);
-    handleNextImage();
-  };
+  // Gravar e restaurar sessão moram em `features/sessao` (ver o cabeçalho de
+  // `useSessao.ts`). O hook recebe a cena e a MESMA contagem que vai para as
+  // exportações, e devolve os handlers que Ctrl+S, o cabeçalho, o histórico e
+  // o lote sempre receberam. O modal do histórico fica aqui: alimenta
+  // `isAnyModalOpen`.
+  const { saveCurrentSession, handleLoadSession, saveAndNext } = useSessao({
+    filename,
+    image,
+    marks,
+    segmentacoes: yoloSegmentations,
+    metadata,
+    contagem: { viableCount, inviableCount },
+    sessions,
+    addSession,
+    setUltimaGravacao,
+    setImageQueue,
+    setCurrentImageIndex,
+    chaveAtual: bancada.cena.chaveAtual,
+    setMetadata,
+    setFilename,
+    carregar,
+    setImage,
+    setZoomLevel,
+    fecharHistorico: () => setIsHistoryModalOpen(false),
+    navigate,
+    handleNextImage,
+  });
 
   // Importar JSON mora em `features/importar` (ver o cabeçalho de
   // `useImportacao.ts`): reconhecer o tipo, conferir campo a campo e traduzir
