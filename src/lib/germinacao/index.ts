@@ -35,6 +35,7 @@ export {
   tXRelativoAoMaximo,
   tXRelativoAoTotal,
   uniformidade7525,
+  uniformidadeEntre,
   aucDaCurva,
   mgtDaCurva,
   indiceDeDormencia,
