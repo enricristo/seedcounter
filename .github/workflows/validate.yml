@@ -40,6 +40,13 @@ jobs:
       - name: Build production
         run: npm run build
 
+      # O pacote gerado, conferido sem navegador: todo arquivo que o index.html
+      # pede existe, toda importacao estatica entre pedacos existe, e NAO HA
+      # CICLO entre pedacos — o que derrubou o site em 2026-09-06 com o build
+      # verde (o erro so aparecia quando o navegador executava).
+      - name: Verificar o pacote (ciclos entre pedaços, arquivos ausentes)
+        run: node scripts/verificar-dist.mjs
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

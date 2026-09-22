@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node scripts/verificar-dist.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
