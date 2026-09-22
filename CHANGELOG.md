@@ -15,6 +15,7 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - `features/ajuda/tarefas.ts` + aba "Tarefas" no `HelpTip` — dez tarefas (calibrar, contar, ver a semente, medir, relógio, exportar, relatar, comparar tratamentos, curva de germinação, o que vai no artigo); conteúdo genérico por teste.
 - `scripts/gerar-catalogo-de-datasets.py` → `public/exemplos/catalogo-de-datasets.json` (23 pastas, 8 referenciáveis); `lib/datasets/catalogo.ts`; chip no explorador; `escalaDe` nos exemplos; 54 → 92 exemplos.
 - `AGENTS.md` (doze leis, como se trabalha, mapa) e `CLAUDE.md`.
+- `src/theme/__tests__/divida-de-tokens.test.ts` + `.json` — a catraca da Lei 5: mede cores literais (424) e raios fora do sistema (374) e reprova se subir; se descer, pede para baixar o teto. `App.tsx` entra na conta, para extração não parecer dívida nova.
 - `docs/PRIVADO.md` — o que vive no repositório privado, e por quê.
 
 ### Alterado
