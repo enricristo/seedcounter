@@ -45,7 +45,7 @@ export const COLUNAS_DE_PARAMETROS: readonly ColunaDeParametro[] = [
     chave: 't50MaxG',
     rotulo: () => 't50',
     ajuda: () =>
-      'Horas até a curva ajustada atingir metade da sua própria germinação máxima (o parâmetro c da curva de Hill). Menor = germina mais cedo.',
+      'Horas até a curva ajustada atingir metade da sua própria germinação máxima (o parâmetro c da curva de Hill). Menor = germina mais cedo. Pode diferir da planilha: o Solver do Excel às vezes para antes de convergir (nas 24 amostras de validação, em 13 ele parou com b ≈ 20, o chute inicial, e em 3 caiu num mínimo local); o ajuste daqui converge até o fim. Onde o Solver convergiu, os dois batem a 0,1 %.',
     unidade: 'h',
     casas: 1,
     valor: (l) => l.parametros?.t50MaxG ?? null,
