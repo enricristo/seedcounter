@@ -3,7 +3,7 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
-## [3.7.0] — em preparação (branch `feature/enterprise-polish`)
+## [3.7.0] — 2026-09-22
 
 O trabalho "Enterprise" da sessão paralela (19–21/09), verificado e elevado, e
 a segunda rodada. Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
