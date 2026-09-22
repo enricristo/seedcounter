@@ -33,10 +33,28 @@ export default defineConfig(({ mode }) => {
           // biblioteca. Nomear o pedaço aqui NÃO o tira do pré-carregamento:
           // só some do `index.html` quando nenhum import estático o alcança —
           // `lib/__tests__/sob-demanda.test.ts` vigia isso para o recharts.
-          manualChunks: {
-            'recharts-charts': ['recharts'],
-            'pdf-export': ['jspdf', 'html2canvas'],
-            'db-lib': ['dexie', 'dexie-react-hooks'],
+          // Função, e não objeto: a forma-objeto `{'recharts-charts': ['recharts']}`
+          // manda para o pedaço TAMBÉM as dependências do recharts que ninguém
+          // mais tinha reivindicado — e o `react-dom` foi parar lá. Como o
+          // `index` importa `react-dom`, o HTML passou a pré-carregar o pedaço
+          // do recharts inteiro (461 kB) na abertura, e o "sob demanda" ficou
+          // derrotado no primeiro byte. Com a função, só o que mora em
+          // node_modules/recharts (e nos d3-* e victory-vendor que só ele usa)
+          // vai para o pedaço; o resto fica onde o Rollup decidir.
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return undefined;
+            // React num pedaço próprio, ANTES de tudo: `react-dom` é importado
+            // pelo `index` (via react-dom/client) e pelo recharts, e sem esta
+            // linha o Rollup o punha dentro do pedaço do recharts — que virava
+            // dependência estática do `index`. Medido no dist: `createPortal`
+            // e `flushSync` estavam no recharts-charts, e o HTML o pré-carregava.
+            if (/[\/]node_modules[\/](react|react-dom|scheduler)[\/]/.test(id)) return 'react-vendor';
+            if (/[\/]node_modules[\/](recharts|victory-vendor|d3-[a-z-]+|internmap|delaunator|robust-predicates)[\/]/.test(id)) {
+              return 'recharts-charts';
+            }
+            if (/[\/]node_modules[\/](jspdf|html2canvas)[\/]/.test(id)) return 'pdf-export';
+            if (/[\/]node_modules[\/](dexie|dexie-react-hooks)[\/]/.test(id)) return 'db-lib';
+            return undefined;
           },
         },
       },
