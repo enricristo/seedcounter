@@ -13,7 +13,12 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lerTabelaColada } from '../entrada';
-import { analisar, CONFIGURACAO_PADRAO, ultimoTempoObservado, type EntradaDeAmostra } from '../analise';
+import {
+  analisar,
+  CONFIGURACAO_PADRAO,
+  ultimoTempoObservado,
+  type EntradaDeAmostra,
+} from '../analise';
 import type { AmostraDeGerminacao } from '../../../lib/germinacao';
 
 interface Fixture {
@@ -21,7 +26,20 @@ interface Fixture {
   amostras: { codigo: string; sementes: number; contagens: number[] }[];
 }
 const fixture = JSON.parse(
-  readFileSync(join(__dirname, '..', '..', '..', 'lib', 'germinacao', '__tests__', 'fixtures', 'germinator-llanero.json'), 'utf8'),
+  readFileSync(
+    join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'lib',
+      'germinacao',
+      '__tests__',
+      'fixtures',
+      'germinator-llanero.json'
+    ),
+    'utf8'
+  )
 ) as Fixture;
 
 function entradasDaFixture(): EntradaDeAmostra[] {
@@ -31,7 +49,11 @@ function entradasDaFixture(): EntradaDeAmostra[] {
   return (r.amostras ?? []).map((a) => ({ codigo: a.codigo, amostra: a, erro: null }));
 }
 
-const entrada = (codigo: string, amostra: AmostraDeGerminacao | null, erro: string | null = null): EntradaDeAmostra => ({ codigo, amostra, erro });
+const entrada = (
+  codigo: string,
+  amostra: AmostraDeGerminacao | null,
+  erro: string | null = null
+): EntradaDeAmostra => ({ codigo, amostra, erro });
 
 /** Uma amostra sintética com curva razoável, com um deslocamento para diferenciar repetições. */
 function amostra(codigo: string, atraso: number, gMax = 0.8): AmostraDeGerminacao {
@@ -53,7 +75,14 @@ describe('analisar — a fixture do Llanero', () => {
   it('24 linhas, todas ajustadas, 6 tratamentos com 4 repetições', () => {
     expect(analise.linhas).toHaveLength(24);
     expect(analise.linhas.every((l) => l.parametros !== null && l.motivo === null)).toBe(true);
-    expect(analise.tratamentos.map((t) => t.tratamento)).toEqual(['T0', 'T8', 'T16', 'T24', 'T32', 'T48']);
+    expect(analise.tratamentos.map((t) => t.tratamento)).toEqual([
+      'T0',
+      'T8',
+      'T16',
+      'T24',
+      'T32',
+      'T48',
+    ]);
     expect(analise.tratamentos.every((t) => t.n === 4 && t.nAjustadas === 4)).toBe(true);
     expect(analise.linhas.slice(0, 4).map((l) => l.repeticao)).toEqual([1, 2, 3, 4]);
     expect(analise.linhas[4].repeticao).toBe(1);
@@ -91,7 +120,14 @@ describe('analisar — a fixture do Llanero', () => {
       return c ? Object.fromEntries(c.letras) : {};
     };
     // t50: o priming mais longo (T48) é o mais lento; T0 e T24 os mais rápidos.
-    expect(letras('t50MaxG')).toEqual({ T48: 'a', T16: 'ab', T32: 'ab', T8: 'ab', T24: 'b', T0: 'b' });
+    expect(letras('t50MaxG')).toEqual({
+      T48: 'a',
+      T16: 'ab',
+      T32: 'ab',
+      T8: 'ab',
+      T24: 'b',
+      T0: 'b',
+    });
     // gMAX: sem priming germina mais; T24 e T32 menos.
     expect(letras('gMax')).toEqual({ T0: 'a', T8: 'ab', T48: 'bc', T16: 'bc', T32: 'c', T24: 'c' });
     expect(letras('auc')).toEqual({ T0: 'a', T8: 'ab', T48: 'bc', T16: 'c', T32: 'c', T24: 'c' });
@@ -105,7 +141,10 @@ describe('analisar — a fixture do Llanero', () => {
 
 describe('analisar — recusas e linhas ilegíveis não somem', () => {
   it('uma linha ilegível fica com o erro da grade como motivo', () => {
-    const a = analisar([entrada('A', amostra('A', 0)), entrada('B', null, 'número de sementes inválido ("x")')], CONFIGURACAO_PADRAO);
+    const a = analisar(
+      [entrada('A', amostra('A', 0)), entrada('B', null, 'número de sementes inválido ("x")')],
+      CONFIGURACAO_PADRAO
+    );
     expect(a.linhas).toHaveLength(2);
     expect(a.linhas[1].parametros).toBeNull();
     expect(a.linhas[1].motivo).toMatch(/sementes inválido/);
@@ -142,19 +181,28 @@ describe('analisar — recusas e linhas ilegíveis não somem', () => {
         { horas: 96, acumulado: 2 },
       ],
     };
-    expect(analisar([entrada('P', poucas)], { ...CONFIGURACAO_PADRAO, germinacaoMinima: 2 }).linhas[0].parametros).not.toBeNull();
+    expect(
+      analisar([entrada('P', poucas)], { ...CONFIGURACAO_PADRAO, germinacaoMinima: 2 }).linhas[0]
+        .parametros
+    ).not.toBeNull();
   });
 });
 
 describe('analisar — quando há comparação', () => {
   it('um tratamento só: sem comparação, com o motivo', () => {
-    const a = analisar([entrada('A', amostra('A', 0)), entrada('A', amostra('A', 3))], CONFIGURACAO_PADRAO);
+    const a = analisar(
+      [entrada('A', amostra('A', 0)), entrada('A', amostra('A', 3))],
+      CONFIGURACAO_PADRAO
+    );
     expect(a.comparacoes).toEqual([]);
     expect(a.motivoSemComparacao).toMatch(/dois ou mais tratamentos/);
   });
 
   it('dois tratamentos com uma repetição cada: sem comparação, com o motivo', () => {
-    const a = analisar([entrada('A', amostra('A', 0)), entrada('B', amostra('B', 30))], CONFIGURACAO_PADRAO);
+    const a = analisar(
+      [entrada('A', amostra('A', 0)), entrada('B', amostra('B', 30))],
+      CONFIGURACAO_PADRAO
+    );
     expect(a.comparacoes).toEqual([]);
     expect(a.motivoSemComparacao).toMatch(/duas ou mais repetições/);
   });
@@ -168,7 +216,7 @@ describe('analisar — quando há comparação', () => {
         entrada('B', amostra('B', 44)),
         entrada('C', amostra('C', 20)),
       ],
-      CONFIGURACAO_PADRAO,
+      CONFIGURACAO_PADRAO
     );
     expect(a.comparacoes).toHaveLength(3);
     const t50 = a.comparacoes[0];

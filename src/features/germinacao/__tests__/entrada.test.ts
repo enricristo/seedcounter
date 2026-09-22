@@ -10,7 +10,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { doLongitudinal, escreverTabelaINPUT, lerNumero, lerTabelaColada, motivoParaNaoImportar } from '../entrada';
+import {
+  doLongitudinal,
+  escreverTabelaINPUT,
+  lerNumero,
+  lerTabelaColada,
+  motivoParaNaoImportar,
+} from '../entrada';
 import type { AmostraDeGerminacao } from '../../../lib/germinacao';
 import type { Experiment } from '../../../types';
 
@@ -20,14 +26,29 @@ interface Fixture {
 }
 
 const fixture = JSON.parse(
-  readFileSync(join(__dirname, '..', '..', '..', 'lib', 'germinacao', '__tests__', 'fixtures', 'germinator-llanero.json'), 'utf8'),
+  readFileSync(
+    join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'lib',
+      'germinacao',
+      '__tests__',
+      'fixtures',
+      'germinator-llanero.json'
+    ),
+    'utf8'
+  )
 ) as Fixture;
 
 /** A aba INPUT como o Excel a cola: `t`, célula vazia, tempos; depois código, sementes, contagens. */
 function fixtureComoTsv(decimal: '.' | ',' = '.'): string {
   const n = (v: number) => String(v).replace('.', decimal);
   const cabecalho = ['t', '', ...fixture.tempos_h.map(n)].join('\t');
-  const linhas = fixture.amostras.map((a) => [a.codigo, n(a.sementes), ...a.contagens.map(n)].join('\t'));
+  const linhas = fixture.amostras.map((a) =>
+    [a.codigo, n(a.sementes), ...a.contagens.map(n)].join('\t')
+  );
   return [cabecalho, ...linhas].join('\r\n') + '\r\n';
 }
 
@@ -72,7 +93,15 @@ describe('lerTabelaColada — a fixture como TSV', () => {
     const texto = ['code\t# seeds\t48\t96\t168', 'T0\t50\t0\t21\t30'].join('\n');
     const r = lerTabelaColada(texto);
     expect(r.amostras).toEqual([
-      { codigo: 'T0', sementes: 50, leituras: [{ horas: 48, acumulado: 0 }, { horas: 96, acumulado: 21 }, { horas: 168, acumulado: 30 }] },
+      {
+        codigo: 'T0',
+        sementes: 50,
+        leituras: [
+          { horas: 48, acumulado: 0 },
+          { horas: 96, acumulado: 21 },
+          { horas: 168, acumulado: 30 },
+        ],
+      },
     ]);
   });
 
@@ -84,7 +113,15 @@ describe('lerTabelaColada — a fixture como TSV', () => {
   });
 
   it('ignora linhas em branco no meio e no fim, e colunas vazias além da última', () => {
-    const texto = ['', 't\t\t48\t96\t168\t\t', 'T0\t50\t0\t21\t30\t\t', '', 'T8\t50\t0\t9\t24', '\t\t', ''].join('\r\n');
+    const texto = [
+      '',
+      't\t\t48\t96\t168\t\t',
+      'T0\t50\t0\t21\t30\t\t',
+      '',
+      'T8\t50\t0\t9\t24',
+      '\t\t',
+      '',
+    ].join('\r\n');
     const r = lerTabelaColada(texto);
     expect(r.erro).toBeNull();
     expect(r.amostras?.map((a) => a.codigo)).toEqual(['T0', 'T8']);
@@ -176,8 +213,22 @@ describe('escreverTabelaINPUT', () => {
 
   it('usa a união dos tempos e deixa vazio onde a amostra não leu', () => {
     const amostras: AmostraDeGerminacao[] = [
-      { codigo: 'A', sementes: 10, leituras: [{ horas: 24, acumulado: 1 }, { horas: 72, acumulado: 5 }] },
-      { codigo: 'B', sementes: 20, leituras: [{ horas: 48, acumulado: 2 }, { horas: 72, acumulado: 9 }] },
+      {
+        codigo: 'A',
+        sementes: 10,
+        leituras: [
+          { horas: 24, acumulado: 1 },
+          { horas: 72, acumulado: 5 },
+        ],
+      },
+      {
+        codigo: 'B',
+        sementes: 20,
+        leituras: [
+          { horas: 48, acumulado: 2 },
+          { horas: 72, acumulado: 9 },
+        ],
+      },
     ];
     const texto = escreverTabelaINPUT(amostras);
     expect(texto).toBe('t\t\t24\t48\t72\r\nA\t10\t1\t\t5\r\nB\t20\t\t2\t9\r\n');
@@ -185,7 +236,9 @@ describe('escreverTabelaINPUT', () => {
   });
 
   it('escreve decimais com vírgula', () => {
-    const texto = escreverTabelaINPUT([{ codigo: 'A', sementes: 10, leituras: [{ horas: 1.5, acumulado: 1 }] }]);
+    const texto = escreverTabelaINPUT([
+      { codigo: 'A', sementes: 10, leituras: [{ horas: 1.5, acumulado: 1 }] },
+    ]);
     expect(texto).toBe('t\t\t1,5\r\nA\t10\t1\r\n');
   });
 });
@@ -223,30 +276,78 @@ describe('doLongitudinal', () => {
   it('uma amostra por tratamento, dias × 24, acumulado do dia', () => {
     const exp = experimento({
       treatments: [
-        { id: 't1', experimentId: 'e1', name: 'Controle', code: 'C', plates: [placa(14, 10, 100), placa(30, 40, 100), placa(45, 55, 100)] },
-        { id: 't2', experimentId: 'e1', name: 'Sacarose', code: 'S', plates: [placa(30, 60, 100), placa(14, 20, 100)] },
+        {
+          id: 't1',
+          experimentId: 'e1',
+          name: 'Controle',
+          code: 'C',
+          plates: [placa(14, 10, 100), placa(30, 40, 100), placa(45, 55, 100)],
+        },
+        {
+          id: 't2',
+          experimentId: 'e1',
+          name: 'Sacarose',
+          code: 'S',
+          plates: [placa(30, 60, 100), placa(14, 20, 100)],
+        },
       ],
     });
     expect(doLongitudinal(exp)).toEqual([
-      { codigo: 'C', sementes: 100, leituras: [{ horas: 336, acumulado: 10 }, { horas: 720, acumulado: 40 }, { horas: 1080, acumulado: 55 }] },
-      { codigo: 'S', sementes: 100, leituras: [{ horas: 336, acumulado: 20 }, { horas: 720, acumulado: 60 }] },
+      {
+        codigo: 'C',
+        sementes: 100,
+        leituras: [
+          { horas: 336, acumulado: 10 },
+          { horas: 720, acumulado: 40 },
+          { horas: 1080, acumulado: 55 },
+        ],
+      },
+      {
+        codigo: 'S',
+        sementes: 100,
+        leituras: [
+          { horas: 336, acumulado: 20 },
+          { horas: 720, acumulado: 60 },
+        ],
+      },
     ]);
   });
 
   it('soma as avaliações do mesmo dia (várias placas) e usa o maior total como sementes', () => {
     const exp = experimento({
       treatments: [
-        { id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [placa(14, 10, 100), placa(14, 12, 100), placa(30, 50, 100)] },
+        {
+          id: 't1',
+          experimentId: 'e1',
+          name: 'C',
+          code: 'C',
+          plates: [placa(14, 10, 100), placa(14, 12, 100), placa(30, 50, 100)],
+        },
       ],
     });
     expect(doLongitudinal(exp)).toEqual([
-      { codigo: 'C', sementes: 200, leituras: [{ horas: 336, acumulado: 22 }, { horas: 720, acumulado: 50 }] },
+      {
+        codigo: 'C',
+        sementes: 200,
+        leituras: [
+          { horas: 336, acumulado: 22 },
+          { horas: 720, acumulado: 50 },
+        ],
+      },
     ]);
   });
 
   it('remove o dia zero sem germinadas — é a origem que a curva já assume', () => {
     const exp = experimento({
-      treatments: [{ id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [placa(0, 0, 100), placa(14, 10, 100)] }],
+      treatments: [
+        {
+          id: 't1',
+          experimentId: 'e1',
+          name: 'C',
+          code: 'C',
+          plates: [placa(0, 0, 100), placa(14, 10, 100)],
+        },
+      ],
     });
     expect(doLongitudinal(exp)[0].leituras).toEqual([{ horas: 336, acumulado: 10 }]);
   });
@@ -255,7 +356,13 @@ describe('doLongitudinal', () => {
     const exp = experimento({
       treatments: [
         { id: 't1', experimentId: 'e1', name: 'Vazio', code: 'V', plates: [] },
-        { id: 't2', experimentId: 'e1', name: 'Sem código', code: '', plates: [placa(14, 10, 100)] },
+        {
+          id: 't2',
+          experimentId: 'e1',
+          name: 'Sem código',
+          code: '',
+          plates: [placa(14, 10, 100)],
+        },
       ],
     });
     expect(doLongitudinal(exp).map((a) => a.codigo)).toEqual(['Sem código']);
@@ -264,15 +371,27 @@ describe('doLongitudinal', () => {
   it('experimento de armazenamento não é importável, e diz por quê', () => {
     const exp = experimento({
       timeAxis: 'armazenamento',
-      treatments: [{ id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [placa(14, 10, 100)] }],
+      treatments: [
+        { id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [placa(14, 10, 100)] },
+      ],
     });
     expect(motivoParaNaoImportar(exp)).toMatch(/armazenamento/);
     expect(doLongitudinal(exp)).toEqual([]);
   });
 
   it('experimento sem avaliação nenhuma não é importável', () => {
-    const exp = experimento({ treatments: [{ id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [] }] });
+    const exp = experimento({
+      treatments: [{ id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [] }],
+    });
     expect(motivoParaNaoImportar(exp)).toMatch(/nenhuma avaliação/);
-    expect(motivoParaNaoImportar(experimento({ treatments: [{ id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [placa(14, 1, 10)] }] }))).toBeNull();
+    expect(
+      motivoParaNaoImportar(
+        experimento({
+          treatments: [
+            { id: 't1', experimentId: 'e1', name: 'C', code: 'C', plates: [placa(14, 1, 10)] },
+          ],
+        })
+      )
+    ).toBeNull();
   });
 });

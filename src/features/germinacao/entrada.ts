@@ -37,8 +37,7 @@ import type { AmostraDeGerminacao, LeituraDeGerminacao } from '../../lib/germina
 import type { Experiment } from '../../types';
 
 export type ResultadoDaLeitura =
-  | { amostras: AmostraDeGerminacao[]; erro: null }
-  | { amostras: null; erro: string };
+  { amostras: AmostraDeGerminacao[]; erro: null } | { amostras: null; erro: string };
 
 /**
  * Um número como o Excel em português cola: "21", "21,5", " 21.5 ", "1e3".
@@ -82,7 +81,8 @@ export function lerTabelaColada(texto: string): ResultadoDaLeitura {
       break;
     }
   }
-  if (indiceDoCabecalho === -1) return { amostras: null, erro: 'Nada para ler: o texto está vazio.' };
+  if (indiceDoCabecalho === -1)
+    return { amostras: null, erro: 'Nada para ler: o texto está vazio.' };
 
   const tempos: number[] = [];
   for (const celula of celulasDe(linhas[indiceDoCabecalho])) {
@@ -104,7 +104,10 @@ export function lerTabelaColada(texto: string): ResultadoDaLeitura {
     }
   }
   if (tempos[0] < 0) {
-    return { amostras: null, erro: `Linha ${indiceDoCabecalho + 1}: o tempo ${tempos[0]} é negativo.` };
+    return {
+      amostras: null,
+      erro: `Linha ${indiceDoCabecalho + 1}: o tempo ${tempos[0]} é negativo.`,
+    };
   }
 
   const amostras: AmostraDeGerminacao[] = [];
@@ -115,7 +118,10 @@ export function lerTabelaColada(texto: string): ResultadoDaLeitura {
 
     const codigo = celulas[0] ?? '';
     if (codigo === '') {
-      return { amostras: null, erro: `Linha ${numero}: esperava o código da amostra na 1ª coluna, mas ela está vazia.` };
+      return {
+        amostras: null,
+        erro: `Linha ${numero}: esperava o código da amostra na 1ª coluna, mas ela está vazia.`,
+      };
     }
 
     const sementes = lerNumero(celulas[1] ?? '');
@@ -181,7 +187,9 @@ function celulaNumerica(n: number): string {
  * volta são inversas.
  */
 export function escreverTabelaINPUT(amostras: readonly AmostraDeGerminacao[]): string {
-  const tempos = [...new Set(amostras.flatMap((a) => a.leituras.map((l) => l.horas)))].sort((x, y) => x - y);
+  const tempos = [...new Set(amostras.flatMap((a) => a.leituras.map((l) => l.horas)))].sort(
+    (x, y) => x - y
+  );
   const cabecalho = ['t', '', ...tempos.map(celulaNumerica)];
   const linhas = amostras.map((a) => {
     const porTempo = new Map(a.leituras.map((l) => [l.horas, l.acumulado]));

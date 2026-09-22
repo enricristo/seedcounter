@@ -21,7 +21,11 @@ function amostra(codigo: string, atraso: number, gMax = 0.8): AmostraDeGerminaca
     }),
   };
 }
-const entrada = (codigo: string, a: AmostraDeGerminacao | null, erro: string | null = null): EntradaDeAmostra => ({ codigo, amostra: a, erro });
+const entrada = (
+  codigo: string,
+  a: AmostraDeGerminacao | null,
+  erro: string | null = null
+): EntradaDeAmostra => ({ codigo, amostra: a, erro });
 
 const poucas: AmostraDeGerminacao = {
   codigo: 'P',
@@ -34,7 +38,15 @@ const poucas: AmostraDeGerminacao = {
 };
 
 describe('dadosDoGrafico — por amostra', () => {
-  const analise = analisar([entrada('A', amostra('A', 0)), entrada('A', amostra('A', 4)), entrada('B', amostra('B', 30)), entrada('P', poucas)], CONFIGURACAO_PADRAO);
+  const analise = analisar(
+    [
+      entrada('A', amostra('A', 0)),
+      entrada('A', amostra('A', 4)),
+      entrada('B', amostra('B', 30)),
+      entrada('P', poucas),
+    ],
+    CONFIGURACAO_PADRAO
+  );
   const dados = dadosDoGrafico(analise, 'amostras');
 
   it('uma série de pontos por amostra e uma curva por amostra ajustada', () => {
@@ -51,7 +63,9 @@ describe('dadosDoGrafico — por amostra', () => {
       ['B', 1],
       ['P', 2],
     ]);
-    expect(dados.series.filter((s) => s.tratamento === 'A').every((s) => s.indiceDaCor === 0)).toBe(true);
+    expect(dados.series.filter((s) => s.tratamento === 'A').every((s) => s.indiceDaCor === 0)).toBe(
+      true
+    );
   });
 
   it('o eixo vai até o último tempo observado, e as linhas estão ordenadas', () => {
@@ -82,7 +96,10 @@ describe('dadosDoGrafico — por amostra', () => {
 });
 
 describe('dadosDoGrafico — por tratamento', () => {
-  const analise = analisar([entrada('A', amostra('A', 0)), entrada('A', amostra('A', 4)), entrada('B', amostra('B', 30))], CONFIGURACAO_PADRAO);
+  const analise = analisar(
+    [entrada('A', amostra('A', 0)), entrada('A', amostra('A', 4)), entrada('B', amostra('B', 30))],
+    CONFIGURACAO_PADRAO
+  );
   const dados = dadosDoGrafico(analise, 'tratamentos');
 
   it('uma curva média e uma série de pontos médios por tratamento', () => {
@@ -105,12 +122,20 @@ describe('dadosDoGrafico — por tratamento', () => {
 describe('dadosDoGrafico — vazio e teto de cores', () => {
   it('sem amostras legíveis não há nada a desenhar', () => {
     const analise = analisar([entrada('x', null, 'erro')], CONFIGURACAO_PADRAO);
-    expect(dadosDoGrafico(analise, 'amostras')).toEqual({ linhas: [], series: [], tratamentos: [], etiquetas: [], tFim: 0 });
+    expect(dadosDoGrafico(analise, 'amostras')).toEqual({
+      linhas: [],
+      series: [],
+      tratamentos: [],
+      etiquetas: [],
+      tFim: 0,
+    });
   });
 
   it('com mais de 4 tratamentos não há etiqueta direta — a legenda responde', () => {
     const entradas = ['A', 'B', 'C', 'D', 'E'].map((c, i) => entrada(c, amostra(c, i * 5)));
-    expect(dadosDoGrafico(analisar(entradas, CONFIGURACAO_PADRAO), 'amostras').etiquetas).toEqual([]);
+    expect(dadosDoGrafico(analisar(entradas, CONFIGURACAO_PADRAO), 'amostras').etiquetas).toEqual(
+      []
+    );
   });
 
   it('a 9ª cor não existe: vira o neutro', () => {
@@ -121,7 +146,16 @@ describe('dadosDoGrafico — vazio e teto de cores', () => {
 });
 
 describe('saida', () => {
-  const analise = analisar([entrada('A', amostra('A', 0)), entrada('A', amostra('A', 4)), entrada('B', amostra('B', 30)), entrada('B', amostra('B', 33)), entrada('P', poucas)], CONFIGURACAO_PADRAO);
+  const analise = analisar(
+    [
+      entrada('A', amostra('A', 0)),
+      entrada('A', amostra('A', 4)),
+      entrada('B', amostra('B', 30)),
+      entrada('B', amostra('B', 33)),
+      entrada('P', poucas),
+    ],
+    CONFIGURACAO_PADRAO
+  );
 
   it('celulaNumerica: vírgula decimal, vazio para null', () => {
     expect(celulaNumerica(1.5)).toBe('1,5');
@@ -144,7 +178,12 @@ describe('saida', () => {
     expect(cabecalhoDasMedias).toMatch(/tukey_t50MaxG;tukey_gMax;tukey_auc$/);
     const linhaA = linhas.find((l) => l.startsWith('A;2;2;'));
     expect(linhaA).toBeDefined();
-    expect(linhaA?.split(';').slice(-3).every((letra) => /^[a-z]+$/.test(letra))).toBe(true);
+    expect(
+      linhaA
+        ?.split(';')
+        .slice(-3)
+        .every((letra) => /^[a-z]+$/.test(letra))
+    ).toBe(true);
     // O tratamento fora da ANOVA fica sem letra, não com letra inventada.
     const linhaP = linhas.find((l) => l.startsWith('P;1;0;'));
     expect(linhaP?.split(';').slice(-3)).toEqual(['', '', '']);
@@ -184,7 +223,11 @@ describe('saida', () => {
   });
 
   it('a uniformidade e o x escolhidos mudam os nomes das colunas', () => {
-    const tsv = escreverTabelaOUTPUT(analise, { ...CONFIGURACAO_PADRAO, uniformidade: 'u8416', percentualParaTx: 10 });
+    const tsv = escreverTabelaOUTPUT(analise, {
+      ...CONFIGURACAO_PADRAO,
+      uniformidade: 'u8416',
+      percentualParaTx: 10,
+    });
     const cabecalho = tsv.split('\r\n')[0].split('\t');
     expect(cabecalho).toContain('u8416 (hr)');
     expect(cabecalho).toContain('10(%seeds)');
@@ -193,7 +236,9 @@ describe('saida', () => {
   });
 
   it('o TSV da grade escrito a partir da análise é lido de volta (a Ceci exporta e o coautor cola)', () => {
-    const amostras = analise.linhas.map((l) => l.amostra).filter((a): a is AmostraDeGerminacao => a !== null);
+    const amostras = analise.linhas
+      .map((l) => l.amostra)
+      .filter((a): a is AmostraDeGerminacao => a !== null);
     expect(lerTabelaColada(escreverTabelaINPUT(amostras)).amostras).toEqual(amostras);
   });
 });

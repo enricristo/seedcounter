@@ -13,6 +13,7 @@ import {
   BarChart4,
   Target,
   FlaskConical,
+  Sprout,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -236,6 +237,19 @@ export function Header({
               >
                 <BarChart4 size={14} strokeWidth={2.25} aria-hidden="true" />
                 <span>Estatísticas</span>
+              </button>
+            )}
+
+            {/* Germinação (Germinator): parte `germinacao` do modo de
+                visualização, não flag — ciência de laboratório que o modo
+                de contagem e o de apresentação não mostram. */}
+            {visibilidade.germinacao && (
+              <button
+                onClick={() => onViewChange('germinacao')}
+                className={aba(currentView === 'germinacao')}
+              >
+                <Sprout size={14} strokeWidth={2.25} aria-hidden="true" />
+                <span>Germinação</span>
               </button>
             )}
           </nav>

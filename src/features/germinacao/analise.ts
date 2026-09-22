@@ -39,24 +39,30 @@ import { letrasDeComparacao } from './letras';
 
 export type Uniformidade = 'u7525' | 'u8416' | 'u9010';
 
-export const UNIFORMIDADES: Record<Uniformidade, { inferior: number; superior: number; rotulo: string; ajuda: string }> = {
+export const UNIFORMIDADES: Record<
+  Uniformidade,
+  { inferior: number; superior: number; rotulo: string; ajuda: string }
+> = {
   u7525: {
     inferior: 25,
     superior: 75,
     rotulo: 'U7525',
-    ajuda: 'Horas entre 25 % e 75 % da germinação máxima ajustada: o padrão da planilha. Menor = mais uniforme.',
+    ajuda:
+      'Horas entre 25 % e 75 % da germinação máxima ajustada: o padrão da planilha. Menor = mais uniforme.',
   },
   u8416: {
     inferior: 16,
     superior: 84,
     rotulo: 'U8416',
-    ajuda: 'Horas entre 16 % e 84 % da germinação máxima ajustada (±1 desvio de uma normal). Menor = mais uniforme.',
+    ajuda:
+      'Horas entre 16 % e 84 % da germinação máxima ajustada (±1 desvio de uma normal). Menor = mais uniforme.',
   },
   u9010: {
     inferior: 10,
     superior: 90,
     rotulo: 'U9010',
-    ajuda: 'Horas entre 10 % e 90 % da germinação máxima ajustada: quase toda a curva. Menor = mais uniforme.',
+    ajuda:
+      'Horas entre 10 % e 90 % da germinação máxima ajustada: quase toda a curva. Menor = mais uniforme.',
   },
 };
 
@@ -100,7 +106,17 @@ export interface LinhaAnalisada {
 }
 
 /** As colunas numéricas que a aba statistics resume. */
-export type ParametroResumido = 'gMax' | 't50MaxG' | 'tXMaxG' | 't50TotS' | 'tXTotS' | 'uniformidade' | 'r2' | 'auc' | 'mgt' | 'assimetria';
+export type ParametroResumido =
+  | 'gMax'
+  | 't50MaxG'
+  | 'tXMaxG'
+  | 't50TotS'
+  | 'tXTotS'
+  | 'uniformidade'
+  | 'r2'
+  | 'auc'
+  | 'mgt'
+  | 'assimetria';
 
 export const PARAMETROS_RESUMIDOS: readonly ParametroResumido[] = [
   'gMax',
@@ -175,11 +191,15 @@ function mediaComDesvio(valores: readonly number[]): MediaComDesvio | null {
   const n = valores.length;
   if (n === 0) return null;
   const media = valores.reduce((s, v) => s + v, 0) / n;
-  const sd = n > 1 ? Math.sqrt(valores.reduce((s, v) => s + (v - media) * (v - media), 0) / (n - 1)) : 0;
+  const sd =
+    n > 1 ? Math.sqrt(valores.reduce((s, v) => s + (v - media) * (v - media), 0) / (n - 1)) : 0;
   return { media, sd, n };
 }
 
-export function analisar(entradas: readonly EntradaDeAmostra[], config: ConfiguracaoDaAnalise): Analise {
+export function analisar(
+  entradas: readonly EntradaDeAmostra[],
+  config: ConfiguracaoDaAnalise
+): Analise {
   const tMax = config.tMaxParaAuc ?? ultimoTempoObservado(entradas);
   const u = UNIFORMIDADES[config.uniformidade];
 
@@ -196,7 +216,13 @@ export function analisar(entradas: readonly EntradaDeAmostra[], config: Configur
 
     const base = { indice, codigo: e.codigo, tratamento, repeticao, amostra: e.amostra };
     if (e.amostra === null) {
-      return { ...base, sementes: null, parametros: null, uniformidade: null, motivo: e.erro ?? 'linha ilegível' };
+      return {
+        ...base,
+        sementes: null,
+        parametros: null,
+        uniformidade: null,
+        motivo: e.erro ?? 'linha ilegível',
+      };
     }
     const resultado = calcularParametros(e.amostra, {
       germinacaoMinima: config.germinacaoMinima,
@@ -204,7 +230,13 @@ export function analisar(entradas: readonly EntradaDeAmostra[], config: Configur
       percentualParaTx: config.percentualParaTx,
     });
     if (resultado.parametros === null) {
-      return { ...base, sementes: e.amostra.sementes, parametros: null, uniformidade: null, motivo: resultado.motivo };
+      return {
+        ...base,
+        sementes: e.amostra.sementes,
+        parametros: null,
+        uniformidade: null,
+        motivo: resultado.motivo,
+      };
     }
     return {
       ...base,
@@ -220,7 +252,9 @@ export function analisar(entradas: readonly EntradaDeAmostra[], config: Configur
     const ajustadas = proprias.filter((l) => l.parametros !== null);
     const medias = {} as Record<ParametroResumido, MediaComDesvio | null>;
     for (const p of PARAMETROS_RESUMIDOS) {
-      const valores = ajustadas.map((l) => valorDoParametro(l, p)).filter((v): v is number => v !== null);
+      const valores = ajustadas
+        .map((l) => valorDoParametro(l, p))
+        .filter((v): v is number => v !== null);
       medias[p] = mediaComDesvio(valores);
     }
     return { tratamento, n: proprias.length, nAjustadas: ajustadas.length, indiceDaCor, medias };
@@ -232,11 +266,14 @@ export function analisar(entradas: readonly EntradaDeAmostra[], config: Configur
 
 function comparar(
   linhas: readonly LinhaAnalisada[],
-  tratamentos: readonly ResumoDoTratamento[],
+  tratamentos: readonly ResumoDoTratamento[]
 ): { comparacoes: Comparacao[]; motivoSemComparacao: string | null } {
   const elegiveis = tratamentos.filter((t) => t.nAjustadas >= 2);
   if (tratamentos.length < 2) {
-    return { comparacoes: [], motivoSemComparacao: 'A comparação precisa de dois ou mais tratamentos (códigos diferentes).' };
+    return {
+      comparacoes: [],
+      motivoSemComparacao: 'A comparação precisa de dois ou mais tratamentos (códigos diferentes).',
+    };
   }
   if (elegiveis.length < 2) {
     return {
@@ -262,8 +299,11 @@ function comparar(
     const anova = oneWayANOVA(grupos);
     const pares = tukeyHSD(grupos, 0.05);
     const letras = letrasDeComparacao(
-      grupos.map((g) => ({ rotulo: g.label, media: g.values.reduce((s, v) => s + v, 0) / g.values.length })),
-      pares,
+      grupos.map((g) => ({
+        rotulo: g.label,
+        media: g.values.reduce((s, v) => s + v, 0) / g.values.length,
+      })),
+      pares
     );
     return { parametro, anova, letras, excluidos };
   });

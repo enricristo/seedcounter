@@ -46,7 +46,9 @@ function celula(n: number): string {
 
 /** Amostras → grade. Os tempos são a união dos tempos de todas as amostras. */
 export function tabelaDasAmostras(amostras: readonly AmostraDeGerminacao[]): TabelaDeEntrada {
-  const horas = [...new Set(amostras.flatMap((a) => a.leituras.map((l) => l.horas)))].sort((x, y) => x - y);
+  const horas = [...new Set(amostras.flatMap((a) => a.leituras.map((l) => l.horas)))].sort(
+    (x, y) => x - y
+  );
   return {
     tempos: horas.map(celula),
     linhas: amostras.map((a) => {
@@ -70,10 +72,14 @@ export function lerTempos(tempos: readonly string[]): TemposLidos {
   const horas: number[] = [];
   for (let k = 0; k < tempos.length; k++) {
     const n = lerNumero(tempos[k]);
-    if (n === null) return { horas: null, erro: `O tempo da coluna ${k + 1} ("${tempos[k]}") não é um número.` };
+    if (n === null)
+      return { horas: null, erro: `O tempo da coluna ${k + 1} ("${tempos[k]}") não é um número.` };
     if (n < 0) return { horas: null, erro: `O tempo da coluna ${k + 1} é negativo.` };
     if (k > 0 && n <= horas[k - 1]) {
-      return { horas: null, erro: `Os tempos precisam ser crescentes: a coluna ${k + 1} (${tempos[k]} h) não é maior que a anterior (${tempos[k - 1]} h).` };
+      return {
+        horas: null,
+        erro: `Os tempos precisam ser crescentes: a coluna ${k + 1} (${tempos[k]} h) não é maior que a anterior (${tempos[k - 1]} h).`,
+      };
     }
     horas.push(n);
   }
@@ -85,14 +91,20 @@ export function lerTempos(tempos: readonly string[]): TemposLidos {
  * invalida a LINHA (com a mensagem), nunca a grade. Linhas totalmente vazias
  * são ignoradas — são o espaço em branco que a pessoa deixou para digitar.
  */
-export function entradasDaTabela(tabela: TabelaDeEntrada): { entradas: EntradaDeAmostra[]; erroDosTempos: string | null } {
+export function entradasDaTabela(tabela: TabelaDeEntrada): {
+  entradas: EntradaDeAmostra[];
+  erroDosTempos: string | null;
+} {
   const tempos = lerTempos(tabela.tempos);
   if (tempos.horas === null) return { entradas: [], erroDosTempos: tempos.erro };
   const horas = tempos.horas;
 
   const entradas: EntradaDeAmostra[] = [];
   for (const linha of tabela.linhas) {
-    const vazia = linha.codigo.trim() === '' && linha.sementes.trim() === '' && linha.contagens.every((c) => c.trim() === '');
+    const vazia =
+      linha.codigo.trim() === '' &&
+      linha.sementes.trim() === '' &&
+      linha.contagens.every((c) => c.trim() === '');
     if (vazia) continue;
 
     const codigo = linha.codigo.trim();
@@ -102,7 +114,11 @@ export function entradasDaTabela(tabela: TabelaDeEntrada): { entradas: EntradaDe
     }
     const sementes = lerNumero(linha.sementes);
     if (sementes === null || !(sementes > 0)) {
-      entradas.push({ codigo, amostra: null, erro: `número de sementes inválido ("${linha.sementes}")` });
+      entradas.push({
+        codigo,
+        amostra: null,
+        erro: `número de sementes inválido ("${linha.sementes}")`,
+      });
       continue;
     }
     const leituras: LeituraDeGerminacao[] = [];
@@ -156,17 +172,30 @@ export function acrescentarTempo(tabela: TabelaDeEntrada): TabelaDeEntrada {
 export function removerTempo(tabela: TabelaDeEntrada, coluna: number): TabelaDeEntrada {
   return {
     tempos: tabela.tempos.filter((_, k) => k !== coluna),
-    linhas: tabela.linhas.map((l) => ({ ...l, contagens: l.contagens.filter((_, k) => k !== coluna) })),
+    linhas: tabela.linhas.map((l) => ({
+      ...l,
+      contagens: l.contagens.filter((_, k) => k !== coluna),
+    })),
   };
 }
 
-export function editarTempo(tabela: TabelaDeEntrada, coluna: number, valor: string): TabelaDeEntrada {
+export function editarTempo(
+  tabela: TabelaDeEntrada,
+  coluna: number,
+  valor: string
+): TabelaDeEntrada {
   return { ...tabela, tempos: tabela.tempos.map((t, k) => (k === coluna ? valor : t)) };
 }
 
-export type CampoDaLinha = { campo: 'codigo' } | { campo: 'sementes' } | { campo: 'contagem'; coluna: number };
+export type CampoDaLinha =
+  { campo: 'codigo' } | { campo: 'sementes' } | { campo: 'contagem'; coluna: number };
 
-export function editarCelula(tabela: TabelaDeEntrada, indice: number, campo: CampoDaLinha, valor: string): TabelaDeEntrada {
+export function editarCelula(
+  tabela: TabelaDeEntrada,
+  indice: number,
+  campo: CampoDaLinha,
+  valor: string
+): TabelaDeEntrada {
   return {
     ...tabela,
     linhas: tabela.linhas.map((l, i) => {
@@ -193,7 +222,8 @@ export function serializarEstado(estado: EstadoGravado): string {
   return JSON.stringify(estado);
 }
 
-const ehTextos = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
+const ehTextos = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((x) => typeof x === 'string');
 
 /**
  * Lê o que foi gravado. Qualquer coisa fora do formato — versão antiga, JSON
@@ -220,17 +250,28 @@ export function lerEstadoGravado(texto: string | null | undefined): EstadoGravad
   for (const l of t.linhas as unknown[]) {
     if (typeof l !== 'object' || l === null) return null;
     const r = l as Record<string, unknown>;
-    if (typeof r.codigo !== 'string' || typeof r.sementes !== 'string' || !ehTextos(r.contagens)) return null;
+    if (typeof r.codigo !== 'string' || typeof r.sementes !== 'string' || !ehTextos(r.contagens))
+      return null;
     if (r.contagens.length !== nTempos) return null;
     linhas.push({ codigo: r.codigo, sementes: r.sementes, contagens: r.contagens });
   }
 
   const configuracao = { ...CONFIGURACAO_PADRAO };
-  const c = typeof obj.configuracao === 'object' && obj.configuracao !== null ? (obj.configuracao as Record<string, unknown>) : {};
-  if (typeof c.germinacaoMinima === 'number' && Number.isFinite(c.germinacaoMinima)) configuracao.germinacaoMinima = c.germinacaoMinima;
-  if (c.tMaxParaAuc === null || (typeof c.tMaxParaAuc === 'number' && Number.isFinite(c.tMaxParaAuc))) configuracao.tMaxParaAuc = c.tMaxParaAuc;
-  if (typeof c.percentualParaTx === 'number' && Number.isFinite(c.percentualParaTx)) configuracao.percentualParaTx = c.percentualParaTx;
-  if (typeof c.uniformidade === 'string' && c.uniformidade in UNIFORMIDADES) configuracao.uniformidade = c.uniformidade as Uniformidade;
+  const c =
+    typeof obj.configuracao === 'object' && obj.configuracao !== null
+      ? (obj.configuracao as Record<string, unknown>)
+      : {};
+  if (typeof c.germinacaoMinima === 'number' && Number.isFinite(c.germinacaoMinima))
+    configuracao.germinacaoMinima = c.germinacaoMinima;
+  if (
+    c.tMaxParaAuc === null ||
+    (typeof c.tMaxParaAuc === 'number' && Number.isFinite(c.tMaxParaAuc))
+  )
+    configuracao.tMaxParaAuc = c.tMaxParaAuc;
+  if (typeof c.percentualParaTx === 'number' && Number.isFinite(c.percentualParaTx))
+    configuracao.percentualParaTx = c.percentualParaTx;
+  if (typeof c.uniformidade === 'string' && c.uniformidade in UNIFORMIDADES)
+    configuracao.uniformidade = c.uniformidade as Uniformidade;
 
   return { tabela: { tempos: t.tempos, linhas }, configuracao };
 }

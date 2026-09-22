@@ -21,7 +21,8 @@ function pares(rotulos: string[], diferentes: [string, string][]): ComparisonPai
   const dif = new Set(diferentes.map(([a, b]) => chave(a, b)));
   const r: ComparisonPair[] = [];
   for (let i = 0; i < rotulos.length; i++)
-    for (let j = i + 1; j < rotulos.length; j++) r.push(par(rotulos[i], rotulos[j], dif.has(chave(rotulos[i], rotulos[j]))));
+    for (let j = i + 1; j < rotulos.length; j++)
+      r.push(par(rotulos[i], rotulos[j], dif.has(chave(rotulos[i], rotulos[j]))));
   return r;
 }
 
@@ -51,11 +52,14 @@ describe('letrasDeComparacao', () => {
     ];
     const l = letrasDeComparacao(
       g,
-      pares(['baixo', 'alto', 'medio'], [
-        ['baixo', 'alto'],
-        ['baixo', 'medio'],
-        ['alto', 'medio'],
-      ]),
+      pares(
+        ['baixo', 'alto', 'medio'],
+        [
+          ['baixo', 'alto'],
+          ['baixo', 'medio'],
+          ['alto', 'medio'],
+        ]
+      )
     );
     expect(l.get('alto')).toBe('a');
     expect(l.get('medio')).toBe('b');
@@ -102,7 +106,8 @@ describe('letrasDeComparacao', () => {
   it('propriedade: compartilhar letra ⇔ não diferir (varredura de padrões)', () => {
     const rotulos = ['A', 'B', 'C', 'D'];
     const todosOsPares: [string, string][] = [];
-    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) todosOsPares.push([rotulos[i], rotulos[j]]);
+    for (let i = 0; i < 4; i++)
+      for (let j = i + 1; j < 4; j++) todosOsPares.push([rotulos[i], rotulos[j]]);
     const g = rotulos.map((r, i) => ({ rotulo: r, media: 4 - i }));
     // 2^6 subconjuntos de pares "diferentes". Nem todos são consistentes com
     // uma ordenação de médias, mas a propriedade tem que valer mesmo assim.
@@ -111,9 +116,13 @@ describe('letrasDeComparacao', () => {
       const ps = pares(rotulos, dif);
       const l = letrasDeComparacao(g, ps);
       for (const p of ps) {
-        expect(compartilham(l, p.groupA, p.groupB), `${p.groupA}-${p.groupB} máscara ${mascara}`).toBe(!p.significant);
+        expect(
+          compartilham(l, p.groupA, p.groupB),
+          `${p.groupA}-${p.groupB} máscara ${mascara}`
+        ).toBe(!p.significant);
       }
-      for (const r of rotulos) expect((l.get(r) ?? '').length, `${r} sem letra, máscara ${mascara}`).toBeGreaterThan(0);
+      for (const r of rotulos)
+        expect((l.get(r) ?? '').length, `${r} sem letra, máscara ${mascara}`).toBeGreaterThan(0);
     }
   });
 

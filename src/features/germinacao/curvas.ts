@@ -62,7 +62,9 @@ export interface DadosDoGrafico {
 
 /** `var(--color-series-n)` para o tratamento, ou o neutro além do teto. */
 export function corDoTratamento(indiceDaCor: number): string {
-  return indiceDaCor < TETO_DE_CORES ? `var(--color-series-${indiceDaCor + 1})` : 'var(--color-ink-3)';
+  return indiceDaCor < TETO_DE_CORES
+    ? `var(--color-series-${indiceDaCor + 1})`
+    : 'var(--color-ink-3)';
 }
 
 const pct = (fracao: number) => Math.round(fracao * 10000) / 100;
@@ -81,14 +83,22 @@ function fracaoAjustada(linha: LinhaAnalisada, t: number): number | null {
 
 export function dadosDoGrafico(analise: Analise, modo: ModoDoGrafico): DadosDoGrafico {
   const comAmostra = analise.linhas.filter((l) => l.amostra !== null);
-  const tFim = Math.max(0, ...comAmostra.flatMap((l) => (l.amostra ?? { leituras: [] }).leituras.map((r) => r.horas)));
+  const tFim = Math.max(
+    0,
+    ...comAmostra.flatMap((l) => (l.amostra ?? { leituras: [] }).leituras.map((r) => r.horas))
+  );
 
   const tratamentos: TratamentoDoGrafico[] = analise.tratamentos
-    .map((t) => ({ nome: t.tratamento, indiceDaCor: t.indiceDaCor, amostras: comAmostra.filter((l) => l.tratamento === t.tratamento).length }))
+    .map((t) => ({
+      nome: t.tratamento,
+      indiceDaCor: t.indiceDaCor,
+      amostras: comAmostra.filter((l) => l.tratamento === t.tratamento).length,
+    }))
     .filter((t) => t.amostras > 0);
   const corDe = new Map(tratamentos.map((t) => [t.nome, t.indiceDaCor]));
 
-  if (comAmostra.length === 0 || tFim <= 0) return { linhas: [], series: [], tratamentos: [], etiquetas: [], tFim: 0 };
+  if (comAmostra.length === 0 || tFim <= 0)
+    return { linhas: [], series: [], tratamentos: [], etiquetas: [], tFim: 0 };
 
   // Um mapa horas → linha, para que grade e observações no mesmo instante
   // caiam na mesma linha e o eixo x numérico fique ordenado.
@@ -111,12 +121,25 @@ export function dadosDoGrafico(analise: Analise, modo: ModoDoGrafico): DadosDoGr
       const indiceDaCor = corDe.get(l.tratamento) ?? TETO_DE_CORES;
       const rotulo = `${l.tratamento} · ${l.repeticao}`;
       const chaveObs = `o${l.indice}`;
-      series.push({ chave: chaveObs, tratamento: l.tratamento, indiceDaCor, tipo: 'observado', rotulo });
-      for (const r of amostra.leituras) linhaEm(r.horas)[chaveObs] = pct(r.acumulado / amostra.sementes);
+      series.push({
+        chave: chaveObs,
+        tratamento: l.tratamento,
+        indiceDaCor,
+        tipo: 'observado',
+        rotulo,
+      });
+      for (const r of amostra.leituras)
+        linhaEm(r.horas)[chaveObs] = pct(r.acumulado / amostra.sementes);
 
       if (l.parametros === null) continue;
       const chaveCurva = `c${l.indice}`;
-      series.push({ chave: chaveCurva, tratamento: l.tratamento, indiceDaCor, tipo: 'curva', rotulo });
+      series.push({
+        chave: chaveCurva,
+        tratamento: l.tratamento,
+        indiceDaCor,
+        tipo: 'curva',
+        rotulo,
+      });
       // A curva é avaliada na grade E nos instantes observados, para que
       // nenhuma linha de dados fique sem o valor da curva (um buraco
       // quebraria o traço).
@@ -130,7 +153,13 @@ export function dadosDoGrafico(analise: Analise, modo: ModoDoGrafico): DadosDoGr
       const proprias = comAmostra.filter((l) => l.tratamento === t.nome);
       const ajustadas = proprias.filter((l) => l.parametros !== null);
       const chaveObs = `n${t.indiceDaCor}`;
-      series.push({ chave: chaveObs, tratamento: t.nome, indiceDaCor: t.indiceDaCor, tipo: 'observado', rotulo: `${t.nome} · média` });
+      series.push({
+        chave: chaveObs,
+        tratamento: t.nome,
+        indiceDaCor: t.indiceDaCor,
+        tipo: 'observado',
+        rotulo: `${t.nome} · média`,
+      });
       // Média observada em cada instante em que ao menos uma repetição leu.
       const somas = new Map<number, { soma: number; n: number }>();
       for (const l of proprias) {
@@ -147,7 +176,13 @@ export function dadosDoGrafico(analise: Analise, modo: ModoDoGrafico): DadosDoGr
 
       if (ajustadas.length === 0) continue;
       const chaveCurva = `m${t.indiceDaCor}`;
-      series.push({ chave: chaveCurva, tratamento: t.nome, indiceDaCor: t.indiceDaCor, tipo: 'curva', rotulo: `${t.nome} · média` });
+      series.push({
+        chave: chaveCurva,
+        tratamento: t.nome,
+        indiceDaCor: t.indiceDaCor,
+        tipo: 'curva',
+        rotulo: `${t.nome} · média`,
+      });
       const instantes = [...grade, ...somas.keys()];
       for (const tempo of instantes) {
         let soma = 0;

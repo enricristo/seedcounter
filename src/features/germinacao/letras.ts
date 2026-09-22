@@ -36,7 +36,10 @@ export interface GrupoComMedia {
 
 const LETRAS = 'abcdefghijklmnopqrstuvwxyz';
 
-export function letrasDeComparacao(grupos: readonly GrupoComMedia[], pares: readonly ComparisonPair[]): Map<string, string> {
+export function letrasDeComparacao(
+  grupos: readonly GrupoComMedia[],
+  pares: readonly ComparisonPair[]
+): Map<string, string> {
   const ordenados = [...grupos].sort((x, y) => y.media - x.media).map((g) => g.rotulo);
   const posicao = new Map(ordenados.map((r, i) => [r, i]));
 
@@ -71,7 +74,7 @@ export function letrasDeComparacao(grupos: readonly GrupoComMedia[], pares: read
       !colunas.some((b, ib) => {
         if (ia === ib || !subconjunto(a, b)) return false;
         return a.size < b.size || ib < ia;
-      }),
+      })
   );
 
   // Letras na ordem em que as colunas começam (pela maior média que contêm).

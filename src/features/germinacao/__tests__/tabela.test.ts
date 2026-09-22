@@ -22,8 +22,23 @@ import {
 } from '../tabela';
 
 const amostras: AmostraDeGerminacao[] = [
-  { codigo: 'T0', sementes: 50, leituras: [{ horas: 48, acumulado: 0 }, { horas: 96, acumulado: 21 }, { horas: 168, acumulado: 30 }] },
-  { codigo: 'T8', sementes: 50, leituras: [{ horas: 96, acumulado: 9 }, { horas: 168, acumulado: 24 }] },
+  {
+    codigo: 'T0',
+    sementes: 50,
+    leituras: [
+      { horas: 48, acumulado: 0 },
+      { horas: 96, acumulado: 21 },
+      { horas: 168, acumulado: 30 },
+    ],
+  },
+  {
+    codigo: 'T8',
+    sementes: 50,
+    leituras: [
+      { horas: 96, acumulado: 9 },
+      { horas: 168, acumulado: 24 },
+    ],
+  },
 ];
 
 describe('tabelaDasAmostras e entradasDaTabela', () => {
@@ -43,7 +58,12 @@ describe('tabelaDasAmostras e entradasDaTabela', () => {
   });
 
   it('célula de contagem inválida derruba a linha, com a mensagem, e não as outras', () => {
-    const tabela = editarCelula(tabelaDasAmostras(amostras), 0, { campo: 'contagem', coluna: 1 }, 'vinte');
+    const tabela = editarCelula(
+      tabelaDasAmostras(amostras),
+      0,
+      { campo: 'contagem', coluna: 1 },
+      'vinte'
+    );
     const { entradas } = entradasDaTabela(tabela);
     expect(entradas[0].amostra).toBeNull();
     expect(entradas[0].erro).toMatch(/96 h/);
@@ -75,7 +95,10 @@ describe('tabelaDasAmostras e entradasDaTabela', () => {
     };
     const { entradas } = entradasDaTabela(tabela);
     expect(entradas[0].amostra?.leituras).toEqual([{ horas: 48, acumulado: 5 }]);
-    expect(entradas[1].amostra?.leituras).toEqual([{ horas: 0, acumulado: 2 }, { horas: 48, acumulado: 5 }]);
+    expect(entradas[1].amostra?.leituras).toEqual([
+      { horas: 0, acumulado: 2 },
+      { horas: 48, acumulado: 5 },
+    ]);
   });
 });
 
@@ -120,7 +143,10 @@ describe('edições da grade', () => {
 
 describe('persistência', () => {
   it('serializar e ler são inversos', () => {
-    const estado = { tabela: tabelaDasAmostras(amostras), configuracao: { ...CONFIGURACAO_PADRAO, uniformidade: 'u8416' as const, tMaxParaAuc: 504 } };
+    const estado = {
+      tabela: tabelaDasAmostras(amostras),
+      configuracao: { ...CONFIGURACAO_PADRAO, uniformidade: 'u8416' as const, tMaxParaAuc: 504 },
+    };
     expect(lerEstadoGravado(serializarEstado(estado))).toEqual(estado);
   });
 
@@ -129,12 +155,18 @@ describe('persistência', () => {
     expect(lerEstadoGravado('')).toBeNull();
     expect(lerEstadoGravado('não é json')).toBeNull();
     expect(lerEstadoGravado('[1]')).toBeNull();
-    expect(lerEstadoGravado('{"tabela":{"tempos":["1"],"linhas":[{"codigo":"a","sementes":"1","contagens":["1","2"]}]}}')).toBeNull();
+    expect(
+      lerEstadoGravado(
+        '{"tabela":{"tempos":["1"],"linhas":[{"codigo":"a","sementes":"1","contagens":["1","2"]}]}}'
+      )
+    ).toBeNull();
     expect(lerEstadoGravado('{"tabela":{"tempos":[1],"linhas":[]}}')).toBeNull();
   });
 
   it('configuração ausente ou inválida cai no padrão, campo a campo', () => {
-    const lido = lerEstadoGravado('{"tabela":{"tempos":[],"linhas":[]},"configuracao":{"uniformidade":"u9999","percentualParaTx":10}}');
+    const lido = lerEstadoGravado(
+      '{"tabela":{"tempos":[],"linhas":[]},"configuracao":{"uniformidade":"u9999","percentualParaTx":10}}'
+    );
     expect(lido?.configuracao).toEqual({ ...CONFIGURACAO_PADRAO, percentualParaTx: 10 });
   });
 });

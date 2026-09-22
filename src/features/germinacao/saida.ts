@@ -16,7 +16,13 @@
 // Os números saem com todas as casas: arredondar é decisão de quem lê.
 // =============================================================================
 
-import { UNIFORMIDADES, type Analise, type ConfiguracaoDaAnalise, type LinhaAnalisada, type ParametroResumido } from './analise';
+import {
+  UNIFORMIDADES,
+  type Analise,
+  type ConfiguracaoDaAnalise,
+  type LinhaAnalisada,
+  type ParametroResumido,
+} from './analise';
 
 /** Número com vírgula decimal; null e NaN viram célula vazia. */
 export function celulaNumerica(v: number | null | undefined, casas?: number): string {
@@ -89,7 +95,9 @@ const COLUNAS_DAS_MEDIAS: readonly { chave: ParametroResumido; nome: string }[] 
 export function escreverCsv(analise: Analise, config: ConfiguracaoDaAnalise): string {
   const sep = ';';
   const saida: string[] = [];
-  saida.push(`# uniformidade=${UNIFORMIDADES[config.uniformidade].rotulo}${sep}x_para_tx=${config.percentualParaTx}${sep}tmax_auc_h=${celulaNumerica(analise.tMax)}${sep}germinacao_minima=${config.germinacaoMinima}`);
+  saida.push(
+    `# uniformidade=${UNIFORMIDADES[config.uniformidade].rotulo}${sep}x_para_tx=${config.percentualParaTx}${sep}tmax_auc_h=${celulaNumerica(analise.tMax)}${sep}germinacao_minima=${config.germinacaoMinima}`
+  );
   saida.push(COLUNAS_CSV.join(sep));
   for (const l of analise.linhas) saida.push(linhaCsv(l).join(sep));
 
@@ -110,7 +118,7 @@ export function escreverCsv(analise: Analise, config: ConfiguracaoDaAnalise): st
     }
     for (const c of analise.comparacoes) {
       saida.push(
-        `# ANOVA ${c.parametro}: F(${c.anova.dfBetween}; ${c.anova.dfWithin}) = ${celulaNumerica(c.anova.fStat, 3)}${sep}p = ${celulaNumerica(c.anova.pValue, 4)}${sep}Tukey a 5 %`,
+        `# ANOVA ${c.parametro}: F(${c.anova.dfBetween}; ${c.anova.dfWithin}) = ${celulaNumerica(c.anova.fStat, 3)}${sep}p = ${celulaNumerica(c.anova.pValue, 4)}${sep}Tukey a 5 %`
       );
     }
   }
@@ -146,8 +154,30 @@ export function escreverTabelaOUTPUT(analise: Analise, config: ConfiguracaoDaAna
   ];
   const linhas = analise.linhas.map((l) => {
     const p = l.parametros;
-    const ultimoTempo = l.amostra !== null && l.amostra.leituras.length > 0 ? l.amostra.leituras[l.amostra.leituras.length - 1].horas : null;
-    if (p === null) return [l.codigo, celulaNumerica(ultimoTempo), '', '', '', '', '', '', '', '', '', '', '', '', '', '', l.motivo ?? ''];
+    const ultimoTempo =
+      l.amostra !== null && l.amostra.leituras.length > 0
+        ? l.amostra.leituras[l.amostra.leituras.length - 1].horas
+        : null;
+    if (p === null)
+      return [
+        l.codigo,
+        celulaNumerica(ultimoTempo),
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        l.motivo ?? '',
+      ];
     return [
       l.codigo,
       celulaNumerica(ultimoTempo),

@@ -68,6 +68,7 @@ import { useExperiments } from './hooks/useExperiments';
 // Features
 import { LongitudinalView, ExperimentModal, PlateRunModal } from './features/longitudinal';
 import { StatsView } from './features/stats';
+import { PainelDeGerminacao } from './features/germinacao';
 import { YoloExportModal } from './features/yolo-export';
 import { useExportacoes } from './features/exportar';
 import { CameraModal } from './features/camera';
@@ -3526,6 +3527,12 @@ export default function App() {
           experiments={experiments}
           onViewSession={handleLoadSession}
         />
+      )}
+
+      {/* Germinação (Germinator): a aba obedece ao modo de visualização, como o
+          botão dela no Header — se o modo a esconde, a vista some junto. */}
+      {currentView === 'germinacao' && visibilidade.germinacao && (
+        <PainelDeGerminacao experiments={experiments} />
       )}
 
       {/* 5. Footer Status Bar */}
