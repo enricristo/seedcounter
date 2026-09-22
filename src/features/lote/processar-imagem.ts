@@ -17,13 +17,14 @@
 
 import { detectObjects } from '../../lib/detect';
 import { segmentarNoCanvas } from '../segmentacao/onda-no-canvas';
+import { areaDoPoligono } from '../../lib/aglomerado';
 import { executarReceita } from '../ensaio/executar';
-import type { Receita, ContornoProposto } from '../ensaio/receitas';
+import type { Receita, ContornoProposto, ResumoDaReceita } from '../ensaio/receitas';
 import type { ItemDoLote, ResultadoDeUmaImagem } from './lote';
 
 /**
  * Pontos localizados por receita, por imagem. Mesmo teto do ensaio ao
- * carregar (`App.tsx`) — acima disso a onda em lote deixaria de ser barata.
+ * carregar (`App.tsx`) - acima disso a onda em lote deixaria de ser barata.
  */
 const TETO_DE_PONTOS = 400;
 
@@ -32,7 +33,7 @@ const LADO_MAIOR_DA_MINIATURA = 72;
 /** Maior lado da prévia que o clique na miniatura abre. */
 const LADO_MAIOR_DA_IMAGEM_GRANDE = 960;
 
-/** Cor do contorno proposto — mesma técnica de `EnsaioPanel` (Miniatura): lê `--color-accent`, com fallback fixo fora do navegador/tema. */
+/** Cor do contorno proposto - mesma técnica de `EnsaioPanel` (Miniatura): lê `--color-accent`, com fallback fixo fora do navegador/tema. */
 function corDoContorno(): string {
   if (typeof document === 'undefined') return '#00e5ff';
   return getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim() || '#00e5ff';
@@ -43,32 +44,27 @@ function corDoContorno(): string {
  * os contornos propostos desenhados por cima, como data URL.
  *
  * O contorno é desenhado DEPOIS de escalar a imagem para o tamanho final, não
- * antes: a 72 px de lado, um traço de 1 px desenhado na escala original do
- * canvas (que pode ter milhares de pixels) desapareceria por completo.
- * Desenhando já no canvas pequeno o traço fica sempre visível, no mesmo
- * 1 px, não importa o tamanho da digitalização de origem.
+ * antes, para a linha ter exatamente 1px e a cor certa - escalar a imagem com
+ * as linhas já desenhadas as esfumaçaria (aliasing) e a compressão JPEG de
+ * qualidade baixa do Canvas faria vazar artefatos coloridos.
  */
-function desenharPreviaComContornos(
-  origem: HTMLCanvasElement,
-  propostos: ContornoProposto[],
-  ladoMaior: number
-): string | undefined {
-  const { width: w, height: h } = origem;
-  if (w <= 0 || h <= 0) return undefined;
-  const escala = Math.min(1, ladoMaior / Math.max(w, h));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(w * escala));
-  canvas.height = Math.max(1, Math.round(h * escala));
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return undefined;
-  ctx.drawImage(origem, 0, 0, canvas.width, canvas.height);
+function desenharPreviaComContornos(origem: HTMLCanvasElement, propostos: ContornoProposto[], maxLado: number): string {
+  const escala = Math.min(1, maxLado / Math.max(origem.width, origem.height));
+  const w = Math.round(origem.width * escala);
+  const h = Math.round(origem.height * escala);
 
-  ctx.lineWidth = 1;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  ctx.drawImage(origem, 0, 0, w, h);
+
   ctx.strokeStyle = corDoContorno();
+  ctx.lineWidth = 1;
   for (const p of propostos) {
-    if (p.contorno.length < 2) continue;
-    // Suspeito de aglomerado (limiar da própria população) entra tracejado —
-    // a pessoa vê a dúvida na miniatura, antes de decidir aceitar a linha.
+    if (p.contorno.length < 3) continue;
     ctx.setLineDash(p.suspeitoDeAglomerado ? [3, 2] : []);
     ctx.beginPath();
     ctx.moveTo(p.contorno[0][0] * escala, p.contorno[0][1] * escala);
@@ -79,7 +75,8 @@ function desenharPreviaComContornos(
     ctx.stroke();
   }
   ctx.setLineDash([]);
-  return canvas.toDataURL('image/jpeg', 0.82);
+
+  return canvas.toDataURL('image/jpeg', 0.6); // qualidade baixa p/ o IndexedDB (Lote B)
 }
 
 export interface ProcessamentoDeUmaImagem {
@@ -92,7 +89,7 @@ export interface ProcessamentoDeUmaImagem {
  * Processa uma imagem do lote: decodifica, localiza, roda a onda, resume.
  *
  * NÃO engole exceção (arquivo corrompido, TIFF ilegível, canvas indisponível
- * propagam) — isolar erro por imagem é responsabilidade de `executarLote`,
+ * propagam) - isolar erro por imagem é responsabilidade de `executarLote`,
  * que envolve cada chamada a `processar` num `try/catch`; aqui só o caso "a
  * onda foi cancelada no meio" vira `resultado.erro` diretamente, porque isso
  * não é uma exceção, é `executarReceita` devolvendo `null`.
@@ -115,20 +112,54 @@ export async function processarImagemDoLote(
     if (!ctx) throw new Error('canvas indisponível');
     ctx.drawImage(bitmap, 0, 0);
 
-    const deteccao = detectObjects(canvas, receita.localizacao);
-    const objetos =
-      deteccao.objects.length > TETO_DE_PONTOS ? deteccao.objects.slice(0, TETO_DE_PONTOS) : deteccao.objects;
-    const pontos = objetos.map((o) => ({ x: o.x, y: o.y }));
+    let resultadoDoEnsaio: { propostos: ContornoProposto[]; escapes: number; resumo: ResumoDaReceita } | null = null;
 
-    const resultadoDoEnsaio = await executarReceita(
-      receita,
-      pontos,
-      (p, opcoesDaOnda) => {
-        const r = segmentarNoCanvas(canvas, p, opcoesDaOnda);
-        return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
-      },
-      { cancelado: opcoes.cancelado }
-    );
+    if (receita.localizacao.usaModeloDeIA) {
+      const { detectarNoWorker } = await import('../../lib/yolo-worker-client');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const detections = await detectarNoWorker(imageData, {
+        confThreshold: (receita.localizacao.sensitivity ?? 50) / 100,
+      });
+      if (opcoes.cancelado?.()) {
+        resultadoDoEnsaio = null;
+      } else {
+        const propostos = detections.map(det => {
+          const area = det.polygon ? areaDoPoligono(det.polygon) : 0;
+          return {
+            contorno: det.polygon ?? [],
+            areaPx: area,
+            suspeitoDeAglomerado: false,
+            categoria: (det.className === 'inviavel' || det.classId === 1) ? 'inviable' as const : 'viable' as const
+          };
+        });
+        const viaveis = propostos.filter(p => p.categoria === 'viable').length;
+        const inviaveis = propostos.filter(p => p.categoria === 'inviable').length;
+        const resumo = {
+          contagem: propostos.length,
+          medianaDaAreaPx: 0, // mock
+          medianaDoFeretMaxPx: 0, // mock
+          suspeitos: 0,
+          viaveis,
+          inviaveis
+        };
+        resultadoDoEnsaio = { propostos, escapes: 0, resumo };
+      }
+    } else {
+      const deteccao = detectObjects(canvas, receita.localizacao);
+      const objetos =
+        deteccao.objects.length > TETO_DE_PONTOS ? deteccao.objects.slice(0, TETO_DE_PONTOS) : deteccao.objects;
+      const pontos = objetos.map((o) => ({ x: o.x, y: o.y }));
+
+      resultadoDoEnsaio = await executarReceita(
+        receita,
+        pontos,
+        (p, opcoesDaOnda) => {
+          const r = segmentarNoCanvas(canvas, p, opcoesDaOnda);
+          return r ? { contorno: r.contorno, tocouBorda: r.tocouBorda } : null;
+        },
+        { cancelado: opcoes.cancelado }
+      );
+    }
 
     const duracaoMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - inicio;
 
@@ -167,8 +198,8 @@ export async function processarImagemDoLote(
         id: item.id,
         rotulo: item.rotulo,
         contagem: resultadoDoEnsaio.resumo.contagem,
-        viaveis: resultadoDoEnsaio.resumo.contagem,
-        inviaveis: 0,
+        viaveis: (resultadoDoEnsaio.resumo as any).viaveis ?? resultadoDoEnsaio.resumo.contagem,
+        inviaveis: (resultadoDoEnsaio.resumo as any).inviaveis ?? 0,
         suspeitos: resultadoDoEnsaio.resumo.suspeitos,
         escapes: resultadoDoEnsaio.escapes,
         duracaoMs,

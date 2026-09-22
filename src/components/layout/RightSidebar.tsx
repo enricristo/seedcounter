@@ -14,6 +14,7 @@ import {
   Ruler,
   FolderOpen,
   Layers,
+  PieChart,
 } from 'lucide-react';
 import { Counters } from '../sidebar/Counters';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
@@ -54,14 +55,15 @@ interface RightSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   hasImage: boolean;
-  activeTab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote';
-  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote') => void;
+  activeTab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics';
+  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics') => void;
   inspectorContent?: React.ReactNode;
   galeriaContent?: React.ReactNode;
   /** Explorador de datasets (Lote B) — quarta aba, abaixo de Resultados/Inspetor/Galeria. */
   datasetsContent?: React.ReactNode;
   /** A mesma receita em várias imagens (Task C1) — quinta aba. */
   loteContent?: React.ReactNode;
+  analyticsContent?: React.ReactNode;
   /**
    * Comparação entre bancadas (C2, Task 5) — aparece dentro da aba
    * Resultados, abaixo dos contadores, só quando há duas ou mais bancadas
@@ -103,6 +105,7 @@ export function RightSidebar({
   galeriaContent,
   datasetsContent,
   loteContent,
+  analyticsContent,
   comparacaoContent,
 }: RightSidebarProps) {
 
@@ -160,6 +163,16 @@ export function RightSidebar({
         >
           <Layers size={20} />
         </button>
+        <button
+          onClick={() => {
+            if (activeTab === 'analytics' && !isCollapsed) onToggleCollapse();
+            else { onTabChange('analytics'); if (isCollapsed) onToggleCollapse(); }
+          }}
+          title="Analytics"
+          className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'analytics' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
+        >
+          <PieChart size={20} />
+        </button>
       </aside>
 
       {/* Painel de Conteúdo (Oculto quando colapsado) */}
@@ -176,6 +189,7 @@ export function RightSidebar({
                   {activeTab === 'galeria' && 'Galeria e Curadoria'}
                   {activeTab === 'datasets' && 'Explorador de Datasets'}
                   {activeTab === 'lote' && 'Lote'}
+                  {activeTab === 'analytics' && 'Analytics & BI'}
                 </span>
               </div>
               <button
@@ -280,6 +294,10 @@ export function RightSidebar({
 
             <div className={activeTab === 'lote' ? 'flex flex-col gap-4' : 'hidden'}>
               {loteContent}
+            </div>
+
+            <div className={activeTab === 'analytics' ? 'flex flex-col gap-4' : 'hidden'}>
+              {analyticsContent || <div className="text-ink-3 text-sm text-center mt-8">Sem dados analíticos no momento.</div>}
             </div>
 
           </div>

@@ -125,6 +125,7 @@ export interface EntradaDoLaudo {
    * Ausente = o laudo fica so com viavel/inviavel.
    */
   marcas?: MarcaClassificavel[];
+  metricasAvancadas?: Bloco;
 }
 
 // ---------------------------------------------------------------------------
@@ -252,6 +253,7 @@ export function montarLaudo(entrada: EntradaDoLaudo): DocumentoDeLaudo {
       montarBlocoDaAmostra(amostra, ehBoletim),
       montarBlocoDaPesquisa(metadata, filename),
       ...(germinacao ? [germinacao.bloco] : []),
+      ...(entrada.metricasAvancadas ? [entrada.metricasAvancadas] : []),
     ],
 
     resultados: [

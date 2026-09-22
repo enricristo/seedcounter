@@ -139,10 +139,11 @@ function itensDasRegioes(image: HTMLImageElement, nomeBase: string, pedacos: num
 function propostosParaSegmentacoes(propostos: ContornoProposto[]): YoloSegmentation[] {
   return propostos.map((p, i) => {
     const { width, height } = calculateSeedDimensions(p.contorno);
+    const cat = p.categoria || 'viable';
     return {
       id: Date.now() + i,
-      category: 'viable' as const,
-      class_name: 'viavel',
+      category: cat,
+      class_name: cat === 'viable' ? 'viavel' : 'inviavel',
       confidence: 1,
       polygon_points: p.contorno,
       visible: true,

@@ -110,13 +110,17 @@ export function Sidebar({
     setTimeout(() => document.getElementById(secao)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
-  const TRILHO: { secao: string; rotulo: string; icone: React.ReactNode }[] = [
+  const isEnterpriseMode = typeof window !== 'undefined' && window.location.search.includes('mode=enterprise');
+
+  const TRILHO = [
     { secao: 'sec-abrir', rotulo: 'Abrir imagem', icone: <Upload size={20} /> },
     { secao: 'sec-exemplos', rotulo: 'Exemplos', icone: <Database size={20} /> },
     { secao: 'sec-calibrar', rotulo: 'Calibrar escala', icone: <Ruler size={20} /> },
     { secao: 'sec-encontrar', rotulo: 'Encontrar objetos', icone: <ScanSearch size={20} /> },
-    { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={20} /> },
-    { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={20} /> },
+    ...(!isEnterpriseMode ? [
+      { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={20} /> },
+      { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={20} /> }
+    ] : [])
   ];
 
   if (isCollapsed) {
@@ -246,12 +250,13 @@ export function Sidebar({
             </CollapsibleSection>
           )}
 
-          {adjustSlot && (
+          {!isEnterpriseMode && adjustSlot && (
             <CollapsibleSection id="sec-preparar" step={3} title="Preparar imagem" pedidoDeAbertura={abrir['sec-preparar']}>
               {adjustSlot}
             </CollapsibleSection>
           )}
 
+          {!isEnterpriseMode && (
           <CollapsibleSection
             id="sec-amostra"
             step={4}
@@ -265,6 +270,7 @@ export function Sidebar({
               <MetadataForm metadata={metadata} updateMetadata={updateMetadata} onAbrirIdentificacao={onAbrirIdentificacao} />
             </div>
           </CollapsibleSection>
+          )}
         </div>
 
         <HelpTip />

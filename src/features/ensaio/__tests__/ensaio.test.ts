@@ -8,15 +8,18 @@
 // =============================================================================
 
 import { describe, it, expect } from 'vitest';
-import { RECEITAS, resumir, receitaPelaEspecie, receitaDeSalva } from '../receitas';
+import { RECEITAS, RECEITAS_DO_ENSAIO, resumir, receitaPelaEspecie, receitaDeSalva } from '../receitas';
 import { executarReceita } from '../executar';
 import { gerarCenaSintetica } from '../../../lib/synthetic-scene';
 import { segmentarPorClique } from '../../../lib/region-growing';
 
 describe('RECEITAS', () => {
-  it('há entre 2 e 3, com ids únicos e um "quando" cada', () => {
-    expect(RECEITAS.length).toBeGreaterThanOrEqual(2);
-    expect(RECEITAS.length).toBeLessThanOrEqual(3);
+  it('o ensaio roda entre 2 e 3 receitas — e nunca a de IA, que não é barata nem seria IA ali', () => {
+    expect(RECEITAS_DO_ENSAIO.length).toBeGreaterThanOrEqual(2);
+    expect(RECEITAS_DO_ENSAIO.length).toBeLessThanOrEqual(3);
+    expect(RECEITAS_DO_ENSAIO.every((r) => !r.localizacao.usaModeloDeIA)).toBe(true);
+    // A receita de IA existe no catálogo completo, para o Lote.
+    expect(RECEITAS.some((r) => r.localizacao.usaModeloDeIA)).toBe(true);
     expect(new Set(RECEITAS.map((r) => r.id)).size).toBe(RECEITAS.length);
     for (const r of RECEITAS) expect(r.quando.length).toBeGreaterThan(10);
   });

@@ -40,6 +40,7 @@ interface HeaderProps {
   hasImageQueue: boolean;
   currentImageIndex: number;
   imageQueueLength: number;
+  onProcessarFilaIA?: () => void;
   /** Quantas páginas tem o TIFF aberto. 1 (ou 0) esconde o seletor. */
   paginasDoTiff?: number;
   /** Página aberta, base 0. */
@@ -133,6 +134,7 @@ export function Header({
   hasImageQueue,
   currentImageIndex,
   imageQueueLength,
+  onProcessarFilaIA,
   paginasDoTiff = 1,
   paginaDoTiff = 0,
   onAbrirPaginaDoTiff,
@@ -149,6 +151,8 @@ export function Header({
   isStatsEnabled = true,
   onOpenFeatures,
 }: HeaderProps) {
+  const isEnterpriseMode = typeof window !== 'undefined' && window.location.search.includes('mode=enterprise');
+  
   const aba = (ativa: boolean) =>
     `rounded-control flex cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-all ${
       ativa
@@ -182,7 +186,7 @@ export function Header({
             <MarcaSemente size={30} />
             <div>
               <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
-                SeedCounter
+                SeedCounter {isEnterpriseMode && <span className="text-accent text-[10px] ml-1 uppercase">Analytics</span>}
               </h1>
               {/* "Edição Acadêmica" saiu: não dizia nada a quem usa. No lugar,
                   o que o app faz — e os grupos continuam no rodapé, com as
@@ -195,6 +199,7 @@ export function Header({
 
           {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
             embaixo, não por cor de texto: cor sozinha não carrega estado. */}
+          {!isEnterpriseMode && (
           <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">
             <button
               onClick={() => onViewChange('counter')}
@@ -224,6 +229,7 @@ export function Header({
               </button>
             )}
           </nav>
+          )}
 
           {/* Espécie da bancada (C7): logo depois das abas — é contexto de
             navegação, não ferramenta, por isso mora na linha 1. */}
@@ -253,7 +259,7 @@ export function Header({
             )}
           </button>
 
-          {onOpenFeatures && (
+          {!isEnterpriseMode && onOpenFeatures && (
             <button
               onClick={onOpenFeatures}
               className={`${botaoIcone} hover:border-accent hover:text-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40`}
@@ -328,29 +334,38 @@ export function Header({
           </div>
 
           <div className="flex items-center gap-2">
-            {hasImageQueue && (
-              <div className="border-line bg-surface-2 rounded-control mr-1 flex items-center gap-1 border p-1">
-                <button
-                  onClick={onPrevImage}
-                  disabled={currentImageIndex === 0}
-                  className={botaoFila}
-                  title="Voltar imagem (Backspace)"
-                >
-                  Anterior
-                </button>
-                <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
-                  {currentImageIndex + 1}/{imageQueueLength}
+              {hasImageQueue && (
+                <div className="flex items-center bg-surface-2 rounded-control border border-line p-0.5">
+                  <button
+                    onClick={onPrevImage}
+                    disabled={currentImageIndex === 0}
+                    className={botaoFila}
+                    title="Voltar imagem (Backspace)"
+                  >
+                    Anterior
+                  </button>
+                  <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
+                    {currentImageIndex + 1}/{imageQueueLength}
+                  </div>
+                  <button
+                    onClick={onNextImage}
+                    disabled={currentImageIndex === imageQueueLength - 1}
+                    className={botaoFila}
+                    title="Próxima imagem (Espaço)"
+                  >
+                    Próxima
+                  </button>
+                  {onProcessarFilaIA && (
+                    <button
+                      onClick={onProcessarFilaIA}
+                      className="ml-1 px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-accent text-accent-on rounded hover:bg-accent/90 transition-colors"
+                      title="Rodar IA em toda a fila e salvar no histórico"
+                    >
+                      Processar Fila
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={onNextImage}
-                  disabled={currentImageIndex === imageQueueLength - 1}
-                  className={botaoFila}
-                  title="Próxima imagem (Espaço)"
-                >
-                  Próxima
-                </button>
-              </div>
-            )}
+              )}
 
             {/* Páginas do TIFF.
                 Fica ao lado da fila de imagens, e não dentro dela, porque são

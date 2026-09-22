@@ -28,6 +28,8 @@ import { reconhecerFormato, type DatasetReconhecido, type FormatoDeDataset } fro
 import { lerClassesCsv } from '../../lib/datasets/roboflow-multiclass';
 import { lerAnotacaoDe, type AnotacaoCarregada } from './anotacao';
 import { medirPasta, type ImagemParaMedir } from './medir-pasta';
+import { ehTiff } from '../../lib/image-crop';
+import { decodificarTiff } from '../../lib/tiff';
 import { agregarPorClasse } from '../../lib/perfil-medido';
 import { usePerfisMedidos } from '../../hooks/usePerfisMedidos';
 import { baixarArquivo, nomeDeExportacao } from '../../lib/download';
@@ -72,7 +74,7 @@ export interface DatasetsPanelProps {
   pastaAberta: PastaAberta | null;
   onPastaAberta: (pasta: PastaAberta | null) => void;
   /**
-   * Carregar a IMAGEM (primeiro gesto). `anotacao` já vem lida — o painel é
+   * Carregar a IMAGEM (primeiro gesto). `anotacao` já vem lida - o painel é
    * quem sabe montar o mapa de arquivos do conjunto e decodificar a imagem
    * para saber largura/altura, que o parser YOLO precisa para desnormalizar.
    * `conjunto`/`caminho` alimentam `Metadata.dataset` no App.
@@ -83,9 +85,10 @@ export interface DatasetsPanelProps {
     conjunto: string,
     caminho: string
   ) => void;
+  onAdicionarAFila?: (arquivos: ArquivoDoDataset[]) => void;
 }
 
-export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: DatasetsPanelProps) {
+export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar, onAdicionarAFila }: DatasetsPanelProps) {
   const [erro, setErro] = useState<string | null>(null);
   const [abrindo, setAbrindo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -351,7 +354,21 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
         if (!arquivo) continue;
         try {
           const file = await arquivo.obterFile();
-          const bitmap = await createImageBitmap(file, { resizeWidth: 160 });
+          let bitmap: ImageBitmap;
+          if (ehTiff(file)) {
+            const buffer = await file.arrayBuffer();
+            const dec = decodificarTiff(buffer, 0);
+            if (!dec) throw new Error('TIFF incompatível');
+            const canvas = document.createElement('canvas');
+            canvas.width = dec.width;
+            canvas.height = dec.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.putImageData(new ImageData(dec.rgba, dec.width, dec.height), 0, 0);
+            const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => b ? res(b) : rej(), 'image/png'));
+            bitmap = await createImageBitmap(blob, { resizeWidth: 160 });
+          } else {
+            bitmap = await createImageBitmap(file, { resizeWidth: 160 });
+          }
           if (cancelado) {
             bitmap.close();
             return;
@@ -379,17 +396,52 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
 
   // --- Carregar imagem + anotação ---------------------------------------------
 
+  // Múltipla seleção com Ctrl/Shift+Click
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+
+  // Limpa selecionados ao trocar de conjunto
+  useEffect(() => {
+    setSelecionados(new Set());
+  }, [conjuntoSelecionado]);
+
   const handleClicarMiniatura = useCallback(
-    async (relativo: string) => {
+    async (relativo: string, event?: React.MouseEvent) => {
+      if (event && (event.ctrlKey || event.metaKey || event.shiftKey)) {
+        setSelecionados(prev => {
+          const next = new Set(prev);
+          if (next.has(relativo)) next.delete(relativo);
+          else next.add(relativo);
+          return next;
+        });
+        return;
+      }
+      
       if (!conjuntoAtual) return;
       const arquivo = arquivosDoConjunto.get(relativo);
       if (!arquivo) return;
       setCarregandoImagem(relativo);
       try {
         const file = await arquivo.obterFile();
-        // Dimensões REAIS (não as da miniatura reduzida) — o parser YOLO
-        // desnormaliza coordenadas 0..1 com base no tamanho de verdade.
-        const bitmapCompleto = await createImageBitmap(file);
+        let bitmapCompleto: ImageBitmap;
+        
+        if (ehTiff(file)) {
+          const buffer = await file.arrayBuffer();
+          const dec = decodificarTiff(buffer, 0);
+          if (!dec) throw new Error('TIFF incompatível');
+          const canvas = document.createElement('canvas');
+          canvas.width = dec.width;
+          canvas.height = dec.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('Sem ctx');
+          ctx.putImageData(new ImageData(dec.rgba, dec.width, dec.height), 0, 0);
+          const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => b ? res(b) : rej(), 'image/png'));
+          bitmapCompleto = await createImageBitmap(blob);
+        } else {
+          // Dimensões REAIS (não as da miniatura reduzida) — o parser YOLO
+          // desnormaliza coordenadas 0..1 com base no tamanho de verdade.
+          bitmapCompleto = await createImageBitmap(file);
+        }
+
         const { width, height } = bitmapCompleto;
         bitmapCompleto.close();
         const anotacao = await lerAnotacaoDe(arquivosDoConjunto, conjuntoAtual.reconhecido, relativo, width, height);
@@ -658,17 +710,34 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar }: Datase
             </div>
           ) : (
             <>
+              {selecionados.size > 0 && onAdicionarAFila && (
+                <div className="flex items-center justify-between bg-surface-2 p-2 rounded border border-accent">
+                  <span className="text-[10px] font-bold text-accent">{selecionados.size} selecionadas</span>
+                  <button
+                    onClick={async () => {
+                      const arquivos = Array.from(selecionados).map(rel => arquivosDoConjunto.get(rel)).filter(Boolean) as any[];
+                      onAdicionarAFila(arquivos);
+                      setSelecionados(new Set());
+                    }}
+                    className="text-[10px] font-bold uppercase tracking-wide bg-accent text-accent-on px-2 py-1 rounded hover:bg-accent/90 transition-colors"
+                  >
+                    Adicionar à Fila
+                  </button>
+                </div>
+              )}
+              
               <div className="grid grid-cols-4 gap-1.5">
                 {imagensDaPagina.map((relativo) => {
                   const bitmap = cacheRef.current.get(relativo);
+                  const isSelecionado = selecionados.has(relativo);
                   return (
                     <button
                       key={relativo}
-                      onClick={() => handleClicarMiniatura(relativo)}
+                      onClick={(e) => handleClicarMiniatura(relativo, e)}
                       disabled={carregandoImagem === relativo}
                       title={relativo}
                       aria-label={`Carregar ${relativo}`}
-                      className="aspect-square rounded-control overflow-hidden border border-line bg-surface-2 hover:border-accent transition-colors disabled:opacity-50 flex items-center justify-center"
+                      className={`aspect-square rounded-control overflow-hidden border ${isSelecionado ? 'border-accent ring-2 ring-accent/30' : 'border-line'} bg-surface-2 hover:border-accent transition-colors disabled:opacity-50 flex items-center justify-center`}
                     >
                       {bitmap ? (
                         <MiniaturaBitmap bitmap={bitmap} />
