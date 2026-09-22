@@ -154,9 +154,7 @@ a `main` por conta própria.
 docker login
 
 # 2. buildar a imagem de produção já com a tag do Docker Hub
-#    (passe a chave como build-arg; ela fica embutida no bundle)
-docker build -t docker.io/enricristo/seedcounter:latest \
-  --build-arg GEMINI_API_KEY=SUA_CHAVE .
+docker build -t docker.io/enricristo/seedcounter:latest .
 
 # 3. enviar para o Docker Hub
 docker push docker.io/enricristo/seedcounter:latest
