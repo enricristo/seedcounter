@@ -52,6 +52,7 @@ describe('a tabela modo → visibilidade', () => {
     // "Preparar imagem" e "Identificar amostra" fora.
     const esperado: Visibilidade = {
       abasDeNavegacao: false,
+      germinacao: false,
       seloDoModo: true,
       chipDeEspecie: true,
       seletorDeBancadas: true,
@@ -90,6 +91,15 @@ describe('a tabela modo → visibilidade', () => {
     for (const modo of MODOS.filter((m) => m !== 'contagem')) {
       expect(visibilidadePadrao(modo).ensaioAoCarregar, modo).toBe(true);
     }
+  });
+
+  it("a aba Germinação aparece em 'completo' e 'laudo', e some em 'contagem' e 'apresentacao'", () => {
+    // Ciência de laboratório: quem só conta não a vê, e o modo de gravar
+    // vídeo não ganha aba nova.
+    expect(visibilidadePadrao('completo').germinacao).toBe(true);
+    expect(visibilidadePadrao('laudo').germinacao).toBe(true);
+    expect(visibilidadePadrao('contagem').germinacao).toBe(false);
+    expect(visibilidadePadrao('apresentacao').germinacao).toBe(false);
   });
 
   it("'laudo' mantém metadados e morfometria", () => {

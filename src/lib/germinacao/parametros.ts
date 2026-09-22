@@ -126,7 +126,23 @@ export function tXRelativoAoTotal(ajuste: Pick<AjusteDeHill, 'a' | 'b' | 'c'>, p
 
 /** U(75−25): intervalo entre 25 % e 75 % de `a`, em horas. */
 export function uniformidade7525(ajuste: Pick<AjusteDeHill, 'b' | 'c'>): number {
-  return tempoNaFracaoDeA(ajuste.b, ajuste.c, 0.75) - tempoNaFracaoDeA(ajuste.b, ajuste.c, 0.25);
+  return uniformidadeEntre(ajuste, 25, 75);
+}
+
+/**
+ * U(superior−inferior): intervalo, em horas, entre o instante em que a curva
+ * atinge `inferior` % de `a` e o instante em que atinge `superior` %.
+ *
+ * A planilha oferece u7525 como padrão e u8416 (±1 desvio de uma normal) como
+ * alternativa; a fórmula é a mesma com percentis diferentes, então fica uma
+ * função só. Percentis em %, 0 < inferior < superior < 100.
+ */
+export function uniformidadeEntre(
+  ajuste: Pick<AjusteDeHill, 'b' | 'c'>,
+  inferior: number,
+  superior: number,
+): number {
+  return tempoNaFracaoDeA(ajuste.b, ajuste.c, superior / 100) - tempoNaFracaoDeA(ajuste.b, ajuste.c, inferior / 100);
 }
 
 /**
