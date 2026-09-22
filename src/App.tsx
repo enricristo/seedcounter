@@ -21,6 +21,7 @@ import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { Bancadas } from './features/bancadas/Bancadas';
 import { SeletorDeBancadas } from './features/bancadas/SeletorDeBancadas';
+import { PainelDeComparacao } from './features/bancadas/PainelDeComparacao';
 import { DropZone } from './components/shared/DropZone';
 import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
@@ -32,6 +33,12 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 // Hooks
 import { useTheme } from './hooks/useTheme';
 import { useBancadas } from './hooks/useBancadas';
+import { useCronometro } from './hooks/useCronometro';
+import {
+  sugerirDoArquivo,
+  quantasSugestoes,
+  type SugestoesDaAmostra,
+} from './lib/sugestoes-do-arquivo';
 import { useSessions } from './hooks/useSessions';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
@@ -68,7 +75,13 @@ import {
 } from './features/sugestoes';
 import { PainelDeMorfometria, resumir } from './features/morfometria';
 import { aplicarRegra, simularRegra, REGRAS_PADRAO, type RegraParametrica } from './features/morfometria/regras';
-import { lerPreferencia, gravarPreferencia, CHAVE_SUGESTOES } from './features/settings/preferencias';
+import {
+  lerPreferencia,
+  gravarPreferencia,
+  lerPreferenciaTexto,
+  gravarPreferenciaTexto,
+  CHAVE_SUGESTOES,
+} from './features/settings/preferencias';
 import { conferirForma } from './lib/normas/tamanhos-de-semente';
 import { AvisoDeAtualizacao } from './features/novidades/AvisoDeAtualizacao';
 import { BarraDeAtividade } from './features/atividade/BarraDeAtividade';
@@ -139,12 +152,21 @@ import {
 } from './lib/image-adjust';
 import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
+import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
+import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
 
 // Types
 import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
-import { ESPECIME, ESPECIME_FILL, corDoEspecime, desenharMarca } from './theme/specimen';
+import {
+  ESPECIME,
+  ESPECIME_FILL,
+  corDoEspecime,
+  desenharMarca,
+  OPACIDADE_MINIMA,
+  type EstiloDaMarca,
+} from './theme/specimen';
 import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
 import { enumerarObjetos } from './lib/objetos';
 import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
@@ -175,7 +197,9 @@ function renderMarksToContext(
   mode: 'dots' | 'numbers',
   larguraDaImagem: number,
   ajusteDaMarca = AJUSTE_PADRAO,
-  segmentacoes: YoloSegmentation[] = []
+  segmentacoes: YoloSegmentation[] = [],
+  estiloDaMarca: EstiloDaMarca = 'disco',
+  opacidadeDaMarca = 1
 ) {
   // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
   // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
@@ -196,7 +220,7 @@ function renderMarksToContext(
     if (mode === 'dots') {
       // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
       // Contorno sem marca não ganha ponto: o polígono já o mostra.
-      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio);
+      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio, estiloDaMarca, opacidadeDaMarca);
     } else {
       // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
       // vazada. A redundancia vira um anel externo escuro so no inviavel.
@@ -271,6 +295,22 @@ export default function App() {
   const [propostaDestacada, setPropostaDestacada] = useState<[number, number][][]>([]);
   const { laboratorio } = useLaboratorio();
   const [ajusteDaMarca, setAjusteDaMarca] = useState(AJUSTE_PADRAO);
+  // Estilo e opacidade ficam em PREFERÊNCIA, não em estado da sessão: é gosto
+  // de quem trabalha e tipo de amostra, não propriedade do dado. Quem analisa
+  // orquídea densa escolhe uma vez e não escolhe de novo a cada imagem.
+  /** A conferência da última calibração, para virar coluna do CSV. */
+  const [calibracaoConferida, setCalibracaoConferida] = useState<{
+    dpiMedido: number;
+    leituras: number;
+    cvPercent?: number;
+  } | null>(null);
+  const [estiloDaMarca, setEstiloDaMarca] = useState<EstiloDaMarca>(
+    () => lerPreferenciaTexto('sc:estiloDaMarca', 'disco') as EstiloDaMarca
+  );
+  const [opacidadeDaMarca, setOpacidadeDaMarca] = useState<number>(() => {
+    const bruto = Number(lerPreferenciaTexto('sc:opacidadeDaMarca', '1'));
+    return Number.isFinite(bruto) && bruto >= OPACIDADE_MINIMA && bruto <= 1 ? bruto : 1;
+  });
   const [raioDaRaspagem, setRaioDaRaspagem] = useState(14);
   // mascara, contornoSelecionado, fundoAchatado e forcarOriginalNasAutomacoes
   // sao estado de CENA — moram no hook de bancada (Task 1) e chegam via
@@ -450,6 +490,15 @@ export default function App() {
   const datasetPendente = useRef<Metadata['dataset'] | null>(null);
   /** O chip de classe do dataset foi fechado para este arquivo. */
   const [chipDeClasseDispensado, setChipDeClasseDispensado] = useState<string | null>(null);
+  /**
+   * O que o nome do arquivo e a pasta já contam sobre a amostra.
+   *
+   * Fica em estado separado do metadado de propósito: sugestão NÃO é dado.
+   * Ela só vira metadado quando alguém clica em "Usar" — a mesma regra do
+   * resto do produto, e a única que impede um palpite de espécie de entrar
+   * calado num laudo.
+   */
+  const [sugestoes, setSugestoes] = useState<SugestoesDaAmostra | null>(null);
 
   /**
    * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
@@ -498,6 +547,26 @@ export default function App() {
     // pelo mesmo motivo do `ativa` em `useBancadas`: o compilador não sabe
     // que os quatro slots sempre existem.
     const alvo = bancadas.todas[indice] ?? bancadas.todas[0];
+
+    // Trilha: o defeito mais comum de abertura é de FORMATO e de TAMANHO — um
+    // TIFF de 16 bits, uma digitalização de 7992×3672. Extensão e bytes
+    // explicam isso; o nome do arquivo não explicaria nada a mais e é dado de
+    // quem usa (ver `lib/diagnostico/trilha.ts`).
+    registrarEvento('imagem:abrir', {
+      largura: img.width,
+      altura: img.height,
+      extensao: extensaoDe(file.name),
+      bytes: file.size,
+      bancada: indice,
+    });
+
+    // O que o arquivo já conta. Proposta, não preenchimento — ver
+    // `lib/sugestoes-do-arquivo.ts`. `webkitRelativePath` existe quando a
+    // pessoa abriu uma PASTA; com arquivo solto não há pasta a considerar, e
+    // inventar uma a partir do caminho do disco não é possível no navegador.
+    const caminho = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+    const pasta = caminho ? caminho.split('/').slice(-2, -1)[0] : undefined;
+    setSugestoes(sugerirDoArquivo({ nomeDoArquivo: file.name, pasta }));
 
     // Vínculo com dataset: só o que o explorador anunciou para ESTA imagem.
     const vinculo = datasetPendente.current;
@@ -602,6 +671,10 @@ export default function App() {
     handleNextImage,
     handlePrevImage,
     loadImageFromFile,
+    paginasDoTiff,
+    paginaDoTiff,
+    dpiDeclarado,
+    abrirPaginaDoTiff,
   } = bancada.fila;
   const {
     marks,
@@ -763,6 +836,20 @@ export default function App() {
   const viablePercent = totalCount > 0 ? ((viableCount / totalCount) * 100).toFixed(1) : '0';
   const inviablePercent = totalCount > 0 ? ((inviableCount / totalCount) * 100).toFixed(1) : '0';
 
+  // `PainelDeComparacao` (aba Resultados) só existe com DUAS OU MAIS bancadas
+  // COM IMAGEM — com uma só, a aba não pode mudar nada (Global Constraints do
+  // plano de bancadas). A contagem mora AQUI, e não só dentro do painel,
+  // porque `RightSidebar` decide o separador (`<hr>`) pela PRESENÇA do prop
+  // `comparacaoContent`, e um elemento React é "presente" mesmo quando o
+  // componente que ele instancia devolve `null` — passar o elemento sempre e
+  // deixar só o componente se recusar deixaria o separador sobrando com uma
+  // bancada só.
+  const bancadasComImagemParaComparar = bancadas.todas
+    .slice(0, bancadas.abertas)
+    .filter((b) => !!b.fila.image).length;
+  const comparacaoContent =
+    bancadasComImagemParaComparar >= 2 ? <PainelDeComparacao bancadas={bancadas} /> : undefined;
+
   // Imagem com os ajustes aplicados.
   //
   // Vai para o detector CLÁSSICO e não para o modelo, e a diferença não é
@@ -822,9 +909,27 @@ export default function App() {
 
     // Draw manual marks
     if (mostraPontos(mascara)) {
-      renderMarksToContext(ctx, marks, visualMode, base.width, ajusteDaMarca, yoloSegmentations);
+      renderMarksToContext(
+        ctx,
+        marks,
+        visualMode,
+        base.width,
+        ajusteDaMarca,
+        yoloSegmentations,
+        estiloDaMarca,
+        opacidadeDaMarca
+      );
     }
-  }, [fonteDoCanvas, marks, visualMode, ajusteDaMarca, mascara, yoloSegmentations]);
+  }, [
+    fonteDoCanvas,
+    marks,
+    visualMode,
+    ajusteDaMarca,
+    mascara,
+    yoloSegmentations,
+    estiloDaMarca,
+    opacidadeDaMarca,
+  ]);
 
   useEffect(() => {
     if (imagemDeTrabalho && canvasRef.current) {
@@ -1265,24 +1370,58 @@ export default function App() {
     }
   }, [image]);
 
+  // O cronômetro é POR CENA: a chave junta bancada, arquivo e página, então
+  // trocar de página do TIFF zera — é outra espécie, é outra amostra, é outro
+  // tempo. Ver `useCronometro`, decisão 3.
+  const cronometro = useCronometro(`${bancada.id}|${filename}|${paginaDoTiff}`);
+
+  /**
+   * O que produziu estes números: versão, página, escala e custo.
+   *
+   * Montado na hora de exportar, e não guardado no estado, porque o tempo muda
+   * a cada segundo e guardá-lo obrigaria a regravar metadado o tempo todo. O
+   * valor que importa é o do instante em que o dado sai.
+   */
+  const montarProcedencia = useCallback((): Metadata['procedencia'] => {
+    const t = cronometro.ler();
+    return {
+      versaoDoApp: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : undefined,
+      commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : undefined,
+      paginaDaImagem: paginasDoTiff > 1 ? paginaDoTiff + 1 : undefined,
+      totalDePaginas: paginasDoTiff > 1 ? paginasDoTiff : undefined,
+      dpiDeclarado: dpiDeclarado ?? undefined,
+      dpiMedido: calibracaoConferida?.dpiMedido,
+      leiturasDeCalibracao: calibracaoConferida?.leituras,
+      cvDaCalibracaoPercent: calibracaoConferida?.cvPercent,
+      modo: t.modo,
+      tempoAtivoMs: t.ativoMs,
+      tempoParedeMs: t.paredeMs,
+    };
+  }, [cronometro, paginasDoTiff, paginaDoTiff, dpiDeclarado, calibracaoConferida]);
+
   const buildMeasurementContext = useCallback(
     () => ({
       marks,
       segmentations: yoloSegmentations,
-      metadata,
+      // A procedência é acrescentada AQUI, na saída, e não guardada no estado:
+      // é o único lugar por onde todo export passa.
+      metadata: { ...metadata, procedencia: montarProcedencia() },
       filename,
       imageData: lerPixelsDaImagem(),
       // Uma semente de orquídea a 3600 DPI tem milhares de pixels; ler um de
       // cada quatro não muda a média e corta o custo em 4x.
       colorSampling: 2,
     }),
-    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem]
+    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem, montarProcedencia]
   );
 
   const handleExportMeasurementsCSV = useCallback(() => {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const csv = measurementsToCSV(rows, ctx);
+    // Trilha: quantas linhas saíram é o que separa "exportou vazio" de
+    // "exportou errado" — dois relatos que chegam com a mesma frase.
+    registrarEvento('exportar', { tipo: 'CSV', saida: 'medidas', linhas: rows.length });
     downloadBlob(csv, generateExportName('csv', 'medidas'), 'text/csv;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
@@ -1290,6 +1429,7 @@ export default function App() {
     const ctx = buildMeasurementContext();
     const rows = buildMeasurements(ctx);
     const sql = measurementsToSQL(rows, ctx);
+    registrarEvento('exportar', { tipo: 'SQL', linhas: rows.length });
     downloadBlob(sql, generateExportName('sql', 'medidas'), 'text/plain;charset=utf-8;');
   }, [buildMeasurementContext, filename]);
 
@@ -1329,6 +1469,7 @@ export default function App() {
       .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
+    registrarEvento('exportar', { tipo: 'CSV', saida: 'contagem', total: totalCount });
     downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
   };
 
@@ -1429,6 +1570,7 @@ export default function App() {
   };
 
   const handleExportPDF = async () => {
+    registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
     const r = await comAtividade('pdf', 'Gerando o laudo…', () =>
       exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
@@ -1448,6 +1590,7 @@ export default function App() {
   };
 
   const handleExportHistoryBatchPDF = async () => {
+    registrarEvento('exportar', { tipo: 'PDF', saida: 'historico', sessoes: sessions.length });
     const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
       exportarLaudosEmLote(sessions, {
         visualMode,
@@ -2493,6 +2636,14 @@ export default function App() {
    */
   const handleUsarEnsaio = useCallback(
     (r: ResultadoDoEnsaio) => {
+      // Trilha: a receita e o número de objetos são o par que explica
+      // "contou 3 quando eram 300". Sem os dois juntos, nenhum dos dois
+      // sozinho aponta para nada.
+      registrarEvento('receita:aplicar', {
+        origem: 'ensaio',
+        receita: r.receita.id,
+        objetos: r.propostos.length,
+      });
       addYoloSegmentations(propostosParaSegmentacoes(r.propostos));
       setReceitaAtiva(r.receita);
       setEnsaio(null);
@@ -2507,9 +2658,14 @@ export default function App() {
    */
   const handleAplicarEncontrado = useCallback(
     (propostos: ContornoProposto[]) => {
+      registrarEvento('receita:aplicar', {
+        origem: 'encontrar',
+        receita: receitaAtiva?.id ?? 'ajustada-a-mao',
+        objetos: propostos.length,
+      });
       addYoloSegmentations(propostosParaSegmentacoes(propostos));
     },
-    [addYoloSegmentations, propostosParaSegmentacoes]
+    [addYoloSegmentations, propostosParaSegmentacoes, receitaAtiva]
   );
 
   /** Salva a receita ajustada no painel Encontrar — 4ª opção do ensaio depois. */
@@ -2762,6 +2918,41 @@ export default function App() {
     disabled: isAnyModalOpen,
   });
 
+  /**
+   * As condições da medição em curso, para o relatório de problema.
+   *
+   * É FUNÇÃO porque o painel que a consome fica montado com o modal fechado —
+   * um objeto congelaria o estado de quando o modal abriu, e o que interessa é
+   * o de quando a pessoa clicou em relatar.
+   *
+   * O que entra aqui é o mínimo que explica um defeito: escala, espécie,
+   * tamanho da imagem, contagem, receita, bancadas. Nada de pixel, nada do
+   * nome do arquivo — só a extensão (ver `lib/diagnostico/trilha.ts`).
+   */
+  const contextoDeDiagnostico = useCallback(
+    (): ContextoDoRelatorio => ({
+      umPerPixel: metadata.umPerPixel,
+      especie: metadata.amostra?.especieNomeCientifico,
+      imagem: image ? { largura: image.width, altura: image.height } : undefined,
+      extensaoDaImagem: image ? extensaoDe(filename) : undefined,
+      contagem: { viaveis: viableCount, inviaveis: inviableCount, total: totalCount },
+      receita: receitaAtiva?.id,
+      bancadas: { abertas: bancadas.abertas, ativa: bancadas.indiceAtivo },
+    }),
+    [
+      metadata.umPerPixel,
+      metadata.amostra?.especieNomeCientifico,
+      image,
+      filename,
+      viableCount,
+      inviableCount,
+      totalCount,
+      receitaAtiva,
+      bancadas.abertas,
+      bancadas.indiceAtivo,
+    ]
+  );
+
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-surface-0 text-ink-1 transition-colors duration-300 font-sans">
       {/* 1. Header Toolbar */}
@@ -2813,6 +3004,9 @@ export default function App() {
         hasImageQueue={imageQueue.length > 0}
         currentImageIndex={currentImageIndex}
         imageQueueLength={imageQueue.length}
+        paginasDoTiff={paginasDoTiff}
+        paginaDoTiff={paginaDoTiff}
+        onAbrirPaginaDoTiff={abrirPaginaDoTiff}
         onPrevImage={handlePrevImage}
         onNextImage={handleNextImage}
         onSaveSession={() => saveCurrentSession(false)}
@@ -2901,6 +3095,7 @@ export default function App() {
                 }}
                 measuredPixels={measuredPixels}
                 isMeasuring={isMeasuring}
+                onCalibracaoConferida={setCalibracaoConferida}
                 especie={
                   metadata.amostra?.especieNomeCientifico || metadata.amostra?.especieNomeComum
                 }
@@ -3012,6 +3207,16 @@ export default function App() {
                 totalDeObjetos={marks.length + yoloSegmentations.length}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
+                estiloDaMarca={estiloDaMarca}
+                onEstiloDaMarcaChange={(v) => {
+                  setEstiloDaMarca(v);
+                  gravarPreferenciaTexto('sc:estiloDaMarca', v);
+                }}
+                opacidadeDaMarca={opacidadeDaMarca}
+                onOpacidadeDaMarcaChange={(v) => {
+                  setOpacidadeDaMarca(v);
+                  gravarPreferenciaTexto('sc:opacidadeDaMarca', String(v));
+                }}
                 raioDaRaspagem={raioDaRaspagem}
                 onRaioDaRaspagemChange={setRaioDaRaspagem}
               />
@@ -3074,6 +3279,79 @@ export default function App() {
                     </button>
                   </div>
                 )}
+
+              {/* O que o arquivo já contou.
+                  Aparece sobre a imagem, some ao aceitar ou ao dispensar, e
+                  NUNCA preenche sozinho. Mostra o trecho que originou cada
+                  proposta — "li isto aqui" — porque é o que permite julgar em
+                  um segundo se faz sentido, sem abrir o painel de metadados. */}
+              {image && sugestoes && quantasSugestoes(sugestoes) > 0 && (
+                <div className="bg-surface-1/95 rounded-panel border-accent/40 absolute top-4 left-1/2 z-30 flex max-w-[70%] -translate-x-1/2 items-center gap-3 border px-3 py-2 shadow-lg backdrop-blur">
+                  <div className="min-w-0">
+                    <p className="text-ink-3 text-[10px] font-bold tracking-wide uppercase">
+                      O nome do arquivo sugere
+                    </p>
+                    <p className="text-ink-1 truncate text-[11px] font-semibold">
+                      {sugestoes.especieNomeCientifico && (
+                        <span className="mr-2">
+                          <em>{sugestoes.especieNomeCientifico.valor}</em>
+                          {sugestoes.especieNomeCientifico.confianca === 'deduzido' && (
+                            <span
+                              className="text-warn ml-1"
+                              title="A grafia foge da convenção do nome científico — confira antes de aceitar."
+                            >
+                              ?
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {sugestoes.repeticao && (
+                        <span className="text-ink-2 mr-2">rep. {sugestoes.repeticao.valor}</span>
+                      )}
+                      {sugestoes.pagina && (
+                        <span className="text-ink-2 mr-2">{sugestoes.pagina.origem}</span>
+                      )}
+                    </p>
+                    <p className="text-ink-3 truncate text-[10px]">
+                      lido em: {[sugestoes.especieNomeCientifico?.origem, sugestoes.repeticao?.origem]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Só o que foi proposto entra. Campo já preenchido pela
+                      // pessoa não é sobrescrito: ela sabe mais que o nome do
+                      // arquivo.
+                      const esp = sugestoes.especieNomeCientifico?.valor;
+                      if (esp && !metadata.amostra?.especieNomeCientifico) {
+                        updateMetadata('amostra', {
+                          ...(metadata.amostra ?? {}),
+                          especieNomeCientifico: esp,
+                        });
+                      }
+                      const rep = sugestoes.repeticao?.valor;
+                      if (rep !== undefined && !metadata.plate) {
+                        updateMetadata('plate', String(rep));
+                      }
+                      setSugestoes(null);
+                    }}
+                    className="bg-accent text-accent-on hover:bg-accent-strong rounded-control shrink-0 px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase transition-colors"
+                  >
+                    Usar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSugestoes(null)}
+                    className="text-ink-3 hover:text-ink-1 shrink-0 rounded p-0.5"
+                    aria-label="Dispensar sugestões"
+                    title="Dispensar — nada é preenchido"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
 
               {/* O corte proposto. Fica sobre a imagem, ao lado da linha tracejada */}
               {corteProposto && (
@@ -3272,6 +3550,7 @@ export default function App() {
             medicoes={medicoesDeMorfometria}
             especie={especieDeclarada}
             calibrado={!!metadata.umPerPixel && metadata.umPerPixel > 0}
+            comparacaoContent={comparacaoContent}
             onExport={() => setIsExportModalOpen(true)}
             onDestacarSementes={handleDestacarSementes}
             onAplicarRegra={handleAplicarRegra}
@@ -3422,6 +3701,9 @@ export default function App() {
       {/* 5. Footer Status Bar */}
       {currentView === 'counter' && (
         <Footer
+          tempoAtivoMs={image ? cronometro.tempo.ativoMs : undefined}
+          modoDeAnalise={cronometro.tempo.modo}
+          onTrocarModo={cronometro.definirModo}
           filename={filename}
           imageWidth={image?.width}
           imageHeight={image?.height}
@@ -3438,6 +3720,7 @@ export default function App() {
           }
           totalDeObjetos={image ? totalCount : undefined}
           onAbrirNovidades={() => setNovidades({ aberto: true, versoes: [] })}
+          onRelatarProblema={() => setIsFeaturesOpen(true)}
           bancada={{
             especie: metadata.amostra?.especieNomeCientifico,
             umPerPixel: metadata.umPerPixel,
@@ -3605,6 +3888,7 @@ export default function App() {
           setIsFeaturesOpen(false);
           setNovidades({ aberto: true, versoes: [] });
         }}
+        contextoDeDiagnostico={contextoDeDiagnostico}
       />
 
       <BarraDeAtividade />

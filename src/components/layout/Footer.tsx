@@ -1,7 +1,15 @@
 import React from 'react';
+import { LifeBuoy } from 'lucide-react';
 import { IndicadorDeAtividade } from '../../features/atividade/IndicadorDeAtividade';
 import { DISSERTACAO } from '../../features/easter/fucik';
+
+/** Currículos Lattes da orientação. Endereços públicos do CNPq. */
+const LATTES = {
+  nelson: 'http://lattes.cnpq.br/3785894121274991',
+  ceci: 'http://lattes.cnpq.br/3380611668628327',
+} as const;
 import type { FonteDeUmaAutomacao } from '../../lib/fonte-da-automacao';
+import { formatarTempo } from '../../lib/cronometro-de-analise';
 
 interface FooterProps {
   filename?: string;
@@ -11,10 +19,30 @@ interface FooterProps {
   zoomLevel?: number;
   /** Total de objetos contados na cena. */
   totalDeObjetos?: number;
+  /**
+   * Tempo de trabalho efetivo nesta cena, em milissegundos, e o modo
+   * declarado. Ausente = o cronômetro não está ligado nesta tela.
+   *
+   * Fica no rodapé e não num painel porque a única forma de alguém confiar no
+   * número é ver que ele estava correndo o tempo todo. Cronômetro escondido é
+   * cronômetro de que se desconfia depois.
+   */
+  tempoAtivoMs?: number;
+  modoDeAnalise?: 'manual' | 'assistida' | 'automatica';
+  /** Troca o modo. Ausente = o modo fica só informativo. */
+  onTrocarModo?: (modo: 'manual' | 'assistida' | 'automatica') => void;
   /** Sobrescreve a versão do build. Normalmente não é passado. */
   version?: string;
   /** Abre as notas de versão. Ausente = o número fica só informativo. */
   onAbrirNovidades?: () => void;
+  /**
+   * Leva a "Relatar problema", nas Configurações. Ausente = o ícone some.
+   *
+   * O rodapé é CAMINHO, não destino: quem acabou de ver algo errado olha para
+   * a linha que já mostra a versão, e é de lá que ele precisa sair para o
+   * lugar certo. O relato em si mora no painel de Configurações.
+   */
+  onRelatarProblema?: () => void;
   /**
    * As condições de medição em curso: espécie, escala, protocolo. É o
    * contexto que toda medida carrega; sem ele, "285 px" não diz nada.
@@ -78,8 +106,12 @@ export function Footer({
   totalDeObjetos,
   version,
   onAbrirNovidades,
+  onRelatarProblema,
   bancada,
   fonteDaAutomacao,
+  tempoAtivoMs,
+  modoDeAnalise,
+  onTrocarModo,
 }: FooterProps) {
   const versaoExibida = version ?? `v${__APP_VERSION__}`;
   const separador = <span className="bg-line h-6 w-px shrink-0" aria-hidden="true" />;
@@ -111,6 +143,35 @@ export function Footer({
           )}
           {zoomLevel != null && <Item rotulo="Zoom">{Math.round(zoomLevel * 100)}%</Item>}
           {totalDeObjetos != null && <Item rotulo="Objetos">{totalDeObjetos}</Item>}
+          {tempoAtivoMs != null && (
+            <Item rotulo="Tempo">
+              <span
+                className="tabular-nums"
+                title={
+                  'Tempo de trabalho efetivo nesta imagem. Para quando a aba sai de vista ou ' +
+                  'quando ninguém mexe em nada por um minuto — não conta aba esquecida aberta.'
+                }
+              >
+                {formatarTempo(tempoAtivoMs)}
+              </span>
+              {modoDeAnalise && onTrocarModo && (
+                <select
+                  value={modoDeAnalise}
+                  onChange={(e) => onTrocarModo(e.target.value as 'manual' | 'assistida' | 'automatica')}
+                  className="border-line bg-surface-1 text-ink-2 rounded-control ml-1 cursor-pointer border px-1 py-px text-[10px]"
+                  title={
+                    'Como esta contagem está sendo feita. É DECLARADO por você, não adivinhado: ' +
+                    'é o que separa os dois braços de uma comparação de tempo.'
+                  }
+                  aria-label="Modo de análise"
+                >
+                  <option value="manual">manual</option>
+                  <option value="assistida">assistida</option>
+                  <option value="automatica">automática</option>
+                </select>
+              )}
+            </Item>
+          )}
         </div>
       ) : (
         <Item rotulo="Imagem">nenhuma aberta</Item>
@@ -203,7 +264,29 @@ export function Footer({
             </a>
           </span>
           <span className="text-ink-3 text-[9px]">
-            Orientação: Dr. Nelson Barbosa Machado Neto e Dra. Ceci Castilho Custódio
+            {/* Os nomes levam ao Lattes, pela mesma razão que o do autor leva à
+                dissertação: quem clica num nome quer saber quem é, e o
+                currículo é a resposta oficial. */}
+            Orientação:{' '}
+            <a
+              href={LATTES.nelson}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Currículo Lattes"
+              className="hover:text-accent decoration-current/25 underline underline-offset-2 transition-colors"
+            >
+              Dr. Nelson Barbosa Machado Neto
+            </a>{' '}
+            e{' '}
+            <a
+              href={LATTES.ceci}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Currículo Lattes"
+              className="hover:text-accent decoration-current/25 underline underline-offset-2 transition-colors"
+            >
+              Dra. Ceci Castilho Custódio
+            </a>
           </span>
         </div>
         {/* O número da versão é o gancho para as notas. Cromo neutro: ciano e
@@ -222,6 +305,21 @@ export function Footer({
           {versaoExibida}
           <span className="text-ink-3 ml-1 font-normal">{__BUILD_COMMIT__}</span>
         </button>
+        {/* Discreto de propósito: um ícone sem rótulo, do tamanho do resto da
+            barra. Um botão de erro em destaque permanente sugere que erro é
+            esperado — mas ele precisa existir aqui, porque é para a linha da
+            versão que se olha quando alguma coisa dá errado. */}
+        {onRelatarProblema && (
+          <button
+            type="button"
+            onClick={onRelatarProblema}
+            title="Relatar um problema — gera um relatório sem imagem nem dado pessoal"
+            aria-label="Relatar um problema"
+            className="text-ink-3 rounded-control hover:text-accent focus-visible:ring-accent/40 cursor-pointer p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          >
+            <LifeBuoy size={13} />
+          </button>
+        )}
       </div>
     </footer>
   );

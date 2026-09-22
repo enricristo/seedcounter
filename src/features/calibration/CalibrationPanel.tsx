@@ -6,6 +6,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Ruler, Check, AlertTriangle, Crosshair, Info } from 'lucide-react';
 import {
+  calibrarPorReferencia,
+  type LeituraDeReferencia,
+} from '../../lib/calibracao-multiponto';
+import {
   computeUmPerPixel,
   umPerPixelToDpi,
   validateScale,
@@ -21,6 +25,7 @@ import {
   type LengthUnit,
 } from '../../lib/calibration';
 import { TAMANHOS, acharPorNome, conferirEscala } from '../../lib/normas/tamanhos-de-semente';
+import { registrarEvento } from '../../lib/diagnostico/trilha';
 
 interface CalibrationPanelProps {
   /** Escala atual (µm/px). */
@@ -33,6 +38,14 @@ interface CalibrationPanelProps {
   measuredPixels?: number;
   /** true enquanto o modo régua está ativo. */
   isMeasuring?: boolean;
+  /**
+   * A conferência da escala, quando houve leituras repetidas do alvo.
+   * `null` quando a pessoa aplicou sem conferir — e isso também é informação:
+   * o CSV sai com as colunas vazias, dizendo que ninguém mediu.
+   */
+  onCalibracaoConferida?: (
+    c: { dpiMedido: number; leituras: number; cvPercent?: number } | null
+  ) => void;
   /**
    * Espécie declarada na amostra, e o comprimento típico de um objeto da
    * imagem em pixels. Juntos permitem CONFERIR a escala, não só calculá-la.
@@ -52,6 +65,11 @@ interface CalibrationPanelProps {
 
 const METHODS: CalibrationMethod[] = ['dpi', 'reference', 'stage_micrometer', 'manual'];
 
+/** Fator de cada unidade para MILÍMETROS, que é o que a calibração multiponto
+ *  recebe. Separado de `UNIT_TO_MICRONS` de propósito: são duas perguntas
+ *  diferentes, e derivar uma da outra por divisão convida a erro de mil. */
+const UNIT_TO_MM: Record<LengthUnit, number> = { um: 0.001, mm: 1, cm: 10, in: 25.4 };
+
 /** Numero com virgula decimal — e documento brasileiro. */
 function virgula(v: number, casas = 2): string {
   return v.toFixed(casas).replace(/\.?0+$/, '').replace('.', ',');
@@ -66,6 +84,7 @@ export function CalibrationPanel({
   especie,
   comprimentoTipicoEmPixels,
   onEspecieChange,
+  onCalibracaoConferida,
 }: CalibrationPanelProps) {
   const [method, setMethod] = useState<CalibrationMethod>('dpi');
   const [dpi, setDpi] = useState(DEFAULT_LAB_DPI);
@@ -73,6 +92,17 @@ export function CalibrationPanel({
   const [refUnit, setRefUnit] = useState<LengthUnit>('mm');
   const [refLabel, setRefLabel] = useState('');
   const [manualValue, setManualValue] = useState(umPerPixel ?? 0);
+  /**
+   * As leituras guardadas do alvo de referência.
+   *
+   * Calibrar num ponto só responde "quanto mede um pixel AQUI". Não responde
+   * quanto a medida varia ao repetir, nem se a escala é a mesma no canto e no
+   * meio da mesa — e erro de escala é SISTEMÁTICO: entra igual em todas as
+   * amostras e não aparece na repetição do ensaio, porque não é ruído, é viés.
+   * Foi assim que este projeto descobriu 32% de diferença entre o DPI
+   * declarado e o real, depois de a diferença já ter entrado em tudo.
+   */
+  const [leituras, setLeituras] = useState<LeituraDeReferencia[]>([]);
 
   const data: CalibrationData = useMemo(
     () => ({
@@ -123,11 +153,46 @@ export function CalibrationPanel({
     () => conferirEscala(comprimentoTipicoEmPixels ?? 0, computed, especie),
     [comprimentoTipicoEmPixels, computed, especie]
   );
-  const needsMeasure = (method === 'reference' || method === 'stage_micrometer') && !measuredPixels;
+  const multiponto = useMemo(
+    () => (leituras.length > 0 ? calibrarPorReferencia(leituras, dpi) : null),
+    [leituras, dpi]
+  );
+
+  /**
+   * Com leituras guardadas, é a MÉDIA delas que vale — não a última medição.
+   * O contrário seria oferecer o rigor e aplicar o palpite.
+   */
+  const escalaFinal = multiponto ? multiponto.umPorPixel : computed;
+
+  const needsMeasure =
+    (method === 'reference' || method === 'stage_micrometer') &&
+    !measuredPixels &&
+    leituras.length === 0;
 
   const handleApply = useCallback(() => {
-    if (computed > 0) onChange(computed);
-  }, [computed, onChange]);
+    if (escalaFinal <= 0) return;
+    // Trilha: a escala errada é a causa silenciosa de metade das medidas
+    // absurdas, e o MÉTODO diz onde procurar — DPI declarado pelo driver não
+    // erra do mesmo jeito que régua clicada com a mão.
+    registrarEvento('calibrar', {
+      metodo: method,
+      umPerPixel: escalaFinal,
+      leituras: leituras.length,
+      cvPercent: multiponto?.cvPercent ?? undefined,
+    });
+  onChange(escalaFinal);
+    // A conferência viaja junto para virar coluna do CSV: uma escala sem o
+    // quanto ela variou não é conferida, é só afirmada.
+    onCalibracaoConferida?.(
+      multiponto
+        ? {
+            dpiMedido: multiponto.dpiMedido,
+            leituras: multiponto.n,
+            cvPercent: multiponto.cvPercent ?? undefined,
+          }
+        : null
+    );
+  }, [escalaFinal, method, onChange, leituras.length, multiponto, onCalibracaoConferida]);
 
   const applyPreset = useCallback((length: number, unit: LengthUnit, label: string) => {
     setRefLength(length);
@@ -273,6 +338,79 @@ export function CalibrationPanel({
               <Info size={12} className="shrink-0 mt-0.5" />
               Nenhuma medição ainda.
             </p>
+          )}
+
+          {/* --------------------------------------------------------------
+              Repetir a leitura em vários pontos.
+
+              Fica logo abaixo da medição, e não num painel avançado, porque é
+              a diferença entre uma escala e uma escala CONFERIDA — e quem vai
+              publicar precisa tropeçar nisso, não procurar.
+             -------------------------------------------------------------- */}
+          {measuredPixels && refLength > 0 && (
+            <button
+              onClick={() =>
+                setLeituras((v) => [
+                  ...v,
+                  {
+                    referenciaMm: (refLength * UNIT_TO_MM[refUnit]),
+                    pixels: measuredPixels,
+                    ponto: `leitura ${v.length + 1}`,
+                  },
+                ])
+              }
+              className="border-accent text-accent hover:bg-accent-tint w-full rounded-control border px-3 py-2 text-[11px] font-bold tracking-wide uppercase transition-colors"
+              title="Guarda esta medição e deixa você medir o mesmo alvo em outro ponto do campo"
+            >
+              + Guardar esta leitura ({leituras.length})
+            </button>
+          )}
+
+          {multiponto && (
+            <div className="border-line bg-surface-2 rounded-control space-y-1.5 border p-2">
+              <p className="text-ink-1 text-[11px] font-semibold">{multiponto.veredito}</p>
+              <div className="text-ink-2 grid grid-cols-2 gap-x-2 font-mono text-[10px] tabular-nums">
+                <span>µm/px</span>
+                <span className="text-right">{virgula(multiponto.umPorPixel, 3)}</span>
+                {multiponto.cvPercent !== null && (
+                  <>
+                    <span>CV</span>
+                    <span className="text-right">{virgula(multiponto.cvPercent, 2)}%</span>
+                  </>
+                )}
+                {multiponto.diferencaDoDeclaradoPercent !== null && (
+                  <>
+                    <span>vs. DPI informado</span>
+                    <span className="text-right">
+                      {multiponto.diferencaDoDeclaradoPercent > 0 ? '+' : ''}
+                      {virgula(multiponto.diferencaDoDeclaradoPercent, 1)}%
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {multiponto.alerta && (
+                <p className="text-warn text-[10px] leading-relaxed">{multiponto.alerta}</p>
+              )}
+
+              <ul className="text-ink-3 space-y-0.5 font-mono text-[9px] tabular-nums">
+                {leituras.map((l, i) => (
+                  <li key={i} className="flex items-center justify-between gap-2">
+                    <span>
+                      {virgula(l.referenciaMm, 2)} mm = {virgula(l.pixels, 1)} px
+                    </span>
+                    <button
+                      onClick={() => setLeituras((v) => v.filter((_, j) => j !== i))}
+                      className="hover:text-danger px-1"
+                      aria-label={`Remover leitura ${i + 1}`}
+                      title="Remover esta leitura"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* Predefinições de referência */}

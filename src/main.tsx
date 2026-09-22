@@ -4,8 +4,15 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { registerSW } from 'virtual:pwa-register';
 import { FeatureFlagProvider } from './context/FeatureFlagContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { instalarCapturaGlobal } from './lib/diagnostico/instalar';
 import App from './App.tsx';
 import './index.css';
+
+// Antes do primeiro render, e antes de qualquer outra coisa: erro que acontece
+// durante a inicialização é o mais difícil de relatar, porque não sobra tela
+// nenhuma para pedir ajuda. Ver `lib/diagnostico/instalar.ts`.
+instalarCapturaGlobal();
 
 // Register PWA Service Worker for offline support
 //
@@ -52,12 +59,19 @@ function fecharAbertura() {
 }
 
 createRoot(document.getElementById('root')!).render(
+  // A barreira fica POR FORA do provedor de funcionalidades, e não por dentro:
+  // um erro ao ler as opções salvas derrubaria o provedor inteiro, e uma
+  // barreira aninhada nele cairia junto sem mostrar nada. O `StrictMode`
+  // continua por fora de tudo — ele é ferramenta de desenvolvimento, não parte
+  // da árvore que pode quebrar.
   <StrictMode>
-    <FeatureFlagProvider>
-      <App />
-      <Analytics />
-      <SpeedInsights />
-    </FeatureFlagProvider>
+    <ErrorBoundary>
+      <FeatureFlagProvider>
+        <App />
+        <Analytics />
+        <SpeedInsights />
+      </FeatureFlagProvider>
+    </ErrorBoundary>
   </StrictMode>
 );
 

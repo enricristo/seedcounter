@@ -13,6 +13,8 @@ import {
   BarChart4,
   Target,
   FlaskConical,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type { AppView } from '../../types';
 
@@ -38,6 +40,11 @@ interface HeaderProps {
   hasImageQueue: boolean;
   currentImageIndex: number;
   imageQueueLength: number;
+  /** Quantas páginas tem o TIFF aberto. 1 (ou 0) esconde o seletor. */
+  paginasDoTiff?: number;
+  /** Página aberta, base 0. */
+  paginaDoTiff?: number;
+  onAbrirPaginaDoTiff?: (pagina: number) => void;
   onPrevImage: () => void;
   onNextImage: () => void;
   onSaveSession: () => void;
@@ -126,6 +133,9 @@ export function Header({
   hasImageQueue,
   currentImageIndex,
   imageQueueLength,
+  paginasDoTiff = 1,
+  paginaDoTiff = 0,
+  onAbrirPaginaDoTiff,
   onPrevImage,
   onNextImage,
   onSaveSession,
@@ -338,6 +348,55 @@ export function Header({
                   title="Próxima imagem (Espaço)"
                 >
                   Próxima
+                </button>
+              </div>
+            )}
+
+            {/* Páginas do TIFF.
+                Fica ao lado da fila de imagens, e não dentro dela, porque são
+                duas navegações diferentes: a fila anda entre ARQUIVOS, esta
+                anda DENTRO de um. A digitalização de tetrazólio com dez
+                espécies é um arquivo só com dez páginas, uma por espécie —
+                sem isto, nove espécies exigiam Photoshop.
+                O <select> existe além das setas porque com dez páginas
+                ninguém quer clicar sete vezes para chegar na oitava. */}
+            {paginasDoTiff > 1 && onAbrirPaginaDoTiff && (
+              <div
+                className="border-accent/40 bg-accent-tint rounded-control mr-1 flex items-center gap-1 border p-1"
+                title={`Este arquivo tem ${paginasDoTiff} páginas. Cada página é uma imagem independente.`}
+              >
+                <span className="text-accent px-1 text-[10px] font-bold tracking-wide uppercase">
+                  Página
+                </span>
+                <button
+                  onClick={() => onAbrirPaginaDoTiff(paginaDoTiff - 1)}
+                  disabled={paginaDoTiff === 0}
+                  className={botaoFila}
+                  title="Página anterior do arquivo"
+                  aria-label="Página anterior do arquivo"
+                >
+                  <ChevronLeft size={13} aria-hidden="true" />
+                </button>
+                <select
+                  value={paginaDoTiff}
+                  onChange={(e) => onAbrirPaginaDoTiff(Number(e.target.value))}
+                  className="border-line bg-surface-1 text-ink-1 rounded-control cursor-pointer border px-1 py-0.5 font-mono text-[11px] tabular-nums"
+                  aria-label="Escolher a página do arquivo"
+                >
+                  {Array.from({ length: paginasDoTiff }, (_, i) => (
+                    <option key={i} value={i}>
+                      {i + 1}/{paginasDoTiff}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => onAbrirPaginaDoTiff(paginaDoTiff + 1)}
+                  disabled={paginaDoTiff === paginasDoTiff - 1}
+                  className={botaoFila}
+                  title="Próxima página do arquivo"
+                  aria-label="Próxima página do arquivo"
+                >
+                  <ChevronRight size={13} aria-hidden="true" />
                 </button>
               </div>
             )}

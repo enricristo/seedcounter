@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Session } from '../../types';
 import { generateYOLODataset, getExportSummary } from '../../lib/yolo-exporter';
 import { useModalEscape } from '../../hooks/useModalEscape';
+import { registrarEvento, registrarErro } from '../../lib/diagnostico/trilha';
 
 interface YoloExportModalProps {
   isOpen: boolean;
@@ -77,6 +78,14 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
     }
 
     setIsExporting(true);
+    // Trilha: o zip de dataset é a exportação mais cara e a que mais falha por
+    // falta de memória. Quantas sessões entraram é o primeiro número a
+    // perguntar quando alguém diz "não baixou nada".
+    registrarEvento('exportar', {
+      tipo: 'YOLO',
+      sessoes: selectedSessions.length,
+      divisaoTreino: trainValSplit,
+    });
     try {
       const blob = await generateYOLODataset(selectedSessions, {
         trainValSplit: trainValSplit / 100,
@@ -95,6 +104,7 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
+      registrarErro(error, 'manual');
       console.error('YOLO Export failed:', error);
       alert('Falha ao exportar dataset. Verifique o console para mais detalhes.');
     } finally {

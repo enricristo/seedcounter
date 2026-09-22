@@ -1,0 +1,271 @@
+% =============================================================================
+% SeedCounter — bibliografia do projeto
+%
+% COMO USAR: Zotero → Arquivo → Importar… → este arquivo. Ele é UTF-8; se o
+% Zotero perguntar a codificação, escolha UTF-8 ou os acentos viram lixo.
+%
+% COMO ESTÁ ORGANIZADO: por `keywords`, que o Zotero importa como etiquetas —
+% então depois de importar você tem as coleções prontas por filtro de etiqueta:
+%
+%   grupo        publicações de Custódio e Machado Neto
+%   tetrazolio   o teste, o critério topográfico, o protocolo
+%   orquidea     semente pequena, conservação, germinação in vitro
+%   forrageira   Urochloa/Brachiaria, espigueta, dormência, armazenamento
+%   imagem       análise de imagem de semente, morfometria, ferramentas
+%   ferramenta   software e instrumento (o que existe no mercado)
+%   norma        RAS, ISTA, ABRATES — o que a regra permite e exige
+%   estatistica  desenho experimental e análise
+%   dataset      conjunto de imagens/dados públicos
+%
+% REGRA DESTE ARQUIVO: só entra aqui o que foi CONFERIDO na fonte. Referência
+% que alguém "lembra" não entra. Se um campo não foi verificado, ele fica de
+% fora em vez de ser preenchido com o provável — um DOI errado numa citação
+% custa mais caro que um campo vazio. Entradas vindas de pesquisa automática
+% passam por conferência antes de entrar.
+%
+% Mantido em docs/referencias/. A citação do próprio SeedCounter não está aqui:
+% está em CITATION.cff, na raiz, que é o que o GitHub e o Zotero leem.
+% =============================================================================
+
+% -----------------------------------------------------------------------------
+% O precedente que funda o projeto: imagem digitalizada equivale ao
+% estereomicroscópio, no mesmo laboratório, revisado por pares, em forrageira.
+% -----------------------------------------------------------------------------
+@article{custodio2012imagens,
+  author  = {Cust{\'o}dio, Ceci Castilho and Damasceno, Rodrigo Lima and Machado Neto, Nelson Barbosa},
+  title   = {Imagens digitalizadas na interpreta{\c{c}}{\~a}o do teste de tetraz{\'o}lio em sementes de {\emph{Brachiaria brizantha}}},
+  journal = {Revista Brasileira de Sementes},
+  volume  = {34},
+  number  = {2},
+  pages   = {334--341},
+  year    = {2012},
+  doi     = {10.1590/s0101-31222012000200020},
+  keywords = {grupo, tetrazolio, imagem, forrageira},
+  note    = {O precedente publicado de que scanner de mesa equivale ao estereomicroscopio para leitura de tetrazolio.}
+}
+
+% -----------------------------------------------------------------------------
+% Grupo — tetrazólio e orquídea
+% -----------------------------------------------------------------------------
+@article{custodio2021tetrazolio,
+  author  = {Cust{\'o}dio, Ceci Castilho and Hosomi, Silvio Tadao and Machado Neto, Nelson Barbosa},
+  title   = {Teste de tetraz{\'o}lio em sementes de orqu{\'\i}deas},
+  journal = {Boletim de Pesquisa PPGA},
+  volume  = {2},
+  number  = {2},
+  pages   = {54--59},
+  year    = {2021},
+  url     = {https://sites.unoeste.br/boletimppga/wp-content/uploads/2021/09/BoletimPPGAV22021-54-59.pdf},
+  keywords = {grupo, tetrazolio, orquidea},
+  note    = {Protocolo: pre-condicionamento em sacarose, clareamento e escarificacao por genero, 40 C por 24 h no escuro, 10 a 20 mg de semente por repeticao — a ordem de milhares de sementes por imagem.}
+}
+
+@article{custodio2016improved,
+  author  = {Cust{\'o}dio, Ceci Castilho and Marks, Timothy R. and Pritchard, Hugh W. and Hosomi, Silvio Tadao and Machado Neto, Nelson Barbosa},
+  title   = {Improved tetrazolium viability testing in orchid seeds with a thick carapace ({\emph{Dactylorhiza fuchsii}}) or dark seed coat ({\emph{Vanda curvifolia}})},
+  journal = {Seed Science and Technology},
+  volume  = {44},
+  pages   = {177--188},
+  year    = {2016},
+  keywords = {grupo, tetrazolio, orquidea}
+}
+
+@article{hosomi2011preconditioning,
+  author  = {Hosomi, Silvio Tadao and Santos, R. B. and Cust{\'o}dio, Ceci Castilho and Seaton, Philip T. and Marks, Timothy R. and Machado Neto, Nelson Barbosa},
+  title   = {Preconditioning {\emph{Cattleya}} seeds to improve the efficacy of the tetrazolium test for viability},
+  journal = {Seed Science and Technology},
+  volume  = {39},
+  pages   = {178--189},
+  year    = {2011},
+  keywords = {grupo, tetrazolio, orquidea}
+}
+
+@article{hosomi2012improved,
+  author  = {Hosomi, Silvio Tadao and Cust{\'o}dio, Ceci Castilho and Seaton, Philip T. and Marks, Timothy R. and Machado Neto, Nelson Barbosa},
+  title   = {Improved assessment of viability and germination of {\emph{Cattleya}} ({Orchidaceae}) seeds following storage},
+  journal = {In Vitro Cellular and Developmental Biology - Plant},
+  volume  = {48},
+  number  = {1},
+  pages   = {127--136},
+  year    = {2012},
+  keywords = {grupo, orquidea}
+}
+
+% -----------------------------------------------------------------------------
+% Grupo — forrageira, armazenamento e dormência
+% O eixo do tempo aqui é MÊS DE ARMAZENAMENTO (até 44 meses), não dia após
+% plantio — e a curva é de deterioração, não de germinação.
+% -----------------------------------------------------------------------------
+@article{custodio2025storage,
+  author  = {Cust{\'o}dio, Ceci Castilho and Abrantes, Fabio Luiz and Machado Neto, Nelson Barbosa},
+  title   = {Seed storage and germination of three grass species: effect of spikelet weight and dormancy},
+  journal = {Brazilian Archives of Biology and Technology},
+  volume  = {68},
+  year    = {2025},
+  doi     = {10.1590/1678-4324-2025241009},
+  keywords = {grupo, forrageira},
+  note    = {Espigueta leve x pesada como fator — exatamente o que a morfometria do app separa sem soprador.}
+}
+
+@article{custodio2021moisture,
+  author  = {Cust{\'o}dio, Ceci Castilho and Abrantes, Fabio Luiz and Machado Neto, Nelson Barbosa},
+  title   = {Seed moisture content can be used to accelerate dormancy release during after-ripening of {\emph{Urochloa humidicola}} cv. {Llanero} spikelets},
+  journal = {Ci{\^e}ncia Rural},
+  volume  = {51},
+  number  = {1},
+  year    = {2021},
+  doi     = {10.1590/0103-8478cr20200526},
+  keywords = {grupo, forrageira}
+}
+
+@article{custodio2022cutting,
+  author  = {Cust{\'o}dio, Ceci Castilho and Catuchi, Tiago Aranda and Parmezan, G. C.},
+  title   = {Sequential cutting of {\emph{Urochloa brizantha}} cv. {MG} 5 changes flowering season and seed production components},
+  journal = {Ci{\^e}ncia Rural},
+  volume  = {52},
+  number  = {5},
+  year    = {2022},
+  doi     = {10.1590/0103-8478cr20200912},
+  keywords = {grupo, forrageira}
+}
+
+% -----------------------------------------------------------------------------
+% Grupo — estresse osmótico em série.
+% O fator principal é QUANTITATIVO (MPa), e por isso pede regressao polinomial e
+% ponto de otimo, nao separacao de medias por letras. O app so faz fator
+% qualitativo: e a lacuna estatistica registrada na spec de 03/09.
+% -----------------------------------------------------------------------------
+@article{machadoneto2004manitol,
+  author  = {Machado Neto, Nelson Barbosa and Costa, P. R. R. and Cust{\'o}dio, Ceci Castilho},
+  title   = {Estresse h{\'\i}drico induzido por manitol em sementes de soja de diferentes tamanhos},
+  journal = {Revista Brasileira de Sementes},
+  volume  = {26},
+  number  = {2},
+  pages   = {105--113},
+  year    = {2004},
+  doi     = {10.1590/s0101-31222004000200015},
+  keywords = {grupo, estatistica},
+  note    = {Tamanho de peneira como fator — classe de tamanho que a morfometria do app extrai direto da imagem.}
+}
+
+@article{machadoneto2004water,
+  author  = {Machado Neto, Nelson Barbosa and Saturnino, S. M. and Bomfim, D. C.},
+  title   = {Water stress induced by mannitol and sodium chloride in soybean cultivars},
+  journal = {Brazilian Archives of Biology and Technology},
+  volume  = {47},
+  number  = {4},
+  pages   = {521--529},
+  year    = {2004},
+  doi     = {10.1590/s1516-89132004000400004},
+  keywords = {grupo, estatistica}
+}
+
+@article{machadoneto2010feijao,
+  author  = {Machado Neto, Nelson Barbosa and Cust{\'o}dio, Ceci Castilho and Coelho, D. L. M.},
+  title   = {Estresse h{\'\i}drico com diferentes osm{\'o}ticos em sementes de feij{\~a}o e express{\~a}o diferencial de prote{\'\i}nas durante a germina{\c{c}}{\~a}o},
+  journal = {Acta Scientiarum Agronomy},
+  volume  = {32},
+  number  = {3},
+  year    = {2010},
+  doi     = {10.4025/actasciagron.v32i3.4694},
+  keywords = {grupo, estatistica}
+}
+
+@article{machadoneto2013coldshock,
+  author  = {Machado Neto, Nelson Barbosa and Agostini, E. A. T. and Cust{\'o}dio, Ceci Castilho},
+  title   = {Induction of water deficit tolerance by cold shock and salicylic acid during germination in the common bean},
+  journal = {Acta Scientiarum Agronomy},
+  volume  = {35},
+  number  = {2},
+  year    = {2013},
+  doi     = {10.4025/actasciagron.v35i2.15967},
+  keywords = {grupo, estatistica}
+}
+
+% -----------------------------------------------------------------------------
+% Fundamento e norma
+% -----------------------------------------------------------------------------
+@article{arditti2000numerical,
+  author  = {Arditti, Joseph and Ghani, Abdul Karim Abdul},
+  title   = {Numerical and physical properties of orchid seeds and their biological implications},
+  journal = {New Phytologist},
+  volume  = {145},
+  pages   = {367--421},
+  year    = {2000},
+  keywords = {orquidea},
+  note    = {A referencia de tamanho e numero de semente de orquidea — por que contar a mao nao escala.}
+}
+
+@book{moore1985tetrazolium,
+  author    = {Moore, R. P.},
+  title     = {Handbook on Tetrazolium Testing},
+  publisher = {International Seed Testing Association},
+  address   = {Zurich},
+  year      = {1985},
+  keywords  = {tetrazolio, norma},
+  note      = {O criterio do tetrazolio e TOPOGRAFICO: o que decide e ONDE a coloracao esta, nao quanto vermelho tem.}
+}
+
+@incollection{francaneto2020tetrazolio,
+  author    = {Fran{\c{c}}a-Neto, Jos{\'e} de Barros and Krzyzanowski, Francisco Carlos},
+  title     = {Teste de tetraz{\'o}lio para a determina{\c{c}}{\~a}o do vigor em sementes},
+  booktitle = {Vigor de sementes: conceitos e testes},
+  edition   = {2},
+  publisher = {ABRATES},
+  address   = {Londrina},
+  pages     = {404--417},
+  year      = {2020},
+  keywords  = {tetrazolio, norma}
+}
+
+@incollection{seaton2018orchid,
+  author    = {Seaton, Philip T. and Pritchard, Hugh W. and Marks, Timothy R.},
+  title     = {Orchid seed and pollen: a toolkit for long-term storage, viability assessment and conservation},
+  booktitle = {Orchid Propagation: From Laboratories to Greenhouses},
+  publisher = {Humana Press},
+  address   = {New York},
+  pages     = {71--98},
+  year      = {2018},
+  keywords  = {orquidea, norma}
+}
+
+% -----------------------------------------------------------------------------
+% Acrescentado em 18/09/2026, conferido por mim na fonte (abri o artigo, não o
+% resultado de busca). As demais entradas levantadas na pesquisa de mercado
+% estão em docs/mercado/, ainda NÃO conferidas — não entram aqui até passarem.
+% -----------------------------------------------------------------------------
+@article{francisqueti2024orchid,
+  author  = {Francisqueti, A. M. and Marin, R. R. and Hengling, M. M. and Hosomi, Silvio Tadao and Pritchard, Hugh W.},
+  title   = {Orchid seeds are not always short lived in a conventional seed bank!},
+  journal = {Annals of Botany},
+  volume  = {133},
+  number  = {7},
+  pages   = {941--952},
+  year    = {2024},
+  doi     = {10.1093/aob/mcae021},
+  keywords = {grupo, orquidea, imagem},
+  note    = {Mediram comprimento, largura e diametro do embriao em 40 sementes por lote, em imagem de camera Sony DSC-P10 acoplada a ocular do estereomicroscopio. O gargalo nao e a captura, e a medicao um a um — e ai que a ferramenta entra. Lista de autores parcial: conferir os demais no artigo antes de citar.}
+}
+
+@article{francasilva2023imaging,
+  author  = {Fran{\c{c}}a-Silva, Fabiano and Gomes-Junior, Francisco Guilhien and Rego, Carlos Henrique Queiroz and Marassi, Agide Gimenez and Tann{\'u}s, Alberto},
+  title   = {Advances in imaging technologies for soybean seed analysis},
+  journal = {Journal of Seed Science},
+  volume  = {45},
+  year    = {2023},
+  doi     = {10.1590/2317-1545v45274098},
+  keywords = {imagem, ferramenta, norma},
+  note    = {Revisao do periodico oficial da ABRATES, sobre SOJA. A analise de plantula por computador e a excecao de baixo custo; raios X, ressonancia, multiespectral, fluorescencia e termografia estao fora do alcance da maioria das empresas. E o enunciado da lacuna de mercado.}
+}
+
+@article{komyshev2017seedcounter,
+  author  = {Komyshev, Evgenii and Genaev, Mikhail and Afonnikov, Dmitry},
+  title   = {Evaluation of the {SeedCounter}, a mobile application for grain phenotyping},
+  journal = {Frontiers in Plant Science},
+  volume  = {7},
+  pages   = {1990},
+  year    = {2017},
+  doi     = {10.3389/fpls.2016.01990},
+  keywords = {ferramenta, imagem},
+  note    = {ATENCAO — HOMONIMO. Existe um "SeedCounter" desde 2017: aplicativo Android de fenotipagem de grao de trigo, publicado e citado. Mede numero, comprimento, largura e area, separa graos encostados por watershed e usa a folha de papel como escala. E a primeira coisa que aparece ao buscar o nome.}
+}

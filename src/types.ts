@@ -118,6 +118,39 @@ export const IMAGE_SOURCE_UM_PER_PIXEL: Partial<Record<ImageSource, number>> = {
   flatbed_2400dpi: 10.6,
 };
 
+/** Como a contagem foi feita. Declarado por quem analisa, nunca inferido. */
+export type ModoDeAnalise = 'manual' | 'assistida' | 'automatica';
+
+/**
+ * O que produziu os números desta cena.
+ *
+ * Todo campo é opcional: a procedência é acrescentada conforme se sabe, e uma
+ * sessão antiga simplesmente não tem nenhum — que é exatamente o que "não foi
+ * registrado" significa. Nada aqui é inventado para preencher.
+ */
+export interface ProcedenciaDaAnalise {
+  /** Versão do aplicativo e commit que geraram estes números. */
+  versaoDoApp?: string;
+  commit?: string;
+  /** Página do arquivo, base 1, quando a imagem veio de um TIFF de várias. */
+  paginaDaImagem?: number;
+  totalDePaginas?: number;
+  /** O DPI que o ARQUIVO declara — declaração, não medida. */
+  dpiDeclarado?: number;
+  /** O DPI que a régua MEDIU, quando alguém mediu. É este que vale. */
+  dpiMedido?: number;
+  /** Quantas leituras do alvo de referência entraram na calibração. */
+  leiturasDeCalibracao?: number;
+  /** Coeficiente de variação dessas leituras, em %. Alto = não publicar. */
+  cvDaCalibracaoPercent?: number;
+  /** Como a contagem foi feita, declarado por quem analisou. */
+  modo?: ModoDeAnalise;
+  /** Tempo de trabalho efetivo nesta cena, em milissegundos. */
+  tempoAtivoMs?: number;
+  /** Tempo de relógio de parede, do começo ao fim. */
+  tempoParedeMs?: number;
+}
+
 export interface Metadata {
   researcher: string;
   project: string;
@@ -158,6 +191,23 @@ export interface Metadata {
   contagensPorClasse?: Contagens;
   /** Superação de dormência aplicada ao lote, quando houve. */
   escarificacao?: RegistroDeEscarificacao;
+
+  /**
+   * De onde esta cena veio e quanto custou — a PROCEDÊNCIA da análise.
+   *
+   * Por que existe: uma medida sem procedência não se replica e não se compara.
+   * Duas linhas de CSV com 1,17 mm cada podem ter vindo de calibrações
+   * diferentes, de páginas diferentes do mesmo arquivo, de versões diferentes
+   * do aplicativo e de modos de trabalho diferentes — e nada nelas denuncia
+   * isso. Este bloco é o que faz a planilha responder "de onde saiu?" sem que
+   * alguém precise lembrar.
+   *
+   * É também o insumo do que a ISTA vem chamando de validação de análise por
+   * imagem, e a lacuna que o levantamento de mercado achou aberta: as
+   * ferramentas entregam o número, nenhuma entrega o número com o que o
+   * produziu.
+   */
+  procedencia?: ProcedenciaDaAnalise;
   /**
    * De onde veio a imagem, quando ela foi carregada pelo explorador de
    * datasets (Lote B) — não pela câmera, scanner ou upload de sempre.

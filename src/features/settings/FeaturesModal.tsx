@@ -19,6 +19,8 @@ import { FEATURE_REGISTRY } from '../flags';
 import { DemoDataPanel } from '../demo';
 import { CHAVE_SOM, CHAVE_SUGESTOES, gravarPreferencia, lerPreferencia } from './preferencias';
 import { useModalEscape } from '../../hooks/useModalEscape';
+import { PainelDeRelato } from './PainelDeRelato';
+import type { ContextoDoRelatorio } from '../../lib/diagnostico/relatorio';
 
 interface FeaturesModalProps {
   isOpen: boolean;
@@ -26,6 +28,11 @@ interface FeaturesModalProps {
   version?: string;
   /** Abre "O que mudou", a partir da seção Sobre. Ausente = o link some. */
   onAbrirNovidades?: () => void;
+  /**
+   * As condições da medição em curso, para o relatório de problema. Lidas no
+   * clique, não na montagem — ver `PainelDeRelato`.
+   */
+  contextoDeDiagnostico?: () => ContextoDoRelatorio;
 }
 
 export function FeaturesModal({
@@ -33,6 +40,7 @@ export function FeaturesModal({
   onClose,
   version = `v${__APP_VERSION__}`,
   onAbrirNovidades,
+  contextoDeDiagnostico,
 }: FeaturesModalProps) {
   useModalEscape(isOpen, onClose);
 
@@ -204,6 +212,10 @@ export function FeaturesModal({
               </label>
             </div>
           </div>
+
+          {/* Relatar problema — colado em "Sobre" porque versão, contato e
+              relatório são a mesma tarefa. Ver `PainelDeRelato`. */}
+          <PainelDeRelato contexto={contextoDeDiagnostico} />
 
           {/* Sobre */}
           <div className="space-y-2">

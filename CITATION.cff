@@ -1,0 +1,37 @@
+# Como citar o SeedCounter.
+#
+# Este arquivo existe para que a citação não dependa de alguém copiar o texto
+# do README à mão: o GitHub lê o CITATION.cff e mostra um botão "Cite this
+# repository", e Zotero, Mendeley e o pandoc leem o mesmo arquivo. A ordem dos
+# autores aqui é a ordem oficial, e qualquer outro lugar que cite o projeto
+# (README.md, docs/index.html) segue esta.
+cff-version: 1.2.0
+message: "Se você usar o SeedCounter em um trabalho, por favor cite como abaixo."
+title: "SeedCounter: ferramenta client-side para contagem, classificação e morfometria de sementes"
+abstract: >-
+  Análise de imagem de sementes que roda inteira no navegador: contagem
+  assistida, segmentação por clique, morfometria com Feret e eixos visíveis,
+  calibração conferida contra a régua da própria imagem, e laudo. A máquina
+  propõe, a pessoa confere.
+type: software
+version: "3.6.0"
+date-released: "2026-09-21"
+url: "https://seedcounter.vercel.app"
+repository-code: "https://github.com/enricristo/seedcounter"
+license: MIT
+keywords:
+  - análise de sementes
+  - análise de imagem
+  - morfometria
+  - tecnologia de sementes
+  - contagem de sementes
+  - orquídeas
+authors:
+  - family-names: Ambrosio
+    given-names: Enrico S.
+  - family-names: Machado Neto
+    given-names: Nelson Barbosa
+  - family-names: Custódio
+    given-names: Ceci Castilho
+  - family-names: Figueiredo
+    given-names: Mayara de Oliveira Vidotto

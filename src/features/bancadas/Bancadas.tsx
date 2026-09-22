@@ -24,7 +24,7 @@
 // custar um segundo clique.
 // =============================================================================
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { ImageViewport } from '../../components/canvas/ImageViewport';
 import { MarkingCanvas } from '../../components/canvas/MarkingCanvas';
@@ -108,6 +108,45 @@ const CenaInativa = React.memo(function CenaInativa({
   );
 });
 
+interface GerenciadorDeMemoriaProps {
+  bancada: Bancada;
+  ativa: boolean;
+}
+
+/**
+ * Não desenha nada — só observa se ESTA bancada é a ativa e aciona a troca
+ * de pixels da Task 4 (memória): ao sair de ativa, libera a cheia (gera a
+ * reduzida); ao voltar, recarrega a cheia do `File` de origem.
+ *
+ * Fica FORA do galho `ativa ? children : <CenaInativa .../>` de propósito:
+ * aquele galho desmonta um lado e monta o outro exatamente na troca — um
+ * efeito que desmontasse nesse instante nunca chegaria a disparar a limpeza.
+ * Este componente nunca desmonta enquanto a bancada estiver na tela, então o
+ * efeito abaixo vê toda transição ativa→inativa e inativa→ativa.
+ *
+ * `bancada` muda de identidade a cada render (é um objeto novo devolvido por
+ * `useBancada` a cada render de `App`), e `liberarImagemCheia`/
+ * `recarregarImagemCheia` não são memoizadas com `useCallback` — por isso
+ * este componente NÃO usa `React.memo` (seria só um custo extra de
+ * comparação, sem nada estável para aproveitar) e o efeito roda mais vezes
+ * do que só nas transições reais de `ativa`. Isso é intencional: as duas
+ * funções são IDEMPOTENTES (guardas internas por `ref` em `useBancada.ts`
+ * fazem qualquer chamada redundante virar um retorno antecipado barato), e
+ * depender só de `[ativa]` arriscaria capturar uma versão velha das funções
+ * pelo fecho do efeito.
+ */
+function GerenciadorDeMemoria({ bancada, ativa }: GerenciadorDeMemoriaProps) {
+  const { liberarImagemCheia, recarregarImagemCheia } = bancada.cena;
+  useEffect(() => {
+    if (ativa) {
+      recarregarImagemCheia();
+    } else {
+      liberarImagemCheia();
+    }
+  }, [ativa, liberarImagemCheia, recarregarImagemCheia]);
+  return null;
+}
+
 interface BancadasProps {
   bancadas: BancadasEstado;
   /** Abre o seletor de arquivo — o mesmo `handleBrowseFiles` do App; o input
@@ -174,19 +213,17 @@ export function Bancadas({ bancadas, onBrowseFiles, children }: BancadasProps) {
                 </button>
               </span>
             </div>
+            <GerenciadorDeMemoria bancada={b} ativa={ativa} />
             <div className="relative min-h-0 flex-1">
               {ativa ? (
                 children
               ) : (
-                // PONTO DE ENCAIXE DA TASK 4 (memória): `image` aqui é hoje o
-                // bitmap CHEIO de `b.fila`, porque a Task 4 ainda não existe.
-                // Quando existir, troca por uma versão reduzida (maior lado
-                // ≤ 2000px) que `useBancada` vai gerar e guardar ao a bancada
-                // SAIR de ativa, liberando o bitmap cheio — e recarregando o
-                // cheio do `File` de origem quando ela voltar a ser ativa.
-                // Só este `image` muda; `marks`/`yoloSegmentations`/mascara
-                // não são afetados, porque memória é sobre PIXELS, não sobre
-                // anotação.
+                // Task 4 (memória): `image` aqui é `b.fila.image`, que
+                // `GerenciadorDeMemoria` (acima) já trocou pela reduzida
+                // assim que esta bancada saiu de ativa — liberando o bitmap
+                // cheio. Só o `image` muda; `marks`/`yoloSegmentations`/
+                // mascara não são afetados, porque memória é sobre PIXELS,
+                // não sobre anotação.
                 <CenaInativa
                   image={b.fila.image}
                   loadError={b.fila.loadError}
