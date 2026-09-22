@@ -1,5 +1,4 @@
 import React from 'react';
-import type { ANOVAResult } from '../../../types';
 import type { StatsPipelineResult } from '../../../lib/stats';
 import { Info, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 

@@ -3,7 +3,6 @@ import {
   wilsonCI,
   kruskalWallis,
   arcsinTransform,
-  transformPercentages,
   calculateIVG,
   calculateMGT,
   calculateCVG,

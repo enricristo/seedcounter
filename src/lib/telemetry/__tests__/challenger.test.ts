@@ -102,7 +102,6 @@ describe('Milestone 4 Empirical Challenger Suite', () => {
 
     it('pure JS fallback branch produces exact match when crypto.subtle is unavailable', async () => {
       // Force fallback by mocking crypto.subtle.digest to throw
-      const originalSubtle = globalThis.crypto.subtle;
       try {
         // Mock subtle to throw
         vi.spyOn(globalThis.crypto.subtle, 'digest').mockRejectedValue(new Error('Subtle unavailable'));
@@ -242,7 +241,7 @@ describe('Milestone 4 Empirical Challenger Suite', () => {
         let onlineState = false;
         vi.spyOn(client, 'isOnline').mockImplementation(() => onlineState);
 
-        const mockFetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+        const mockFetch = vi.fn().mockImplementation((url: string, _opts: RequestInit) => {
           if (url.includes('/api/v1/telemetry/presigned-url')) {
             return Promise.resolve({
               ok: true,
@@ -393,7 +392,7 @@ describe('Milestone 4 Empirical Challenger Suite', () => {
       let step1Called = false;
       let step2Called = false;
 
-      globalThis.fetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string, _opts: RequestInit) => {
         if (url.includes('/api/v1/telemetry/presigned-url')) {
           step1Called = true;
           return Promise.resolve({
@@ -442,7 +441,7 @@ describe('Milestone 4 Empirical Challenger Suite', () => {
       const client = new TelemetryClient({ baseUrl: 'http://api.test' });
       vi.spyOn(client, 'isOnline').mockReturnValue(true);
 
-      globalThis.fetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string, _opts: RequestInit) => {
         if (url.includes('/api/v1/telemetry/presigned-url')) {
           return Promise.resolve({
             ok: true,
@@ -759,7 +758,7 @@ describe('Milestone 4 Empirical Challenger Suite', () => {
       let putCalled = false;
       let sessionCommitted = false;
 
-      globalThis.fetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string, _opts: RequestInit) => {
         if (url.includes('/api/v1/telemetry/presigned-url')) {
           return Promise.resolve({
             ok: true,

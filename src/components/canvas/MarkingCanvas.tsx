@@ -5,7 +5,7 @@ import { ESPECIME, ESPECIME_FILL, corDoEspecime } from '../../theme/specimen';
 import type { DetectedObject } from '../../lib/detect';
 import { CanvasRulers } from './CanvasRulers';
 import { formatLengthDual } from '../../lib/calibration';
-import { regiaoDeDoisPontos, regiaoUtilizavel, type Regiao } from '../../lib/region';
+import { type Regiao } from '../../lib/region';
 import { AJUSTE_PADRAO, espessuraNaImagem, raioDoAlvo } from '../../lib/escala-da-marca';
 import {
   arestaMaisProxima,
@@ -206,7 +206,6 @@ export function MarkingCanvas({
   mostrarContornos,
   mostrarPontos,
   ajusteDaMarca = AJUSTE_PADRAO,
-  visualMode,
   zoomLevel,
   isPanningMode,
   onCanvasClick,
@@ -223,11 +222,6 @@ export function MarkingCanvas({
   onEraseArea,
   canvasFilter,
   showRulers,
-  isMeasuring,
-  onMeasured,
-  isSelectingRegion,
-  selectedRegion,
-  onRegionSelected,
   contornoSelecionado,
   onSelecionarContorno,
   onMoverVertice,
@@ -241,8 +235,6 @@ export function MarkingCanvas({
   onDesenhoConcluido,
   menuRadialAtivo = false,
   onClassificarRadial,
-  onAddAnotacaoVisual,
-  sementesSimuladas = [],
   mostrarEixosDeTodos = false,
   children,
 }: MarkingCanvasProps) {
@@ -609,94 +601,9 @@ export function MarkingCanvas({
               ? 'crosshair'
               : 'default';
 
-  // --- Régua de calibração: dois cliques definem a distância conhecida ---
-  const [rulerStart, setRulerStart] = useState<{ x: number; y: number } | null>(null);
-  const [rulerEnd, setRulerEnd] = useState<{ x: number; y: number } | null>(null);
-
-  const handleRulerClick = (e: React.MouseEvent) => {
-    const pos = toImageCoords(e);
-    if (!pos) return;
-    e.stopPropagation();
-
-    if (!rulerStart || rulerEnd) {
-      // Primeiro ponto (ou reinício após uma medição concluída)
-      setRulerStart(pos);
-      setRulerEnd(null);
-    } else {
-      setRulerEnd(pos);
-      if (isMeasuring) {
-        onMeasured?.(Math.hypot(pos.x - rulerStart.x, pos.y - rulerStart.y), rulerStart, pos);
-      } else if (activeTool === 'cota') {
-        onAddAnotacaoVisual?.({
-          id: Date.now().toString(),
-          tipo: 'cota',
-          p1: [rulerStart.x, rulerStart.y],
-          p2: [pos.x, pos.y],
-        });
-        setRulerStart(null);
-        setRulerEnd(null);
-      }
-    }
-  };
-
-  const handleRulerMove = (e: React.MouseEvent) => {
-    const pos = toImageCoords(e);
-    if (pos) setCursorPos(pos);
-  };
-
-  // --- Região de detecção: um arraste define onde o modelo vai rodar ---
-  // Arraste, e não dois cliques como a régua: aqui o retorno visual contínuo
-  // do retângulo é o que deixa a pessoa enquadrar o que quer, e o gesto é o
-  // mesmo de qualquer seleção retangular que ela já conhece.
-  const [arrasteInicio, setArrasteInicio] = useState<{ x: number; y: number } | null>(null);
-  const [arrasteAtual, setArrasteAtual] = useState<{ x: number; y: number } | null>(null);
-
-  const regiaoEmConstrucao =
-    arrasteInicio && arrasteAtual
-      ? regiaoDeDoisPontos(arrasteInicio.x, arrasteInicio.y, arrasteAtual.x, arrasteAtual.y)
-      : null;
-
-  const iniciarRegiao = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    const pos = toImageCoords(e);
-    if (!pos) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setArrasteInicio(pos);
-    setArrasteAtual(pos);
-  };
-
-  const arrastarRegiao = (e: React.MouseEvent) => {
-    if (!arrasteInicio) return;
-    const pos = toImageCoords(e);
-    if (pos) setArrasteAtual(pos);
-  };
-
-  const concluirRegiao = () => {
-    // Arraste curto demais é clique com a mão trêmula, não seleção: descarta
-    // em silêncio em vez de mandar o modelo rodar num retângulo de 3 px.
-    if (regiaoUtilizavel(regiaoEmConstrucao)) {
-      if (isSelectingRegion) {
-        onRegionSelected?.(regiaoEmConstrucao);
-      } else if (activeTool === 'caixa') {
-        onAddAnotacaoVisual?.({
-          id: Date.now().toString(),
-          tipo: 'caixa',
-          x: regiaoEmConstrucao.x,
-          y: regiaoEmConstrucao.y,
-          w: regiaoEmConstrucao.width,
-          h: regiaoEmConstrucao.height,
-        });
-      }
-    }
-    setArrasteInicio(null);
-    setArrasteAtual(null);
-  };
-
-  const regiaoDesenhada = regiaoEmConstrucao ?? selectedRegion ?? null;
-
-  // --- Prancheta Metrológica ---
-  const [anotacaoInicio, setAnotacaoInicio] = useState<{ x: number; y: number } | null>(null);
+  // Régua, região de detecção e anotações visuais viraram overlays próprios
+  // (`overlays/CalibrationRulerOverlay`, `RegionSelectorOverlay`,
+  // `VisualAnnotationsOverlay`); os handlers antigos que viviam aqui saíram.
 
   const handlePolygonMouseMove = (e: React.MouseEvent, seg: YoloSegmentation) => {
     if (isPanningMode) return;

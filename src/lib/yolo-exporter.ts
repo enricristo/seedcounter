@@ -61,9 +61,6 @@ export interface YOLOExportSummary {
 const CLASS_VIABLE = 0;
 const CLASS_INVIABLE = 1;
 
-/** Default DPI warning thresholds (72 / 96 are browser/web defaults) */
-const DEFAULT_DPI_VALUES = new Set([72, 96]);
-
 function getUmPerPixel(session: Session): number | undefined {
   // Explicit manual calibration wins
   if (session.metadata.umPerPixel && session.metadata.umPerPixel > 0) {

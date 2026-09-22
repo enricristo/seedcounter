@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Link2, Check, AlertCircle } from 'lucide-react';
+import { X, Save, Link2, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import type {
   Experiment,

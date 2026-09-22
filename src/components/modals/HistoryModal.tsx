@@ -11,7 +11,7 @@ import {
   Play,
   FileText,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { sobDemanda } from '../../lib/sob-demanda';
 import type { Session } from '../../types';
 import { useModalEscape } from '../../hooks/useModalEscape';
