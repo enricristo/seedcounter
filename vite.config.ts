@@ -42,6 +42,12 @@ export default defineConfig(({ mode }) => {
           // node_modules/recharts (e nos d3-* e victory-vendor que só ele usa)
           // vai para o pedaço; o resto fica onde o Rollup decidir.
           manualChunks(id: string) {
+            // O ajudante de pré-carregamento do próprio Vite é usado por todo
+            // pedaço que faz `import()`. Sem lar declarado, o Rollup o pôs
+            // dentro do `pdf-export` — e o `index` passou a importar o
+            // jsPDF inteiro só para pegar uma função de 20 linhas. Vai para o
+            // pedaço que sempre carrega.
+            if (id.includes('vite/preload-helper')) return 'react-vendor';
             if (!id.includes('node_modules')) return undefined;
             // React num pedaço próprio, ANTES de tudo: `react-dom` é importado
             // pelo `index` (via react-dom/client) e pelo recharts, e sem esta
