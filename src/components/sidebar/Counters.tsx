@@ -6,6 +6,12 @@ import type { Session } from '../../types';
 interface CountersProps {
   viableCount: number;
   inviableCount: number;
+  /**
+   * Objetos declarados como NÃO-semente (material inerte pela RAS: unidade de
+   * dispersão sem semente dentro). Já saíram de viáveis, inviáveis e do total;
+   * aparecem porque um número que encolhe sem explicação parece defeito.
+   */
+  inertesCount?: number;
   viablePercent: string;
   inviablePercent: string;
   totalCount: number;
@@ -20,6 +26,7 @@ interface CountersProps {
 export function Counters({
   viableCount,
   inviableCount,
+  inertesCount = 0,
   viablePercent,
   inviablePercent,
   totalCount,
@@ -102,9 +109,21 @@ export function Counters({
           />
         </div>
 
+        {/* A linha do inerte só existe quando há inerte: sem classe fina
+            declarada, a tela é exatamente a de sempre. */}
+        {inertesCount > 0 && (
+          <div
+            className="text-ink-3 flex items-baseline justify-between px-1 text-[10px]"
+            title="Material inerte pela RAS: unidade de dispersão sem semente dentro. Fica FORA do total e das porcentagens — contar detrito como semente faz a germinação parecer menor do que é."
+          >
+            <span className="font-bold tracking-widest uppercase">Inerte (fora da conta)</span>
+            <span className="font-mono tabular-nums">{inertesCount}</span>
+          </div>
+        )}
+
         <div className="border-line flex items-baseline justify-between border-t px-1 pt-3">
           <span className="text-ink-3 text-[10px] font-bold tracking-widest uppercase">
-            Total computado
+            {inertesCount > 0 ? 'Total de sementes' : 'Total computado'}
           </span>
           <span className="text-ink-1 font-mono text-2xl font-semibold tracking-tight tabular-nums">
             {totalCount}

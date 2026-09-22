@@ -107,6 +107,12 @@ export const VERSOES: Versao[] = [
           'Clicar na sugestão do painel não fazia nada — ela guardava uma versão antiga da função, de antes de haver imagem. Ctrl+S e o botão sempre funcionaram; a sugestão agora também.',
       },
       {
+        tipo: 'novo',
+        titulo: 'Detrito deixa de contar como semente inviável',
+        detalhe:
+          'Quando você classifica um objeto como "Vazia (inerte)" — casca, espigueta sem semente dentro, detrito —, ele sai da conta: não é semente viável nem inviável, e não entra no denominador da porcentagem. A norma manda assim, e a diferença não é pequena: 400 objetos com 80 vazios dão porcentagem sobre 320, não sobre 400. O painel mostra uma linha "Inerte (fora da conta)" para você ver quantos saíram, e o CSV ganhou as colunas classe_norma, classe_rotulo, conta_como_semente e classe_externa. Enquanto ninguém classificar nada como inerte, nenhum número muda.',
+      },
+      {
         tipo: 'corrigido',
         titulo: 'Três sugestões que não faziam nada, e a fila com IA presa em "Parar"',
         detalhe:
