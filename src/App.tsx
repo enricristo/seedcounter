@@ -16,7 +16,6 @@ import { MarkingCanvas, type DetectionPreview } from './components/canvas/Markin
 import { SeedInspector } from './components/canvas/SeedInspector';
 import { ListaDeSementes } from './components/canvas/ListaDeSementes';
 import { EscalaGrafica } from './components/canvas/EscalaGrafica';
-import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-reais';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { Bancadas } from './features/bancadas/Bancadas';
@@ -36,6 +35,7 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 import { useTheme } from './hooks/useTheme';
 import { useBancadas } from './hooks/useBancadas';
 import { useCronometro } from './hooks/useCronometro';
+import type { ModoDeAnalise } from './lib/cronometro-de-analise';
 import { useVisibilidade } from './features/visualizacao/useModoDeVisualizacao';
 import {
   sugerirDoArquivo,
@@ -68,7 +68,11 @@ import { useExperiments } from './hooks/useExperiments';
 // Features
 import { LongitudinalView, ExperimentModal, PlateRunModal } from './features/longitudinal';
 import { StatsView } from './features/stats';
+import { PainelDeGerminacao } from './features/germinacao';
 import { YoloExportModal } from './features/yolo-export';
+import { useExportacoes } from './features/exportar';
+import { useImportacao } from './features/importar';
+import { useSessao } from './features/sessao';
 import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
@@ -79,6 +83,14 @@ import { GaleriaModal } from './features/galeria';
 // Sob demanda: os dois carregam o `recharts` (ver `features/analytics/index.ts`).
 import { AnalyticsPanel, AnalyticsModal } from './features/analytics';
 import { NovidadesModal } from './features/novidades';
+import {
+  TelaDePerfil,
+  lerPerfilAtual,
+  ehReceitaPadrao,
+  ehModoDeAnalise,
+  CHAVE_RECEITA_PADRAO,
+  CHAVE_MODO_DE_ANALISE_PADRAO,
+} from './features/perfis';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
 import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
 import {
@@ -117,7 +129,7 @@ import {
 } from './lib/edicao-de-contorno';
 import { ajustarContorno, type Pincelada } from './lib/borracha';
 import { achatarFundo, type ModoDeAchatamento } from './lib/achatar-fundo';
-import { atualizarProgresso, comAtividade, iniciarAtividade } from './features/atividade/atividade';
+import { atualizarProgresso, iniciarAtividade } from './features/atividade/atividade';
 import { CORTE_PARA_SEMENTE_ALONGADA, proporCorte } from './lib/corte-por-concavidade';
 import { acharPorNome, TAMANHOS } from './lib/normas/tamanhos-de-semente';
 import {
@@ -126,13 +138,15 @@ import {
   proxima as proximaMascara,
 } from './features/mascara';
 import { useLaboratorio } from './hooks/useLaboratorio';
-import { carregarExemplo } from './features/demo/exemplos';
+import { useExemplos } from './features/demo/useExemplos';
 import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
-import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
+import { useOnda } from './features/segmentacao/useOnda';
+import { classeExternaDe } from './features/segmentacao/contorno-do-clique';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
 import {
+  RECEITAS,
   RECEITAS_DO_ENSAIO,
   receitaPelaEspecie,
   receitaDeSalva,
@@ -146,8 +160,7 @@ import { usePerfisMedidos } from './hooks/usePerfisMedidos';
 import type { ReceitaSalva } from './lib/db';
 import { DatasetsPanel } from './features/datasets/DatasetsPanel';
 import { LotePanel } from './features/lote/LotePanel';
-import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
-import type { AnotacaoCarregada } from './features/datasets/anotacao';
+import { useExplorador } from './features/datasets/useExplorador';
 import { detectObjects, type DetectionOptions } from './lib/detect';
 import type { OpcoesDaOnda } from './lib/region-growing';
 import { ChipDeEspecie } from './components/layout/ChipDeEspecie';
@@ -156,45 +169,26 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
-import { categoriaImportada, categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
-import { buildMeasurements, measurementsToCSV, measurementsToSQL } from './lib/measurements';
+import { buildMeasurements } from './lib/measurements';
 import {
   applyAdjustments,
   exigePixels,
   isNeutral,
   toCssFilter,
 } from './lib/image-adjust';
-import { exportarLaudo, exportarLaudosEmLote, montarMetricasAvancadas } from './lib/laudo';
-import { baixarArquivo, nomeDeExportacao } from './lib/download';
 import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
 import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
 
 // Types
-import type { Mark, YoloSegmentation, Session, Experiment, PlateRun, Metadata } from './types';
+import type { Mark, YoloSegmentation, Experiment, PlateRun, Metadata } from './types';
 
 // Linguagem do especime — fonte unica das cores e formas das marcas.
-import {
-  ESPECIME,
-  ESPECIME_FILL,
-  corDoEspecime,
-  desenharMarca,
-  OPACIDADE_MINIMA,
-  type EstiloDaMarca,
-} from './theme/specimen';
-import { AJUSTE_PADRAO, corpoDaFonte, espessuraNaImagem, raioDaMarca } from './lib/escala-da-marca';
-import { enumerarObjetos } from './lib/objetos';
+import { OPACIDADE_MINIMA, type EstiloDaMarca } from './theme/specimen';
+import { AJUSTE_PADRAO } from './lib/escala-da-marca';
 import { fontesDasAutomacoes, resumoDaFonte } from './lib/fonte-da-automacao';
-
-// Delega para src/lib/download.ts. A versão anterior criava a âncora sem
-// anexá-la ao DOM e revogava a URL no mesmo tick do clique — os arquivos
-// chegavam com nome de UUID e sem extensão, parecendo que a exportação não
-// tinha funcionado.
-function downloadBlob(content: string, filename: string, contentType: string) {
-  baixarArquivo(content, filename, contentType);
-}
 
 /** Centro de massa dos vertices. Suficiente para posicionar uma marca. */
 function centroide(pontos: [number, number][]): [number, number] {
@@ -209,7 +203,50 @@ function centroide(pontos: [number, number][]): [number, number] {
 
 import { renderMarksToContext } from './lib/render-marks';
 
+/**
+ * A pré-definição por perfil, na primeira abertura.
+ *
+ * A tela dos cinco cartões vem ANTES de `AppInterno` montar, e não por cima
+ * dele: cada consumidor de preferência (estilo da marca, receita, cronômetro,
+ * sugestões) lê a própria chave ao montar, então o perfil precisa estar
+ * gravado antes da montagem — senão a escolha só valeria depois de um F5. O
+ * modo de visualização é a exceção: o Provider dele já está montado em
+ * `main.tsx`, e a tela o aplica pelo contexto. `sc:perfil` ausente é a única
+ * condição que mostra a tela; 'nenhum' (fechou sem escolher) não pergunta de
+ * novo. Um modo fixado pela URL (`?modo=apresentacao`, o link de gravar
+ * vídeo) também não pergunta: um link tem que dar o mesmo resultado em
+ * qualquer máquina, e não grava nada — a pergunta fica para a próxima
+ * abertura normal.
+ */
 export default function App() {
+  // O tema é a classe `.dark` no <html>, posta por `useTheme` — que só
+  // `AppInterno` chamava. Sem isto a tela de perfil abriria clara para quem
+  // usa o escuro, e piscaria ao entrar no app.
+  useTheme();
+  const { fixadoPelaUrl } = useVisibilidade();
+  const [perfilPendente, setPerfilPendente] = useState(
+    () => !fixadoPelaUrl && lerPerfilAtual() === undefined
+  );
+  if (perfilPendente) {
+    return <TelaDePerfil onConcluir={() => setPerfilPendente(false)} />;
+  }
+  return <AppInterno />;
+}
+
+/** A receita que o painel Encontrar carrega ao abrir, se o perfil definiu uma fixa. */
+function receitaPadraoInicial(): Receita | null {
+  const id = lerPreferenciaTexto(CHAVE_RECEITA_PADRAO, 'nenhuma');
+  if (!ehReceitaPadrao(id) || id === 'nenhuma') return null;
+  return RECEITAS.find((r) => r.id === id) ?? null;
+}
+
+/** O modo com que o cronômetro começa, se o perfil definiu um. */
+function modoDeAnaliseInicial(): ModoDeAnalise {
+  const modo = lerPreferenciaTexto(CHAVE_MODO_DE_ANALISE_PADRAO, 'assistida');
+  return ehModoDeAnalise(modo) ? modo : 'assistida';
+}
+
+function AppInterno() {
   // Theme & Darkmode State
   const { isDarkMode, toggleTheme } = useTheme();
 
@@ -508,7 +545,7 @@ export default function App() {
    * lê isto para inicializar os controles; editar os controles depois NÃO
    * escreve de volta aqui — só uma nova receita escolhida troca este estado.
    */
-  const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(null);
+  const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(receitaPadraoInicial);
 
   // Sessions CRUD history
   const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
@@ -691,7 +728,6 @@ export default function App() {
     yoloSegmentations,
     anotacoesVisuais,
     setYoloSegmentations,
-    segmentsVisible,
     addMark,
     removeMark,
     removerMarcas,
@@ -711,7 +747,7 @@ export default function App() {
     carregar,
   } = bancada.anotacoes;
   const { metadata, setMetadata, updateMetadata } = bancada.meta;
-  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, resetZoom, fitToScreen } = bancada.zoom;
+  const { zoomLevel, setZoomLevel, zoomIn, zoomOut, fitToScreen } = bancada.zoom;
   const {
     isPanningMode,
     setIsPanningMode,
@@ -1096,9 +1132,12 @@ export default function App() {
    * neste gesto (politica de autoplay), entao chamar sempre e seguro: sem
    * preferencia ligada, silencio.
    */
-  const classeExternaDaImagem = metadata.dataset?.classesDaImagem && metadata.dataset.classesDaImagem.length > 0
-    ? metadata.dataset.classesDaImagem.join(' + ')
-    : undefined;
+  // A fórmula é a mesma de antes (join(' + ') de metadata.dataset.classesDaImagem);
+  // só passou a viver em `features/segmentacao/contorno-do-clique.ts`
+  // (`classeExternaDe`), que `propostosParaSegmentacoes`, mais abaixo, também
+  // usa — uma fonte só para a mesma conta. A variável continua aqui porque
+  // outros temas a leem (`handleDesenhoConcluido`), não só a onda.
+  const classeExternaDaImagem = classeExternaDe(metadata.dataset?.classesDaImagem);
 
   const marcarComSom = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
@@ -1107,66 +1146,6 @@ export default function App() {
       return id;
     },
     [addMark, classeExternaDaImagem]
-  );
-
-  const segmentarComOnda = useCallback(
-    (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      // `imagemParaAutomacoes` some quando forcarOriginalNasAutomacoes está
-      // ligado mas a imagem original ainda não carregou — guarda de tipo, não
-      // caso novo: sem ela, segmentarNoCanvas nem tem o que ler.
-      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
-      const marcaId = marcarComSom(x, y, tipo);
-
-      const inicio = performance.now();
-      // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
-      // exatamente para a onda parar na borda certa. Passar a original aqui
-      // tornava o achatamento decorativo.
-      const r = segmentarNoCanvas(imagemParaAutomacoes, { x, y });
-      const ms = Math.round(performance.now() - inicio);
-
-      if (!r) {
-        setRecadoDaOnda({ tom: 'aviso', texto: 'Não foi possível ler os pixels desta imagem.' });
-        return;
-      }
-
-      if (r.tocouBorda) {
-        setRecadoDaOnda({
-          tom: 'aviso',
-          texto: 'Contagem registrada, sem contorno: a onda escapou. Clique mais para dentro da semente.', // prettier-ignore
-        });
-        return;
-      }
-
-      const area = metadata.umPerPixel
-        ? `${((r.areaPx * metadata.umPerPixel ** 2) / 1e6).toFixed(3)} mm²`
-        : `${r.areaPx} px`;
-
-      // Comprimento e largura pelos EIXOS PRINCIPAIS do contorno, e nao pela
-      // caixa alinhada aos eixos da imagem: uma semente deitada na diagonal tem
-      // caixa quase quadrada, e a caixa mediria a diagonal em vez da semente.
-      // A PCA gira o objeto ate ele deitar, e ai mede.
-      const { width, height } = calculateSeedDimensions(r.contorno);
-
-      appendYoloSegmentation({
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        category: tipo,
-        class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
-        classeExterna: classeExternaDaImagem,
-        // Não é probabilidade de modelo: foi a pessoa que apontou a semente.
-        confidence: 1,
-        polygon_points: r.contorno,
-        visible: true,
-        width,
-        height,
-        // A marcação criada por este mesmo clique é quem conta a semente.
-        origem: 'clique',
-        marcaId,
-      // Marca e contorno sairam do MESMO clique: um Ctrl+Z tira os dois.
-      }, { fundir: true });
-
-      setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
-    },
-    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel, classeExternaDaImagem]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -1186,168 +1165,44 @@ export default function App() {
     }));
   };
 
-  // Save local history session
-  const saveCurrentSession = (silent = false) => {
-    if (!filename) return;
+  // Gravar e restaurar sessão moram em `features/sessao` (ver o cabeçalho de
+  // `useSessao.ts`). O hook recebe a cena e a MESMA contagem que vai para as
+  // exportações, e devolve os handlers que Ctrl+S, o cabeçalho, o histórico e
+  // o lote sempre receberam. O modal do histórico fica aqui: alimenta
+  // `isAnyModalOpen`.
+  const { saveCurrentSession, handleLoadSession, saveAndNext } = useSessao({
+    filename,
+    image,
+    marks,
+    segmentacoes: yoloSegmentations,
+    metadata,
+    contagem: { viableCount, inviableCount },
+    sessions,
+    addSession,
+    setUltimaGravacao,
+    setImageQueue,
+    setCurrentImageIndex,
+    chaveAtual: bancada.cena.chaveAtual,
+    setMetadata,
+    setFilename,
+    carregar,
+    setImage,
+    setZoomLevel,
+    fecharHistorico: () => setIsHistoryModalOpen(false),
+    navigate,
+    handleNextImage,
+  });
 
-    let imageDataStr: string | undefined = undefined;
-    if (image) {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(image, 0, 0);
-        imageDataStr = canvas.toDataURL('image/jpeg', 0.85); // High quality but compressed
-      }
-    }
-
-    const newSession: Session = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      filename,
-      viableCount,
-      inviableCount,
-      metadata: { ...metadata },
-      marks,
-      yoloSegmentations,
-      imageData: imageDataStr,
-    };
-    addSession(newSession);
-    setUltimaGravacao(Date.now());
-    if (!silent) {
-      alert('Sessão salva com sucesso no histórico local!');
-    }
-  };
-
-  const handleLoadSession = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-
-    // A sessão restaurada é um contexto próprio: não faz parte da fila de
-    // imagens carregada antes. Limpar a fila esconde "Anterior/Próxima", que
-    // até aqui continuava apontando para os arquivos antigos e trocava a
-    // imagem por baixo da sessão recém-aberta.
-    setImageQueue([]);
-    setCurrentImageIndex(0);
-    bancada.cena.chaveAtual.current = null;
-
-    setMetadata(session.metadata);
-    setFilename(session.filename);
-    carregar({ marks: session.marks, segmentacoes: session.yoloSegmentations });
-
-    // Restore image if available
-    if (session.imageData) {
-      const img = new Image();
-      img.onload = () => {
-        setImage(img);
-        setZoomLevel(1);
-        setIsHistoryModalOpen(false);
-        navigate('counter');
-      };
-      img.onerror = () => {
-        alert('Erro ao carregar a imagem salva da sessão.');
-      };
-      img.src = session.imageData;
-    } else {
-      setIsHistoryModalOpen(false);
-      navigate('counter');
-      alert(
-        `Sessão carregada, mas esta sessão antiga não possui a imagem salva no banco.\nPor favor, carregue o arquivo de imagem "${session.filename}" manualmente.`
-      );
-    }
-  };
-
-  const saveAndNext = () => {
-    saveCurrentSession(true);
-    handleNextImage();
-  };
-
-  // JSON Import Parser supporting backups, YOLO segmentations and single session files
-  const processJSONFile = useCallback(
-    (file: File) => {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const text = event.target?.result as string;
-          const parsed = JSON.parse(text);
-
-          // 1. Check if it is a YOLO segmentation JSON file
-          if (parsed && (Array.isArray(parsed.segmentations) || parsed.segmentations)) {
-            const rawSegs = Array.isArray(parsed.segmentations) ? parsed.segmentations : [];
-
-            // Map and calculate PCA dimensions
-            const mappedSegs: YoloSegmentation[] = rawSegs.map((seg: any, idx: number) => {
-              const polygon_points = seg.polygon_points || seg.points || [];
-              const { width, height } = calculateSeedDimensions(polygon_points);
-
-              // `category` → `class_name` (com ou sem acento) → índice pela tabela
-              // do treino. Antes `class === 1` virava inviável aqui, mas 1 é
-              // VIÁVEL em `YOLO_CLASSES` — o mesmo engano que a fila com IA teve.
-              const category = categoriaImportada(seg);
-
-              return {
-                id: seg.id ?? idx,
-                category,
-                class_name: nomeDaCategoria(category),
-                confidence: seg.confidence ?? 1.0,
-                polygon_points,
-                visible: seg.visible !== false,
-                edited: seg.edited ?? false,
-                width,
-                height,
-              };
-            });
-
-            addYoloSegmentations(mappedSegs);
-            alert(`YOLO segmentações importadas! Encontradas ${mappedSegs.length} segmentações.`);
-            return;
-          }
-
-          // 2. Check if it is a SeedCounter backup history array
-          if (Array.isArray(parsed)) {
-            // `importSessions` é assíncrona (grava no IndexedDB): sem o await
-            // aqui `success` era a Promise em si, sempre truthy — o alerta de
-            // "formato inválido" nunca disparava, mesmo quando a gravação
-            // falhava. `strictNullChecks` (TS2801) pegou isso.
-            const success = await importSessions(parsed);
-            if (success) {
-              alert(
-                `Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`
-              );
-            } else {
-              alert('Formato de histórico inválido.');
-            }
-            return;
-          }
-
-          // 3. Check if it is a single SeedCounter session JSON
-          if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
-            if (parsed.metadata) setMetadata(parsed.metadata);
-            const mapped = (parsed.yoloSegmentations ?? []).map((seg: any) => {
-              const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
-              return {
-                ...seg,
-                width: seg.width ?? width,
-                height: seg.height ?? height,
-              };
-            });
-            carregar({ marks: parsed.marks ?? [], segmentacoes: mapped });
-            if (parsed.filename) setFilename(parsed.filename);
-            alert('Sessão importada com sucesso!');
-            return;
-          }
-
-          alert('Arquivo JSON com formato não reconhecido (não é YOLO, Backup ou Sessão).');
-        } catch (error) {
-          console.error('Erro ao importar o arquivo JSON', error);
-          alert('Erro ao ler o arquivo JSON. Certifique-se de que é um formato válido.');
-        }
-      };
-      reader.readAsText(file);
-    },
-    [addYoloSegmentations, carregar, importSessions, setMetadata, setFilename]
-  );
+  // Importar JSON mora em `features/importar` (ver o cabeçalho de
+  // `useImportacao.ts`): reconhecer o tipo, conferir campo a campo e traduzir
+  // a classe é puro e testado; aqui só se entrega o que a cena escreve.
+  const { processJSONFile, handleImportHistoryJSON } = useImportacao({
+    addYoloSegmentations,
+    carregar,
+    importSessions,
+    setMetadata,
+    setFilename,
+  });
 
   // Drag & drop hook
   const onFilesDropped = useCallback(
@@ -1368,397 +1223,49 @@ export default function App() {
 
   const { isDragActive } = useDragDrop({ onFilesDropped });
 
-  // Unified filename generation helper
-  /**
-   * Nome de arquivo rastreável: projeto, tratamento, placa, quadrante,
-   * amostra, tipo e carimbo de data.
-   *
-   * Ordenar a pasta por nome passa a agrupar por projeto e depois por
-   * tratamento — que é como o pesquisador procura — em vez de por ordem de
-   * exportação, que não significa nada.
-   */
-  const generateExportName = (extension: string, tipo?: string) =>
-    nomeDeExportacao(
-      {
-        arquivo: filename,
-        projeto: metadata.project,
-        tratamento: metadata.treatment,
-        placa: metadata.plate,
-        quadrante: metadata.quadrant,
-        tipo,
-      },
-      extension
-    );
-
-  // EXPORTS
-  const handleExportTextReport = () => {
-    const content =
-      `Relatório de Contagem de Sementes\n` +
-      `----------------------------------\n` +
-      `Arquivo da Imagem: ${filename}\n` +
-      `Data: ${new Date().toLocaleString()}\n\n` +
-      `[ Metadados ]\n` +
-      `Usuário / Pesquisador: ${metadata.researcher || '-'}\n` +
-      `Projeto de Pesquisa: ${metadata.project || '-'}\n` +
-      `Tratamento / Experimento: ${metadata.treatment || '-'}\n` +
-      `Placa: ${metadata.plate || '-'}\n` +
-      `Quadrante: ${metadata.quadrant || '-'}\n` +
-      `Comentários: ${metadata.notes || '-'}\n\n` +
-      `[ Resultados ]\n` +
-      `Sementes Viáveis (Vermelho): ${viableCount} (${viablePercent}%)\n` +
-      `Sementes Inviáveis/Detritos (Amarelo): ${inviableCount} (${inviablePercent}%)\n` +
-      `Total: ${totalCount}\n`;
-
-    downloadBlob(content, generateExportName('txt', 'relatorio'), 'text/plain');
-  };
-
-  const handleExportJSON = () => {
-    const data = {
-      filename,
-      date: new Date().toISOString(),
-      metadata,
-      results: {
-        viableCount,
-        inviableCount,
-        totalCount,
-        viablePercent: Number(viablePercent),
-        inviablePercent: Number(inviablePercent),
-      },
-      marks,
-      yoloSegmentations,
-    };
-    downloadBlob(
-      JSON.stringify(data, null, 2),
-      generateExportName('json', 'sessao'),
-      'application/json'
-    );
-  };
-
-  // --- Exportação por objeto (uma linha por semente) ---------------------
-  // Funciona em qualquer cenário: sem calibração sai em pixels, sem
-  // segmentação sai só posição e classe. Nenhuma camada é obrigatória.
-  /**
-   * Lê os pixels da imagem em exibição, para as medidas de cor por objeto.
-   *
-   * Feito sob demanda, só na hora de exportar: manter um ImageData de uma
-   * digitalização de 7992×3672 vivo o tempo todo custaria ~117 MB de RAM por
-   * imagem, e a contagem manual não precisa dele.
-   *
-   * Devolve undefined se algo falhar — as colunas de cor saem vazias e a
-   * morfometria continua inteira, porque ela não depende dos pixels.
-   */
-  const lerPixelsDaImagem = useCallback(() => {
-    if (!image) return undefined;
-    try {
-      const off = document.createElement('canvas');
-      off.width = image.width;
-      off.height = image.height;
-      const ctx = off.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return undefined;
-      ctx.drawImage(image, 0, 0);
-      return ctx.getImageData(0, 0, image.width, image.height);
-    } catch {
-      // Imagem de outra origem marca o canvas como contaminado e getImageData
-      // lança. Não é motivo para abortar a exportação inteira.
-      return undefined;
-    }
-  }, [image]);
-
   // O cronômetro é POR CENA: a chave junta bancada, arquivo e página, então
   // trocar de página do TIFF zera — é outra espécie, é outra amostra, é outro
-  // tempo. Ver `useCronometro`, decisão 3.
-  const cronometro = useCronometro(`${bancada.id}|${filename}|${paginaDoTiff}`);
+  // tempo. Ver `useCronometro`, decisão 3. O modo inicial vem do perfil
+  // (`sc:modoDeAnalisePadrao`), lido uma vez: o hook só o usa ao montar.
+  const [modoDeAnalisePadrao] = useState(modoDeAnaliseInicial);
+  const cronometro = useCronometro(
+    `${bancada.id}|${filename}|${paginaDoTiff}`,
+    modoDeAnalisePadrao
+  );
 
   // Só o rodapé precisa disto aqui: Header e laterais leem o contexto sozinhos.
   const { visibilidade } = useVisibilidade();
 
-  /**
-   * O que produziu estes números: versão, página, escala e custo.
-   *
-   * Montado na hora de exportar, e não guardado no estado, porque o tempo muda
-   * a cada segundo e guardá-lo obrigaria a regravar metadado o tempo todo. O
-   * valor que importa é o do instante em que o dado sai.
-   */
-  const montarProcedencia = useCallback((): Metadata['procedencia'] => {
-    const t = cronometro.ler();
-    return {
-      versaoDoApp: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : undefined,
-      commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : undefined,
-      paginaDaImagem: paginasDoTiff > 1 ? paginaDoTiff + 1 : undefined,
-      totalDePaginas: paginasDoTiff > 1 ? paginasDoTiff : undefined,
-      dpiDeclarado: dpiDeclarado ?? undefined,
-      dpiMedido: calibracaoConferida?.dpiMedido,
-      leiturasDeCalibracao: calibracaoConferida?.leituras,
-      cvDaCalibracaoPercent: calibracaoConferida?.cvPercent,
-      modo: t.modo,
-      tempoAtivoMs: t.ativoMs,
-      tempoParedeMs: t.paredeMs,
-    };
-  }, [cronometro, paginasDoTiff, paginaDoTiff, dpiDeclarado, calibracaoConferida]);
-
-  const buildMeasurementContext = useCallback(
-    () => ({
-      marks,
-      segmentations: yoloSegmentations,
-      // A procedência é acrescentada AQUI, na saída, e não guardada no estado:
-      // é o único lugar por onde todo export passa.
-      metadata: { ...metadata, procedencia: montarProcedencia() },
-      filename,
-      imageData: lerPixelsDaImagem(),
-      // Uma semente de orquídea a 3600 DPI tem milhares de pixels; ler um de
-      // cada quatro não muda a média e corta o custo em 4x.
-      colorSampling: 2,
-    }),
-    [marks, yoloSegmentations, metadata, filename, lerPixelsDaImagem, montarProcedencia]
-  );
-
-  const handleExportMeasurementsCSV = useCallback(() => {
-    const ctx = buildMeasurementContext();
-    const rows = buildMeasurements(ctx);
-    const csv = measurementsToCSV(rows, ctx);
-    // Trilha: quantas linhas saíram é o que separa "exportou vazio" de
-    // "exportou errado" — dois relatos que chegam com a mesma frase.
-    registrarEvento('exportar', { tipo: 'CSV', saida: 'medidas', linhas: rows.length });
-    downloadBlob(csv, generateExportName('csv', 'medidas'), 'text/csv;charset=utf-8;');
-  }, [buildMeasurementContext, filename]);
-
-  const handleExportSQL = useCallback(() => {
-    const ctx = buildMeasurementContext();
-    const rows = buildMeasurements(ctx);
-    const sql = measurementsToSQL(rows, ctx);
-    registrarEvento('exportar', { tipo: 'SQL', linhas: rows.length });
-    downloadBlob(sql, generateExportName('sql', 'medidas'), 'text/plain;charset=utf-8;');
-  }, [buildMeasurementContext, filename]);
-
-  const handleExportCSV = () => {
-    const headers = [
-      'Data',
-      'Imagem',
-      'Pesquisador',
-      'Projeto',
-      'Tratamento',
-      'Placa',
-      'Quadrante',
-      'Viaveis',
-      'Inviaveis',
-      'Total',
-      '% Viavel',
-      '% Inviavel',
-      'Comentarios',
-    ];
-    const row = [
-      new Date().toLocaleString(),
-      filename,
-      metadata.researcher,
-      metadata.project,
-      metadata.treatment,
-      metadata.plate,
-      metadata.quadrant,
-      viableCount.toString(),
-      inviableCount.toString(),
-      totalCount.toString(),
-      viablePercent,
-      inviablePercent,
-      metadata.notes.replace(/(\r\n|\n|\r)/gm, ' '),
-    ];
-
-    const csvContent = [headers, row]
-      .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    registrarEvento('exportar', { tipo: 'CSV', saida: 'contagem', total: totalCount });
-    downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
-  };
-
-  const handleImageExportWithOptions = async (options: import('./lib/export-image').ImageExportOptions, scope: 'single' | 'batch') => {
-    setIsImageExportModalOpen(false);
-    
-    if (scope === 'single') {
-      if (!image) return;
-      
-      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
-      const offscreenCanvas = document.createElement('canvas');
-      offscreenCanvas.width = image.width;
-      offscreenCanvas.height = image.height;
-      
-      drawAnnotatedImageToCanvas(
-        offscreenCanvas,
-        image,
-        metadata,
-        marks,
-        yoloSegmentations,
-        options,
-        visualMode,
-        ajusteDaMarca,
-        // O PNG sai com a MESMA marca que a pessoa conferiu na tela — antes
-        // saía sempre disco opaco, e a imagem exportada contradizia o canvas.
-        { estiloDaMarca, opacidadeDaMarca }
-      );
-      
-      offscreenCanvas.toBlob((blob) => {
-        if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
-      }, 'image/png');
-      registrarEvento('exportar', { tipo: 'PNG', saida: 'anotada' });
-    } else {
-      // BATCH EXPORT (Fila Inteira do Histórico)
-      if (sessions.length === 0) return;
-      
-      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-      
-      await comAtividade('png-batch', `Exportando ${sessions.length} fotos...`, async () => {
-        for (let i = 0; i < sessions.length; i++) {
-          const sessao = sessions[i];
-          // Guardado numa constante para o TypeScript estreitar o tipo: dentro
-          // do fechamento abaixo o `!` era a única forma, e `!` é promessa sem
-          // fiador.
-          const fonteDaImagem = sessao.imageData;
-          if (!fonteDaImagem) continue;
-          
-          const img = new Image();
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = reject;
-            img.src = fonteDaImagem;
-          });
-          
-          const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = img.width;
-          offscreenCanvas.height = img.height;
-          
-          drawAnnotatedImageToCanvas(
-            offscreenCanvas,
-            img,
-            sessao.metadata,
-            sessao.marks || [],
-            sessao.yoloSegmentations || [],
-            options,
-            visualMode,
-            ajusteDaMarca,
-            { estiloDaMarca, opacidadeDaMarca }
-          );
-          
-          const blob = await new Promise<Blob | null>((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
-          if (blob) {
-            const fileName = sessao.filename.replace(/\.[^/.]+$/, "") + `_anotada.png`;
-            zip.file(fileName, blob);
-          }
-        }
-      });
-      
-      const content = await zip.generateAsync({ type: 'blob' });
-      baixarArquivo(content, `Lote_PNGs_Anotados.zip`, 'application/zip');
-      registrarEvento('exportar', { tipo: 'PNG-Batch', total: sessions.length });
-    }
-  };
-
-  const handleExportPDF = async () => {
-    registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
-    
-    // Métricas por classe (área média, a*, L*, b*) a partir da MESMA tabela
-    // do CSV. Os pixels são lidos sob demanda por `buildMeasurementContext`
-    // (~117 MB numa digitalização) e morrem com esta chamada — nada fica no
-    // estado. Sem imagem a área ainda sai (vem do contorno); só a cor não.
-    const metricasAvancadas =
-      yoloSegmentations.length > 0 || marks.length > 0
-        ? (montarMetricasAvancadas(buildMeasurements(buildMeasurementContext())) ?? undefined)
-        : undefined;
-
-    const r = await comAtividade('pdf', 'Gerando o laudo.', () =>
-      exportarLaudo({
-      filename: filename || 'sem-titulo.jpg',
-      metadata,
-      viableCount,
-      inviableCount,
-      marks,
-      yoloSegmentations,
-      imageElement: image,
-      visualMode,
-      laboratorio,
-      versaoDoApp: `v${__APP_VERSION__}`,
-      commitDoBuild: __BUILD_COMMIT__,
-      metricasAvancadas,
-      })
-    );
-    if (!r.ok && r.erro) alert(r.erro);
-  };
-
-  const handleExportHistoryBatchPDF = async () => {
-    registrarEvento('exportar', { tipo: 'PDF', saida: 'historico', sessoes: sessions.length });
-    const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
-      exportarLaudosEmLote(sessions, {
-        visualMode,
-        laboratorio,
-        versaoDoApp: `v${__APP_VERSION__}`,
-        commitDoBuild: __BUILD_COMMIT__,
-      })
-    );
-    if (!r.ok && r.erro) alert(r.erro);
-  };
-
-  const handleExportHistoryCSV = () => {
-    if (sessions.length === 0) return;
-    const headers = [
-      'Data',
-      'Imagem',
-      'Pesquisador',
-      'Projeto',
-      'Tratamento',
-      'Placa',
-      'Quadrante',
-      'Viaveis',
-      'Inviaveis',
-      'Total',
-      '% Viavel',
-      '% Inviavel',
-      'Comentarios',
-    ];
-
-    const rows = sessions.map((s) => {
-      const total = s.viableCount + s.inviableCount;
-      const vPct = total > 0 ? ((s.viableCount / total) * 100).toFixed(1) : '0';
-      const iPct = total > 0 ? ((s.inviableCount / total) * 100).toFixed(1) : '0';
-      return [
-        new Date(s.date).toLocaleString(),
-        s.filename,
-        s.metadata.researcher,
-        s.metadata.project,
-        s.metadata.treatment,
-        s.metadata.plate,
-        s.metadata.quadrant,
-        s.viableCount.toString(),
-        s.inviableCount.toString(),
-        total.toString(),
-        vPct,
-        iPct,
-        s.metadata.notes.replace(/(\r\n|\n|\r)/gm, ' '),
-      ];
-    });
-
-    const csvContent = [headers, ...rows]
-      .map((e) => e.map((item) => `"${(item || '').replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-
-    downloadBlob(csvContent, 'historico_contagens.csv', 'text/csv');
-  };
-
-  const handleExportHistoryJSON = () => {
-    if (sessions.length === 0) return;
-    downloadBlob(
-      JSON.stringify(sessions, null, 2),
-      `seed-counter-backup-${new Date().toISOString().split('T')[0]}.json`,
-      'application/json'
-    );
-  };
-
-  const handleImportHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processJSONFile(file);
-    }
-    e.target.value = '';
-  };
+  // As exportações moram em `features/exportar` (ver o cabeçalho de
+  // `useExportacoes.ts`). O hook recebe a cena e devolve os mesmos handlers
+  // que os modais sempre receberam; a procedência continua montada na hora
+  // de exportar, a partir de `cronometro.ler`.
+  const {
+    buildMeasurementContext,
+    handleExportTextReport,
+    handleExportJSON,
+    handleExportCSV,
+    handleExportMeasurementsCSV,
+    handleExportSQL,
+    handleImageExportWithOptions,
+    handleExportPDF,
+    handleExportHistoryBatchPDF,
+    handleExportHistoryCSV,
+    handleExportHistoryJSON,
+  } = useExportacoes({
+    marks,
+    segmentacoes: yoloSegmentations,
+    metadata,
+    filename,
+    image,
+    sessions,
+    contagem: { viableCount, inviableCount, totalCount, viablePercent, inviablePercent },
+    aparencia: { visualMode, ajusteDaMarca, estiloDaMarca, opacidadeDaMarca },
+    laboratorio,
+    lerTempo: cronometro.ler,
+    pagina: { paginasDoTiff, paginaDoTiff, dpiDeclarado },
+    calibracaoConferida,
+  });
 
   const handleBrowseFiles = () => {
     fileInputRef.current?.click();
@@ -1788,161 +1295,45 @@ export default function App() {
     return () => clearTimeout(t);
   }, [recadoDaOnda]);
 
-  // Cena de exemplo: entra pela mesma porta que qualquer imagem, para exercitar
-  // o fluxo real — fila, contagem, medida, exportação — e não um caminho
-  // paralelo que só funciona na demonstração.
-  const [exemploCarregando, setExemploCarregando] = useState<PresetDeCena | null>(null);
-
-  const handleCarregarExemplo = useCallback(
-    async (preset: PresetDeCena) => {
-      setExemploCarregando(preset);
-      try {
-        const { arquivo, cena, projeto } = await carregarExemplo(preset);
-        loadFiles([arquivo]);
-        // A escala vem declarada pela cena: sem ela a morfometria sairia em
-        // pixels, e o exemplo não mostraria milímetros — que é metade do ponto.
-        setMetadata((prev) => ({
-          ...prev,
-          project: projeto,
-          treatment: '',
-          plate: '',
-          quadrant: '',
-          notes: AVISO_CENA,
-          umPerPixel: cena.umPorPixel,
-          dataset: undefined,
-        }));
-      } catch (e) {
-        console.error('Falha ao gerar a cena de exemplo', e);
-      } finally {
-      setFilaIARodando(false);
-        setExemploCarregando(null);
-      }
-    },
-    [loadFiles, setMetadata]
-  );
-
-  const [exemploRealCarregando, setExemploRealCarregando] = useState<string | null>(null);
-  /**
-   * Exemplo REAL: a imagem vem de public/exemplos e os metadados que se
-   * conhecem (espécie, origem, classe, escala quando medida) já entram — o
-   * que não se conhece fica vazio e o app pede, em vez de inventar.
-   */
-  const handleCarregarExemploReal = useCallback(
-    async (e: ExemploReal) => {
-      setExemploRealCarregando(e.slug);
-      try {
-        const { arquivo, metadados } = await carregarExemploReal(e);
-        loadFiles([arquivo]);
-        setMetadata((prev) => ({
-          ...prev,
-          ...metadados,
-          plate: '',
-          quadrant: '',
-          // A imagem anterior pode ter vindo do explorador; a classe dela não é desta.
-          dataset: undefined,
-          amostra: { ...prev.amostra, ...metadados.amostra },
-        }));
-      } catch (err) {
-        console.error('Falha ao abrir o exemplo real', err);
-        setLoadError(`Não foi possível abrir o exemplo "${e.rotulo}".`);
-      } finally {
-        setExemploRealCarregando(null);
-      }
-    },
-    [loadFiles, setMetadata, setLoadError]
-  );
+  // Cena de exemplo (simulada) e exemplo real moram em `features/demo` (ver o
+  // cabeçalho de `useExemplos.ts`). Ambos entram pela mesma porta que
+  // qualquer imagem — fila, contagem, medida, exportação — e não um caminho
+  // paralelo que só funciona na demonstração; a montagem do metadado é pura e
+  // testada em `metadados-do-exemplo.ts`.
+  const {
+    exemploCarregando,
+    handleCarregarExemplo,
+    exemploRealCarregando,
+    handleCarregarExemploReal,
+  } = useExemplos({ loadFiles, setMetadata, setLoadError });
 
   // --- Explorador de datasets (Lote B) ---------------------------------------
   //
-  // A pasta aberta mora aqui (não dentro do painel) porque é estado da sessão:
-  // recolher a aba Datasets e voltar não a fecha. `anotacaoAtual`,
-  // `datasetContexto` e `referenciaJaCarregada` são estado de CENA — vêm de
-  // `bancada.cena`, desestruturados lá em cima; `anotacaoAtual` é a anotação
-  // da ÚLTIMA imagem carregada pelo explorador, e só vira marca/contorno
-  // quando "Carregar referência" é clicado.
-  const [pastaDeDatasets, setPastaDeDatasets] = useState<PastaAberta | null>(null);
-
-  const handleCarregarDoDataset = useCallback(
-    async (arquivo: ArquivoDoDataset, anotacao: AnotacaoCarregada | null, conjunto: string, caminho: string) => {
-      const file = await arquivo.obterFile();
-      // O vínculo com o dataset é entregue a `onImageLoaded`, que zera o
-      // vínculo de TODA imagem nova e só mantém o que foi anunciado aqui —
-      // senão a classe da imagem anterior ficava colada na seguinte.
-      datasetPendente.current = { conjunto, caminho, classesDaImagem: anotacao?.classesDaImagem };
-      loadFiles([file]);
-      setAnotacaoAtual(anotacao);
-      setDatasetContexto({ conjunto, caminho });
-      setReferenciaJaCarregada(false);
-    },
-    [loadFiles]
-  );
-
-  /**
-   * "Carregar referência" — o SEGUNDO gesto. Clicar na miniatura já carregou a
-   * imagem; só agora a anotação do dataset vira marca/contorno de verdade.
-   *
-   * Polígono vira contorno com `origem: 'referencia'` (conta como semente,
-   * mesma regra de um contorno de modelo — ver `objetos.ts`). Caixa vira
-   * marca no centro. Nome de classe que bate com viável/inviável usa a
-   * taxonomia do app; qualquer outro nome (amendoim com mofo, trigo duro…)
-   * fica em `classeExterna`, cru — inventar uma correspondência que ninguém
-   * validou seria pior que não ter classe nenhuma.
-   */
-  const normalizarClasseExterna = useCallback(
-    (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
-      const category = categoriaDoNome(classe);
-      if (category) return { category, class_name: nomeDaCategoria(category) };
-      return { category: 'viable', class_name: 'viavel', classeExterna: classe };
-    },
-    []
-  );
-
-  const podeCarregarReferencia =
-    !!image &&
-    !referenciaJaCarregada &&
-    !!anotacaoAtual &&
-    ((anotacaoAtual.contornos?.length ?? 0) > 0 || (anotacaoAtual.marcas?.length ?? 0) > 0);
-
-  const handleCarregarReferencia = useCallback(() => {
-    if (!anotacaoAtual) return;
-
-    if (anotacaoAtual.contornos && anotacaoAtual.contornos.length > 0) {
-      const novasSegmentacoes: YoloSegmentation[] = anotacaoAtual.contornos.map((c, i) => {
-        const { width, height } = calculateSeedDimensions(c.poligono);
-        const { category, class_name, classeExterna } = normalizarClasseExterna(c.classe);
-        return {
-          id: Date.now() + i,
-          category,
-          class_name,
-          confidence: 1,
-          polygon_points: c.poligono,
-          visible: true,
-          width,
-          height,
-          origem: 'referencia',
-          ...(classeExterna ? { classeExterna } : {}),
-        };
-      });
-      addYoloSegmentations(novasSegmentacoes);
-    }
-
-    if (anotacaoAtual.marcas && anotacaoAtual.marcas.length > 0) {
-      const novasMarcas: Mark[] = anotacaoAtual.marcas.map((m, i) => {
-        const { category } = normalizarClasseExterna(m.classe);
-        return {
-          id: Date.now() + i + 1,
-          x: m.x,
-          y: m.y,
-          type: category,
-          origem: 'referencia' as const,
-        };
-      });
-      setMarks((prev) => [...prev, ...novasMarcas]);
-    }
-
-    setReferenciaJaCarregada(true);
-    setRecadoDaOnda({ tom: 'ok', texto: 'Referência do dataset carregada.' });
-  }, [anotacaoAtual, addYoloSegmentations, setMarks, normalizarClasseExterna]);
+  // Carregar do explorador e "Carregar referência" moram em
+  // `features/datasets/useExplorador.ts` (ver o cabeçalho — inclui por que
+  // `anotacaoAtual`, `datasetContexto` e `referenciaJaCarregada` continuam
+  // vindo de `bancada.cena`, e por que `datasetPendente` continua sendo lido
+  // por `onImageLoaded` aqui no App). A tradução da anotação em contorno e
+  // marca é pura e testada em `features/datasets/referencia.ts`.
+  const {
+    pastaDeDatasets,
+    setPastaDeDatasets,
+    handleCarregarDoDataset,
+    podeCarregarReferencia,
+    handleCarregarReferencia,
+  } = useExplorador({
+    loadFiles,
+    datasetPendente,
+    image,
+    anotacaoAtual,
+    setAnotacaoAtual,
+    setDatasetContexto,
+    referenciaJaCarregada,
+    setReferenciaJaCarregada,
+    addYoloSegmentations,
+    setMarks,
+    avisar: setRecadoDaOnda,
+  });
 
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
   // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
@@ -2286,6 +1677,10 @@ export default function App() {
       alert(`Não foi possível processar a fila com IA: ${e instanceof Error ? e.message : 'erro desconhecido'}.`);
     } finally {
       encerrar();
+      // Quem liga, desliga. Até 23/09 o `false` morava só em
+      // `handleCarregarExemplo` (cópia no lugar errado): terminada a fila, o
+      // cabeçalho ficava preso em "Parar" até alguém abrir um exemplo simulado.
+      setFilaIARodando(false);
     }
   }, [imageQueue, metadata, sessions, addSession]);
 
@@ -2616,7 +2011,10 @@ export default function App() {
           break;
         case 'abrir-calibracao':
           setActiveTool('viable');
-          document.getElementById('etapa-calibracao')?.scrollIntoView({ behavior: 'smooth' });
+          // A seção da lateral é `sec-calibrar` (Sidebar); o id antigo,
+          // `etapa-calibracao`, não existia em componente nenhum — o botão
+          // "Abrir calibração" rolava para lugar nenhum.
+          document.getElementById('sec-calibrar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           break;
         case 'ferramenta-contorno':
           setActiveTool('contorno');
@@ -2627,132 +2025,47 @@ export default function App() {
         case 'abrir-identificacao':
           setIsIdentificacaoOpen(true);
           break;
+        // Os três abaixo não tinham `case`: a regra emitia o botão, a pessoa
+        // clicava, nada acontecia. `acoes-prometidas.test.ts` agora exige um
+        // `case` para cada id que alguma regra emite.
+        case 'mostrar-eixos':
+          setMostrarEixos(true);
+          gravarPreferencia('sc:eixosDasMedidas', true);
+          break;
+        case 'carregar-referencia':
+          handleCarregarReferencia();
+          break;
+        case 'abrir-funcionalidades':
+          setIsFeaturesOpen(true);
+          break;
       }
     },
-    // saveCurrentSession e funcao comum (nao memoizada) e le refs por dentro.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    // Antes: deps `[]` com a nota "saveCurrentSession le refs por dentro". Nao
+    // lia: capturava o fecho do PRIMEIRO render (filename vazio), e a sugestao
+    // "Salvar sessao" nao fazia nada ao clicar. Desde que `useSessao` a devolve
+    // memoizada, ela entra nas deps como qualquer outra.
+    [saveCurrentSession, abrirAbaDireita, setActiveTool, handleCarregarReferencia]
   );
 
-  const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
-    null
-  );
-
-  /**
-   * Roda a onda a partir de cada marcacao sem contorno.
-   *
-   * O trabalho ja foi feito pela pessoa quando ela marcou: o clique diz ONDE ha
-   * semente, e a onda so precisa medir a borda. E por isso que isto e barato e
-   * confiavel de um jeito que "detectar tudo do zero" nunca e.
-   *
-   * TRES REGRAS QUE NAO PODEM CAIR:
-   *
-   * 1. A CONTAGEM NAO MUDA. Nenhuma marcacao e criada nem apagada aqui — so
-   *    contornos sao acrescentados. Se o lote errasse e criasse marcacao, o
-   *    numero do laudo mudaria por causa de um botao de conveniencia.
-   * 2. CONTORNO DUVIDOSO NAO ENTRA. A mesma regra do clique avulso: o contorno
-   *    vira area e medida no CSV, e um numero errado e pior que numero nenhum.
-   * 3. CEDE A TELA. Duzentas ondas seguidas travariam o navegador sem dizer
-   *    nada; o laco solta o fio a cada poucas sementes e mostra o progresso.
-   */
-  /**
-   * Contorna UMA marcacao, escolhida na galeria.
-   *
-   * Existe ao lado do lote porque sao gestos diferentes: o lote e "confio,
-   * resolve tudo"; este e "quero ver o que a onda faz NESTA aqui". Serve para
-   * conferir uma semente duvidosa antes de mandar o lote, e para o caso em que
-   * so uma ficou de fora.
-   */
-  const handleSegmentarUma = useCallback(
-    (marcaId: number) => {
-      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
-      const marca = marks.find((m) => m.id === marcaId);
-      if (!marca) return;
-
-      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
-      if (!r || r.tocouBorda) {
-        setRecadoDaOnda({
-          tom: 'aviso',
-          texto: 'A onda escapou nesta marcação — sem contorno. Tente ajustar o fundo ou o ponto.',
-        });
-        return;
-      }
-
-      const { width, height } = calculateSeedDimensions(r.contorno);
-      appendYoloSegmentation({
-        id: Date.now(),
-        category: marca.type,
-        class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
-        classeExterna: marca.classeExterna,
-        confidence: 1,
-        polygon_points: r.contorno,
-        visible: true,
-        width,
-        height,
-        origem: 'clique',
-        marcaId: marca.id,
-      });
-      setRecadoDaOnda({ tom: 'ok', texto: 'Contorno medido.' });
-    },
-    [imagemDeTrabalho, marks, appendYoloSegmentation]
-  );
-
-  const handleSegmentarPendentes = useCallback(async () => {
-    if (!imagemDeTrabalho || !imagemParaAutomacoes || marcasSemContorno.length === 0) return;
-
-    const pendentes = [...marcasSemContorno];
-    setSegmentandoLote({ feitas: 0, total: pendentes.length });
-    const encerrar = iniciarAtividade('lote', `Contornando ${pendentes.length} marcações…`);
-
-    let medidas = 0;
-    let escaparam = 0;
-
-    for (let i = 0; i < pendentes.length; i++) {
-      const marca = pendentes[i];
-      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
-
-      if (r && !r.tocouBorda) {
-        const { width, height } = calculateSeedDimensions(r.contorno);
-        appendYoloSegmentation(
-          {
-            id: Date.now() + i,
-            category: marca.type,
-            class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
-            classeExterna: marca.classeExterna,
-            confidence: 1,
-            polygon_points: r.contorno,
-            visible: true,
-            width,
-            height,
-            origem: 'clique',
-            marcaId: marca.id,
-          },
-          // O lote e um pedido so; Ctrl+Z desfaz o lote, nao um contorno.
-          { fundir: medidas > 0 }
-        );
-        medidas++;
-      } else {
-        escaparam++;
-      }
-
-      if (i % 4 === 3) {
-        setSegmentandoLote({ feitas: i + 1, total: pendentes.length });
-        atualizarProgresso('lote', (i + 1) / pendentes.length);
-        await new Promise((r) => setTimeout(r, 0));
-      }
-    }
-
-    encerrar();
-    setSegmentandoLote(null);
-    setRecadoDaOnda({
-      tom: escaparam > 0 ? 'aviso' : 'ok',
-      texto:
-        `${medidas} de ${pendentes.length} contornos medidos.` +
-        (escaparam > 0
-          ? ` ${escaparam} ${escaparam === 1 ? 'ficou' : 'ficaram'} sem contorno — a onda escapou. A contagem não mudou.`
-          : ' A contagem não mudou.'),
-    });
-  }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
+  // A onda: contorno por clique (`segmentarComOnda`), "contornar esta"
+  // (`handleSegmentarUma`) e o lote de pendentes (`handleSegmentarPendentes`
+  // + `segmentandoLote`) moram em `features/segmentacao/useOnda.ts` — ver o
+  // cabeçalho de lá sobre as três regras do lote, as três fórmulas de id, e
+  // por que `marcarComSom` continua aqui (handleCanvasClick também a usa,
+  // fora da onda).
+  const { segmentarComOnda, handleSegmentarUma, handleSegmentarPendentes, segmentandoLote } = useOnda({
+    imagemDeTrabalho,
+    imagemParaAutomacoes,
+    marks,
+    marcasSemContorno,
+    appendYoloSegmentation,
+    marcarComSom,
+    umPerPixel: metadata.umPerPixel,
+    classeExterna: classeExternaDaImagem,
+    avisar: setRecadoDaOnda,
+    iniciarAtividade,
+    atualizarProgresso,
+  });
 
   /**
    * Contornos propostos (ensaio, ou o painel Encontrar) → segmentações.
@@ -2765,9 +2078,9 @@ export default function App() {
    */
   const propostosParaSegmentacoes = useCallback(
     (propostos: ContornoProposto[]): YoloSegmentation[] => {
-      const classesDaImagem = metadata.dataset?.classesDaImagem;
-      const classeExterna =
-        classesDaImagem && classesDaImagem.length > 0 ? classesDaImagem.join(' + ') : undefined;
+      // Mesma conta de `classeExternaDaImagem`, agora por `classeExternaDe`
+      // (`features/segmentacao/contorno-do-clique.ts`) — fonte única.
+      const classeExterna = classeExternaDe(metadata.dataset?.classesDaImagem);
 
       return propostos.map((p, i) => {
         const { width, height } = calculateSeedDimensions(p.contorno);
@@ -3195,17 +2508,7 @@ export default function App() {
             fileInputRef={fileInputRef}
             importInputRef={importInputRef}
             handleFileUpload={handleFileUpload}
-            handleImportJSON={(e) => {
-              // ImageActions liga esta prop ao onChange de um <input type="file">,
-              // entao ela recebe o evento — nao o File. Passar processJSONFile
-              // direto fazia reader.readAsText(evento) lancar TypeError, e o
-              // botao "Importar" da barra lateral nunca funcionou.
-              const file = e.target.files?.[0];
-              if (file) processJSONFile(file);
-              // Zera o valor para permitir reimportar o mesmo arquivo: sem isto
-              // o onChange nao dispara na segunda vez.
-              e.target.value = '';
-            }}
+            handleImportJSON={handleImportHistoryJSON}
             viableCount={viableCount}
             inviableCount={inviableCount}
             viablePercent={viablePercent}
@@ -3882,6 +3185,12 @@ export default function App() {
         />
       )}
 
+      {/* Germinação (Germinator): a aba obedece ao modo de visualização, como o
+          botão dela no Header — se o modo a esconde, a vista some junto. */}
+      {currentView === 'germinacao' && visibilidade.germinacao && (
+        <PainelDeGerminacao experiments={experiments} />
+      )}
+
       {/* 5. Footer Status Bar */}
       {currentView === 'counter' && visibilidade.rodape && (
         <Footer
@@ -3957,7 +3266,12 @@ export default function App() {
             isOpen={isImageExportModalOpen}
             onClose={() => setIsImageExportModalOpen(false)}
             hasImageQueue={sessions.length > 0}
-            onExport={handleImageExportWithOptions}
+            onExport={(opcoes, escopo) => {
+              // Fecha antes de desenhar, como sempre: o estado do modal é do
+              // App (alimenta `isAnyModalOpen`), não da exportação.
+              setIsImageExportModalOpen(false);
+              void handleImageExportWithOptions(opcoes, escopo);
+            }}
           />
         )}
       </AnimatePresence>

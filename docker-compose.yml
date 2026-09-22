@@ -4,8 +4,8 @@
 #   Desenvolvimento (hot reload):  docker compose --profile dev up
 #   Producao (testar build local): docker compose --profile prod up --build
 #
-# A GEMINI_API_KEY e lida do arquivo .env (nao versionado). Copie o
-# .env.example para .env e preencha a chave.
+# Variaveis opcionais (conta Google, URL do backend) vem do arquivo .env
+# (nao versionado). Copie o .env.example para .env se precisar delas.
 
 services:
   # ---- Desenvolvimento: Vite com hot reload ----
@@ -24,7 +24,6 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
 
   # ---- Producao: nginx servindo o build estatico ----
@@ -33,8 +32,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        GEMINI_API_KEY: ${GEMINI_API_KEY}
     container_name: seedcounter-prod
     ports:
       - "8080:80"

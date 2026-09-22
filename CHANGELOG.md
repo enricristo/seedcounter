@@ -3,6 +3,40 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.8.0] — 2026-09-23
+
+Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
+
+### Adicionado
+- `features/perfis/` — cinco pré-definições (spec `docs/superpowers/specs/2026-09-22-predefinicoes-por-perfil-design.md`): `TelaDePerfil` na primeira abertura, `SecaoDePerfil` em Configurações com `oQueMuda`, origem no `MenuExibir`; chaves novas `sc:perfil`, `sc:receitaPadrao`, `sc:protocoloPadrao`, `sc:modoDeAnalisePadrao`; `aplicar(modo, sobrescritas, {persistir})` no contexto de visualização. 25 testes.
+- `features/germinacao/` — a aba Germinação: `entrada.ts` (colar INPUT / escrever INPUT / do longitudinal), `analise.ts` (output + ANOVA/Tukey), `letras.ts` (Piepho 2004), `curvas.ts`, `saida.ts` (CSV/TSV `output`), `colunas.ts` (ajuda por coluna), `PainelDeGerminacao` e `GraficoDeGerminacao` sob demanda; parte `germinacao` em `visualizacao/modo.ts`; `uniformidadeEntre` em `lib/germinacao`. 85 testes.
+- `lib/regressao-polinomial.ts` — graus 1–3, F sequencial, ponto de ótimo dentro da faixa; `fCdf` exportada de `stats.ts`. 12 testes.
+- `features/stats/fator-quantitativo.ts` + `CardFatorQuantitativo` — a regressão na aba Tratamentos, ao lado da ANOVA, quando ≥ 3 tratamentos têm número no rótulo (leitura conservadora: dois números = sem nível). 6 testes.
+- `features/ajuda/tarefas.ts` + aba "Tarefas" no `HelpTip` — dez tarefas (calibrar, contar, ver a semente, medir, relógio, exportar, relatar, comparar tratamentos, curva de germinação, o que vai no artigo); conteúdo genérico por teste.
+- `scripts/gerar-catalogo-de-datasets.py` → `public/exemplos/catalogo-de-datasets.json` (23 pastas, 8 referenciáveis); `lib/datasets/catalogo.ts`; chip no explorador; `escalaDe` nos exemplos; 54 → 92 exemplos.
+- `AGENTS.md` (doze leis, como se trabalha, mapa) e `CLAUDE.md`.
+- `scripts/verificar-dist.mjs` — depois do build (em `npm run build` e no CI): todo arquivo que o `index.html` pede existe, toda importação estática entre pedaços existe, e não há ciclo entre pedaços (a causa da tela branca de 2026-09-06, que passava com o build verde).
+- `src/theme/__tests__/divida-de-tokens.test.ts` + `.json` — a catraca da Lei 5: mede cores literais (424) e raios fora do sistema (374) e reprova se subir; se descer, pede para baixar o teto. `App.tsx` entra na conta, para extração não parecer dívida nova.
+- `docs/PRIVADO.md` — o que vive no repositório privado, e por quê.
+
+### Alterado
+- `App.tsx` 4 190 → 3 841 → 3 699 → 3 646 → 3 504: exportações em `features/exportar/` (`useExportacoes`, `contexto.ts`; 14 testes); importação em `features/importar/` (`classificarJSON`/`interpretarJSON` conferem o que leem — campo com tipo errado vira frase com índice e nome; 25 testes) e sessão em `features/sessao/` (`montarSessao`, `useSessao`; formato gravado provado idêntico; 9 testes). Sidebar e HistoryModal usam o mesmo `handleImportHistoryJSON`; `reader.onerror` deixa de ser silêncio. Exemplos em `features/demo/` (`metadadosDaCena`, `metadadosDoExemploReal`, `useExemplos`; 9 testes) e explorador em `features/datasets/` (`referencia.ts`: `objetosDaReferencia`, `podeCarregarReferencia`; `useExplorador`; 19 testes). A onda em `features/segmentacao/` (`contorno-do-clique.ts`: o objeto, os recados, a área; `useOnda`: clique, uma, lote; 21 testes).
+- `package.json`: saem `@google/genai`, `express`, `dotenv`, `@types/express`; `vite`, plugins e `@types/jszip` para dev. `GEMINI_API_KEY` sai de vite/Docker/compose/CI/.env.example/docs.
+- `vite.config.ts`: `manualChunks` como função; `react-vendor` próprio; preload-helper do Vite fora do `pdf-export`; `lib/laudo` por `import()` no clique. HTML inicial pré-carrega só `react-vendor` e `db-lib` (antes: + `recharts-charts` 461 kB + `pdf-export` 593 kB).
+- README para 3.7.0; arquitetura apontando para `AGENTS.md`.
+- Testes: 1288 → 1548.
+
+### Corrigido
+- **Exportação YOLO escrevia as classes invertidas em relação ao treino** (`CLASS_VIABLE = 0`, tabela própria): coerente consigo mesma, mas um dataset exportado somado ao conjunto de treino trocaria a classe de toda semente. Agora usa `indiceDaCategoria` (`classe-do-modelo.ts`): 0 inviável, 1 viável; o `dataset.yaml` traz sempre as duas classes (`nc: 2`), mesmo exportando só viáveis. 5 testes.
+- Lint: 72 → 27 avisos (só código morto — inclusive ~90 linhas de régua/região/anotações no `MarkingCanvas` que já viviam nos overlays); o CI bloqueia acima de 27 (`--max-warnings`).
+- A sugestão "Salvar sessão" do painel de sugestões não gravava nada: `handleAcaoDeSugestao` capturava o `saveCurrentSession` do primeiro render (`filename` vazio). Entra nas deps.
+- JSON importado com campo de tipo errado (`polygon_points: "abc"`) virava contorno inválido no estado; agora é recusado com frase.
+- Três sugestões sem `case` ("Mostrar eixos", "Carregar referência", "Abrir funcionalidades") não faziam nada ao clicar; "Abrir calibração" rolava para um id inexistente. `acoes-prometidas.test.ts` vigia (ids das regras × cases × ids renderizados).
+- "Processar fila com IA" deixava o cabeçalho preso em "Parar": o `false` do estado só existia no `finally` do exemplo simulado. A fila desliga o que liga.
+
+### Removido do público
+- `docs/backend/`, `docs/roteiros/`, `docs/mercado/`, `docs/visao/`, sete specs de posicionamento/backend/scale-up/ToupView, dois planos de negócio → `seedcounter-docs` (privado). Quatro menções à instituição corrigidas nas specs restantes.
+
 ## [3.7.0] — 2026-09-22
 
 O trabalho "Enterprise" da sessão paralela (19–21/09), verificado e elevado, e

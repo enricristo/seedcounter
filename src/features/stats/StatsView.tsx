@@ -12,7 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { Session, Experiment, TreatmentStats } from '../../types';
+import type { Session, Experiment } from '../../types';
 import {
   runStatsPipeline,
   GroupStat,
@@ -24,6 +24,7 @@ import {
 import { GerminationBarChart } from './components/GerminationBarChart';
 import { GerminationCurveChart } from './components/GerminationCurveChart';
 import { StatsResultCard } from './components/StatsResultCard';
+import { CardFatorQuantitativo } from './components/CardFatorQuantitativo';
 import { WilsonCIBar } from './components/WilsonCIBar';
 import { MOTIVO_SEM_INDICES_DE_VIGOR, rotulosDoEixo } from '../../lib/time-axis';
 import { BotaoDemonstracao } from '../demo/BotaoDemonstracao';
@@ -113,7 +114,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     let bacterial = 0;
     let mixed = 0;
 
-    sessions.forEach((s) => {
+    sessions.forEach(() => {
       // Look inside session metadata or linked experiment runs
       // Check if session itself has a dayIndex and experimentId
       // Standard default is none if not set
@@ -669,6 +670,11 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
               {/* ANOVA Card */}
               <div className="flex flex-col gap-4">
                 <StatsResultCard result={statsResult} />
+
+                {/* Ao lado da ANOVA, não no lugar dela: quando os tratamentos
+                    são níveis numéricos (T0, T8…; MPa; meses), a pergunta certa
+                    é a curva e o ótimo — e o cartão só aparece nesse caso. */}
+                <CardFatorQuantitativo grupos={treatmentGroups} />
 
                 {/* Shapiro-Wilk details */}
                 <div className="bg-surface-2 border border-line p-4 rounded-2xl space-y-3">

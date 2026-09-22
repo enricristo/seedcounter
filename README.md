@@ -8,7 +8,7 @@
 
 <sub>A marca é o que o aplicativo faz: a semente, e em volta o contorno tracejado que a segmentação propõe — ainda não aceito, esperando o olho de quem analisa.</sub>
 
-[![App](https://img.shields.io/badge/app-produção%20v3.5.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
+[![App](https://img.shields.io/badge/app-produção%20v3.8.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
 [![Beta](https://img.shields.io/badge/beta-versão%20de%20teste-f0b45a?style=flat-square)](https://seedcounter-teste.vercel.app)
 [![PWA](https://img.shields.io/badge/PWA-offline-5a0fc8?style=flat-square)](#privacidade-e-dados)
 [![Licença](https://img.shields.io/badge/licença-MIT-3b82f6?style=flat-square)](LICENSE)
@@ -39,6 +39,29 @@ Uma aplicação web que roda **inteiramente no navegador**, sem servidor, sem en
 | **Comparação** | **Modo Multibancada**: até quatro cenas abertas, cada uma com imagem, medidas e calibração próprias |
 | **Saída** | CSV por objeto (com a origem de cada um), banco SQL, laudo PDF, imagem anotada e dataset YOLO |
 
+## O que as versões 3.6 a 3.8 trouxeram
+
+**Pronto para a bancada.** A 3.6.0 é a versão que a primeira usuária real leva para o laboratório; a 3.7.0 é o que a verificação do trabalho seguinte encontrou — inclusive dois defeitos que teriam invalidado qualquer resultado da fila com IA (toda semente saía inviável; nenhum contorno chegava) e que nunca chegaram a produção; e a 3.8.0 é a versão que se explica sozinha — o critério foi: alguém que nunca viu uma análise vai da abertura ao CSV sem um PDF ao lado.
+
+| | |
+|---|---|
+| **Calibração conferida** | A régua medida em vários pontos do campo: µm/px médio, CV, divergência contra o DPI que o arquivo declara, e alerta quando a escala muda de um lado para o outro da mesa. Com leituras guardadas, é a média que vale — e ela vai para o CSV. |
+| **TIFF por página** | Uma digitalização de tetrazólio com dez espécies é um arquivo de dez páginas. Seletor no cabeçalho. |
+| **Cronômetro por cena** | Tempo de trabalho efetivo (para no ocioso, zera ao trocar de imagem), com o modo — manual, assistida, automática — **declarado** por quem analisa. É o número que nenhum software da área publica, porque nenhum mede. |
+| **Marcas que não tapam a semente** | Disco, anel, ponto ou cruz, com opacidade. Em todos, viável e inviável diferem também na forma. |
+| **Volumes com as equações na tela** | Embrião (esferoide prolato), semente (dois cones) e ar — escritas ao lado do resultado, para quem apresenta poder apontar. |
+| **Uma fonte para cada número** | Contagem, índice e classe vêm de um lugar só; um teste estático impede que alguém volte a contar por conta própria. Sete lugares foram corrigidos. |
+| **Germinator dentro do app** | A aba Germinação: cole a aba INPUT da planilha, ou importe do longitudinal; o ajuste de Hill de quatro parâmetros e tudo que a planilha extrai (t50, uniformidade, AUC, MGT), curvas por tratamento, Tukey com letras, exportação no formato da planilha. Validado contra 24 amostras reais — e onde o Solver do Excel parou cedo, o ajuste daqui converge e diz. |
+| **Regressão polinomial e ponto de ótimo** | A análise certa para fator quantitativo (MPa, horas, meses): graus 1 a 3, F sequencial, ótimo só dentro da faixa observada. Aparece sozinha em Estatísticas → Tratamentos quando três ou mais tratamentos têm um número no rótulo (T0, T8, T16), ao lado da ANOVA — não no lugar dela. |
+| **Cinco perfis na primeira abertura** | Analista de laboratório comercial, pesquisador de orquídea, de forrageira, aluno em treinamento, apresentação. Um clique responde a cinco perguntas (modo, marca, receita, protocolo, cronômetro); tudo continua mudável depois, e Configurações diz o que vai mudar antes de mudar. |
+| **Ajuda por tarefa, com o porquê** | Dez tarefas nas Instruções de Uso — calibrar para publicar, contar, ver a semente por baixo da marca, medir, o relógio, exportar com procedência, relatar, letras ou curva, curva de germinação, o que vai no artigo — cada uma com a pergunta da bancada, o porquê em uma frase, os passos e o que conferir. |
+| **A tabela de classes, num lugar só** | O exportador de dataset YOLO escrevia as classes ao contrário do modelo (viável 0); agora a ordem é sempre a do treino, o `dataset.yaml` traz as duas classes, e um teste amarra o exportador à tabela. Quem exportou antes troca 0↔1. |
+| **Carregar com a cena ocupada** | Substituir ou adicionar à fila, com a continuidade do experimento proposta pelo nome do arquivo — e a origem de cada proposta visível. |
+| **Modos de visualização** | Completo, contagem, laudo, apresentação; dezesseis partes ligáveis; o que o modo esconde também não custa. |
+| **Fila com IA cancelável** | "Processar Fila" vira "Parar fila"; a imagem em andamento não vira sessão; falhas e duplicatas no relato. |
+| **"Relatar problema"** | Erro que antes deixava tela branca agora mostra o que houve e oferece um relatório sem imagem, sem pixel e sem nome de arquivo. |
+| **Catálogo de datasets e 92 exemplos reais** | 23 conjuntos catalogados com origem, licença e formato — o app diz o que é referenciável e o que é só local. 46 exemplos de orquídea corada por tetrazólio, com a escala dizendo de onde veio. |
+
 ## O que a versão 3.5.0 trouxe
 
 **A escala estava 32% errada — e o aplicativo agora sabe disso.** O padrão do laboratório assumia 3600 DPI porque é o que o driver do scanner informa. Medindo a régua colada na própria digitalização, em duas imagens independentes, o aparelho entrega ~4735 e ~4771 DPI — e a resolução óptica dele é 4800. O padrão foi corrigido, e o painel de calibração passou a dizer, com todas as letras, que **o DPI do driver é uma declaração; a régua na imagem é a conferência**. Contagens não mudam; medidas em milímetros, sim. Método e números em [`docs/datasets/auditoria-de-medida.md`](docs/datasets/auditoria-de-medida.md).
@@ -48,7 +71,7 @@ Esse é o tipo de achado que resume a postura do projeto: preferir o número med
 | | |
 |---|---|
 | **Explorador de datasets** | Aponte a pasta uma vez; o aplicativo reconhece o formato de cada conjunto (YOLO caixa ou polígono, multiclasse por CSV, pasta por classe, máscara), lista com miniaturas e carrega a anotação como referência — marcada como tal no CSV. Nada é copiado. |
-| **Exemplos reais** | 54 recortes de 19 conjuntos e 6 cenas compostas, com espécie, origem e escala já preenchidas ao abrir. |
+| **Exemplos reais** | Recortes de conjuntos reais e cenas compostas, com espécie, origem e escala já preenchidas ao abrir (92 na 3.7.0). |
 | **Ensaio ao carregar** | Três receitas de detecção lado a lado — mais uma derivada da espécie declarada — com a proposta tracejada ao passar o mouse. Nada é aplicado sem escolher. |
 | **Lote** | A mesma receita em N imagens, com miniatura por linha para conferir antes de aceitar, resumo com dispersão, aviso de duplicata e retomada depois de fechar a aba. |
 | **Perfil medido por classe** | A versão honesta dos priores: os números vêm da nossa própria segmentação, nas nossas condições, e aparecem acima da referência de literatura. |
@@ -159,7 +182,7 @@ Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensai
 
 | Versão | Endereço | Conteúdo |
 |---|---|---|
-| **Produção** | https://seedcounter.vercel.app | v3.5.0 — recursos validados para uso em pesquisa |
+| **Produção** | https://seedcounter.vercel.app | v3.8.0 — recursos validados para uso em pesquisa |
 | **Teste** | https://seedcounter-teste.vercel.app | O que está sendo avaliado antes de virar produção |
 
 O histórico completo, em linguagem de quem usa, está dentro do aplicativo (número da versão no rodapé) e, em detalhe técnico, no [`CHANGELOG.md`](CHANGELOG.md).
@@ -209,14 +232,16 @@ Modelos com prefixo `_` em `public/models/` são ignorados pelo controle de vers
 
 ```text
 src/
-├─ components/    interface (canvas, ferramentas, réguas, layout)
-├─ features/      módulos independentes: câmera, calibração, detecção, IA, estatística
-├─ hooks/         estado (marcações, ferramentas, zoom, sessões)
-├─ context/       feature flags
-└─ lib/           detecção, ONNX, calibração, PCA, exportadores
+├─ lib/           o núcleo puro e testado: objetos (a enumeração canônica), medidas,
+│                 calibração, detecção clássica, ONNX, Germinator, regressão, laudo, diagnóstico
+├─ features/      uma pasta por funcionalidade: visualização (modos), carregar, lote (fila com IA),
+│                 exportar, bancadas, ensaio, datasets, analytics, morfometria, longitudinal…
+├─ hooks/         a cena (useBancada), as quatro bancadas, o cronômetro, a fila de imagens
+├─ components/    canvas, ferramentas, réguas, layout
+└─ theme/         as cores e formas das marcas; os tokens do sistema de design
 ```
 
-Cada recurso é um módulo isolado atrás de uma feature flag. O aplicativo funciona com todos desligados — nenhuma camada é obrigatória.
+Cada recurso é um módulo isolado; o aplicativo funciona com todos desligados. As regras que sustentam isso — uma fonte por verdade, campo vazio em vez de inventado, sugere-nunca-preenche, forma além da cor — estão em [`AGENTS.md`](AGENTS.md), com o teste que vigia cada uma.
 
 ## Aplicação a outras culturas
 
@@ -236,15 +261,15 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 |---|---|---|
 | **Registro de curadoria** | A metade fácil está feita: cada objeto já carrega a origem (manual, ia, modelo, referência) no CSV. Falta a decisão — aceita, corrigida, rejeitada —, que é o que responde "o modelo ajuda ou cria retrabalho?" | Metade feita |
 | **Classificador calibrável** | Um limiar sobre o a\* que se recalibra com o que a pessoa curou — auditável, ao contrário de uma rede | Desenhado; depende do registro |
-| **Regressão polinomial** | Os ensaios de estresse osmótico têm fator **quantitativo** (MPa), e a análise publicada é regressão com ponto de ótimo — não separação de médias por letras. Para esse ensaio o aplicativo entrega a análise errada | Lacuna aberta |
+| **Regressão polinomial** | Os ensaios de estresse osmótico têm fator **quantitativo** (MPa), e a análise publicada é regressão com ponto de ótimo — não separação de médias por letras | Feito na 3.8.0: núcleo (`lib/regressao-polinomial.ts`) e cartão na aba Tratamentos. Falta só declarar o fator à mão quando o rótulo não tem número |
 | **Blocos casualizados (DBC)** | Delineamento dos ensaios de campo de produção de sementes. A ANOVA atual é só de um fator | Lacuna aberta |
 | **Classes dinâmicas** | Em forrageira, semente não germinada pode ser dormente, dura, vazia ou morta. A dicotomia viável/inviável não cobre, e contar espigueta vazia como semente produz porcentagem errada | Lacuna aberta |
 | **Protocolo por espécie** | Pré-condicionamento, escarificação e clareamento variam por gênero — a Tabela 1 do boletim de 2021 é um catálogo pronto | Lacuna aberta |
 | **Separação de sementes encostadas** | O corte por concavidade separa 95,8% dos pares reais, e o aviso de aglomerado passou a sair da própria população da imagem (falso alarme em orquídea caiu de 78% para 13%). O que falta é separar automaticamente sem a pessoa pedir — e em semente alongada o watershed comprovadamente fatia a semente ao meio | Parcialmente resolvido |
 | **Textura (GLCM)** | As 28 características que faltam para completar as 54 do AIseed. Servem para pureza física e cariopse vazia, não para tetrazólio — por isso não são prioridade | Adiado com motivo |
 | **Validação da morfometria** | Contra medição manual com paquímetro. Espera dados de outras culturas | Aguardando dados |
-| **Teste de interface** | O projeto não tem biblioteca de teste de componente: tipos, 964 testes de lógica e testes estáticos de estrutura são a rede, mas nenhum deles renderiza tela. Cada entrega de interface depende de um roteiro manual — que fica escrito nos planos, não na cabeça de ninguém | Decisão consciente |
-| **Verificação do pacote de produção** | O CI compila mas nunca **abre** a página compilada. Um ciclo entre pedaços do empacotamento derrubou o site em 2026-09-06 com todo o portão de qualidade verde — foi verificado que o empacotador não avisa desse caso | Risco conhecido |
+| **Teste de interface** | O projeto não tem biblioteca de teste de componente: tipos, quase 1 500 testes de lógica e testes estáticos de estrutura (fonte única, tokens de design com catraca, dependências, atalhos) são a rede, mas nenhum deles renderiza tela. Cada entrega de interface depende de um roteiro manual — que fica escrito nos planos, não na cabeça de ninguém | Decisão consciente |
+| **Verificação do pacote de produção** | O CI compila mas nunca **abre** a página compilada. Um ciclo entre pedaços do empacotamento derrubou o site em 2026-09-06 com todo o portão de qualidade verde — o empacotador não avisa desse caso | Fechado na 3.8.0 para a causa conhecida: `scripts/verificar-dist.mjs` roda depois do build (local e no CI) e reprova ciclo de importação estática entre pedaços e arquivo pedido que não existe. Abrir a página de verdade continua fora do CI |
 
 ## Equipe
 

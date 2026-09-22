@@ -244,7 +244,7 @@ export function useBancada(
   // `arquivoPorChave` guarda o `File` de origem de cada imagem que já passou
   // por esta bancada, indexado pela MESMA chave do cache de anotações acima
   // — é o que permite recarregar a cheia depois de reduzir. Uma sessão
-  // restaurada zera `chaveAtual` sem passar por aqui (ver `App.handleLoadSession`),
+  // restaurada zera `chaveAtual` sem passar por aqui (ver `features/sessao/useSessao.ts`),
   // então a busca por `chaveAtual.current` nesse caso não encontra `File`
   // nenhum — é assim que a regra 4 ("sem File, não libere a cheia") se aplica
   // sem precisar de um sinal explícito vindo de fora.

@@ -13,12 +13,21 @@
 // Supports two annotation types:
 //   - YoloSegmentation (polygon_points) → YOLO segmentation format
 //   - Manual marks (x, y, type)         → YOLO detection (estimated bbox)
+//
+// A ORDEM DAS CLASSES É A DO TREINO, sempre: `names: [inviavel, viavel]`
+// (`lib/classe-do-modelo.ts`), 0 = inviável. Até 23/09 este arquivo tinha a
+// sua própria tabela, `CLASS_VIABLE = 0`, coerente consigo mesma e invertida
+// em relação ao modelo — um dataset exportado daqui, somado ao conjunto de
+// treino, trocaria as classes de todas as sementes sem nenhum aviso. Agora o
+// `dataset.yaml` traz SEMPRE as duas classes (`nc: 2`), mesmo quando só as
+// viáveis são exportadas: o índice de "viável" não pode depender de uma opção.
 // =============================================================================
 
 // JSZip não é importado estaticamente: só quem exporta o dataset YOLO paga
 // pelo peso dele — quem só conta sementes nunca aciona `generateYOLODataset`.
 import type { Session } from '../types';
 import { IMAGE_SOURCE_UM_PER_PIXEL } from '../types';
+import { YOLO_CLASSES, indiceDaCategoria, type Categoria } from './classe-do-modelo';
 
 // ---------------------------------------------------------------------------
 // Public Interfaces
@@ -31,9 +40,9 @@ export interface YOLOExportOptions {
   estimatedSeedDiameterUm?: number;
   /** Fallback radius in pixels when umPerPixel is unavailable. Default: 30 */
   fallbackRadiusPx?: number;
-  /** Include class 1 (inviable) annotations. Default: true */
+  /** Include inviable annotations (class 0). Default: true. The yaml keeps both classes either way. */
   includeInviable?: boolean;
-  /** Class name overrides. Default: { viable: 'viable', inviable: 'inviable' } */
+  /** Class name overrides. Default: the training names, { viable: 'viavel', inviable: 'inviavel' } */
   className?: { viable: string; inviable: string };
 }
 
@@ -56,13 +65,6 @@ export interface YOLOExportSummary {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-
-/** Class indices */
-const CLASS_VIABLE = 0;
-const CLASS_INVIABLE = 1;
-
-/** Default DPI warning thresholds (72 / 96 are browser/web defaults) */
-const DEFAULT_DPI_VALUES = new Set([72, 96]);
 
 function getUmPerPixel(session: Session): number | undefined {
   // Explicit manual calibration wins
@@ -184,8 +186,8 @@ function markToYOLOLine(
   return `${classId} ${ncx.toFixed(6)} ${ncy.toFixed(6)} ${nw.toFixed(6)} ${nh.toFixed(6)}`;
 }
 
-/** Build label lines for one session */
-async function buildLabelLines(
+/** Build label lines for one session. Exported for the test — the order of classes is what it proves. */
+export async function buildLabelLines(
   session: Session,
   imgW: number,
   imgH: number,
@@ -197,7 +199,7 @@ async function buildLabelLines(
   if (hasPolygons && session.yoloSegmentations) {
     for (const seg of session.yoloSegmentations) {
       if (seg.category === 'inviable' && !opts.includeInviable) continue;
-      const classId = seg.category === 'viable' ? CLASS_VIABLE : CLASS_INVIABLE;
+      const classId = indiceDaCategoria(seg.category);
       if (seg.polygon_points.length >= 3) {
         lines.push(polygonToYOLOLine(seg.polygon_points, classId, imgW, imgH));
       }
@@ -206,12 +208,29 @@ async function buildLabelLines(
     const radiusPx = estimateRadiusPx(session, opts.estimatedSeedDiameterUm, opts.fallbackRadiusPx);
     for (const mark of session.marks) {
       if (mark.type === 'inviable' && !opts.includeInviable) continue;
-      const classId = mark.type === 'viable' ? CLASS_VIABLE : CLASS_INVIABLE;
+      const classId = indiceDaCategoria(mark.type);
       lines.push(markToYOLOLine(mark.x, mark.y, radiusPx, classId, imgW, imgH));
     }
   }
 
   return lines;
+}
+
+/** [índice, nome, categoria] na ordem do treino — a única tabela que vale. */
+export function nomesDeClasses(className: {
+  viable: string;
+  inviable: string;
+}): [number, string, Categoria][] {
+  return YOLO_CLASSES.map((nome, i) => {
+    const cat: Categoria = nome === 'inviavel' ? 'inviable' : 'viable';
+    return [i, className[cat], cat];
+  });
+}
+
+/** As linhas `nc:`/`names:` do dataset.yaml — sempre as duas classes. */
+export function linhasDeClassesDoYaml(className: { viable: string; inviable: string }): string[] {
+  const nomes = nomesDeClasses(className);
+  return [`nc: ${nomes.length}`, `names:`, ...nomes.map(([i, nome]) => `  ${i}: ${nome}`)];
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +329,7 @@ export async function generateYOLODataset(
     estimatedSeedDiameterUm: options.estimatedSeedDiameterUm ?? 500,
     fallbackRadiusPx: options.fallbackRadiusPx ?? 30,
     includeInviable: options.includeInviable ?? true,
-    className: options.className ?? { viable: 'viable', inviable: 'inviable' },
+    className: options.className ?? { viable: 'viavel', inviable: 'inviavel' },
   };
 
   // Carregado sob demanda: exportar YOLO é uma ação explícita de clique, não
@@ -382,10 +401,6 @@ export async function generateYOLODataset(
   }
 
   // dataset.yaml
-  const classes = opts.includeInviable
-    ? [opts.className.viable, opts.className.inviable]
-    : [opts.className.viable];
-
   const yaml = [
     `# SeedCounter YOLO Dataset`,
     `# Generated: ${new Date().toISOString()}`,
@@ -395,9 +410,7 @@ export async function generateYOLODataset(
     `train: images/train`,
     `val: images/val`,
     ``,
-    `nc: ${classes.length}`,
-    `names:`,
-    ...classes.map((c, i) => `  ${i}: ${c}`),
+    ...linhasDeClassesDoYaml(opts.className),
     ``,
     `# Calibration: ${opts.estimatedSeedDiameterUm}µm estimated seed diameter`,
     `# For orchid seeds at 1200 DPI (21.2 µm/px): ~${Math.round(opts.estimatedSeedDiameterUm / 21.2)}px diameter`,
@@ -447,9 +460,13 @@ function buildReadme(
     '  <class_id> cx_norm cy_norm w_norm h_norm',
     '  Formato YOLO Detection (não segmentação).',
     '',
-    '--- CLASSES ---',
-    `  0: ${opts.className.viable} (sementes viáveis)`,
-    ...(opts.includeInviable ? [`  1: ${opts.className.inviable} (sementes inviáveis)`] : []),
+    '--- CLASSES (a ordem do treino; 0 é inviável) ---',
+    ...nomesDeClasses(opts.className).map(
+      ([i, nome, cat]) => `  ${i}: ${nome} (sementes ${cat === 'viable' ? 'viáveis' : 'inviáveis'})`
+    ),
+    ...(opts.includeInviable
+      ? []
+      : ['  (inviáveis não exportadas nesta seleção; a classe continua no yaml)']),
     '',
     '--- CALIBRAÇÃO ESPACIAL ---',
     '',

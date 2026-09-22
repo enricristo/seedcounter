@@ -126,7 +126,85 @@ Um conjunto do Roboflow não é automaticamente utilizável. Ordem de conferênc
   que fenotipagem, mas úteis para morfologia de referência por espécie.
 - **Repositórios de artigos de fenotipagem** — AIseed, SmartGrain, GrainScan e
   SeedExtractor publicam material suplementar; ver
-  [`2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md`](../superpowers/specs/2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md).
+  a spec de linhas de pesquisa do grupo (documentação privada).
+
+### 3.3 Catálogo legível por máquina
+
+A prosa acima e a de `datasets/README.md` são para gente. Para o app existe
+`public/exemplos/catalogo-de-datasets.json` (cópia versionada de
+`datasets/catalogo.json`), gerado por:
+
+```bash
+python scripts/gerar-catalogo-de-datasets.py          # lê ../datasets, escreve os dois JSON
+```
+
+Só stdlib, ~6 s sobre 17 GB: lê cabeçalhos (TIFF, PNG, JFIF/Exif, BMP), nunca
+a imagem inteira. É idempotente — sem data de geração, entradas em ordem de
+nome — e deve ser regenerado sempre que uma pasta entra ou sai de `datasets/`.
+
+Para cada pasta: `formatoDetectado` (a mesma tabela de `src/lib/datasets/formato.ts`,
+ou seja, o que o explorador vai reconhecer ao abrir `datasets/`), contagem de
+imagens por extensão, anotações, classes, `tamanhoBytes`, `dpiDeclarado` (amostra
+de até 5 arquivos — declaração, não medida), e o que a prosa diz: `cultura`,
+`origem`, `licenca`, `citacao`, `usoNoSeedCounter`. Cada um desses campos de
+texto vem com `fonteDoCampo`: **README** (lido de `datasets/README.md` ou deste
+arquivo), **pasta** (lido de um arquivo dentro da própria pasta:
+`README.dataset.txt`, `data.yaml`, `LICENSE*`, `*Citation*.txt`) ou
+**heuristica** (deduzido do nome ou da estrutura). Ninguém precisa adivinhar se
+"CC BY 4.0" foi lido ou chutado.
+
+**`podeSerReferenciado`** é `true` só quando origem **e** licença foram lidas —
+nunca deduzidas — e a licença não é `"desconhecida"`. Não é gate de uso: tudo
+serve para testar localmente (decisão antiga do dono). É gate de **citação**:
+só o que está `true` pode ser mencionado em texto publicável como conjunto de
+validação. `"desconhecida"` é valor válido, e é o valor de todas as pastas do
+laboratório — a origem se sabe, a licença não está escrita em lugar nenhum.
+O app lê o arquivo em `src/lib/datasets/catalogo.ts` (validado campo a campo)
+e o explorador mostra origem · licença · referenciável/só local num chip ao lado
+de cada pasta.
+
+Pastas com `podeSerReferenciado: true` hoje (8 de 23), com o que citar:
+
+| Pasta | Licença | Citação |
+|---|---|---|
+| `Sementes de Orquideas` | CC BY 4.0 | Roboflow Universe, `sementes-de-orqudea/sementes-de-orquideas`, v8 — https://universe.roboflow.com/sementes-de-orqudea/sementes-de-orquideas |
+| `seed detect.v3i.yolov8` | CC BY 4.0 | Roboflow Universe, `kyoung-do-min/seed-detect-nmxet`, v3 — https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet |
+| `wheat quality detection.v2i.multiclass` | Public Domain | Roboflow Universe, `first-pijnk/wheat-quality-detection`, v2 — https://universe.roboflow.com/first-pijnk/wheat-quality-detection |
+| `wheat seed classification.v2i.multiclass` | CC BY 4.0 | Roboflow Universe, `bcd-hhv9y/wheat-seed-classification`, v2 — https://universe.roboflow.com/bcd-hhv9y/wheat-seed-classification |
+| `rice.v1i.multiclass` | CC BY 4.0 | Roboflow Universe, `test-rzp49/rice-te3lx`, v1 — https://universe.roboflow.com/test-rzp49/rice-te3lx |
+| `peanuts.v2-release.multiclass` | CC BY 4.0 | Roboflow 100, `roboflow-100/peanuts-sd4kf`; criado por Melanie S. Capalungan, "B-Jay" Daguio, Isaac Balbuena e Reanne Joy Rafael — https://universe.roboflow.com/roboflow-100/peanuts-sd4kf |
+| `lucasiturriago-seeds` | CC BY-SA 4.0 | Kaggle, `lucasiturriago/seeds` — https://www.kaggle.com/datasets/lucasiturriago/seeds |
+| `green-coffee-defects` | CC BY-NC-SA 4.0 | Kaggle, `j4ckdev/green-coffee-beans-dataset` (arquivo LICENSE na pasta) — https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset |
+
+Ficaram `"desconhecida"` (e portanto `false`) por motivos diferentes, que vale
+distinguir: a soja do Mendeley e o LZUPSD têm DOI mas a licença não está no
+disco (conferir na página e gravar num `LICENSE` dentro da pasta resolve); os
+conjuntos do Kaggle sem arquivo de licença (`rice-image-dataset`,
+`maize-seed-dataset`, `soybean-defects`, `soyabean-seeds-warcoder`,
+`coffee-beans-roasting`, `durum-wheat-dataset`, `referencias-tabulares`) têm
+citação de artigo mas licença só na página; e as pastas do laboratório
+(`images`, `nelson_phd_images_orquid_enrico`, `Orq_lab_semente`,
+`orquid_mayara_10especies`, `Mayara_DOC_Qualificacao_TZ_ORQ`, `mayara_images`)
+são material do grupo — o dono decide depois o que publicar.
+
+**Orchid Seed Analyzer e o conjunto de Cattleya.** O conjunto `Sementes de
+Orquideas` (Roboflow) é feito de recortes de 946 × 946 px das digitalizações
+do laboratório (`digitalizar0001_11_jpg.rf…`), e esse tamanho não é acaso: é o
+recorte que o **Orchid Seed Analyzer** produz. É um aplicativo desktop (PyQt6 +
+Ultralytics YOLO) escrito por Paulo da Motta em 2025 (repositório
+`orchid-seed-analyzer`, commits de maio a outubro), que delimita na digitalização
+uma área de 5676 × 1892 px, corta-a em 6 × 2 recortes de 946 px, roda o modelo,
+deixa a pessoa corrigir viável/inviável e gera CSV com contagem e dimensões. Os
+`*_segmentations.json` em `nelson_phd_images_orquid_enrico/imagens_recortadas_analisadas`
+e em `images/**/imagens_recortadas_analisadas` são a saída dele. Foi com esse
+conjunto de recortes, do material de Cattleya do doutorado, que o modelo
+embarcado no SeedCounter foi treinado (§5.3). Duas ressalvas: a tabela de
+classes do Analyzer é invertida em relação ao treino (`class_id 0 → viável` lá;
+`0 = inviavel` no `data.yaml` e em `src/lib/classe-do-modelo.ts`), então nunca
+importar o índice dele sem passar pela tradução do app; e `datasets/README.md`
+chama o conjunto de *Epidendrum* enquanto o dono o descreve como Cattleya do
+doutorado — o catálogo copia o README (`fonteDoCampo: "README"`) e esta nota
+registra a divergência, para alguém resolver na fonte.
 
 ---
 

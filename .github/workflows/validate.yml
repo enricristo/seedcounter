@@ -31,15 +31,21 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      # Lint: informativo, NAO bloqueia o pipeline (avisos de estilo/qualidade).
-      - name: Lint (advisory)
-        run: npx eslint src --ext .ts,.tsx
-        continue-on-error: true
+      # Lint: BLOQUEIA acima do teto. Em 23/09 os avisos cairam de 82 para 27
+      # (todos exhaustive-deps, que mudam comportamento se mexidos as cegas).
+      # O teto e uma catraca: so desce. Subir precisa de motivo escrito aqui.
+      - name: Lint (teto de 27 avisos)
+        run: npx eslint src --ext .ts,.tsx --max-warnings 27
 
       - name: Build production
         run: npm run build
-        env:
-          GEMINI_API_KEY: test-key-for-ci
+
+      # O pacote gerado, conferido sem navegador: todo arquivo que o index.html
+      # pede existe, toda importacao estatica entre pedacos existe, e NAO HA
+      # CICLO entre pedacos — o que derrubou o site em 2026-09-06 com o build
+      # verde (o erro so aparecia quando o navegador executava).
+      - name: Verificar o pacote (ciclos entre pedaços, arquivos ausentes)
+        run: node scripts/verificar-dist.mjs
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -79,6 +85,5 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          build-args: GEMINI_API_KEY=test-key-for-ci
           load: true
           tags: seedcounter:prod-test

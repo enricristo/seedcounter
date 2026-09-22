@@ -52,6 +52,19 @@ export interface ModoDeVisualizacaoApi {
   modo: ModoDeVisualizacao;
   /** Troca o modo e zera as sobrescritas. */
   definirModo: (modo: ModoDeVisualizacao) => void;
+  /**
+   * Modo E sobrescritas de uma vez — o que uma pré-definição por perfil
+   * escreve (`features/perfis`). Existe porque `definirModo` seguido de
+   * `alternar` não serve: `alternar` fecha sobre o modo do render anterior e
+   * calcularia a sobrescrita contra o modo errado. `persistir: false` aplica
+   * só nesta sessão, como o modo vindo da URL — é o caso de "apresentação",
+   * que não pode grudar na máquina.
+   */
+  aplicar: (
+    modo: ModoDeVisualizacao,
+    sobrescritas: Partial<Visibilidade>,
+    opcoes?: { persistir?: boolean }
+  ) => void;
   /** A visibilidade efetiva: padrão do modo com as sobrescritas por cima. */
   visibilidade: Visibilidade;
   /** As sobrescritas em vigor — o menu usa para saber se há o que redefinir. */
@@ -94,6 +107,17 @@ export function useModoDeVisualizacao(): ModoDeVisualizacaoApi {
     gravarPreferenciaTexto(CHAVE_SOBRESCRITAS, serializarSobrescritas({}));
   }, []);
 
+  const aplicar = useCallback(
+    (novo: ModoDeVisualizacao, novas: Partial<Visibilidade>, opcoes?: { persistir?: boolean }) => {
+      setModo(novo);
+      setSobrescritas(novas);
+      if (opcoes?.persistir === false) return;
+      gravarPreferenciaTexto(CHAVE_MODO, novo);
+      gravarPreferenciaTexto(CHAVE_SOBRESCRITAS, serializarSobrescritas(novas));
+    },
+    []
+  );
+
   const alternar = useCallback(
     (parte: ParteDaInterface) => {
       setSobrescritas((atuais) => {
@@ -116,13 +140,14 @@ export function useModoDeVisualizacao(): ModoDeVisualizacaoApi {
     () => ({
       modo,
       definirModo,
+      aplicar,
       visibilidade,
       sobrescritas,
       alternar,
       redefinir,
       fixadoPelaUrl: inicial.daUrl && modo === inicial.modo,
     }),
-    [modo, definirModo, visibilidade, sobrescritas, alternar, redefinir, inicial]
+    [modo, definirModo, aplicar, visibilidade, sobrescritas, alternar, redefinir, inicial]
   );
 }
 
@@ -157,6 +182,7 @@ export function useVisibilidade(): ModoDeVisualizacaoApi {
     return {
       modo,
       definirModo: semSetter,
+      aplicar: semSetter,
       visibilidade: visibilidadeEfetiva(modo, {}),
       sobrescritas: {},
       alternar: semSetter,

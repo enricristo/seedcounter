@@ -25,6 +25,8 @@ import {
   type ConjuntoDeArquivos,
 } from './fonte';
 import { reconhecerFormato, type DatasetReconhecido, type FormatoDeDataset } from '../../lib/datasets/formato';
+import { entradaPorNome, resumirOrigem, type CatalogoDeDatasets, type EntradaDoCatalogo } from '../../lib/datasets/catalogo';
+import { carregarCatalogoDeDatasets } from './catalogo-de-datasets';
 import { lerClassesCsv } from '../../lib/datasets/roboflow-multiclass';
 import { lerAnotacaoDe, type AnotacaoCarregada } from './anotacao';
 import { medirPasta, type ImagemParaMedir } from './medir-pasta';
@@ -170,6 +172,38 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar, onAdicio
   }, [pastaAberta]);
 
   const conjuntoAtual = conjuntosReconhecidos.find((c) => c.nome === conjuntoSelecionado) ?? null;
+
+  // --- Catálogo: origem, licença e "pode ser referenciado" por pasta -----------
+  // Buscado quando uma pasta é aberta (não na montagem do app) e casado pelo
+  // NOME da subpasta. Quando a pessoa abre direto a pasta de um conjunto (os
+  // caminhos ficam em "(raiz)"), o nome que casa é o da própria pasta aberta.
+  const [catalogo, setCatalogo] = useState<CatalogoDeDatasets | null>(null);
+
+  useEffect(() => {
+    if (!pastaAberta || catalogo) return;
+    let cancelado = false;
+    carregarCatalogoDeDatasets()
+      .then((c) => {
+        if (!cancelado) setCatalogo(c);
+      })
+      .catch(() => {
+        // Sem catálogo (offline, arquivo ausente): o painel só não mostra o chip.
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [pastaAberta, catalogo]);
+
+  const entradaDoCatalogo = useCallback(
+    (nomeDoConjunto: string): EntradaDoCatalogo | undefined => {
+      if (!catalogo || !pastaAberta) return undefined;
+      return (
+        entradaPorNome(catalogo, nomeDoConjunto) ??
+        (nomeDoConjunto === NOME_DA_RAIZ ? entradaPorNome(catalogo, pastaAberta.nome) : undefined)
+      );
+    },
+    [catalogo, pastaAberta]
+  );
 
   /** Arquivos do conjunto atual, indexados pelo caminho relativo AO CONJUNTO — o vocabulário de `lerAnotacaoDe`. */
   const arquivosDoConjunto = useMemo(() => {
@@ -536,6 +570,7 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar, onAdicio
                   <span className="text-[10px] text-ink-3 shrink-0">{c.reconhecido.imagens.length} imgs</span>
                 </div>
                 <div className="text-[10px] text-ink-3 mt-0.5">{DESCRICAO_DO_FORMATO[c.reconhecido.formato]}</div>
+                <ChipDoCatalogo entrada={entradaDoCatalogo(c.nome)} />
               </button>
             </li>
           ))}
@@ -556,6 +591,7 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar, onAdicio
             <div className="min-w-0">
               <div className="text-xs font-bold text-ink-1 truncate">{conjuntoAtual.nome}</div>
               <div className="text-[10px] text-ink-3">{DESCRICAO_DO_FORMATO[conjuntoAtual.reconhecido.formato]}</div>
+              <ChipDoCatalogo entrada={entradaDoCatalogo(conjuntoAtual.nome)} />
             </div>
           </div>
 
@@ -774,6 +810,43 @@ export function DatasetsPanel({ pastaAberta, onPastaAberta, onCarregar, onAdicio
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Origem · licença · "referenciável" ou "só local", quando a pasta está no
+ * catálogo. Discreto de propósito: é procedência, não ação — o botão "Carregar
+ * referência" continua sendo o gesto, e mora no App. O `title` traz de onde
+ * cada campo saiu (README, arquivo da pasta, ou dedução), para quem quiser
+ * saber se "CC BY 4.0" foi lido ou chutado. Sem entrada, não desenha nada.
+ */
+function ChipDoCatalogo({ entrada }: { entrada: EntradaDoCatalogo | undefined }) {
+  if (!entrada) return null;
+  const fonte = (campo: 'origem' | 'licenca') => entrada.fonteDoCampo[campo] ?? 'heuristica';
+  const detalhe = [
+    `Origem: ${entrada.origem ?? 'desconhecida'} (${fonte('origem')})`,
+    `Licença: ${entrada.licenca} (${fonte('licenca')})`,
+    entrada.citacao ? `Citação: ${entrada.citacao}` : null,
+    entrada.podeSerReferenciado
+      ? 'Pode ser referenciado: origem e licença conhecidas.'
+      : 'Só para teste local: origem ou licença não estão escritas em lugar nenhum.',
+  ]
+    .filter((s): s is string => s !== null)
+    .join('\n');
+  return (
+    <div
+      className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-line bg-surface-3 px-1.5 py-0.5 text-[9px] leading-none text-ink-3"
+      title={detalhe}
+      data-testid="chip-do-catalogo"
+    >
+      <span className="truncate">{resumirOrigem(entrada)}</span>
+      <span aria-hidden="true">·</span>
+      <span className="truncate">{entrada.licenca}</span>
+      <span aria-hidden="true">·</span>
+      <span className={entrada.podeSerReferenciado ? 'font-bold text-accent' : 'font-bold'}>
+        {entrada.podeSerReferenciado ? 'referenciável' : 'só local'}
+      </span>
     </div>
   );
 }

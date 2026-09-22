@@ -41,13 +41,13 @@ que se volta.
 
 | Documento | O que sustenta |
 |---|---|
-| [`specs/2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md`](../superpowers/specs/2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md) | As linhas de pesquisa do grupo e o que cada uma exige do app — inclusive a lacuna estatística: os ensaios deles têm fator **quantitativo** (MPa, meses), e o app só faz análise de fator qualitativo |
+| Linhas de pesquisa do grupo (documentação privada) | As linhas de pesquisa do grupo e o que cada uma exige do app — inclusive a lacuna estatística: os ensaios deles têm fator **quantitativo** (MPa, meses), e o app só faz análise de fator qualitativo |
 | [`specs/2026-09-08-norma-e-pratica-de-laboratorio.md`](../superpowers/specs/2026-09-08-norma-e-pratica-de-laboratorio.md) | O que a RAS e a ISTA permitem, exigem e não dizem |
 | [`specs/2026-09-09-plano-de-normatizacao.md`](../superpowers/specs/2026-09-09-plano-de-normatizacao.md) | Como a norma vira campo, aviso e laudo |
 | [`datasets/README.md`](../datasets/README.md) | Os conjuntos de imagens usados, o que cada um tem e o que não tem |
 | [`datasets/auditoria-de-medida.md`](../datasets/auditoria-de-medida.md) | Por que o padrão do scanner virou 4800 DPI: a régua da imagem mede ~4735 e ~4771, contra 3600 declarados pelo driver — **toda medida em mm feita com 3600 estava 32% maior** |
-| [`mercado/`](../mercado/) | As ferramentas que existem, como as pessoas as usam, e os espaços vazios |
-| [`backend/revisao-2026-09-18.md`](../backend/revisao-2026-09-18.md) | O estado real do backend, conferido contra o código |
+| Mercado (documentação privada) | As ferramentas que existem, como as pessoas as usam, e os espaços vazios |
+| Revisão do backend (documentação privada) | O estado real do backend, conferido contra o código |
 
 ## Como acrescentar
 

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Metadata } from '../types';
 import { db } from '../lib/db';
+import { lerPreferenciaTexto } from '../features/settings/preferencias';
+import { CHAVE_PROTOCOLO_PADRAO, ehProtocolo } from '../features/perfis/perfis';
 
 const defaultMetadata: Metadata = {
   researcher: '',
@@ -13,6 +15,21 @@ const defaultMetadata: Metadata = {
   baselineCount: 0,
   useDifferential: false,
 };
+
+/**
+ * O metadado de uma amostra NOVA.
+ *
+ * É o único lugar onde a pré-definição por perfil (`features/perfis`) toca o
+ * metadado: o protocolo padrão gravado em `sc:protocoloPadrao` entra aqui, e
+ * só aqui. Um registro que já existe no Dexie nunca é alterado por um perfil —
+ * seria mudar o protocolo de uma amostra em andamento pelas costas de quem a
+ * está analisando. Lido a cada chamada, não na carga do módulo: o perfil pode
+ * ter sido trocado em Configurações no meio da sessão.
+ */
+function metadadoNovo(): Metadata {
+  const protocolo = lerPreferenciaTexto(CHAVE_PROTOCOLO_PADRAO, '');
+  return ehProtocolo(protocolo) ? { ...defaultMetadata, protocolo } : defaultMetadata;
+}
 
 /**
  * O registro de metadados é POR BANCADA.
@@ -61,7 +78,10 @@ function enfileirar<T>(registro: string, tarefa: () => Promise<T>): Promise<T> {
 export function useMetadata(bancada?: string) {
   const METADATA_ID = idDoRegistroDeMetadados(bancada);
   const storedMetadata = useLiveQuery(() => db.metadataStore.get(METADATA_ID), [METADATA_ID]);
-  const metadata = storedMetadata?.data ?? defaultMetadata;
+  // Uma instância por hook, para que o objeto seja estável entre renders (há
+  // `useMemo` no App com `metadata` como dependência).
+  const [padrao] = useState(metadadoNovo);
+  const metadata = storedMetadata?.data ?? padrao;
 
   // Migration from localStorage
   useEffect(() => {
@@ -89,7 +109,7 @@ export function useMetadata(bancada?: string) {
       enfileirar(METADATA_ID, async () => {
         if (typeof newMetadata === 'function') {
           const existing = await db.metadataStore.get(METADATA_ID);
-          const current = existing?.data ?? defaultMetadata;
+          const current = existing?.data ?? metadadoNovo();
           await db.metadataStore.put({ id: METADATA_ID, data: newMetadata(current) });
         } else {
           await db.metadataStore.put({ id: METADATA_ID, data: newMetadata });
@@ -102,7 +122,7 @@ export function useMetadata(bancada?: string) {
     <K extends keyof Metadata>(key: K, value: Metadata[K]) =>
       enfileirar(METADATA_ID, async () => {
         const existing = await db.metadataStore.get(METADATA_ID);
-        const current = existing?.data ?? defaultMetadata;
+        const current = existing?.data ?? metadadoNovo();
         await db.metadataStore.put({
           id: METADATA_ID,
           data: { ...current, [key]: value },
@@ -112,7 +132,7 @@ export function useMetadata(bancada?: string) {
   );
 
   const resetMetadata = useCallback(async () => {
-    await db.metadataStore.put({ id: METADATA_ID, data: defaultMetadata });
+    await db.metadataStore.put({ id: METADATA_ID, data: metadadoNovo() });
   }, []);
 
   return {

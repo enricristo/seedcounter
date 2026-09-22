@@ -36,10 +36,6 @@ export function ImageActions({
   onOpenCamera,
   onOpenSplit,
   onOpenRoi,
-  onCarregarExemplo,
-  exemploCarregando,
-  onCarregarExemploReal,
-  exemploRealCarregando = null,
   onAbrirDatasets,
 }: ImageActionsProps) {
   const botao =
