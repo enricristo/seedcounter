@@ -26,6 +26,8 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - Testes: 1288 → 1488.
 
 ### Corrigido
+- **Exportação YOLO escrevia as classes invertidas em relação ao treino** (`CLASS_VIABLE = 0`, tabela própria): coerente consigo mesma, mas um dataset exportado somado ao conjunto de treino trocaria a classe de toda semente. Agora usa `indiceDaCategoria` (`classe-do-modelo.ts`): 0 inviável, 1 viável; o `dataset.yaml` traz sempre as duas classes (`nc: 2`), mesmo exportando só viáveis. 5 testes.
+- Lint: 72 → 27 avisos (só código morto — inclusive ~90 linhas de régua/região/anotações no `MarkingCanvas` que já viviam nos overlays); o CI bloqueia acima de 27 (`--max-warnings`).
 - A sugestão "Salvar sessão" do painel de sugestões não gravava nada: `handleAcaoDeSugestao` capturava o `saveCurrentSession` do primeiro render (`filename` vazio). Entra nas deps.
 - JSON importado com campo de tipo errado (`polygon_points: "abc"`) virava contorno inválido no estado; agora é recusado com frase.
 

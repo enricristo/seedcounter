@@ -42,6 +42,16 @@ export function categoriaDaDeteccao(det: { className: string }): Categoria {
   return categoriaDoNome(det.className) ?? 'viable';
 }
 
+/**
+ * Categoria → índice do treino. É o inverso de `categoriaDoIndice`, e é o que
+ * um dataset EXPORTADO pelo app tem de usar: com o mesmo índice do treino
+ * (0 inviável, 1 viável), o que sai daqui se mistura ao conjunto original sem
+ * remapear — e sem inverter tudo em silêncio, que é o erro desta tabela.
+ */
+export function indiceDaCategoria(categoria: Categoria): number {
+  return YOLO_CLASSES.indexOf(nomeDaCategoria(categoria));
+}
+
 /** Índice do modelo → categoria, pela tabela do treino. Fora dela: `null`. */
 export function categoriaDoIndice(indice: number): Categoria | null {
   const nome = YOLO_CLASSES[indice];
@@ -55,11 +65,7 @@ export function categoriaDoIndice(indice: number): Categoria | null {
  * "trigo duro"; inventar uma correspondência aqui seria pior que não ter.
  */
 export function categoriaDoNome(nome: string): Categoria | null {
-  const n = nome
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+  const n = nome.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   if (n === 'inviavel' || n === 'inviable') return 'inviable';
   if (n === 'viavel' || n === 'viable') return 'viable';
   return null;
@@ -83,7 +89,8 @@ export function categoriaImportada(registro: unknown): Categoria {
     const c = categoriaDoNome(r.class_name);
     if (c) return c;
   }
-  const indice = typeof r.class === 'number' ? r.class : typeof r.class_id === 'number' ? r.class_id : null;
+  const indice =
+    typeof r.class === 'number' ? r.class : typeof r.class_id === 'number' ? r.class_id : null;
   if (indice !== null) {
     const c = categoriaDoIndice(indice);
     if (c) return c;

@@ -359,12 +359,13 @@ export function YoloExportModal({ isOpen, onClose, sessions }: YoloExportModalPr
                       className="accent-accent"
                     />
                     <span className="text-xs font-bold text-ink-2">
-                      Exportar Sementes Inviáveis (Classe 1)
+                      Exportar Sementes Inviáveis (classe 0, como no treino)
                     </span>
                   </label>
                   <p className="text-[9px] text-ink-3 mt-1.5 font-semibold pl-5 leading-relaxed">
-                    Se desativado, o dataset conterá apenas uma única classe (viável). Sementes
-                    inviáveis serão ignoradas.
+                    A ordem das classes é sempre a do modelo — 0 inviável, 1 viável — para o
+                    dataset se somar ao de treino sem remapear. Se desativado, as inviáveis não
+                    são escritas, mas a classe continua no yaml.
                   </p>
                 </div>
               </div>
