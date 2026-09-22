@@ -71,6 +71,7 @@ import { StatsView } from './features/stats';
 import { PainelDeGerminacao } from './features/germinacao';
 import { YoloExportModal } from './features/yolo-export';
 import { useExportacoes } from './features/exportar';
+import { useImportacao } from './features/importar';
 import { CameraModal } from './features/camera';
 import { DetectionPanel } from './features/detection';
 import { AiPointerPanel } from './features/ai-pointer';
@@ -158,7 +159,7 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
-import { categoriaImportada, categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
+import { categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -1255,91 +1256,16 @@ export default function App() {
     handleNextImage();
   };
 
-  // JSON Import Parser supporting backups, YOLO segmentations and single session files
-  const processJSONFile = useCallback(
-    (file: File) => {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const text = event.target?.result as string;
-          const parsed = JSON.parse(text);
-
-          // 1. Check if it is a YOLO segmentation JSON file
-          if (parsed && (Array.isArray(parsed.segmentations) || parsed.segmentations)) {
-            const rawSegs = Array.isArray(parsed.segmentations) ? parsed.segmentations : [];
-
-            // Map and calculate PCA dimensions
-            const mappedSegs: YoloSegmentation[] = rawSegs.map((seg: any, idx: number) => {
-              const polygon_points = seg.polygon_points || seg.points || [];
-              const { width, height } = calculateSeedDimensions(polygon_points);
-
-              // `category` → `class_name` (com ou sem acento) → índice pela tabela
-              // do treino. Antes `class === 1` virava inviável aqui, mas 1 é
-              // VIÁVEL em `YOLO_CLASSES` — o mesmo engano que a fila com IA teve.
-              const category = categoriaImportada(seg);
-
-              return {
-                id: seg.id ?? idx,
-                category,
-                class_name: nomeDaCategoria(category),
-                confidence: seg.confidence ?? 1.0,
-                polygon_points,
-                visible: seg.visible !== false,
-                edited: seg.edited ?? false,
-                width,
-                height,
-              };
-            });
-
-            addYoloSegmentations(mappedSegs);
-            alert(`YOLO segmentações importadas! Encontradas ${mappedSegs.length} segmentações.`);
-            return;
-          }
-
-          // 2. Check if it is a SeedCounter backup history array
-          if (Array.isArray(parsed)) {
-            // `importSessions` é assíncrona (grava no IndexedDB): sem o await
-            // aqui `success` era a Promise em si, sempre truthy — o alerta de
-            // "formato inválido" nunca disparava, mesmo quando a gravação
-            // falhava. `strictNullChecks` (TS2801) pegou isso.
-            const success = await importSessions(parsed);
-            if (success) {
-              alert(
-                `Histórico importado com sucesso! ${parsed.length} sessões adicionadas/mescladas.`
-              );
-            } else {
-              alert('Formato de histórico inválido.');
-            }
-            return;
-          }
-
-          // 3. Check if it is a single SeedCounter session JSON
-          if (parsed && parsed.metadata && (parsed.marks || parsed.yoloSegmentations)) {
-            if (parsed.metadata) setMetadata(parsed.metadata);
-            const mapped = (parsed.yoloSegmentations ?? []).map((seg: any) => {
-              const { width, height } = calculateSeedDimensions(seg.polygon_points || []);
-              return {
-                ...seg,
-                width: seg.width ?? width,
-                height: seg.height ?? height,
-              };
-            });
-            carregar({ marks: parsed.marks ?? [], segmentacoes: mapped });
-            if (parsed.filename) setFilename(parsed.filename);
-            alert('Sessão importada com sucesso!');
-            return;
-          }
-
-          alert('Arquivo JSON com formato não reconhecido (não é YOLO, Backup ou Sessão).');
-        } catch (error) {
-          console.error('Erro ao importar o arquivo JSON', error);
-          alert('Erro ao ler o arquivo JSON. Certifique-se de que é um formato válido.');
-        }
-      };
-      reader.readAsText(file);
-    },
-    [addYoloSegmentations, carregar, importSessions, setMetadata, setFilename]
-  );
+  // Importar JSON mora em `features/importar` (ver o cabeçalho de
+  // `useImportacao.ts`): reconhecer o tipo, conferir campo a campo e traduzir
+  // a classe é puro e testado; aqui só se entrega o que a cena escreve.
+  const { processJSONFile, handleImportHistoryJSON } = useImportacao({
+    addYoloSegmentations,
+    carregar,
+    importSessions,
+    setMetadata,
+    setFilename,
+  });
 
   // Drag & drop hook
   const onFilesDropped = useCallback(
@@ -1398,14 +1324,6 @@ export default function App() {
     pagina: { paginasDoTiff, paginaDoTiff, dpiDeclarado },
     calibracaoConferida,
   });
-
-  const handleImportHistoryJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processJSONFile(file);
-    }
-    e.target.value = '';
-  };
 
   const handleBrowseFiles = () => {
     fileInputRef.current?.click();
@@ -2842,17 +2760,7 @@ export default function App() {
             fileInputRef={fileInputRef}
             importInputRef={importInputRef}
             handleFileUpload={handleFileUpload}
-            handleImportJSON={(e) => {
-              // ImageActions liga esta prop ao onChange de um <input type="file">,
-              // entao ela recebe o evento — nao o File. Passar processJSONFile
-              // direto fazia reader.readAsText(evento) lancar TypeError, e o
-              // botao "Importar" da barra lateral nunca funcionou.
-              const file = e.target.files?.[0];
-              if (file) processJSONFile(file);
-              // Zera o valor para permitir reimportar o mesmo arquivo: sem isto
-              // o onChange nao dispara na segunda vez.
-              e.target.value = '';
-            }}
+            handleImportJSON={handleImportHistoryJSON}
             viableCount={viableCount}
             inviableCount={inviableCount}
             viablePercent={viablePercent}
