@@ -26,7 +26,9 @@ import { DropZone } from './components/shared/DropZone';
 import { CookieConsentBanner } from './components/shared/CookieConsentBanner';
 
 // Modals
+// import { CameraModal } from './components/modals/CameraModal';
 import { ExportModal } from './components/modals/ExportModal';
+import { ImageExportModal } from './components/modals/ImageExportModal';
 import { HistoryModal } from './components/modals/HistoryModal';
 import { ConfirmDialog } from './components/modals/ConfirmDialog';
 
@@ -34,6 +36,7 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 import { useTheme } from './hooks/useTheme';
 import { useBancadas } from './hooks/useBancadas';
 import { useCronometro } from './hooks/useCronometro';
+import { useVisibilidade } from './features/visualizacao/useModoDeVisualizacao';
 import {
   sugerirDoArquivo,
   quantasSugestoes,
@@ -42,6 +45,17 @@ import {
 import { useSessions } from './hooks/useSessions';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
+import {
+  DialogoDeCarregar,
+  decidirAoCarregar,
+  haTrabalhoNaoSalvo,
+  proporContinuidade,
+  aplicarContinuidade,
+  type Continuidade,
+  type ConfirmacaoDeCarregar,
+  type CampoDeContinuidade,
+  type PropostaDeContinuidade,
+} from './features/carregar';
 import { useViewNavigation } from './hooks/useViewNavigation';
 import { useTools } from './hooks/useTools';
 import {
@@ -62,6 +76,8 @@ import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
+// Sob demanda: os dois carregam o `recharts` (ver `features/analytics/index.ts`).
+import { AnalyticsPanel, AnalyticsModal } from './features/analytics';
 import { NovidadesModal } from './features/novidades';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
 import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
@@ -117,7 +133,7 @@ import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
 import {
-  RECEITAS,
+  RECEITAS_DO_ENSAIO,
   receitaPelaEspecie,
   receitaDeSalva,
   type Receita,
@@ -140,6 +156,7 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
+import { categoriaImportada, categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -150,7 +167,7 @@ import {
   isNeutral,
   toCssFilter,
 } from './lib/image-adjust';
-import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
+import { exportarLaudo, exportarLaudosEmLote, montarMetricasAvancadas } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
 import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
 import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
@@ -190,68 +207,7 @@ function centroide(pontos: [number, number][]): [number, number] {
   return [sx / pontos.length, sy / pontos.length];
 }
 
-// Render marks overlay helper for the canvas context
-function renderMarksToContext(
-  ctx: CanvasRenderingContext2D,
-  marks: Mark[],
-  mode: 'dots' | 'numbers',
-  larguraDaImagem: number,
-  ajusteDaMarca = AJUSTE_PADRAO,
-  segmentacoes: YoloSegmentation[] = [],
-  estiloDaMarca: EstiloDaMarca = 'disco',
-  opacidadeDaMarca = 1
-) {
-  // O raio saia daqui como 4,5 fixo, e por isso a marca sumia em digitalizacao
-  // grande: num scan de 2400 px exibido a 800, o ponto virava 1,5 pixel de
-  // tela. Agora acompanha a imagem, como o alvo de clique sempre acompanhou.
-  const raio = raioDaMarca(larguraDaImagem, ajusteDaMarca);
-  const traco = espessuraNaImagem(larguraDaImagem, 1.5);
-
-  // O índice é o de `enumerarObjetos` — o mesmo do CSV, da lista do inspetor
-  // e da contagem. Antes cada classe tinha a própria sequência e os contornos
-  // do modelo não recebiam número: "índice 7" no canvas não era a linha 7.
-  const objetos = enumerarObjetos(marks, segmentacoes);
-
-  objetos.forEach((objeto) => {
-    const { x, y, categoria } = objeto;
-    const num = objeto.indice;
-    const soContorno = objeto.natureza === 'contorno';
-
-    if (mode === 'dots') {
-      // Forma redundante: disco cheio para viavel, anel vazado para inviavel.
-      // Contorno sem marca não ganha ponto: o polígono já o mostra.
-      if (!soContorno) desenharMarca(ctx, categoria, x, y, raio, estiloDaMarca, opacidadeDaMarca);
-    } else {
-      // Em modo indices o numero ocupa o centro, entao a forma nao pode ser
-      // vazada. A redundancia vira um anel externo escuro so no inviavel.
-      const cor = corDoEspecime(categoria);
-      const raioDoIndice = raio * 1.8;
-      ctx.beginPath();
-      ctx.arc(x, y, raioDoIndice, 0, Math.PI * 2);
-      ctx.fillStyle = cor;
-      ctx.fill();
-      ctx.strokeStyle = ESPECIME.halo;
-      ctx.lineWidth = traco;
-      ctx.stroke();
-
-      if (categoria === 'inviable') {
-        ctx.beginPath();
-        ctx.arc(x, y, raioDoIndice * 1.3, 0, Math.PI * 2);
-        ctx.strokeStyle = cor;
-        ctx.lineWidth = traco;
-        ctx.stroke();
-      }
-
-      // Tinta escura sobre ciano e magenta, que sao claros: texto branco
-      // sumiria.
-      ctx.fillStyle = '#101719';
-      ctx.font = `bold ${corpoDaFonte(raioDoIndice)}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(num.toString(), x, y + 0.5);
-    }
-  });
-}
+import { renderMarksToContext } from './lib/render-marks';
 
 export default function App() {
   // Theme & Darkmode State
@@ -288,6 +244,7 @@ export default function App() {
   const [isIdentificacaoOpen, setIsIdentificacaoOpen] = useState(false);
   /** A galeria grande (janela) continua existindo, aberta pelo Expandir da aba. */
   const [galeriaGrande, setGaleriaGrande] = useState(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   /** Escala gráfica e eixos: preferências de quem mede, lembradas. */
   const [mostrarEscala, setMostrarEscala] = useState(() => lerPreferencia('sc:escalaGrafica', true));
   const [mostrarEixos, setMostrarEixos] = useState(() => lerPreferencia('sc:eixosDasMedidas', false));
@@ -376,6 +333,7 @@ export default function App() {
   // Modal Open states
   const [isYoloExportModalOpen, setIsYoloExportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImageExportModalOpen, setIsImageExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSplitOpen, setIsSplitOpen] = useState(false);
@@ -415,6 +373,7 @@ export default function App() {
 
   const isAnyModalOpen =
     isExportModalOpen ||
+    isImageExportModalOpen ||
     isHistoryModalOpen ||
     isYoloExportModalOpen ||
     isExperimentModalOpen ||
@@ -426,6 +385,7 @@ export default function App() {
     isFeaturesOpen ||
     novidades.aberto ||
     galeriaGrande ||
+    analyticsModalOpen ||
     isIdentificacaoOpen;
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
@@ -501,6 +461,29 @@ export default function App() {
   const [sugestoes, setSugestoes] = useState<SugestoesDaAmostra | null>(null);
 
   /**
+   * Carregar com cena ocupada (ver `features/carregar`): os arquivos ficam
+   * aqui, SEGURADOS, enquanto o diálogo pergunta o que fazer. Cancelar zera
+   * isto e nada abre. Vários arquivos de uma vez = uma pergunta só, sobre o
+   * primeiro; os outros seguem o mesmo destino.
+   */
+  const [carregamentoPendente, setCarregamentoPendente] = useState<{
+    arquivos: File[];
+    continuidade: Continuidade;
+  } | null>(null);
+  /**
+   * A continuidade que a pessoa confirmou, à espera da imagem que ela
+   * descreve. É aplicada em `onImageLoaded`, quando ESSA imagem abre — e não
+   * no clique — porque "adicionar à fila" deixa a cena atual na tela, e
+   * escrever "T8" no metadado da placa que ainda está sendo contada seria
+   * errado. A chave é nome+tamanho, a mesma de `useBancada`.
+   */
+  const continuidadePendente = useRef<{
+    chave: string;
+    proposta: PropostaDeContinuidade;
+    marcados: Set<CampoDeContinuidade>;
+  } | null>(null);
+
+  /**
    * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
    *
    * `resultados` acumula um `ResultadoDoEnsaio` por receita conforme cada uma
@@ -540,6 +523,12 @@ export default function App() {
   // entra) NÃO mora mais aqui: é `useBancada` quem cuida disso agora, porque
   // é estado da CENA que carregou a imagem, não deste callback global (ver
   // `useBancada.ts`).
+  // O modo de visualização decide se o ensaio roda (ver `modo.ts`, "o que o
+  // modo esconde também não custa"). Lido aqui, e não no `useVisibilidade` do
+  // rodapé mais abaixo, porque este fecho é declarado antes dele — e um
+  // segundo `useContext` custa nada.
+  const { visibilidade: visibilidadeDoModo } = useVisibilidade();
+
   const onImageLoaded = (indice: number, img: HTMLImageElement, file: File) => {
     // A bancada que carregou a imagem — não necessariamente a ativa (Task 3
     // ainda não liga `ativar` a nenhuma interação, então hoje é sempre a
@@ -576,6 +565,17 @@ export default function App() {
     );
     setChipDeClasseDispensado(null);
 
+    // Continuidade confirmada no diálogo de carregar, se for ESTA imagem:
+    // só os campos marcados entram (ver `aplicarContinuidade`). Outra imagem
+    // abrindo antes — a pessoa navegou na fila — não consome a pendência.
+    const continuidade = continuidadePendente.current;
+    if (continuidade && continuidade.chave === `${file.name}:${file.size}`) {
+      continuidadePendente.current = null;
+      alvo.meta.setMetadata((prev) =>
+        aplicarContinuidade(prev, continuidade.proposta, continuidade.marcados)
+      );
+    }
+
     if (containerRef.current) {
       const container = containerRef.current;
       alvo.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
@@ -589,7 +589,14 @@ export default function App() {
     // bancada que não está em tela não pode disparar um ensaio caro que
     // ninguém vai ver — com quatro bancadas isso multiplicaria o trabalho por
     // até quatro sem nenhum ganho.
-    if (isEnsaioAoCarregarEnabled && indice === bancadas.indiceAtivo) {
+    //
+    // E só nos modos que MOSTRAM o ensaio: "contagem" o desliga
+    // (`visibilidadePadrao('contagem').ensaioAoCarregar === false`), e o
+    // menu Exibir permite ligar ou desligar por cima do modo. É o primeiro
+    // caso de "o que o modo esconde também não custa": rodar três receitas
+    // sobre uma digitalização grande são segundos que quem só conta não
+    // pediu. A flag continua mandando — o modo só desliga, nunca liga.
+    if (isEnsaioAoCarregarEnabled && visibilidadeDoModo.ensaioAoCarregar && indice === bancadas.indiceAtivo) {
       ensaioCancelado.current = false;
       abrirAbaDireita('inspetor');
 
@@ -606,7 +613,9 @@ export default function App() {
         .filter((r): r is ReceitaSalva & { id: number } => r.id != null)
         .map(receitaDeSalva);
       const receitasParaRodar: Receita[] = [
-        ...RECEITAS,
+        // Só as que cabem na premissa do ensaio (barato, sem worker). Ver
+        // `RECEITAS_DO_ENSAIO` para o porquê de a IA ficar de fora daqui.
+        ...RECEITAS_DO_ENSAIO,
         ...(receitaDaEspecie ? [receitaDaEspecie] : []),
         ...receitasSalvasConvertidas,
       ];
@@ -667,7 +676,7 @@ export default function App() {
     loadError,
     setLoadError,
     loadFiles,
-    handleFileUpload,
+    adicionarAFila,
     handleNextImage,
     handlePrevImage,
     loadImageFromFile,
@@ -736,6 +745,85 @@ export default function App() {
     referenciaJaCarregada,
     setReferenciaJaCarregada,
   } = bancada.cena;
+
+  // --- Carregar imagem com cena aberta (ver `features/carregar`) -------------
+  //
+  // A porta de entrada de quem ESCOLHE um arquivo: o botão da barra lateral e
+  // o arrastar-e-soltar. Com a cena vazia (ou sem marcação) abre direto, como
+  // sempre abriu; com cena ocupada segura os arquivos e pergunta. Os outros
+  // caminhos que chamam `loadFiles` — exemplo, dataset, câmera, dividir,
+  // recorte — NÃO passam por aqui: cada um deles já escreve metadado ou troca
+  // a própria imagem no mesmo gesto, e um diálogo no meio quebraria isso.
+  const carregarArquivos = useCallback(
+    (files: File[]) => {
+      const decisao = decidirAoCarregar({
+        temImagem: image !== null,
+        totalDeMarcas: marks.length,
+        totalDeContornos: yoloSegmentations.length,
+        ultimaGravacao,
+      });
+      if (decisao === 'abrir' || files.length === 0) {
+        loadFiles(files);
+        return;
+      }
+      const primeiro = files[0];
+      const caminho = (primeiro as File & { webkitRelativePath?: string }).webkitRelativePath;
+      const pasta = caminho ? caminho.split('/').slice(-2, -1)[0] : undefined;
+      const continuidade = proporContinuidade(
+        {
+          researcher: metadata.researcher,
+          project: metadata.project,
+          treatment: metadata.treatment,
+          plate: metadata.plate,
+          especie: metadata.amostra?.especieNomeCientifico,
+        },
+        sugerirDoArquivo({ nomeDoArquivo: primeiro.name, pasta }),
+        primeiro.name
+      );
+      setCarregamentoPendente({ arquivos: files, continuidade });
+    },
+    [image, marks.length, yoloSegmentations.length, ultimaGravacao, metadata, loadFiles]
+  );
+
+  /** Mesma assinatura do `handleFileUpload` da fila — a barra lateral não muda. */
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      carregarArquivos(Array.from(e.target.files || []));
+      e.target.value = '';
+    },
+    [carregarArquivos]
+  );
+
+  const cancelarCarregamento = useCallback(() => {
+    registrarEvento('carregar:decisao', { escolha: 'cancelar' });
+    setCarregamentoPendente(null);
+  }, []);
+
+  const confirmarCarregamento = useCallback(
+    ({ escolha, tipo, marcados }: ConfirmacaoDeCarregar) => {
+      if (!carregamentoPendente) return;
+      const { arquivos, continuidade } = carregamentoPendente;
+      setCarregamentoPendente(null);
+      // Só a escolha e o tipo — nunca o nome do arquivo (ver `trilha.ts`).
+      registrarEvento('carregar:decisao', { escolha, continuidade: tipo, campos: marcados.size });
+
+      const proposta = continuidade.propostas.find((p) => p.tipo === tipo);
+      const primeiro = arquivos[0];
+      if (proposta && marcados.size > 0) {
+        continuidadePendente.current = {
+          chave: `${primeiro.name}:${primeiro.size}`,
+          proposta,
+          marcados,
+        };
+      } else {
+        continuidadePendente.current = null;
+      }
+
+      if (escolha === 'substituir') loadFiles(arquivos);
+      else adicionarAFila(arquivos, escolha === 'adicionar-e-ir');
+    },
+    [carregamentoPendente, loadFiles, adicionarAFila]
+  );
 
   // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
   // maior lado dos contornos ja segmentados. E o que permite conferir se a
@@ -1008,13 +1096,17 @@ export default function App() {
    * neste gesto (politica de autoplay), entao chamar sempre e seguro: sem
    * preferencia ligada, silencio.
    */
+  const classeExternaDaImagem = metadata.dataset?.classesDaImagem && metadata.dataset.classesDaImagem.length > 0
+    ? metadata.dataset.classesDaImagem.join(' + ')
+    : undefined;
+
   const marcarComSom = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      const id = addMark(x, y, tipo);
+      const id = addMark(x, y, tipo, classeExternaDaImagem);
       tocarMarca(tipo);
       return id;
     },
-    [addMark]
+    [addMark, classeExternaDaImagem]
   );
 
   const segmentarComOnda = useCallback(
@@ -1059,6 +1151,7 @@ export default function App() {
         id: Date.now() + Math.floor(Math.random() * 1000),
         category: tipo,
         class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        classeExterna: classeExternaDaImagem,
         // Não é probabilidade de modelo: foi a pessoa que apontou a semente.
         confidence: 1,
         polygon_points: r.contorno,
@@ -1073,7 +1166,7 @@ export default function App() {
 
       setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
     },
-    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel]
+    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel, classeExternaDaImagem]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -1188,15 +1281,15 @@ export default function App() {
               const polygon_points = seg.polygon_points || seg.points || [];
               const { width, height } = calculateSeedDimensions(polygon_points);
 
-              let category: 'viable' | 'inviable' = 'viable';
-              if (seg.category === 'inviable' || seg.class_name === 'inviavel' || seg.class === 1) {
-                category = 'inviable';
-              }
+              // `category` → `class_name` (com ou sem acento) → índice pela tabela
+              // do treino. Antes `class === 1` virava inviável aqui, mas 1 é
+              // VIÁVEL em `YOLO_CLASSES` — o mesmo engano que a fila com IA teve.
+              const category = categoriaImportada(seg);
 
               return {
                 id: seg.id ?? idx,
                 category,
-                class_name: category === 'viable' ? 'viavel' : 'inviavel',
+                class_name: nomeDaCategoria(category),
                 confidence: seg.confidence ?? 1.0,
                 polygon_points,
                 visible: seg.visible !== false,
@@ -1263,13 +1356,14 @@ export default function App() {
       const jsons = files.filter((f) => f.name.endsWith('.json') || f.type === 'application/json');
 
       if (images.length > 0) {
-        loadFiles(images);
+        // Mesmo caminho do botão: com cena ocupada, pergunta antes de abrir.
+        carregarArquivos(images);
       }
       if (jsons.length > 0) {
         processJSONFile(jsons[0]);
       }
     },
-    [loadFiles, processJSONFile]
+    [carregarArquivos, processJSONFile]
   );
 
   const { isDragActive } = useDragDrop({ onFilesDropped });
@@ -1375,6 +1469,9 @@ export default function App() {
   // tempo. Ver `useCronometro`, decisão 3.
   const cronometro = useCronometro(`${bancada.id}|${filename}|${paginaDoTiff}`);
 
+  // Só o rodapé precisa disto aqui: Header e laterais leem o contexto sozinhos.
+  const { visibilidade } = useVisibilidade();
+
   /**
    * O que produziu estes números: versão, página, escala e custo.
    *
@@ -1473,105 +1570,102 @@ export default function App() {
     downloadBlob(csvContent, generateExportName('csv', 'contagem'), 'text/csv');
   };
 
-  const handleExportAnnotatedImage = () => {
-    if (!canvasRef.current || !image) return;
-
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = image.width;
-    offscreenCanvas.height = image.height;
-    const ctx = offscreenCanvas.getContext('2d');
-    if (!ctx) return;
-
-    // Draw base image
-    ctx.drawImage(image, 0, 0);
-
-    // Draw YOLO segmentations
-    if (segmentsVisible && yoloSegmentations.length > 0) {
-      yoloSegmentations
-        .filter((seg) => seg.visible !== false)
-        .forEach((seg) => {
-          ctx.beginPath();
-          const first = seg.polygon_points[0];
-          if (first) {
-            ctx.moveTo(first[0], first[1]);
-            for (let i = 1; i < seg.polygon_points.length; i++) {
-              ctx.lineTo(seg.polygon_points[i][0], seg.polygon_points[i][1]);
-            }
-            ctx.closePath();
-
-            const isViable = seg.category === 'viable';
-            ctx.fillStyle = isViable ? ESPECIME_FILL.viable : ESPECIME_FILL.inviable;
-            ctx.fill();
-
-            ctx.strokeStyle = corDoEspecime(isViable ? 'viable' : 'inviable');
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
-        });
-    }
-
-    // Draw manual marks
-    renderMarksToContext(ctx, marks, visualMode, image.width, ajusteDaMarca);
-
-    // Summary Box
-    const padding = 20;
-    const hasMoreDetails = !!(metadata.plate || metadata.quadrant);
-    const boxW = 340;
-    const boxH = hasMoreDetails ? 160 : 140;
-
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
-
-    ctx.fillStyle = 'rgba(23, 23, 23, 0.85)';
-    ctx.beginPath();
-    ctx.roundRect(padding, padding, boxW, boxH, 12);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`Relatório de Contagem`, padding + 24, padding + 24);
-
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#a3a3a3';
-    ctx.fillText(`Amostra: ${filename}`, padding + 24, padding + 56);
-
-    let statsY = padding + 80;
-
-    if (hasMoreDetails) {
-      ctx.fillText(
-        `Placa: ${metadata.plate || '-'} | Q: ${metadata.quadrant || '-'}`,
-        padding + 24,
-        padding + 76
+  const handleImageExportWithOptions = async (options: import('./lib/export-image').ImageExportOptions, scope: 'single' | 'batch') => {
+    setIsImageExportModalOpen(false);
+    
+    if (scope === 'single') {
+      if (!image) return;
+      
+      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = image.width;
+      offscreenCanvas.height = image.height;
+      
+      drawAnnotatedImageToCanvas(
+        offscreenCanvas,
+        image,
+        metadata,
+        marks,
+        yoloSegmentations,
+        options,
+        visualMode,
+        ajusteDaMarca,
+        // O PNG sai com a MESMA marca que a pessoa conferiu na tela — antes
+        // saía sempre disco opaco, e a imagem exportada contradizia o canvas.
+        { estiloDaMarca, opacidadeDaMarca }
       );
-      statsY = padding + 104;
+      
+      offscreenCanvas.toBlob((blob) => {
+        if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
+      }, 'image/png');
+      registrarEvento('exportar', { tipo: 'PNG', saida: 'anotada' });
+    } else {
+      // BATCH EXPORT (Fila Inteira do Histórico)
+      if (sessions.length === 0) return;
+      
+      const { drawAnnotatedImageToCanvas } = await import('./lib/export-image');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      await comAtividade('png-batch', `Exportando ${sessions.length} fotos...`, async () => {
+        for (let i = 0; i < sessions.length; i++) {
+          const sessao = sessions[i];
+          // Guardado numa constante para o TypeScript estreitar o tipo: dentro
+          // do fechamento abaixo o `!` era a única forma, e `!` é promessa sem
+          // fiador.
+          const fonteDaImagem = sessao.imageData;
+          if (!fonteDaImagem) continue;
+          
+          const img = new Image();
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = fonteDaImagem;
+          });
+          
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = img.width;
+          offscreenCanvas.height = img.height;
+          
+          drawAnnotatedImageToCanvas(
+            offscreenCanvas,
+            img,
+            sessao.metadata,
+            sessao.marks || [],
+            sessao.yoloSegmentations || [],
+            options,
+            visualMode,
+            ajusteDaMarca,
+            { estiloDaMarca, opacidadeDaMarca }
+          );
+          
+          const blob = await new Promise<Blob | null>((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
+          if (blob) {
+            const fileName = sessao.filename.replace(/\.[^/.]+$/, "") + `_anotada.png`;
+            zip.file(fileName, blob);
+          }
+        }
+      });
+      
+      const content = await zip.generateAsync({ type: 'blob' });
+      baixarArquivo(content, `Lote_PNGs_Anotados.zip`, 'application/zip');
+      registrarEvento('exportar', { tipo: 'PNG-Batch', total: sessions.length });
     }
-
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillStyle = ESPECIME.viable;
-    ctx.fillText(`Viáveis: ${viableCount}`, padding + 24, statsY);
-
-    ctx.fillStyle = ESPECIME.inviable;
-    ctx.fillText(`Inviáveis: ${inviableCount}`, padding + 160, statsY);
-
-    // toBlob em vez de toDataURL: uma data: URL de uma digitalização grande
-    // vira uma string de dezenas de MB, e o mesmo defeito da âncora destacada
-    // fazia o arquivo sair sem nome nem extensão.
-    offscreenCanvas.toBlob((blob) => {
-      if (blob) baixarArquivo(blob, generateExportName('png', 'anotada'), 'image/png');
-    }, 'image/png');
   };
 
   const handleExportPDF = async () => {
     registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
-    const r = await comAtividade('pdf', 'Gerando o laudo…', () =>
+    
+    // Métricas por classe (área média, a*, L*, b*) a partir da MESMA tabela
+    // do CSV. Os pixels são lidos sob demanda por `buildMeasurementContext`
+    // (~117 MB numa digitalização) e morrem com esta chamada — nada fica no
+    // estado. Sem imagem a área ainda sai (vem do contorno); só a cor não.
+    const metricasAvancadas =
+      yoloSegmentations.length > 0 || marks.length > 0
+        ? (montarMetricasAvancadas(buildMeasurements(buildMeasurementContext())) ?? undefined)
+        : undefined;
+
+    const r = await comAtividade('pdf', 'Gerando o laudo.', () =>
       exportarLaudo({
       filename: filename || 'sem-titulo.jpg',
       metadata,
@@ -1584,6 +1678,7 @@ export default function App() {
       laboratorio,
       versaoDoApp: `v${__APP_VERSION__}`,
       commitDoBuild: __BUILD_COMMIT__,
+      metricasAvancadas,
       })
     );
     if (!r.ok && r.erro) alert(r.erro);
@@ -1719,6 +1814,7 @@ export default function App() {
       } catch (e) {
         console.error('Falha ao gerar a cena de exemplo', e);
       } finally {
+      setFilaIARodando(false);
         setExemploCarregando(null);
       }
     },
@@ -1794,9 +1890,8 @@ export default function App() {
    */
   const normalizarClasseExterna = useCallback(
     (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
-      const c = classe.trim().toLowerCase();
-      if (c === 'viavel' || c === 'viável') return { category: 'viable', class_name: 'viavel' };
-      if (c === 'inviavel' || c === 'inviável') return { category: 'inviable', class_name: 'inviavel' };
+      const category = categoriaDoNome(classe);
+      if (category) return { category, class_name: nomeDaCategoria(category) };
       return { category: 'viable', class_name: 'viavel', classeExterna: classe };
     },
     []
@@ -2111,7 +2206,7 @@ export default function App() {
           marcaId = marcaOriginal!.id;
         } else {
           const [cx, cy] = centroide(pontos);
-          marcaId = addMark(cx, cy, alvo.category);
+          marcaId = addMark(cx, cy, alvo.category, alvo.classeExterna);
           criouMarca = true;
         }
       }
@@ -2135,7 +2230,66 @@ export default function App() {
     setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
   }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
 
-  // --- Segmentacao em lote a partir das marcacoes ---------------------------
+  /**
+   * "Processar Fila (IA)": o YOLO em cada imagem da fila, uma sessão por
+   * imagem na Galeria. O laço, o cancelamento, a duplicata e o isolamento de
+   * erro moram em `features/lote/fila-ia.ts` (testado em node); aqui só se
+   * liga o que é do navegador — worker, Dexie, barra de atividade, alerta.
+   *
+   * A cena aberta NÃO é tocada: nada aqui escreve em marcas, contornos ou
+   * imagem da bancada. Trocar de bancada no meio é seguro — as sessões vão
+   * para a Galeria (global) com os metadados da bancada de onde a fila foi
+   * disparada, que é a procedência certa. O que o botão captura no clique
+   * (fila e metadados) é o que se promete processar; o que mudar depois não
+   * entra. Parar: `cancelarFilaIA()` do mesmo módulo, ligável a um botão.
+   */
+  const [filaIARodando, setFilaIARodando] = useState(false);
+  const handlePararFilaIA = useCallback(async () => {
+    const { cancelarFilaIA } = await import('./features/lote/fila-ia');
+    cancelarFilaIA();
+  }, []);
+
+  const handleProcessarFilaIA = useCallback(async () => {
+    if (imageQueue.length === 0) return;
+    const { processarFilaComIA, analisarComModelo, filaIAEmAndamento, descreverRelato } = await import(
+      './features/lote/fila-ia'
+    );
+    // Um worker só: uma segunda fila cancelaria as detecções da primeira.
+    if (filaIAEmAndamento()) {
+      alert('Já há uma fila com IA em andamento. Espere terminar ou cancele antes de começar outra.');
+      return;
+    }
+    const { detectarNoWorker } = await import('./lib/yolo-worker-client');
+
+    const total = imageQueue.length;
+    const encerrar = iniciarAtividade('fila-ia', `IA na fila: imagem 1 de ${total}…`);
+    // `filaIAEmAndamento()` é um sinalizador de módulo, e o React não
+    // re-renderiza por ele. Este estado espelha o sinalizador só para o
+    // cabeçalho trocar "Processar" por "Parar" e voltar.
+    setFilaIARodando(true);
+    try {
+      const relato = await processarFilaComIA(imageQueue, {
+        metadataBase: metadata,
+        sessoesExistentes: sessions,
+        analisar: (file) => analisarComModelo(file, detectarNoWorker),
+        gravar: addSession,
+        progresso: (feito, n) =>
+          atualizarProgresso('fila-ia', feito / n, `IA na fila: imagem ${feito + 1} de ${n}…`),
+        versaoDoApp: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : undefined,
+        commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : undefined,
+      });
+      alert(descreverRelato(relato));
+    } catch (e) {
+      // Só o que o laço não isola chega aqui (uma segunda fila, ou o módulo
+      // que não carregou) — a falha por imagem já foi para o relato.
+      console.error(e);
+      alert(`Não foi possível processar a fila com IA: ${e instanceof Error ? e.message : 'erro desconhecido'}.`);
+    } finally {
+      encerrar();
+    }
+  }, [imageQueue, metadata, sessions, addSession]);
+
+
 
   /**
    * As marcacoes que ainda NAO tem contorno.
@@ -2274,7 +2428,7 @@ export default function App() {
    * trocar de aba, e o canvas nunca fica coberto.
    */
   const [rightSidebarTab, setRightSidebarTab] = useState<
-    'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote'
+    'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics'
   >('resultados');
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() =>
     lerPreferencia('sc:painelDireitoRecolhido', false)
@@ -2288,7 +2442,7 @@ export default function App() {
       return !prev;
     });
   }, []);
-  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote') => {
+  const abrirAbaDireita = useCallback((aba: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics') => {
     setRightSidebarTab(aba);
     setIsRightSidebarCollapsed(false);
   }, []);
@@ -2529,6 +2683,7 @@ export default function App() {
         id: Date.now(),
         category: marca.type,
         class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+        classeExterna: marca.classeExterna,
         confidence: 1,
         polygon_points: r.contorno,
         visible: true,
@@ -2563,6 +2718,7 @@ export default function App() {
             id: Date.now() + i,
             category: marca.type,
             class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
+            classeExterna: marca.classeExterna,
             confidence: 1,
             polygon_points: r.contorno,
             visible: true,
@@ -2607,22 +2763,30 @@ export default function App() {
    * miniatura/fantasma, e o inspetor os sinaliza de novo depois; filtrar
    * aqui seria a ferramenta decidindo por ela.
    */
-  const propostosParaSegmentacoes = useCallback((propostos: ContornoProposto[]): YoloSegmentation[] => {
-    return propostos.map((p, i) => {
-      const { width, height } = calculateSeedDimensions(p.contorno);
-      return {
-        id: Date.now() + i,
-        category: 'viable' as const,
-        class_name: 'viavel',
-        confidence: 1,
-        polygon_points: p.contorno,
-        visible: true,
-        width,
-        height,
-        origem: 'modelo' as const,
-      };
-    });
-  }, []);
+  const propostosParaSegmentacoes = useCallback(
+    (propostos: ContornoProposto[]): YoloSegmentation[] => {
+      const classesDaImagem = metadata.dataset?.classesDaImagem;
+      const classeExterna =
+        classesDaImagem && classesDaImagem.length > 0 ? classesDaImagem.join(' + ') : undefined;
+
+      return propostos.map((p, i) => {
+        const { width, height } = calculateSeedDimensions(p.contorno);
+        return {
+          id: Date.now() + i,
+          category: 'viable' as const,
+          class_name: 'viavel',
+          classeExterna,
+          confidence: 1,
+          polygon_points: p.contorno,
+          visible: true,
+          width,
+          height,
+          origem: 'modelo' as const,
+        };
+      });
+    },
+    [metadata.dataset?.classesDaImagem]
+  );
 
   /**
    * "Usar esta": o único caminho que leva os contornos de uma receita do
@@ -2742,7 +2906,7 @@ export default function App() {
       let marcaId = orfa?.id;
       if (marcaId == null) {
         const [cx, cy] = centroide(pontos);
-        marcaId = addMark(cx, cy, tipo);
+        marcaId = addMark(cx, cy, tipo, classeExternaDaImagem);
       }
 
       const { width, height } = calculateSeedDimensions(pontos);
@@ -2750,6 +2914,7 @@ export default function App() {
         id: Date.now(),
         category: tipo,
         class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
+        classeExterna: orfa?.classeExterna ?? classeExternaDaImagem,
         confidence: 1,
         polygon_points: pontos,
         visible: true,
@@ -2765,7 +2930,7 @@ export default function App() {
         texto: orfa ? 'Contorno desenhado e vinculado à marcação.' : 'Contorno desenhado.',
       });
     },
-    [activeClassification, addMark, appendYoloSegmentation]
+    [activeClassification, addMark, appendYoloSegmentation, classeExternaDaImagem, bancada.cena.marcasRef, bancada.cena.segmentacoesRef]
   );
 
   const handleRaspar = useCallback(
@@ -3012,6 +3177,9 @@ export default function App() {
         onSaveSession={() => saveCurrentSession(false)}
         onExport={() => setIsExportModalOpen(true)}
         hasImage={!!image}
+        onProcessarFilaIA={handleProcessarFilaIA}
+        filaIARodando={filaIARodando}
+        onPararFilaIA={handlePararFilaIA}
 
         currentView={currentView}
         onViewChange={navigate}
@@ -3204,7 +3372,7 @@ export default function App() {
                 mascara={mascara}
                 onCiclarMascara={ciclarMascara}
                 onAbrirGaleria={() => abrirAbaDireita('galeria')}
-                totalDeObjetos={marks.length + yoloSegmentations.length}
+                totalDeObjetos={contagem.total}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
                 estiloDaMarca={estiloDaMarca}
@@ -3647,6 +3815,13 @@ export default function App() {
                 pastaAberta={pastaDeDatasets}
                 onPastaAberta={setPastaDeDatasets}
                 onCarregar={handleCarregarDoDataset}
+                onAdicionarAFila={async (arquivos) => {
+                  const files = await Promise.all(arquivos.map(a => a.obterFile()));
+                  setImageQueue(prev => [...prev, ...files]);
+                  if (!image && files.length > 0) {
+                    loadFiles(files);
+                  }
+                }}
               />
             }
             loteContent={
@@ -3661,6 +3836,15 @@ export default function App() {
                 sessions={sessions}
                 addSession={addSession}
                 deleteSession={deleteSession}
+              />
+            }
+            analyticsContent={
+              <AnalyticsPanel 
+                medicoes={medicoesDeMorfometria}
+                totalCount={totalCount}
+                viableCount={viableCount}
+                inviableCount={inviableCount}
+                onExpand={() => setAnalyticsModalOpen(true)}
               />
             }
           />
@@ -3699,7 +3883,7 @@ export default function App() {
       )}
 
       {/* 5. Footer Status Bar */}
-      {currentView === 'counter' && (
+      {currentView === 'counter' && visibilidade.rodape && (
         <Footer
           tempoAtivoMs={image ? cronometro.tempo.ativoMs : undefined}
           modoDeAnalise={cronometro.tempo.modo}
@@ -3748,18 +3932,32 @@ export default function App() {
             exportCSV={handleExportCSV}
             exportMeasurementsCSV={handleExportMeasurementsCSV}
             exportSQL={handleExportSQL}
-            measurementCount={marks.length}
+            measurementCount={contagem.total}
             hasMorphometry={yoloSegmentations.some(
               (s) => s.visible !== false && s.polygon_points?.length >= 3
             )}
             exportJSON={handleExportJSON}
-            exportAnnotatedImage={handleExportAnnotatedImage}
+            onOpenImageExport={() => {
+              setIsExportModalOpen(false);
+              setIsImageExportModalOpen(true);
+            }}
             exportPDF={handleExportPDF}
             isYoloExportEnabled={isYoloExportEnabled}
             onOpenYoloExport={() => {
               setIsExportModalOpen(false);
               setIsYoloExportModalOpen(true);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isImageExportModalOpen && (
+          <ImageExportModal
+            isOpen={isImageExportModalOpen}
+            onClose={() => setIsImageExportModalOpen(false)}
+            hasImageQueue={sessions.length > 0}
+            onExport={handleImageExportWithOptions}
           />
         )}
       </AnimatePresence>
@@ -3880,6 +4078,28 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Carregar com cena ocupada — substituir ou enfileirar, e o que a
+          imagem nova é. Esc cancela e nada abre (ver `features/carregar`). */}
+      <AnimatePresence>
+        {carregamentoPendente && (
+          <DialogoDeCarregar
+            key={`${carregamentoPendente.arquivos[0].name}:${carregamentoPendente.arquivos[0].size}`}
+            nomeDoArquivo={carregamentoPendente.arquivos[0].name}
+            quantosArquivos={carregamentoPendente.arquivos.length}
+            avisoDeNaoSalvo={haTrabalhoNaoSalvo({
+              temImagem: image !== null,
+              totalDeMarcas: marks.length,
+              totalDeContornos: yoloSegmentations.length,
+              ultimaGravacao,
+            })}
+            continuidade={carregamentoPendente.continuidade}
+            metadata={metadata}
+            onCancelar={cancelarCarregamento}
+            onConfirmar={confirmarCarregamento}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Painel visível de funcionalidades */}
       <FeaturesModal
         isOpen={isFeaturesOpen}
@@ -3944,6 +4164,14 @@ export default function App() {
         medianaDaCena={resumoDeMorfometria?.areaPx?.mediana}
         limiares={limiaresDaCena}
       />
+
+      {analyticsModalOpen && (
+        <AnalyticsModal
+          onClose={() => setAnalyticsModalOpen(false)}
+          sessions={sessions}
+          getMedicoesCompletas={() => buildMeasurements(buildMeasurementContext())}
+        />
+      )}
 
       <IdentificacaoModal
         isOpen={isIdentificacaoOpen}

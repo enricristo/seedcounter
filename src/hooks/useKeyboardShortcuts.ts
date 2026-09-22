@@ -6,7 +6,6 @@ interface KeyboardShortcutsProps {
   onSetVisualMode: (mode: 'dots' | 'numbers') => void;
   onNextImage: () => void;
   onPrevImage: () => void;
-  onTogglePanning: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
@@ -17,10 +16,16 @@ interface KeyboardShortcutsProps {
   onCiclarMascara: () => void;
   /** Abre a galeria de objetos. */
   onAbrirGaleria: () => void;
-  /** Ativa a bancada N (0-3) — Ctrl+1..4 (C2, Task 3). */
+  /** Ativa a bancada N (0-3) — Ctrl+Alt+1..4 (C2, Task 3). */
   onAtivarBancada: (indice: number) => void;
-  /** Abre uma bancada nova — Ctrl+Shift+N (C2, Task 3). */
+  /** Abre uma bancada nova — Ctrl+Alt+N (C2, Task 3). */
   onAbrirNovaBancada: () => void;
+  /**
+   * Não tem tecla: 'H' é da barra de ferramentas (`useTools`), a fonte única
+   * do modo de interação. Continua na assinatura porque `App.tsx` ainda o
+   * passa; tirar dali é de quem cuida daquela região.
+   */
+  onTogglePanning: () => void;
   hasImage: boolean;
   hasNextImage: boolean;
   hasPrevImage: boolean;
@@ -70,12 +75,19 @@ export function useKeyboardShortcuts({
         // do `return` aqui — sem ele, Ctrl+Alt+1 cairia no `switch` abaixo e
         // disputaria a tecla '1' com o modo de visualização (que usa '1'/'2'
         // sem Ctrl).
-        if (!isTyping && e.altKey && /^[1-4]$/.test(e.key)) {
+        //
+        // Lê `e.code` (a tecla FÍSICA), não `e.key`: em Windows, Ctrl+Alt é
+        // AltGr, e no teclado ABNT2 AltGr+2 produz "²", AltGr+4 produz "£" —
+        // `e.key` nunca seria o dígito, e o atalho prometido na ajuda não
+        // dispararia justamente no teclado de quem usa. `e.key` fica como
+        // reserva para eventos sintéticos, que não trazem `code`.
+        const digito = /^Digit([1-4])$/.exec(e.code)?.[1] ?? (/^[1-4]$/.test(e.key) ? e.key : null);
+        if (!isTyping && e.altKey && digito !== null) {
           e.preventDefault();
-          onAtivarBancada(Number(e.key) - 1);
+          onAtivarBancada(Number(digito) - 1);
           return;
         }
-        if (!isTyping && e.altKey && e.key.toLowerCase() === 'n') {
+        if (!isTyping && e.altKey && (e.code === 'KeyN' || e.key.toLowerCase() === 'n')) {
           e.preventDefault();
           onAbrirNovaBancada();
           return;

@@ -22,12 +22,17 @@ export default defineConfig(({ mode }) => {
   return {
     base: './',
     build: {
-      // Warn on chunks > 1.5MB (was 500KB, now increased for gradual optimization)
-      // TODO: Optimize with dynamic imports and code-splitting
+      // Avisa em pedaços > 1,5 MB. O principal ainda passa de 1 MB porque a
+      // maior parte da lógica (App, canvas, morfometria) é estática mesmo.
       chunkSizeWarningLimit: 1500,
       rollupOptions: {
         output: {
-          // Manual chunk splitting for better caching
+          // Um pedaço por biblioteca pesada, para que os SETE consumidores do
+          // `recharts` (carregados sob demanda, ver `lib/sob-demanda.tsx`)
+          // compartilhem um arquivo só em vez de cada um duplicar a
+          // biblioteca. Nomear o pedaço aqui NÃO o tira do pré-carregamento:
+          // só some do `index.html` quando nenhum import estático o alcança —
+          // `lib/__tests__/sob-demanda.test.ts` vigia isso para o recharts.
           manualChunks: {
             'recharts-charts': ['recharts'],
             'pdf-export': ['jspdf', 'html2canvas'],

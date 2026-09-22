@@ -3,6 +3,37 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.7.0] — 2026-09-22
+
+O trabalho "Enterprise" da sessão paralela (19–21/09), verificado e elevado, e
+a segunda rodada. Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
+
+### Corrigido (o que muda número)
+- **Fila com IA e Lote: `classId === 1` marcava inviável** — em `YOLO_CLASSES = ['inviavel','viavel']` 1 é viável; toda semente saía inviável. E **`withMasks` não era pedido**: nenhum polígono chegava. Nenhum dos dois chegou a produção.
+- **Uma fonte por verdade** (`lib/classe-do-modelo.ts`, `lib/objetos.ts`): exportação de imagem contava a mesma semente duas vezes e renumerava ao filtrar classe; `totalDeObjetos` e `measurementCount` somavam listas; `AiPointerPanel` traduzia classe em 5 lugares; `regras.ts` usava `objectId − 1` como posição; o importador de JSON antigo tinha a tabela invertida no fallback por índice. `src/__tests__/fonte-unica.test.ts` impede a próxima.
+- Laudo: `b*` era o B do RGB; a* por classe; `px² (não calibrado)` vs `mm²`; sem NaN sem imagem.
+- Ensaio ao carregar rodava a receita "IA" com o detector clássico, rotulada como IA (`RECEITAS_DO_ENSAIO`).
+- `text-white` sobre `bg-accent` → `text-accent-on` (5 lugares).
+
+### Adicionado
+- `lib/germinacao/` (otimizador Nelder-Mead, Hill, parâmetros; 84 testes; oráculo `germinator-llanero.json` com 24 amostras).
+- `features/carregar/` (decisão substituir/fila, continuidade de experimento, diálogo; 30 testes); `adicionarAFila` em `useImageQueue`.
+- `features/visualizacao/` (4 modos, 16 partes, `MenuExibir`, Provider em `main.tsx`; `?mode=enterprise` idêntico, fixado por teste; parte `ensaioAoCarregar`).
+- `features/lote/fila-ia.ts` (laço puro, cancelável, relato), `abrir-imagem.ts` (decodificador único), botão "Parar fila".
+- `features/analytics/` (4 cases, recharts em chunk separado — `lib/sob-demanda.tsx`), `ImageExportModal`, `lib/render-marks.ts`, `lib/export-image.ts` (37 testes).
+- `lib/laudo/montagem.ts::montarMetricasAvancadas`.
+- `src/__tests__/atalhos-prometidos.test.ts`, `fonte-unica.test.ts`.
+- `docs/superpowers/plans/2026-09-21-plano-de-acao-fases.md`, `docs/visao/demonstracoes-ideias-e-expansao.md`.
+- SEO: título, canonical, Open Graph, `robots.txt`, `sitemap.xml`.
+
+### Alterado
+- `renderMarksToContext` saiu de `App.tsx` para `lib/render-marks.ts`.
+- `YOLO_CLASSES` mora em `lib/classe-do-modelo.ts` (`yolo-onnx.ts` reexporta).
+- Testes: 1059 → 1288.
+
+### Fora do repositório, para o dono
+- `python/orchid_seed_analyzer.py:165-166` e `hf_space/app/schemas/batch.py:60` mapeiam `0 → viável`; o treino (`data_sementes.yaml`) diz `0 → inviável`. Se rodam o mesmo modelo, rotulam invertido na origem.
+
 ## [3.6.0] — 2026-09-21
 
 O que a primeira usuária real precisa na bancada. Detalhe em linguagem de quem

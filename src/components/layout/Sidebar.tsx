@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Upload, Database, Ruler, ScanSearch, Sliders
 import type { Metadata, Session } from '../../types';
 import type { ExemploReal } from '../../features/demo/exemplos-reais';
 import type { PresetDeCena } from '../../lib/synthetic-scene';
+import { useVisibilidade } from '../../features/visualizacao/useModoDeVisualizacao';
 
 interface SidebarProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -110,14 +111,23 @@ export function Sidebar({
     setTimeout(() => document.getElementById(secao)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
-  const TRILHO: { secao: string; rotulo: string; icone: React.ReactNode }[] = [
-    { secao: 'sec-abrir', rotulo: 'Abrir imagem', icone: <Upload size={20} /> },
-    { secao: 'sec-exemplos', rotulo: 'Exemplos', icone: <Database size={20} /> },
-    { secao: 'sec-calibrar', rotulo: 'Calibrar escala', icone: <Ruler size={20} /> },
-    { secao: 'sec-encontrar', rotulo: 'Encontrar objetos', icone: <ScanSearch size={20} /> },
-    { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={20} /> },
-    { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={20} /> },
-  ];
+  // Quais seções existem é decidido pelo modo de visualização
+  // (`features/visualizacao`) — o mesmo que o cabeçalho lê. O trilho recolhido
+  // e as seções abertas seguem a MESMA tabela, para que um ícone nunca aponte
+  // para uma seção que não está lá.
+  const { visibilidade } = useVisibilidade();
+
+  const TRILHO = [
+    { secao: 'sec-abrir', rotulo: 'Abrir imagem', icone: <Upload size={20} />, visivel: true },
+    { secao: 'sec-exemplos', rotulo: 'Exemplos', icone: <Database size={20} />, visivel: visibilidade.exemplos },
+    { secao: 'sec-calibrar', rotulo: 'Calibrar escala', icone: <Ruler size={20} />, visivel: visibilidade.calibrarEscala },
+    { secao: 'sec-encontrar', rotulo: 'Encontrar objetos', icone: <ScanSearch size={20} />, visivel: visibilidade.encontrarObjetos },
+    { secao: 'sec-preparar', rotulo: 'Preparar imagem', icone: <SlidersHorizontal size={20} />, visivel: visibilidade.prepararImagem },
+    { secao: 'sec-amostra', rotulo: 'Identificar amostra', icone: <ClipboardList size={20} />, visivel: visibilidade.identificarAmostra },
+  ].filter((t) => t.visivel);
+
+  // O painel inteiro desligado no menu "Exibir": nem o trilho fica.
+  if (!visibilidade.lateralEsquerda) return null;
 
   if (isCollapsed) {
     return (
@@ -206,7 +216,7 @@ export function Sidebar({
         </div>
 
         {/* Exemplos numa caixa: aberta quando não há imagem, fechada quando há. */}
-        {(onCarregarExemplo || onCarregarExemploReal) && (
+        {visibilidade.exemplos && (onCarregarExemplo || onCarregarExemploReal) && (
           <CollapsibleSection
             id="sec-exemplos"
             title="Exemplos"
@@ -226,7 +236,7 @@ export function Sidebar({
 
         {/* Etapas: calibrar → encontrar → preparar. */}
         <div className="space-y-2">
-          {calibrationSlot && (
+          {visibilidade.calibrarEscala && calibrationSlot && (
             <CollapsibleSection
               id="sec-calibrar"
               step={1}
@@ -240,18 +250,19 @@ export function Sidebar({
             </CollapsibleSection>
           )}
 
-          {detectionSlot && (
+          {visibilidade.encontrarObjetos && detectionSlot && (
             <CollapsibleSection id="sec-encontrar" step={2} title="Encontrar objetos" pedidoDeAbertura={abrir['sec-encontrar']}>
               {detectionSlot}
             </CollapsibleSection>
           )}
 
-          {adjustSlot && (
+          {visibilidade.prepararImagem && adjustSlot && (
             <CollapsibleSection id="sec-preparar" step={3} title="Preparar imagem" pedidoDeAbertura={abrir['sec-preparar']}>
               {adjustSlot}
             </CollapsibleSection>
           )}
 
+          {visibilidade.identificarAmostra && (
           <CollapsibleSection
             id="sec-amostra"
             step={4}
@@ -265,6 +276,7 @@ export function Sidebar({
               <MetadataForm metadata={metadata} updateMetadata={updateMetadata} onAbrirIdentificacao={onAbrirIdentificacao} />
             </div>
           </CollapsibleSection>
+          )}
         </div>
 
         <HelpTip />

@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { contornoRepresentaSemente } from '../contagem';
+import { buildMeasurements } from '../measurements';
 import { renderizarImagensDoLaudo, type ImagensDoLaudo } from './imagens';
 import { logotiposInstitucionais } from './marca';
 import {
@@ -20,7 +21,7 @@ import {
   novoDocumento,
   type Trecho,
 } from './documento';
-import { montarLaudo, nomeDoArquivo, type EntradaDoLaudo } from './montagem';
+import { montarLaudo, montarMetricasAvancadas, nomeDoArquivo, type Bloco, type EntradaDoLaudo } from './montagem';
 import type { Mark, Session, YoloSegmentation } from '../../types';
 import type { IdentificacaoDoLaboratorio } from '../normas/identificacao';
 import type { VersaoDaNorma } from '../normas/versao';
@@ -43,6 +44,7 @@ export interface OpcoesDeExportacao {
   norma?: VersaoDaNorma;
   versaoDoApp?: string;
   commitDoBuild?: string;
+  metricasAvancadas?: EntradaDoLaudo['metricasAvancadas'];
 }
 
 export interface ResultadoDaExportacao {
@@ -88,6 +90,7 @@ export async function exportarLaudo(op: OpcoesDeExportacao): Promise<ResultadoDa
       commitDoBuild: op.commitDoBuild,
       umPerPixel: op.metadata.umPerPixel,
       marcas: op.marks,
+      metricasAvancadas: op.metricasAvancadas,
       ...contarProcedencia(segmentacoes),
     });
 
@@ -132,6 +135,9 @@ export async function exportarLaudosEmLote(
       const segmentacoes = sessao.yoloSegmentations ?? [];
       const imagem = sessao.imageData ? await carregarImagem(sessao.imageData) : null;
 
+      // Calculadas AGORA e descartadas ao fim da iteração — ver `metricasDaSessao`.
+      const metricasAvancadas = metricasDaSessao(sessao, imagem);
+
       const imagens = imagem
         ? renderizarImagensDoLaudo({
             imagem,
@@ -152,6 +158,7 @@ export async function exportarLaudosEmLote(
         commitDoBuild: op.commitDoBuild,
         umPerPixel: sessao.metadata.umPerPixel,
         marcas: sessao.marks,
+        metricasAvancadas,
         ...contarProcedencia(segmentacoes),
       });
 
@@ -204,6 +211,53 @@ function contarProcedencia(segmentacoes: YoloSegmentation[]) {
     else if (seg.origem === 'clique') contornosDoClique++;
   }
   return { contornosDoModelo, contornosDoClique };
+}
+
+/**
+ * O bloco de métricas de UMA sessão salva, calculado na hora.
+ *
+ * A sessão não guarda medidas (ver MEMORY.md): guarda marcas e contornos, e a
+ * foto como JPEG. Para a cor é preciso reler os pixels — um `ImageData` de
+ * ~117 MB numa digitalização de 7992×3672 — e por isso isto é feito UMA
+ * sessão por vez, dentro do laço, e o buffer morre ao devolver. Trinta
+ * laudos em lote nunca têm mais de uma imagem decodificada ao mesmo tempo.
+ *
+ * Sem imagem (sessão antiga sem foto, ou JPEG que não carregou) a área ainda
+ * sai — vem do contorno —, só a cor fica de fora, e o bloco diz isso.
+ */
+function metricasDaSessao(sessao: Session, imagem: HTMLImageElement | null): Bloco | undefined {
+  const marks = sessao.marks ?? [];
+  const segmentacoes = sessao.yoloSegmentations ?? [];
+  if (marks.length === 0 && segmentacoes.length === 0) return undefined;
+
+  let imageData: ImageData | undefined;
+  if (imagem) {
+    try {
+      const cvs = document.createElement('canvas');
+      cvs.width = imagem.width;
+      cvs.height = imagem.height;
+      const ct = cvs.getContext('2d', { willReadFrequently: true });
+      if (ct) {
+        ct.drawImage(imagem, 0, 0);
+        imageData = ct.getImageData(0, 0, cvs.width, cvs.height);
+      }
+    } catch {
+      // Canvas contaminado ou sem memória: o laudo sai sem cor, não sem laudo.
+      imageData = undefined;
+    }
+  }
+
+  const medicoes = buildMeasurements({
+    marks,
+    segmentations: segmentacoes,
+    metadata: sessao.metadata,
+    filename: sessao.filename,
+    imageData,
+    // Mesmo salto de `buildMeasurementContext` (App.tsx): um de cada quatro
+    // pixels não muda a média e corta o custo em 4x.
+    colorSampling: 2,
+  });
+  return montarMetricasAvancadas(medicoes) ?? undefined;
 }
 
 function carregarImagem(dataUrl: string): Promise<HTMLImageElement | null> {

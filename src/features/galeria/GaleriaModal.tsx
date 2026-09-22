@@ -49,7 +49,7 @@ import {
   type LimiaresDeAglomerado,
 } from '../../lib/aglomerado';
 
-type Filtro = 'todos' | 'viable' | 'inviable' | 'sem-contorno';
+type Filtro = 'todos' | 'viable' | 'inviable' | 'sem-contorno' | (string & {});
 
 const FILTROS: { id: Filtro; rotulo: string }[] = [
   { id: 'todos', rotulo: 'Todos' },
@@ -171,12 +171,19 @@ export function GaleriaModal({
     return { ...consolidar(contagens, protocolo), naoClassificadas };
   }, [classificaFino, marks, protocolo]);
 
+  const classesExternas = useMemo(() => {
+    const s = new Set<string>();
+    for (const i of itens) if (i.classeExterna) s.add(i.classeExterna);
+    return Array.from(s).sort();
+  }, [itens]);
+
   if (!isOpen) return null;
 
   const visiveis = itens.filter((i) => {
     if (filtro === 'todos') return true;
     if (filtro === 'sem-contorno') return i.tipo === 'ponto';
-    return i.categoria === filtro;
+    if (filtro === 'viable' || filtro === 'inviable') return i.categoria === filtro;
+    return i.classeExterna === filtro;
   });
 
   const semContorno = itens.filter((i) => i.tipo === 'ponto').length;
@@ -273,6 +280,19 @@ export function GaleriaModal({
               }`}
             >
               {f.rotulo}
+            </button>
+          ))}
+          {classesExternas.map((c) => (
+            <button
+              key={c}
+              onClick={() => setFiltro(c as any)}
+              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors ${
+                filtro === c
+                  ? 'bg-accent text-accent-on'
+                  : 'border border-line text-ink-2 hover:border-accent hover:text-accent'
+              }`}
+            >
+              {c}
             </button>
           ))}
 

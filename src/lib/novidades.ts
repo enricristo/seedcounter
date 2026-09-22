@@ -54,6 +54,61 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.7.0',
+    data: '2026-09-22',
+    titulo: 'Uma fonte para cada número, o Germinator dentro do app, e o lote com IA de verdade',
+    mudancas: [
+      {
+        tipo: 'corrigido',
+        titulo: 'Toda semente da fila com IA saía inviável — e nenhum contorno chegava',
+        detalhe:
+          'Dois defeitos que invalidariam qualquer resultado da fila e do Lote com IA. O primeiro: a classe do modelo era lida pelo índice errado (1 é viável, não inviável), e a condição marcava tudo como inviável. O segundo: os polígonos não eram pedidos ao modelo, então a sessão dizia "N sementes" e a Galeria, o CSV e o laudo viam zero. Os dois estavam na versão de teste; nenhum chegou a produção.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Contagens que não batiam entre a tela, o PNG e o CSV',
+        detalhe:
+          'A exportação de imagem contava a mesma semente duas vezes; exportar só uma classe renumerava a outra; a barra de ferramentas somava marcas e contornos (uma semente clicada valia dois); o painel de IA traduzia a classe por conta própria em cinco lugares; e uma regra de morfometria não alcançava a semente que só o modelo viu. Agora existe UMA enumeração e UMA tradução de classe, e um teste impede que alguém conte por conta própria de novo.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Curva de germinação do Germinator, validada contra a planilha do laboratório',
+        detalhe:
+          'O ajuste de Hill de quatro parâmetros e tudo que a planilha extrai — germinação máxima, t50, uniformidade, área sob a curva, tempo médio, assimetria — em TypeScript, sem Excel. Validado contra 24 amostras reais de forrageira preenchidas na planilha original: as definições batem nas 24; o ajuste bate a 0,1% onde o Solver do Excel convergiu, e é melhor onde ele parou cedo ou caiu num mínimo local. Por enquanto é núcleo, sem tela: a tela vem na próxima.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Carregar uma imagem com a cena ocupada pergunta o que fazer',
+        detalhe:
+          'Substituir, adicionar à fila, ou adicionar e ir para ela — com aviso se houver marcação não gravada. E propõe a continuidade: mesma repetição, outro tratamento, ou outro experimento, lendo o nome do arquivo e a cena atual, com a origem de cada proposta visível. Só entra o que você marcar. A primeira imagem do dia abre direto, sem pergunta.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Modos de visualização: completo, contagem, laudo, apresentação',
+        detalhe:
+          'Um botão "Exibir" no cabeçalho troca o modo e deixa ligar ou desligar dezesseis partes da interface uma a uma. O que o modo esconde também não custa: no modo contagem o ensaio ao carregar não roda, e os gráficos do Analytics só são baixados quando alguém os abre. A preferência fica salva; um link de apresentação não gruda na máquina de quem o abriu.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Fila com IA cancelável, e o laudo com colorimetria por classe',
+        detalhe:
+          '"Processar Fila" vira "Parar fila" enquanto roda; a imagem em andamento não vira sessão; uma imagem ruim é pulada e nomeada no relato; duplicata não é regravada. No laudo PDF, o bloco de métricas avançadas traz o a* do tetrazólio separado por viáveis e inviáveis, com unidade explícita — antes era uma média só, que não descrevia nenhuma semente, e o "b*" era o azul do RGB.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Painel analítico com os quatro casos do protótipo',
+        detalhe:
+          'Pureza física (área × razão de aspecto), sanidade (R × G na cor real), sinal do tetrazólio (a* × L*) e danos (solidez × Feret), dentro do app. A cor é extraída só ao abrir o painel ou ao exportar — nunca enquanto se marca.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Atalhos conferidos por teste, e o explorador com seleção múltipla',
+        detalhe:
+          'Todo atalho prometido na ajuda tem um manipulador, e todo manipulador está na ajuda — um teste confere os dois sentidos. No explorador de datasets, Ctrl ou Shift + clique seleciona várias imagens para "Adicionar à fila"; TIFF entra na fila pelo mesmo caminho das outras.',
+      },
+    ],
+  },
+  {
     numero: '3.6.0',
     data: '2026-09-21',
     titulo: 'Pronto para a bancada: medida conferida, tempo medido, e o app sabe quando quebra',

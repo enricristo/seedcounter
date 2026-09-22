@@ -3,6 +3,16 @@ import { iniciarAtividade } from '../features/atividade/atividade';
 import { ehTiff } from '../lib/image-crop';
 import { decodificarTiff } from '../lib/tiff';
 
+/**
+ * Windows às vezes entrega TIFF com `type` vazio (o navegador não reconhece
+ * a extensão); sem o `ehTiff(f)` o arquivo cairia fora do filtro antes mesmo
+ * de chegar na guarda que sabe decodificá-lo. Pura e fora do hook: não
+ * depende de estado, e assim não entra em lista de dependências nenhuma.
+ */
+export function filtrarImagens(files: File[]): File[] {
+  return files.filter((f) => f.type.startsWith('image/') || ehTiff(f));
+}
+
 interface UseImageQueueProps {
   onImageLoaded?: (img: HTMLImageElement, file: File) => void;
 }
@@ -124,12 +134,10 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
     [onImageLoaded]
   );
 
+  /** SUBSTITUI a fila inteira e abre o primeiro arquivo. */
   const loadFiles = useCallback(
     (files: File[]) => {
-      // Windows às vezes entrega TIFF com `type` vazio (o navegador não
-      // reconhece a extensão); sem o `ehTiff(f)` o arquivo cairia fora do
-      // filtro antes mesmo de chegar na guarda que sabe decodificá-lo.
-      const validFiles = files.filter((f) => f.type.startsWith('image/') || ehTiff(f));
+      const validFiles = filtrarImagens(files);
       if (validFiles.length > 0) {
         setImageQueue(validFiles);
         setCurrentImageIndex(0);
@@ -137,6 +145,31 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
       }
     },
     [loadImageFromFile]
+  );
+
+  /**
+   * ACRESCENTA ao fim da fila, sem tirar da tela o que está aberto.
+   *
+   * É a outra resposta ao gesto de carregar com cena ocupada (ver
+   * `features/carregar/decisao.ts`): a pessoa está no meio de uma contagem e
+   * quer a próxima placa esperando na fila, não por cima da atual. Com
+   * `irParaAPrimeira`, abre o primeiro arquivo novo — as anotações da imagem
+   * atual ficam guardadas no cache por imagem de `useBancada`, como em
+   * qualquer troca dentro da fila. Sem imagem aberta, acrescentar é o mesmo
+   * que abrir: uma fila com a tela vazia não serve para nada.
+   */
+  const adicionarAFila = useCallback(
+    (files: File[], irParaAPrimeira: boolean) => {
+      const validFiles = filtrarImagens(files);
+      if (validFiles.length === 0) return;
+      const indiceDaPrimeiraNova = imageQueue.length;
+      setImageQueue((prev) => [...prev, ...validFiles]);
+      if (irParaAPrimeira || image === null) {
+        setCurrentImageIndex(indiceDaPrimeiraNova);
+        loadImageFromFile(validFiles[0]);
+      }
+    },
+    [image, imageQueue.length, loadImageFromFile]
   );
 
   const handleFileUpload = useCallback(
@@ -217,6 +250,7 @@ export function useImageQueue({ onImageLoaded }: UseImageQueueProps = {}) {
 
     // Actions
     loadFiles,
+    adicionarAFila,
     handleFileUpload,
     handleNextImage,
     handlePrevImage,

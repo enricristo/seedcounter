@@ -56,6 +56,15 @@ export function suportaHandles(): boolean {
  * testável em node deste módulo.
  */
 export function agruparPorConjunto(caminhos: string[]): ConjuntoDeArquivos[] {
+  // HEURÍSTICA: se o usuário abriu diretamente a pasta de um dataset YOLO
+  // (que tem data.yaml na raiz, e pastas train/ test/ valid/), NÃO devemos
+  // fatiar pelas subpastas, senão o data.yaml fica órfão em '(raiz)' e as 
+  // imagens ficam cegas em 'train'.
+  const isYoloRoot = caminhos.some((c) => /^data\.ya?ml$/i.test(c));
+  if (isYoloRoot) {
+    return [{ nome: NOME_DA_RAIZ, caminhos }];
+  }
+
   const porNome = new Map<string, string[]>();
   for (const caminho of caminhos) {
     const normalizado = caminho.replace(/\\/g, '/');

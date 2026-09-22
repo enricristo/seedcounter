@@ -54,7 +54,27 @@ export const RECEITAS: Receita[] = [
     localizacao: { sensitivity: 35, splitTouching: false, denoise: 2, maxElongation: 4 },
     onda: { recuoDoEscape: 0.05 },
   },
+  {
+    id: 'ia',
+    nome: 'IA (YOLO)',
+    quando: 'Orquídeas, forrageiras ou sementes muito pequenas/aglomeradas.',
+    localizacao: { usaModeloDeIA: true, sensitivity: 50 },
+    onda: {},
+  },
 ];
+
+/**
+ * As receitas que o ENSAIO AO CARREGAR pode rodar.
+ *
+ * O ensaio existe com uma premissa: ser barato o suficiente para rodar sem
+ * worker toda vez que uma imagem abre. A receita de IA quebra a premissa — e
+ * pior: `detectObjects` ignora `usaModeloDeIA`, então a prévia rotulada
+ * "IA (YOLO)" seria na verdade a localização clássica a 50% de sensibilidade,
+ * com o nome errado em cima. Um resultado com rótulo errado é pior que
+ * nenhum. A IA continua disponível onde é tratada de verdade: no Lote
+ * (`processar-imagem.ts`) e em "Processar Fila".
+ */
+export const RECEITAS_DO_ENSAIO: Receita[] = RECEITAS.filter((r) => !r.localizacao.usaModeloDeIA);
 
 /**
  * Converte uma receita salva no Dexie (`useReceitasSalvas`) de volta para o
@@ -145,6 +165,7 @@ export interface ContornoProposto {
   areaPx: number;
   /** Marcado por `analisarContorno` com o limiar da própria população. */
   suspeitoDeAglomerado: boolean;
+  categoria?: 'viable' | 'inviable';
 }
 
 export interface ResumoDaReceita {

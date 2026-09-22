@@ -138,6 +138,7 @@ export type ItemDaGaleria =
       tipo: 'contorno';
       chave: string;
       categoria: 'viable' | 'inviable';
+      classeExterna?: string;
       caixa: Caixa;
       segmentacao: YoloSegmentation;
     }
@@ -145,6 +146,7 @@ export type ItemDaGaleria =
       tipo: 'ponto';
       chave: string;
       categoria: 'viable' | 'inviable';
+      classeExterna?: string;
       caixa: Caixa;
       marca: Mark;
     };
@@ -176,6 +178,7 @@ export function montarGaleria(
       tipo: 'contorno',
       chave: `c${seg.id}`,
       categoria: seg.category,
+      classeExterna: seg.classeExterna,
       caixa: limitarACena(comMargem(caixa), cena.largura, cena.altura),
       segmentacao: seg,
     });
@@ -188,6 +191,7 @@ export function montarGaleria(
       tipo: 'ponto',
       chave: `p${marca.id}`,
       categoria: marca.type,
+      classeExterna: marca.classeExterna,
       caixa: limitarACena(caixaDoPonto(marca, lado), cena.largura, cena.altura),
       marca,
     });

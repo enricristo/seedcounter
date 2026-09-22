@@ -17,6 +17,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { AppView } from '../../types';
+import { useVisibilidade } from '../../features/visualizacao/useModoDeVisualizacao';
+import { MenuExibir } from '../../features/visualizacao/MenuExibir';
 
 interface HeaderProps {
   isDarkMode: boolean;
@@ -40,6 +42,10 @@ interface HeaderProps {
   hasImageQueue: boolean;
   currentImageIndex: number;
   imageQueueLength: number;
+  onProcessarFilaIA?: () => void;
+  /** A fila com IA está rodando agora. Troca "Processar" por "Parar". */
+  filaIARodando?: boolean;
+  onPararFilaIA?: () => void;
   /** Quantas páginas tem o TIFF aberto. 1 (ou 0) esconde o seletor. */
   paginasDoTiff?: number;
   /** Página aberta, base 0. */
@@ -133,6 +139,9 @@ export function Header({
   hasImageQueue,
   currentImageIndex,
   imageQueueLength,
+  onProcessarFilaIA,
+  filaIARodando = false,
+  onPararFilaIA,
   paginasDoTiff = 1,
   paginaDoTiff = 0,
   onAbrirPaginaDoTiff,
@@ -149,6 +158,11 @@ export function Header({
   isStatsEnabled = true,
   onOpenFeatures,
 }: HeaderProps) {
+  // O que este cabeçalho mostra é decidido pelo modo de visualização
+  // (`features/visualizacao`), não por um parâmetro de URL lido aqui. O antigo
+  // `?mode=enterprise` continua valendo: vira o modo 'apresentacao' lá.
+  const { visibilidade } = useVisibilidade();
+
   const aba = (ativa: boolean) =>
     `rounded-control flex cursor-pointer items-center gap-1.5 px-3 py-1.5 transition-all ${
       ativa
@@ -182,7 +196,7 @@ export function Header({
             <MarcaSemente size={30} />
             <div>
               <h1 className="text-ink-1 text-base leading-tight font-bold tracking-tight whitespace-nowrap">
-                SeedCounter
+                SeedCounter {visibilidade.seloDoModo && <span className="text-accent text-[10px] ml-1 uppercase">Analytics</span>}
               </h1>
               {/* "Edição Acadêmica" saiu: não dizia nada a quem usa. No lugar,
                   o que o app faz — e os grupos continuam no rodapé, com as
@@ -195,6 +209,7 @@ export function Header({
 
           {/* Navegação entre vistas. A aba ativa é marcada por um fio de acento
             embaixo, não por cor de texto: cor sozinha não carrega estado. */}
+          {visibilidade.abasDeNavegacao && (
           <nav className="bg-surface-2 rounded-panel hidden items-center p-0.5 text-xs font-bold tracking-wider uppercase md:flex">
             <button
               onClick={() => onViewChange('counter')}
@@ -224,16 +239,17 @@ export function Header({
               </button>
             )}
           </nav>
+          )}
 
           {/* Espécie da bancada (C7): logo depois das abas — é contexto de
             navegação, não ferramenta, por isso mora na linha 1. */}
-          {especieSlot}
+          {visibilidade.chipDeEspecie && especieSlot}
 
           {/* Seletor de bancadas (C2): mesmo motivo do chip de espécie, e é
             o ÚNICO jeito de abrir/trocar/fechar bancadas com o mouse — antes
             só existiam atalhos que o navegador toma. Com uma bancada aberta
             (o caso comum) ele próprio decide mostrar só um "+" discreto. */}
-          {bancadasSlot}
+          {visibilidade.seletorDeBancadas && bancadasSlot}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -253,7 +269,11 @@ export function Header({
             )}
           </button>
 
-          {onOpenFeatures && (
+          {/* "Exibir": modos de visualização e partes da interface. Sempre
+            visível, inclusive em apresentação — é por onde se sai dela. */}
+          <MenuExibir />
+
+          {visibilidade.botaoDeRecursos && onOpenFeatures && (
             <button
               onClick={onOpenFeatures}
               className={`${botaoIcone} hover:border-accent hover:text-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40`}
@@ -269,7 +289,7 @@ export function Header({
       </div>
 
       {/* ---- Linha 2: as acoes da vista. So existe quando ha acao. ---- */}
-      {currentView === 'counter' && (
+      {currentView === 'counter' && visibilidade.barraDeAcoes && (
         <div className="border-line bg-surface-1 flex h-11 items-center justify-between gap-2 border-t px-4 xl:px-6">
           {/* Histórico e o trio desfazer/refazer/limpar formam UM grupo — as
               checagens `currentView === 'counter'` repetidas em cada botão
@@ -328,29 +348,53 @@ export function Header({
           </div>
 
           <div className="flex items-center gap-2">
-            {hasImageQueue && (
-              <div className="border-line bg-surface-2 rounded-control mr-1 flex items-center gap-1 border p-1">
-                <button
-                  onClick={onPrevImage}
-                  disabled={currentImageIndex === 0}
-                  className={botaoFila}
-                  title="Voltar imagem (Backspace)"
-                >
-                  Anterior
-                </button>
-                <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
-                  {currentImageIndex + 1}/{imageQueueLength}
+              {hasImageQueue && (
+                <div className="flex items-center bg-surface-2 rounded-control border border-line p-0.5">
+                  <button
+                    onClick={onPrevImage}
+                    disabled={currentImageIndex === 0}
+                    className={botaoFila}
+                    title="Voltar imagem (Backspace)"
+                  >
+                    Anterior
+                  </button>
+                  <div className="text-ink-2 px-2 font-mono text-[11px] font-semibold tabular-nums">
+                    {currentImageIndex + 1}/{imageQueueLength}
+                  </div>
+                  <button
+                    onClick={onNextImage}
+                    disabled={currentImageIndex === imageQueueLength - 1}
+                    className={botaoFila}
+                    title="Próxima imagem (Espaço)"
+                  >
+                    Próxima
+                  </button>
+                  {/* Um botão só, que muda de papel: enquanto a fila roda ele é
+                      "Parar" — o único gesto que faz sentido nesse momento, e
+                      o lugar onde a pessoa vai procurar. A fila para na
+                      próxima imagem; a que está em andamento não vira sessão. */}
+                  {onProcessarFilaIA && !filaIARodando && (
+                    <button
+                      type="button"
+                      onClick={onProcessarFilaIA}
+                      className="bg-accent text-accent-on hover:bg-accent-strong rounded-control ml-1 px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors"
+                      title="Rodar a IA em toda a fila e gravar cada imagem como sessão na Galeria"
+                    >
+                      Processar Fila
+                    </button>
+                  )}
+                  {onPararFilaIA && filaIARodando && (
+                    <button
+                      type="button"
+                      onClick={onPararFilaIA}
+                      className="border-danger text-danger hover:bg-danger hover:text-accent-on rounded-control ml-1 border px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors"
+                      title="Para na próxima imagem. A imagem em andamento não é gravada."
+                    >
+                      Parar fila
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={onNextImage}
-                  disabled={currentImageIndex === imageQueueLength - 1}
-                  className={botaoFila}
-                  title="Próxima imagem (Espaço)"
-                >
-                  Próxima
-                </button>
-              </div>
-            )}
+              )}
 
             {/* Páginas do TIFF.
                 Fica ao lado da fila de imagens, e não dentro dela, porque são
@@ -401,7 +445,7 @@ export function Header({
               </div>
             )}
 
-            {currentView === 'counter' && onImportSession && (
+            {visibilidade.botoesDeExportacao && onImportSession && (
               <button
                 onClick={onImportSession}
                 title="Abre uma sessão salva em JSON — imagem, marcações e contornos"
@@ -412,10 +456,11 @@ export function Header({
               </button>
             )}
 
-            {currentView === 'counter' && (
+            {visibilidade.botoesDeExportacao && (
               <button
                 onClick={onSaveSession}
                 disabled={!hasImage}
+                title="Salvar a sessão no histórico (Ctrl+S)"
                 className="rounded-control border-line bg-surface-2 text-ink-2 hover:text-ink-1 hover:bg-surface-1 flex items-center gap-2 border px-3 py-2 text-xs font-bold tracking-wide uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
               >
                 <Save size={16} strokeWidth={2} aria-hidden="true" />
@@ -424,10 +469,11 @@ export function Header({
             )}
 
             {/* Única ação primária da barra, e o único uso de fundo de acento. */}
-            {currentView === 'counter' && (
+            {visibilidade.botoesDeExportacao && (
               <button
                 onClick={onExport}
                 disabled={!hasImage}
+                title="Exportar (Ctrl+E)"
                 className="rounded-control bg-accent text-accent-on hover:bg-accent-strong flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-wider uppercase transition-all disabled:pointer-events-none disabled:opacity-30"
               >
                 <Download size={16} strokeWidth={2} aria-hidden="true" />
