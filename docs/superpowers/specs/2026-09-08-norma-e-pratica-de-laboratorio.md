@@ -6,7 +6,7 @@
 > Contém **uma correção à premissa do projeto** (seção 2) e **a notícia de que
 > a norma mudou** (seção 1).
 
-Data: 2026-09-08 · GPEOrq / GPSEM — Unoeste
+Data: 2026-09-08 · GPEOrq / GPSEM
 
 ---
 
