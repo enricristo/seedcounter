@@ -12,6 +12,7 @@ import {
   FlaskConical,
   CheckCircle2,
   SlidersHorizontal,
+  UserRound,
   Info,
 } from 'lucide-react';
 import { useFeatureFlags } from '../../context/FeatureFlagContext';
@@ -20,6 +21,7 @@ import { DemoDataPanel } from '../demo';
 import { CHAVE_SOM, CHAVE_SUGESTOES, gravarPreferencia, lerPreferencia } from './preferencias';
 import { useModalEscape } from '../../hooks/useModalEscape';
 import { PainelDeRelato } from './PainelDeRelato';
+import { SecaoDePerfil } from '../perfis/TelaDePerfil';
 import type { ContextoDoRelatorio } from '../../lib/diagnostico/relatorio';
 
 interface FeaturesModalProps {
@@ -170,6 +172,26 @@ export function FeaturesModal({
           >
             <RotateCcw size={14} /> Restaurar padrões
           </button>
+
+          {/* Perfil — a pré-definição que escreve várias preferências de uma
+              vez (ver `features/perfis`). Vem ANTES de Preferências porque é
+              o que as preenche; trocar de perfil relê `sc:sugestoes` abaixo,
+              já que o perfil pode ter acabado de gravá-la. */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <UserRound size={13} className="text-ink-3" />
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                Perfil
+              </h3>
+            </div>
+            <p className="text-[11px] text-ink-3 leading-snug">
+              Um ponto de partida, não um estado: escolher um perfil marca preferências que já
+              existem, e cada uma continua ajustável por conta própria.
+            </p>
+            <SecaoDePerfil
+              onAplicado={() => setSugestoesLigadas(lerPreferencia(CHAVE_SUGESTOES, true))}
+            />
+          </div>
 
           {/* Preferências — dois controles que salvam direto em localStorage,
               fora do FeatureFlagContext: não são recursos a habilitar, são
