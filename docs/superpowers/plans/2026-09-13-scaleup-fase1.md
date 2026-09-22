@@ -1,6 +1,6 @@
 # Plano de Implementação: Scale-Up Fase 1 - Oráculo Visual e Taxonomia
 **Data:** 2026-09-13
-**Documento de Origem:** `specs/2026-09-13-escala-industrial-arquitetura.md`
+**Documento de Origem:** `escala-industrial-arquitetura.md` (documentação privada)
 
 Este plano detalha as etapas atômicas de engenharia para implementar a primeira fase do Lab Copilot.
 

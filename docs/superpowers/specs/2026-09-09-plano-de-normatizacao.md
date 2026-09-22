@@ -6,7 +6,7 @@
 >
 > A tese: **a diferenciação do SeedCounter não é algoritmo, é conformidade.**
 
-Data: 2026-09-09 · GPEOrq / GPSEM — Unoeste
+Data: 2026-09-09 · GPEOrq / GPSEM
 
 ---
 

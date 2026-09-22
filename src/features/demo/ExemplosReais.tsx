@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Database } from 'lucide-react';
-import { agruparPorCultura, carregarCatalogo, type ExemploReal } from './exemplos-reais';
+import { agruparPorCultura, carregarCatalogo, sufixoDaEscala, type ExemploReal } from './exemplos-reais';
 
 interface ExemplosReaisProps {
   onCarregar: (e: ExemploReal) => void;
@@ -56,7 +56,7 @@ export function ExemplosReais({ onCarregar, carregando }: ExemplosReaisProps) {
                 {g.exemplos.map((e) => (
                   <option key={e.slug} value={e.slug} title={e.dica}>
                     {e.rotulo}
-                    {e.umPorPixel ? ' · escala conhecida' : ''}
+                    {sufixoDaEscala(e)}
                   </option>
                 ))}
               </select>
@@ -66,7 +66,8 @@ export function ExemplosReais({ onCarregar, carregando }: ExemplosReaisProps) {
       )}
       <p className="text-[9px] text-ink-3 leading-snug">
         Recortes reduzidos dos datasets do grupo e públicos; origem, licença e escala vão para as
-        observações. Só a digitalização com régua auditada tem µm/px — as outras pedem calibração.
+        observações. Só a digitalização com régua auditada tem µm/px medido; as do laboratório entram
+        com o DPI declarado no arquivo (declaração, confira na régua); as outras pedem calibração.
       </p>
     </div>
   );

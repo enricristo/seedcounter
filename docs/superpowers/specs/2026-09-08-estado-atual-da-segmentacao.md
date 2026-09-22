@@ -4,7 +4,7 @@
 > existem, para que o desenho que vier depois seja dirigido por número e não por
 > impressão.
 
-Data: 2026-09-08 · GPEOrq / GPSEM — Unoeste
+Data: 2026-09-08 · GPEOrq / GPSEM
 
 ---
 
