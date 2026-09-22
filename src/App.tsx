@@ -158,8 +158,7 @@ import { usePerfisMedidos } from './hooks/usePerfisMedidos';
 import type { ReceitaSalva } from './lib/db';
 import { DatasetsPanel } from './features/datasets/DatasetsPanel';
 import { LotePanel } from './features/lote/LotePanel';
-import type { PastaAberta, ArquivoDoDataset } from './features/datasets/fonte';
-import type { AnotacaoCarregada } from './features/datasets/anotacao';
+import { useExplorador } from './features/datasets/useExplorador';
 import { detectObjects, type DetectionOptions } from './lib/detect';
 import type { OpcoesDaOnda } from './lib/region-growing';
 import { ChipDeEspecie } from './components/layout/ChipDeEspecie';
@@ -168,7 +167,6 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
-import { categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -1373,95 +1371,31 @@ function AppInterno() {
 
   // --- Explorador de datasets (Lote B) ---------------------------------------
   //
-  // A pasta aberta mora aqui (não dentro do painel) porque é estado da sessão:
-  // recolher a aba Datasets e voltar não a fecha. `anotacaoAtual`,
-  // `datasetContexto` e `referenciaJaCarregada` são estado de CENA — vêm de
-  // `bancada.cena`, desestruturados lá em cima; `anotacaoAtual` é a anotação
-  // da ÚLTIMA imagem carregada pelo explorador, e só vira marca/contorno
-  // quando "Carregar referência" é clicado.
-  const [pastaDeDatasets, setPastaDeDatasets] = useState<PastaAberta | null>(null);
-
-  const handleCarregarDoDataset = useCallback(
-    async (arquivo: ArquivoDoDataset, anotacao: AnotacaoCarregada | null, conjunto: string, caminho: string) => {
-      const file = await arquivo.obterFile();
-      // O vínculo com o dataset é entregue a `onImageLoaded`, que zera o
-      // vínculo de TODA imagem nova e só mantém o que foi anunciado aqui —
-      // senão a classe da imagem anterior ficava colada na seguinte.
-      datasetPendente.current = { conjunto, caminho, classesDaImagem: anotacao?.classesDaImagem };
-      loadFiles([file]);
-      setAnotacaoAtual(anotacao);
-      setDatasetContexto({ conjunto, caminho });
-      setReferenciaJaCarregada(false);
-    },
-    [loadFiles]
-  );
-
-  /**
-   * "Carregar referência" — o SEGUNDO gesto. Clicar na miniatura já carregou a
-   * imagem; só agora a anotação do dataset vira marca/contorno de verdade.
-   *
-   * Polígono vira contorno com `origem: 'referencia'` (conta como semente,
-   * mesma regra de um contorno de modelo — ver `objetos.ts`). Caixa vira
-   * marca no centro. Nome de classe que bate com viável/inviável usa a
-   * taxonomia do app; qualquer outro nome (amendoim com mofo, trigo duro…)
-   * fica em `classeExterna`, cru — inventar uma correspondência que ninguém
-   * validou seria pior que não ter classe nenhuma.
-   */
-  const normalizarClasseExterna = useCallback(
-    (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
-      const category = categoriaDoNome(classe);
-      if (category) return { category, class_name: nomeDaCategoria(category) };
-      return { category: 'viable', class_name: 'viavel', classeExterna: classe };
-    },
-    []
-  );
-
-  const podeCarregarReferencia =
-    !!image &&
-    !referenciaJaCarregada &&
-    !!anotacaoAtual &&
-    ((anotacaoAtual.contornos?.length ?? 0) > 0 || (anotacaoAtual.marcas?.length ?? 0) > 0);
-
-  const handleCarregarReferencia = useCallback(() => {
-    if (!anotacaoAtual) return;
-
-    if (anotacaoAtual.contornos && anotacaoAtual.contornos.length > 0) {
-      const novasSegmentacoes: YoloSegmentation[] = anotacaoAtual.contornos.map((c, i) => {
-        const { width, height } = calculateSeedDimensions(c.poligono);
-        const { category, class_name, classeExterna } = normalizarClasseExterna(c.classe);
-        return {
-          id: Date.now() + i,
-          category,
-          class_name,
-          confidence: 1,
-          polygon_points: c.poligono,
-          visible: true,
-          width,
-          height,
-          origem: 'referencia',
-          ...(classeExterna ? { classeExterna } : {}),
-        };
-      });
-      addYoloSegmentations(novasSegmentacoes);
-    }
-
-    if (anotacaoAtual.marcas && anotacaoAtual.marcas.length > 0) {
-      const novasMarcas: Mark[] = anotacaoAtual.marcas.map((m, i) => {
-        const { category } = normalizarClasseExterna(m.classe);
-        return {
-          id: Date.now() + i + 1,
-          x: m.x,
-          y: m.y,
-          type: category,
-          origem: 'referencia' as const,
-        };
-      });
-      setMarks((prev) => [...prev, ...novasMarcas]);
-    }
-
-    setReferenciaJaCarregada(true);
-    setRecadoDaOnda({ tom: 'ok', texto: 'Referência do dataset carregada.' });
-  }, [anotacaoAtual, addYoloSegmentations, setMarks, normalizarClasseExterna]);
+  // Carregar do explorador e "Carregar referência" moram em
+  // `features/datasets/useExplorador.ts` (ver o cabeçalho — inclui por que
+  // `anotacaoAtual`, `datasetContexto` e `referenciaJaCarregada` continuam
+  // vindo de `bancada.cena`, e por que `datasetPendente` continua sendo lido
+  // por `onImageLoaded` aqui no App). A tradução da anotação em contorno e
+  // marca é pura e testada em `features/datasets/referencia.ts`.
+  const {
+    pastaDeDatasets,
+    setPastaDeDatasets,
+    handleCarregarDoDataset,
+    podeCarregarReferencia,
+    handleCarregarReferencia,
+  } = useExplorador({
+    loadFiles,
+    datasetPendente,
+    image,
+    anotacaoAtual,
+    setAnotacaoAtual,
+    setDatasetContexto,
+    referenciaJaCarregada,
+    setReferenciaJaCarregada,
+    addYoloSegmentations,
+    setMarks,
+    avisar: setRecadoDaOnda,
+  });
 
   // A ferramenta ativa é a fonte única de verdade do modo de interação:
   // manter isPanningMode em sincronia evita que a "mãozinha" continue ligada
