@@ -108,11 +108,11 @@ describe('o pacote inicial', () => {
     expect(quem, `recharts chega ao pacote inicial por: ${quem.join(', ')}`).toEqual([]);
   });
 
-  it('registra por onde o jspdf ainda chega (próximo alvo, não regressão)', () => {
-    // O laudo importa `jspdf` estaticamente e é montado pelo App. Quando isso
-    // virar `import()`, troque este `toEqual` por `[]` — e o pedaço `pdf-export`
-    // sai do `index.html` também.
+  it('não alcança o jspdf por import estático', () => {
+    // Era "próximo alvo": `useExportacoes` importava `lib/laudo` no topo e o
+    // laudo puxa o jsPDF. Virou `import()` no clique em 22/09, e o pedaço
+    // `pdf-export` saiu do `index.html`. Agora é regressão, como o recharts.
     const quem = pacotes.get('jspdf') ?? [];
-    expect(quem).toEqual(['lib/laudo/documento.ts']);
+    expect(quem, `jspdf chega ao pacote inicial por: ${quem.join(', ')}`).toEqual([]);
   });
 });
