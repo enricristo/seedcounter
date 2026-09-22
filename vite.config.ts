@@ -107,7 +107,6 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       // Identidade do build. Injetada aqui, e não escrita à mão num componente,
       // porque versão que depende de alguém lembrar de atualizar fica errada —
       // e um relatório exportado precisa poder dizer exatamente qual código o
