@@ -163,4 +163,20 @@ export const TAREFAS: Tarefa[] = [
     confira:
       'Amostra em que o ajuste "parou perto do chute" ou caiu em mínimo local vem marcada; é onde o t50 daqui difere do Excel, de propósito.',
   },
+  {
+    id: 'publicar',
+    titulo: 'O que vai no artigo',
+    pergunta: 'O que eu preciso relatar para alguém reproduzir?',
+    porque:
+      'Um número de viabilidade sem o método é um número solto. Quem lê precisa saber como a escala foi medida, se a contagem foi manual ou proposta pela máquina, e qual versão do programa fez a conta — e tudo isso já está no CSV, em colunas, esperando ser copiado para a seção de métodos.',
+    passos: [
+      { faca: 'Método de calibração: régua na imagem, número de leituras e CV (colunas dpi_medido, calibracao_n, calibracao_cv_pct). Se só houver dpi_declarado, diga que a escala é a declarada pelo driver.' },
+      { faca: 'Modo de análise (coluna modo_analise): manual, assistida ou automática — e, se automática, que cada proposta foi conferida por uma pessoa.' },
+      { faca: 'Versão e commit do programa (colunas versao_app e commit), para a análise ser repetível no mesmo código.' },
+      { faca: 'Cite o programa pelo arquivo CITATION.cff do repositório — ele tem os autores na ordem oficial e a versão; o número da versão também está no rodapé.', onde: 'Rodapé, ao lado de Relatar problema.' },
+      { faca: 'Para germinação e regressão, relate o modelo ajustado (Hill de quatro parâmetros; polinômio de grau n) e o critério de escolha do grau (F sequencial, p < 0,05).' },
+    ],
+    confira:
+      'Alguém com o CSV e o texto dos métodos consegue refazer a tabela sem perguntar nada a você. Se uma coluna está vazia, o método diz "não medido" — não inventa.',
+  },
 ];

@@ -12,7 +12,7 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - `features/germinacao/` — a aba Germinação: `entrada.ts` (colar INPUT / escrever INPUT / do longitudinal), `analise.ts` (output + ANOVA/Tukey), `letras.ts` (Piepho 2004), `curvas.ts`, `saida.ts` (CSV/TSV `output`), `colunas.ts` (ajuda por coluna), `PainelDeGerminacao` e `GraficoDeGerminacao` sob demanda; parte `germinacao` em `visualizacao/modo.ts`; `uniformidadeEntre` em `lib/germinacao`. 85 testes.
 - `lib/regressao-polinomial.ts` — graus 1–3, F sequencial, ponto de ótimo dentro da faixa; `fCdf` exportada de `stats.ts`. 12 testes.
 - `features/stats/fator-quantitativo.ts` + `CardFatorQuantitativo` — a regressão na aba Tratamentos, ao lado da ANOVA, quando ≥ 3 tratamentos têm número no rótulo (leitura conservadora: dois números = sem nível). 6 testes.
-- `features/ajuda/tarefas.ts` + aba "Tarefas" no `HelpTip` — nove tarefas (calibrar, contar, ver a semente, medir, relógio, exportar, relatar, comparar tratamentos, curva de germinação); conteúdo genérico por teste.
+- `features/ajuda/tarefas.ts` + aba "Tarefas" no `HelpTip` — dez tarefas (calibrar, contar, ver a semente, medir, relógio, exportar, relatar, comparar tratamentos, curva de germinação, o que vai no artigo); conteúdo genérico por teste.
 - `scripts/gerar-catalogo-de-datasets.py` → `public/exemplos/catalogo-de-datasets.json` (23 pastas, 8 referenciáveis); `lib/datasets/catalogo.ts`; chip no explorador; `escalaDe` nos exemplos; 54 → 92 exemplos.
 - `AGENTS.md` (doze leis, como se trabalha, mapa) e `CLAUDE.md`.
 - `docs/PRIVADO.md` — o que vive no repositório privado, e por quê.
