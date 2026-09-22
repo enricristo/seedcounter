@@ -114,7 +114,7 @@ export const TAREFAS: Tarefa[] = [
     porque:
       'Duas linhas com o mesmo 1,17 mm podem ter vindo de calibrações, páginas, versões e modos diferentes — e nada nelas denunciaria isso. A procedência faz cada linha responder "de onde saiu?" um ano depois.',
     passos: [
-      { faca: 'Exportar → CSV de medidas.', onde: 'Cabeçalho.' },
+      { faca: 'Exportar → "Por Semente (CSV)" — uma linha por objeto.', onde: 'Cabeçalho, botão Exportar (Ctrl+E). "Tabela (CSV)" é o resumo por sessão, sem as colunas de procedência.' },
       { faca: 'Confira as colunas: especie, pagina, modo_analise, tempo_ativo_s, dpi_declarado, dpi_medido, calibracao_n, versao_app, commit.' },
     ],
     confira: 'Campo vazio significa "não foi medido". Nunca é preenchido com o provável.',
