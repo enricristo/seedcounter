@@ -3,9 +3,20 @@
 // Ferramentas de marcação estilo editor gráfico: marcar, borracha e seleção.
 // =============================================================================
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
-export type ToolId = 'viable' | 'inviable' | 'onda' | 'contorno' | 'desenho' | 'cota' | 'seta' | 'caixa' | 'chamada' | 'eraser' | 'pan';
+export type ToolId =
+  | 'viable'
+  | 'inviable'
+  | 'onda'
+  | 'contorno'
+  | 'desenho'
+  | 'cota'
+  | 'seta'
+  | 'caixa'
+  | 'chamada'
+  | 'eraser'
+  | 'pan';
 
 /**
  * A que grupo a ferramenta pertence. A barra separa os grupos com um fio.
@@ -114,13 +125,30 @@ export const TOOLS: ToolDefinition[] = [
   },
 ];
 
-export function useTools(options?: { disabled?: boolean }) {
+export function useTools(options?: {
+  disabled?: boolean;
+  /**
+   * Avisa que a PESSOA escolheu uma ferramenta pelo teclado (inclusive o X,
+   * que inverte viável↔inviável).
+   *
+   * Existe por causa da classe fina do protocolo: quem aperta V está dizendo
+   * "agora eu marco grosso", e a classe armada tem de cair. Sem este aviso, o
+   * App só veria `activeTool` mudar — e não saberia distinguir "apertei V" de
+   * "armei a classe normal", que põem a MESMA ferramenta ativa.
+   */
+  onFerramentaPorTecla?: (id: ToolId) => void;
+}) {
   const [activeTool, setActiveTool] = useState<ToolId>('viable');
   const [eraserRadius, setEraserRadius] = useState(20);
   /** Guarda a ferramenta anterior ao segurar Alt (borracha temporária). */
   const [tempTool, setTempTool] = useState<ToolId | null>(null);
 
   const effectiveTool: ToolId = tempTool ?? activeTool;
+
+  // Por ref: o ouvinte de teclado é registrado uma vez, e uma função nova a
+  // cada render do App o faria religar a cada tecla digitada em qualquer campo.
+  const avisar = useRef(options?.onFerramentaPorTecla);
+  avisar.current = options?.onFerramentaPorTecla;
   const disabled = options?.disabled ?? false;
 
   useEffect(() => {
@@ -144,9 +172,11 @@ export function useTools(options?: { disabled?: boolean }) {
       // X inverte entre viável e inviável (como trocar cores no Photoshop).
       if (e.key.toLowerCase() === 'x') {
         e.preventDefault();
-        setActiveTool((prev) =>
-          prev === 'viable' ? 'inviable' : prev === 'inviable' ? 'viable' : prev
-        );
+        setActiveTool((prev) => {
+          const proxima = prev === 'viable' ? 'inviable' : prev === 'inviable' ? 'viable' : prev;
+          if (proxima !== prev) avisar.current?.(proxima);
+          return proxima;
+        });
         return;
       }
 
@@ -154,6 +184,7 @@ export function useTools(options?: { disabled?: boolean }) {
       if (match) {
         e.preventDefault();
         setActiveTool(match.id);
+        avisar.current?.(match.id);
         return;
       }
 

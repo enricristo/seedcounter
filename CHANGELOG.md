@@ -26,6 +26,10 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - README para 3.7.0; arquitetura apontando para `AGENTS.md`.
 - Testes: 1288 → 1548.
 
+### Adicionado (classes dinâmicas, fatia 3)
+- **Marcar direto na classe do protocolo.** Com protocolo declarado e diferente de `simples`, a barra de ferramentas ganha um botão por classe (plântula normal, anormal, dura, dormente, morta, vazia), com ícone próprio, a explicação da norma no `title` e tecla **3 a 8** — a tecla é a POSIÇÃO da classe na lista do protocolo. `V` e `I` não mudam de sentido: continuam marcando viável/inviável sem classe fina, e desarmam a classe. A onda por clique herda a classe armada. `features/classes/ferramentas-de-classe.ts`, 8 testes.
+- O menu radial (botão direito arrastando sobre um contorno) entrou nas instruções do mouse, onde sempre devia ter estado.
+
 ### Corrigido
 - **O denominador da porcentagem passa a excluir o material inerte.** Objeto declarado como `vazia` (unidade de dispersão sem semente dentro — material inerte pela RAS) sai de `viaveis`/`inviaveis` e do total, e aparece numa linha própria, "Inerte (fora da conta)". Antes ele contava como semente inviável, o que faz a germinação parecer menor do que é. Enquanto ninguém classificar nada como inerte, `sementes === total` e nenhum número muda. `contarObjetos` devolve `inertes` e `sementes`; os três grupos sempre somam o total.
 - A classe fina (`Mark.subclasse`, gravada pela galeria e pelo menu radial) e a classe externa de datasets de terceiros eram calculadas e **não saíam no CSV** — a curadoria morria na exportação. Agora saem em `classe_norma`, `classe_rotulo`, `conta_como_semente` e `classe_externa`; vazias quando ninguém declarou. Spec: `docs/superpowers/specs/2026-09-23-classes-dinamicas-design.md`.

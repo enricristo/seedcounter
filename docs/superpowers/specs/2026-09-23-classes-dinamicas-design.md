@@ -87,10 +87,44 @@ com protocolo `simples`, é sobre 400.
 
 ### Fatia 3 — marcar direto na classe do protocolo
 
-Com protocolo ≠ `simples`, a barra de ferramentas oferece as classes do
-protocolo em vez de `viável`/`inviável`, com atalho por tecla e forma distinta
-por classe (`theme/specimen.ts`). Mexe em `useTools` e nos dois testes estáticos
-de atalhos — é a fatia com mais superfície de interface.
+**As cinco vozes, antes de desenhar** (AGENTS.md):
+
+- *Analista de laboratório comercial:* "faço 400 numa sentada; quero uma tecla
+  por classe, a mesma todo dia, e nada de abrir menu."
+- *Pesquisador de orquídea:* "eu só uso viável e inviável — não quero seis
+  botões na minha barra."
+- *Pesquisador de forrageira:* "preciso das seis o dia inteiro, e preciso ver
+  na tela qual eu marquei."
+- *Aluno em treinamento:* "não sei o que é 'anormal'; preciso do nome e da
+  explicação junto do botão."
+- *Apresentação:* "a barra não pode virar sopa de ícones."
+
+**A regra que sai daí:** os botões de classe **só aparecem com protocolo
+declarado e diferente de `simples`**. Quem usa orquídea nunca os vê; quem usa
+forrageira os vê sempre. O que o modo esconde também não custa (Lei 8).
+
+**V e I não mudam de sentido.** Continuam marcando viável/inviável *sem* classe
+fina — é o gesto rápido de sempre, e refinar depois na galeria continua valendo.
+As classes finas têm teclas próprias: **3 a 8, na ordem do protocolo**, porque a
+tecla é a POSIÇÃO na lista que a norma já publica, e porque 1 e 2 são modos de
+exibição desde a primeira versão (memória de quem já usa não se quebra por
+simetria). O menu radial (botão direito + arraste) continua sendo o caminho sem
+tecla, e já oferece exatamente as seis raízes.
+
+**Como a marca nasce.** Marcar na classe `c` cria `{ type: categoriaDaClasse(c),
+subclasse: c }` — `categoriaDaClasse` vem de `germinou`, para não existir uma
+segunda tabela dizendo o que é viável. `activeTool` continua sendo
+`viable`/`inviable`: o canvas não aprende classe nenhuma, e a onda por clique
+herda a classe ativa de graça.
+
+**Ícone por classe, com mnemônica** (e é o vocabulário de formas que a fatia 3b
+leva para o canvas): normal → círculo; anormal → triângulo; dura → losango
+(*diamante é duro*); dormente → lua; morta → ×; vazia → círculo cortado.
+
+**Fica para a 3b:** a marca DESENHADA por classe. Hoje ela sai ciano (germinou)
+ou magenta (não germinou), igual para dormente e morta. A forma virá da RAIZ
+normativa e a cor poderá ser do usuário — o que torna a fatia 5 coerente: uma
+classe inventada herda a forma da raiz de que descende.
 
 ### Fatia 4 — aglomerado como marcador
 

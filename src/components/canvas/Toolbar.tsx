@@ -24,21 +24,42 @@ import {
   Square,
   MessageSquare,
   ArrowUpRight,
+  Triangle,
+  Diamond,
+  Moon,
+  X as XIcone,
+  CircleOff,
 } from 'lucide-react';
 import { TOOLS, type ToolId } from '../../hooks/useTools';
+import type {
+  FerramentaDeClasse,
+  IconeDeClasse,
+} from '../../features/classes/ferramentas-de-classe';
+import type { ClasseDeSemente } from '../../lib/normas/classes-de-semente';
 import { descrever, type Mascara } from '../../features/mascara/mascara';
 import { AJUSTE_MAXIMO, AJUSTE_MINIMO } from '../../lib/escala-da-marca';
-import {
-  ESTILOS_DA_MARCA,
-  OPACIDADE_MINIMA,
-  type EstiloDaMarca,
-} from '../../theme/specimen';
+import { ESTILOS_DA_MARCA, OPACIDADE_MINIMA, type EstiloDaMarca } from '../../theme/specimen';
 
 /** Icone de cada estado da mascara. O disco vazado e "so pontos". */
 const ICONE_DA_MASCARA: Record<Mascara, React.ElementType> = {
   tudo: Eye,
   pontos: Circle,
   nada: EyeOff,
+};
+
+/**
+ * A forma de cada classe fina. É mnemônica e é redundância (Lei 4): losango
+ * para `dura` porque diamante é duro; lua para `dormente`, que está viva e
+ * dormindo; × para morta; círculo cortado para o que nem semente é. Na fatia
+ * 3b este mesmo vocabulário vai para a marca desenhada no canvas.
+ */
+const ICONE_DE_CLASSE: Record<IconeDeClasse, React.ElementType> = {
+  circulo: Circle,
+  triangulo: Triangle,
+  losango: Diamond,
+  lua: Moon,
+  x: XIcone,
+  cortado: CircleOff,
 };
 
 const ICONS: Record<ToolId, React.ElementType> = {
@@ -79,6 +100,14 @@ const ACTIVE_STYLES: Record<ToolId, string> = {
 interface ToolbarProps {
   activeTool: ToolId;
   onSelect: (tool: ToolId) => void;
+  /**
+   * As classes do protocolo declarado. Lista vazia — orquídea, ou protocolo
+   * nenhum — não desenha botão algum: ali as classes SÃO viável e inviável.
+   */
+  ferramentasDeClasse?: FerramentaDeClasse[];
+  /** A classe fina armada para o próximo clique. `null` = marcar grosso. */
+  classeAtiva?: ClasseDeSemente | null;
+  onEscolherClasse?: (classe: ClasseDeSemente) => void;
   eraserRadius: number;
   onEraserRadiusChange: (radius: number) => void;
   /** true quando a borracha está ativa temporariamente (Alt pressionado). */
@@ -127,6 +156,9 @@ const estiloDoDeslizante: React.CSSProperties = {
 export function Toolbar({
   activeTool,
   onSelect,
+  ferramentasDeClasse = [],
+  classeAtiva = null,
+  onEscolherClasse,
   eraserRadius,
   onEraserRadiusChange,
   isTemporary,
@@ -163,6 +195,46 @@ export function Toolbar({
         const mudouDeGrupo = i > 0 && TOOLS[i - 1].grupo !== tool.grupo;
         return (
           <React.Fragment key={tool.id}>
+            {/* As classes do protocolo ficam DENTRO do grupo de classe, logo
+                depois de viável/inviável e antes do fio dos instrumentos:
+                elas dizem o que a marca significa, não o que o instrumento
+                faz. Sem protocolo declarado, a lista é vazia e a barra é
+                exatamente a de sempre. */}
+            {mudouDeGrupo && ferramentasDeClasse.length > 0 && (
+              <>
+                <div className="bg-line mx-auto my-0.5 h-px w-4 opacity-60" aria-hidden="true" />
+                {ferramentasDeClasse.map((f) => {
+                  const IconeClasse = ICONE_DE_CLASSE[f.icone];
+                  const ativa = classeAtiva === f.classe;
+                  return (
+                    <button
+                      key={f.classe}
+                      onClick={() => onEscolherClasse?.(f.classe)}
+                      title={`${f.rotulo} (${f.atalho}) — ${f.explicacao}${f.ehSemente ? '' : ' NÃO entra no denominador.'}`}
+                      aria-label={f.rotulo}
+                      aria-pressed={ativa}
+                      className={`rounded-control relative flex h-10 w-10 items-center justify-center border transition-all ${
+                        // A mesma aparência do botão de viável/inviável: a
+                        // legenda da marca no canvas é uma só.
+                        ativa ? ACTIVE_STYLES[f.categoria] : INATIVO
+                      }`}
+                    >
+                      <IconeClasse size={18} strokeWidth={1.75} aria-hidden="true" />
+                      <span className="absolute right-1 bottom-0.5 font-mono text-[8px] font-bold opacity-60">
+                        {f.atalho}
+                      </span>
+                      {/* O inerte não conta: um traço diz isso sem legenda. */}
+                      {!f.ehSemente && (
+                        <span
+                          className="bg-ink-3 absolute top-1 left-1 h-px w-2.5 rotate-45"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </>
+            )}
             {mudouDeGrupo && <div className="bg-line mx-auto my-0.5 h-px w-6" aria-hidden="true" />}
             <button
               onClick={() => onSelect(tool.id)}

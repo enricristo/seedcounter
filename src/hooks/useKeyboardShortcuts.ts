@@ -4,6 +4,14 @@ interface KeyboardShortcutsProps {
   onUndo: () => void;
   onRedo: () => void;
   onSetVisualMode: (mode: 'dots' | 'numbers') => void;
+  /**
+   * Escolhe a classe fina pela tecla (3 a 8, a posição no protocolo).
+   *
+   * Quem decide se aquela posição existe é `classeDaTecla`, em
+   * `features/classes` — aqui só se repassa a tecla. Sem protocolo declarado
+   * a função não faz nada, e a tecla fica livre como sempre foi.
+   */
+  onEscolherClasseFina?: (tecla: string) => void;
   onNextImage: () => void;
   onPrevImage: () => void;
   onZoomIn: () => void;
@@ -36,6 +44,7 @@ export function useKeyboardShortcuts({
   onUndo,
   onRedo,
   onSetVisualMode,
+  onEscolherClasseFina,
   onNextImage,
   onPrevImage,
   onTogglePanning,
@@ -129,6 +138,18 @@ export function useKeyboardShortcuts({
           e.preventDefault();
           onSetVisualMode('numbers');
           break;
+        // As classes finas do protocolo, na ordem em que ele as declara. Só
+        // existem com protocolo declarado; sem ele, `onEscolherClasseFina`
+        // não faz nada e a tecla segue livre.
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+          e.preventDefault();
+          onEscolherClasseFina?.(e.key);
+          break;
         // 'h' é tratado pela barra de ferramentas (useTools), que é a fonte
         // única de verdade do modo de interação. Manter aqui causaria dois
         // estados de "modo mão" concorrentes.
@@ -188,6 +209,7 @@ export function useKeyboardShortcuts({
     onUndo,
     onRedo,
     onSetVisualMode,
+    onEscolherClasseFina,
     onNextImage,
     onPrevImage,
     onTogglePanning,
