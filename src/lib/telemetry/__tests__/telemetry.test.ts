@@ -1,6 +1,5 @@
-/* global RequestInit, HeadersInit */
+/* global RequestInit */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { db } from '../../db';
 import {
   enqueueTelemetry,
   getPendingTelemetry,
@@ -367,7 +366,7 @@ describe('Telemetry Subsystem', () => {
       let presignedCallCount = 0;
       let putCallCount = 0;
 
-      const mockFetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      const mockFetch = vi.fn().mockImplementation((url: string, _opts: RequestInit) => {
         if (url.includes('/api/v1/telemetry/presigned-url')) {
           presignedCallCount++;
           return Promise.resolve({

@@ -69,7 +69,7 @@ function LetterLabel(props: any) {
 }
 
 // Custom tooltip
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload }: any) {
   if (!active || !payload || payload.length === 0) return null;
   const d = payload[0]?.payload as ChartDatum;
   if (!d) return null;
@@ -159,7 +159,7 @@ export function GerminationBarChart({
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--color-line-soft)' }} />
         <Bar dataKey="mean" radius={[6, 6, 0, 0]} maxBarSize={72}>
-          {data.map((d, i) => (
+          {data.map((d) => (
             <Cell key={d.label} fill={d.color} fillOpacity={0.85} />
           ))}
           <ErrorBar dataKey="errorY" width={5} strokeWidth={2} stroke="var(--color-ink-2)" />

@@ -12,7 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { Session, Experiment, TreatmentStats } from '../../types';
+import type { Session, Experiment } from '../../types';
 import {
   runStatsPipeline,
   GroupStat,
@@ -114,7 +114,7 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
     let bacterial = 0;
     let mixed = 0;
 
-    sessions.forEach((s) => {
+    sessions.forEach(() => {
       // Look inside session metadata or linked experiment runs
       // Check if session itself has a dayIndex and experimentId
       // Standard default is none if not set

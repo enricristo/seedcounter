@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React, { useState, useMemo } from 'react';
-import { Play, Eye, RotateCcw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Play, Eye, CheckCircle2 } from 'lucide-react';
 import {
   REGRAS_PADRAO,
   simularRegra,

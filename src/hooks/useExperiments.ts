@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { Experiment, Treatment, PlateRun } from '../types';
 import { db } from '../lib/db';

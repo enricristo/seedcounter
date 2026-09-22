@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { X, Download, AlertTriangle, FileCheck, Layers, Settings, Eye } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { X, Download, AlertTriangle, Layers, Settings, Eye } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { Session } from '../../types';
 import { generateYOLODataset, getExportSummary } from '../../lib/yolo-exporter';
 import { useModalEscape } from '../../hooks/useModalEscape';
