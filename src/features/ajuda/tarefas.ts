@@ -161,7 +161,7 @@ export const TAREFAS: Tarefa[] = [
       { faca: 'Exporte no formato da planilha (TSV output) para quem ainda usa o Excel.' },
     ],
     confira:
-      'Amostra em que o ajuste "parou perto do chute" ou caiu em mínimo local vem marcada; é onde o t50 daqui difere do Excel, de propósito.',
+      'R² abaixo do limite aparece em amarelo na tabela — é ajuste que não descreve a curva, e o t50 dele não vale. Onde o Solver do Excel parou cedo, o t50 daqui é diferente, de propósito: o ajuste converge até o fim.',
   },
   {
     id: 'publicar',
