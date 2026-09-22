@@ -451,8 +451,9 @@ function betaIncompletaRegularizada(x: number, a: number, b: number): number {
   return 1 - (frente * betaFracaoContinua(b, a, 1 - x)) / b;
 }
 
-/** CDF da F com `d1`/`d2` graus de liberdade. */
-function fCdf(f: number, d1: number, d2: number): number {
+/** CDF da F com `d1`/`d2` graus de liberdade. Exportada porque a regressão
+ *  polinomial (`regressao-polinomial.ts`) testa cada grau com a mesma F. */
+export function fCdf(f: number, d1: number, d2: number): number {
   if (f <= 0) return 0;
   const x = (d1 * f) / (d1 * f + d2);
   return betaIncompletaRegularizada(x, d1 / 2, d2 / 2);
