@@ -2195,9 +2195,11 @@ function AppInterno() {
           break;
       }
     },
-    // saveCurrentSession e funcao comum (nao memoizada) e le refs por dentro.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    // Antes: deps `[]` com a nota "saveCurrentSession le refs por dentro". Nao
+    // lia: capturava o fecho do PRIMEIRO render (filename vazio), e a sugestao
+    // "Salvar sessao" nao fazia nada ao clicar. Desde que `useSessao` a devolve
+    // memoizada, ela entra nas deps como qualquer outra.
+    [saveCurrentSession, abrirAbaDireita, setActiveTool]
   );
 
   const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
