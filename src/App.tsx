@@ -952,6 +952,14 @@ function AppInterno() {
     ? Math.max(0, (metadata.baselineCount ?? 0) - viableCount)
     : contagem.inviaveis;
 
+  // Inertes: objetos que alguém declarou como NÃO-semente (hoje só "vazia").
+  // Já saíram de `viaveis`/`inviaveis` em `contarObjetos`, então o total e as
+  // porcentagens abaixo são sobre sementes — o denominador que a RAS manda. A
+  // tela MOSTRA quantos são, porque número que muda em silêncio é pior que
+  // número errado. No modo diferencial o total é declarado por quem semeou, e
+  // não se mexe nele: ali o inerte é só informação.
+  const inertesCount = contagem.inertes;
+
   const totalCount =
     metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
       ? metadata.baselineCount
@@ -2511,6 +2519,7 @@ function AppInterno() {
             handleImportJSON={handleImportHistoryJSON}
             viableCount={viableCount}
             inviableCount={inviableCount}
+            inertesCount={inertesCount}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}
@@ -3008,6 +3017,7 @@ function AppInterno() {
           <RightSidebar
             viableCount={viableCount}
             inviableCount={inviableCount}
+            inertesCount={inertesCount}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}

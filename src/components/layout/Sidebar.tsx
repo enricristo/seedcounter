@@ -21,6 +21,8 @@ interface SidebarProps {
 
   viableCount: number;
   inviableCount: number;
+  /** Objetos declarados como não-semente. Zero até alguém classificar. */
+  inertesCount?: number;
   viablePercent: string;
   inviablePercent: string;
   totalCount: number;
@@ -73,6 +75,7 @@ export function Sidebar({
   handleImportJSON,
   viableCount,
   inviableCount,
+  inertesCount = 0,
   viablePercent,
   inviablePercent,
   totalCount,
@@ -179,6 +182,7 @@ export function Sidebar({
           <Counters
             viableCount={viableCount}
             inviableCount={inviableCount}
+            inertesCount={inertesCount}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}
