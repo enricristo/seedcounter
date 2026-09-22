@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 18 + TypeScript, Vite, Vitest (ambiente node), Dexie, onnxruntime-web (já presente), Tailwind com tokens do projeto.
 
-**Spec:** `docs/superpowers/specs/2026-09-13-critica-do-scaleup.md` (seções 1, 3 e 4) — e as medições em `docs/datasets/README.md` §5.
+**Spec:** `critica-do-scaleup.md` (documentação privada) (seções 1, 3 e 4) — e as medições em `docs/datasets/README.md` §5.
 
 ## Global Constraints
 
