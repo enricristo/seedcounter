@@ -54,6 +54,55 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.8.0',
+    data: '2026-09-23',
+    titulo: 'Quem está na bancada? — perfis, a curva de germinação na tela, e ajuda que explica o porquê',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Cinco perfis na primeira abertura',
+        detalhe:
+          '"Quem está na bancada?" — analista de laboratório comercial, pesquisador de orquídea, pesquisador de forrageira, aluno em treinamento, apresentação. Escolher um perfil responde de uma vez a cinco perguntas que antes eram feitas em cinco painéis: modo de visualização, estilo da marca, receita de detecção, protocolo da amostra e modo do cronômetro. É ponto de partida, nunca uma prisão: cada opção continua mudável depois, e em Configurações → Perfil o app diz o que vai mudar antes de mudar. Fechar sem escolher abre o modo completo e não pergunta de novo.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'A aba Germinação: a planilha do Germinator, dentro do app',
+        detalhe:
+          'Cole a aba INPUT do Excel (código, sementes, contagens por hora), ou importe do experimento longitudinal, e o app ajusta a curva de germinação de cada amostra, desenha as curvas por tratamento, monta a tabela de parâmetros — germinação máxima, t50, uniformidade, área sob a curva, tempo médio — com uma frase de ajuda por coluna, compara os tratamentos por ANOVA e Tukey com letras, e exporta de volta no formato da planilha, para quem ainda usa o Excel. Em amostras em que o Solver do Excel parou perto do chute inicial, o ajuste daqui converge mais fundo e o t50 sai diferente — de propósito, e documentado.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Ajuda por tarefa, com o porquê',
+        detalhe:
+          'Nas Instruções de Uso, a aba "Tarefas": como calibrar de um jeito que sirva para publicar, contar, ver a semente por baixo da marca, medir e calcular volumes, o relógio do rodapé, exportar com procedência, e o que mandar quando algo dá errado. Cada uma com a pergunta que se faz na bancada, o porquê em uma frase, os passos com onde clicar, e o que conferir para saber que deu certo.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Regressão polinomial e ponto de ótimo',
+        detalhe:
+          'Para fator quantitativo — potencial osmótico em MPa, horas de embebição, meses de armazenamento — a análise certa não é separar médias por letras; é ajustar a curva e achar o ótimo. Graus 1 a 3, com o teste de cada grau, e o ótimo só dentro da faixa observada: fora dela é extrapolação, e o app diz isso em vez de devolver um número. Aparece em Estatísticas → Comparação de Tratamentos, abaixo da ANOVA, sozinho, quando três ou mais tratamentos têm um número no rótulo (T0, T8, T16; −0,3 MPa).',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Catálogo de datasets e 92 exemplos reais',
+        detalhe:
+          'Os 23 conjuntos de imagens usados no projeto ganharam um catálogo com origem, licença e formato — e o explorador mostra, ao lado de cada pasta, se ela é referenciável ou só local. Os exemplos que o app abre passaram de 54 para 92, com 46 de orquídea corada por tetrazólio; cada um diz se a escala veio de uma régua medida ou de um DPI declarado.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'O app abre mais rápido para quem só vai contar',
+        detalhe:
+          'Os gráficos e o gerador de PDF só são baixados quando alguém os abre — antes o navegador os pré-carregava na abertura, 1 MB para quem nunca ia usar. E três dependências que nenhum código usava foram removidas.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'Documentação sensível saiu do repositório público',
+        detalhe:
+          'Revisão de segurança, roteiros de bancada com metodologia de tese não defendida, análise de mercado e estratégia vivem agora num repositório privado. No público ficou o que sustenta o produto: código, testes, notas, bibliografia e as especificações técnicas.',
+      },
+    ],
+  },
+  {
     numero: '3.7.0',
     data: '2026-09-22',
     titulo: 'Uma fonte para cada número, o Germinator dentro do app, e o lote com IA de verdade',

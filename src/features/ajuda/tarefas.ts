@@ -131,4 +131,52 @@ export const TAREFAS: Tarefa[] = [
     ],
     confira: 'O trabalho salvo continua no navegador; recarregar a página não o perde.',
   },
+  {
+    id: 'comparar-tratamentos',
+    titulo: 'Comparar tratamentos: letras ou curva?',
+    pergunta: 'Meus tratamentos são doses. Tukey serve?',
+    porque:
+      'Cultivar A contra cultivar B é uma pergunta de "quais diferem", e a resposta são letras (Tukey, Scott-Knott). Dose, tempo, potencial e temperatura são níveis de um fator contínuo: a pergunta vira "como a resposta muda com o nível, e onde está o ótimo", e a resposta é uma curva ajustada. Separar doses por letras responde a pergunta errada.',
+    passos: [
+      { faca: 'Preencha o campo Tratamento de cada sessão com o nível dentro do rótulo: T0, T8, T16; −0,3 MPa; 12 meses.', onde: 'Metadados da amostra, antes de salvar.' },
+      { faca: 'Abra Estatísticas → Comparação de Tratamentos.', onde: 'Aba no cabeçalho.' },
+      { faca: 'Leia a ANOVA e as letras — elas continuam valendo como comparação de médias.' },
+      { faca: 'Logo abaixo, o cartão "Fator quantitativo" aparece sozinho quando três ou mais tratamentos têm número no rótulo. Confira a linha "T8 → 8": é o número que o app leu.' },
+      { faca: 'Leia o grau recomendado, a equação e o ótimo. Ótimo fora da faixa testada vem em aviso — é extrapolação, não resultado.' },
+    ],
+    confira:
+      'Rótulo com dois números ("T8 rep2") não vira nível, de propósito; ponha a repetição no campo próprio. Se o cartão não aparece, é porque menos de três tratamentos têm número.',
+  },
+  {
+    id: 'curva-de-germinacao',
+    titulo: 'A curva de germinação, sem a planilha',
+    pergunta: 'Tenho as contagens por dia. Como tiro t50 e uniformidade?',
+    porque:
+      'Contar germinadas em dias seguidos dá uma curva; germinação final é só o último ponto dela. t50, uniformidade e área sob a curva descrevem a velocidade e a sincronia — e dependem de um ajuste que a planilha fazia com o Solver, que às vezes para cedo. Aqui o ajuste converge, e o app diz onde diferiu.',
+    passos: [
+      { faca: 'Abra Germinação.', onde: 'Aba no cabeçalho; se não aparecer, o modo de visualização a esconde — troque em Exibir.' },
+      { faca: 'Cole a aba INPUT da planilha (código, sementes, contagens por hora) ou importe do experimento longitudinal.' },
+      { faca: 'Leia a tabela de parâmetros; cada coluna tem uma frase de ajuda ao passar o mouse.' },
+      { faca: 'Compare tratamentos: ANOVA e Tukey com letras, embaixo das curvas.' },
+      { faca: 'Exporte no formato da planilha (TSV output) para quem ainda usa o Excel.' },
+    ],
+    confira:
+      'Amostra em que o ajuste "parou perto do chute" ou caiu em mínimo local vem marcada; é onde o t50 daqui difere do Excel, de propósito.',
+  },
+  {
+    id: 'publicar',
+    titulo: 'O que vai no artigo',
+    pergunta: 'O que eu preciso relatar para alguém reproduzir?',
+    porque:
+      'Um número de viabilidade sem o método é um número solto. Quem lê precisa saber como a escala foi medida, se a contagem foi manual ou proposta pela máquina, e qual versão do programa fez a conta — e tudo isso já está no CSV, em colunas, esperando ser copiado para a seção de métodos.',
+    passos: [
+      { faca: 'Método de calibração: régua na imagem, número de leituras e CV (colunas dpi_medido, calibracao_n, calibracao_cv_pct). Se só houver dpi_declarado, diga que a escala é a declarada pelo driver.' },
+      { faca: 'Modo de análise (coluna modo_analise): manual, assistida ou automática — e, se automática, que cada proposta foi conferida por uma pessoa.' },
+      { faca: 'Versão e commit do programa (colunas versao_app e commit), para a análise ser repetível no mesmo código.' },
+      { faca: 'Cite o programa pelo arquivo CITATION.cff do repositório — ele tem os autores na ordem oficial e a versão; o número da versão também está no rodapé.', onde: 'Rodapé, ao lado de Relatar problema.' },
+      { faca: 'Para germinação e regressão, relate o modelo ajustado (Hill de quatro parâmetros; polinômio de grau n) e o critério de escolha do grau (F sequencial, p < 0,05).' },
+    ],
+    confira:
+      'Alguém com o CSV e o texto dos métodos consegue refazer a tabela sem perguntar nada a você. Se uma coluna está vazia, o método diz "não medido" — não inventa.',
+  },
 ];

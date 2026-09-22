@@ -20,6 +20,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Eye, RotateCcw } from 'lucide-react';
 import { MODOS, PARTES, ROTULO_DA_PARTE, descricaoDoModo } from './modo';
 import { useVisibilidade } from './useModoDeVisualizacao';
+import { perfilDeOrigemDoModo } from '../perfis/perfis';
 
 /** O mesmo passo de controle dos outros botões de ícone do cabeçalho. */
 const botaoIcone =
@@ -55,6 +56,9 @@ export function MenuExibir() {
 
   const temSobrescrita = Object.keys(sobrescritas).length > 0;
   const atual = descricaoDoModo(modo);
+  // A origem do modo ("Contagem · perfil Aluno"): só quando o modo em vigor é
+  // o do perfil gravado — trocado à mão, a origem já não é o perfil.
+  const perfilDeOrigem = perfilDeOrigemDoModo(modo);
 
   return (
     <div className="relative" ref={painelRef}>
@@ -66,7 +70,7 @@ export function MenuExibir() {
         aria-haspopup="dialog"
         aria-expanded={aberto}
         aria-label={`Exibir — modo ${atual.rotulo}`}
-        title={`Exibir: ${atual.rotulo}. ${atual.frase}`}
+        title={`Exibir: ${atual.rotulo}${perfilDeOrigem ? ` · perfil ${perfilDeOrigem.titulo}` : ''}. ${atual.frase}`}
         className={`${botaoIcone} ${temSobrescrita ? 'text-accent' : ''}`}
       >
         <Eye size={16} strokeWidth={2} aria-hidden="true" />
@@ -96,7 +100,15 @@ export function MenuExibir() {
                     className="accent-accent mt-0.5"
                   />
                   <span className="flex min-w-0 flex-col">
-                    <span className="text-ink-1 text-xs font-semibold">{d.rotulo}</span>
+                    <span className="text-ink-1 text-xs font-semibold">
+                      {d.rotulo}
+                      {modo === m && perfilDeOrigem && (
+                        <span className="text-ink-3 font-normal">
+                          {' '}
+                          · perfil {perfilDeOrigem.titulo}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-ink-3 text-[10px] leading-snug">{d.frase}</span>
                   </span>
                 </label>
