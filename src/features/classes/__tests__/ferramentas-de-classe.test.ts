@@ -16,18 +16,18 @@ describe('ferramentas de classe', () => {
     expect(ferramentasDoProtocolo(undefined)).toEqual([]);
   });
 
-  it('germinação dá cinco botões, na ordem do protocolo, começando na tecla 3', () => {
+  it('germinação dá cinco botões, na ordem do protocolo, começando na tecla 1', () => {
     const f = ferramentasDoProtocolo(PROTOCOLOS.germinacao);
     expect(f.map((x) => x.classe)).toEqual(['normal', 'anormal', 'dura', 'dormente', 'morta']);
-    expect(f.map((x) => x.atalho)).toEqual(['3', '4', '5', '6', '7']);
+    expect(f.map((x) => x.atalho)).toEqual(['1', '2', '3', '4', '5']);
   });
 
-  it('forrageira acrescenta a vazia no fim, com a tecla 8', () => {
+  it('forrageira acrescenta a vazia no fim, com a tecla 6', () => {
     const f = ferramentasDoProtocolo(PROTOCOLOS.forrageira);
     expect(f).toHaveLength(6);
     const vazia = f[5];
     expect(vazia.classe).toBe('vazia');
-    expect(vazia.atalho).toBe('8');
+    expect(vazia.atalho).toBe('6');
     // A única que não é semente — e é por isso que ela existe separada.
     expect(vazia.ehSemente).toBe(false);
     expect(f.slice(0, 5).every((x) => x.ehSemente)).toBe(true);
@@ -57,20 +57,21 @@ describe('ferramentas de classe', () => {
   });
 
   it('tecla fora da lista do protocolo não escolhe nada', () => {
-    expect(classeDaTecla('3', PROTOCOLOS.germinacao)).toBe('normal');
-    expect(classeDaTecla('7', PROTOCOLOS.germinacao)).toBe('morta');
-    // Germinação tem cinco classes: o 8 não pode cair na última "porque
+    expect(classeDaTecla('1', PROTOCOLOS.germinacao)).toBe('normal');
+    expect(classeDaTecla('5', PROTOCOLOS.germinacao)).toBe('morta');
+    // Germinação tem cinco classes: o 6 não pode cair na última "porque
     // estava perto".
-    expect(classeDaTecla('8', PROTOCOLOS.germinacao)).toBeNull();
-    expect(classeDaTecla('8', PROTOCOLOS.forrageira)).toBe('vazia');
-    expect(classeDaTecla('1', PROTOCOLOS.forrageira)).toBeNull();
-    expect(classeDaTecla('3', PROTOCOLOS.simples)).toBeNull();
+    expect(classeDaTecla('6', PROTOCOLOS.germinacao)).toBeNull();
+    expect(classeDaTecla('6', PROTOCOLOS.forrageira)).toBe('vazia');
+    expect(classeDaTecla('7', PROTOCOLOS.forrageira)).toBeNull();
+    expect(classeDaTecla('1', PROTOCOLOS.simples)).toBeNull();
   });
 
-  it('as teclas de classe não colidem com os modos de exibição (1 e 2)', () => {
-    expect(PRIMEIRA_TECLA).toBeGreaterThan(2);
-    expect(TECLAS_DE_CLASSE).toEqual(['3', '4', '5', '6', '7', '8']);
-    expect(TECLAS_DE_CLASSE).not.toContain('1');
-    expect(TECLAS_DE_CLASSE).not.toContain('2');
+  it('a tecla é a posição: a primeira classe é o 1, e são seis no máximo', () => {
+    // Em 23/09 as classes começavam no 3, para não tomar o 1 e o 2 dos modos
+    // de exibição. O dono decidiu o contrário: número na mão de quem conta é
+    // classe, e a exibição passou para o N.
+    expect(PRIMEIRA_TECLA).toBe(1);
+    expect(TECLAS_DE_CLASSE).toEqual(['1', '2', '3', '4', '5', '6']);
   });
 });

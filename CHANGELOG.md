@@ -27,7 +27,7 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - Testes: 1288 → 1548.
 
 ### Adicionado (classes dinâmicas, fatia 3)
-- **Marcar direto na classe do protocolo.** Com protocolo declarado e diferente de `simples`, a barra de ferramentas ganha um botão por classe (plântula normal, anormal, dura, dormente, morta, vazia), com ícone próprio, a explicação da norma no `title` e tecla **3 a 8** — a tecla é a POSIÇÃO da classe na lista do protocolo. `V` e `I` não mudam de sentido: continuam marcando viável/inviável sem classe fina, e desarmam a classe. A onda por clique herda a classe armada. `features/classes/ferramentas-de-classe.ts`, 8 testes.
+- **Marcar direto na classe do protocolo.** Com protocolo declarado e diferente de `simples`, a barra de ferramentas ganha um botão por classe (plântula normal, anormal, dura, dormente, morta, vazia), com ícone próprio, a explicação da norma no `title` e tecla **1 a 6** — a tecla é a POSIÇÃO da classe na lista do protocolo. As teclas 1 e 2, que eram os modos de exibição, passaram para **N** (alterna pontos ↔ índices): número na mão de quem conta é classe. `V` e `I` não mudam de sentido: continuam marcando viável/inviável sem classe fina, e desarmam a classe. A onda por clique herda a classe armada. `features/classes/ferramentas-de-classe.ts`, 8 testes.
 - O menu radial (botão direito arrastando sobre um contorno) entrou nas instruções do mouse, onde sempre devia ter estado.
 
 ### Corrigido

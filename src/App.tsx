@@ -2445,7 +2445,7 @@ function AppInterno() {
   useKeyboardShortcuts({
     onUndo: desfazer,
     onRedo: refazer,
-    onSetVisualMode: setVisualMode,
+    onAlternarVisualMode: () => setVisualMode((v) => (v === 'dots' ? 'numbers' : 'dots')),
     onEscolherClasseFina: escolherClassePelaTecla,
     onNextImage: handleNextImage,
     onPrevImage: handlePrevImage,

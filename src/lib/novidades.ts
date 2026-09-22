@@ -110,7 +110,7 @@ export const VERSOES: Versao[] = [
         tipo: 'novo',
         titulo: 'Marcar direto na classe: dormente, dura, anormal, vazia',
         detalhe:
-          'Declare o protocolo na identificação da amostra (Germinação ou Forrageira) e a barra de ferramentas ganha um botão por classe da norma, com a explicação de cada uma ao passar o mouse e a tecla 3 a 8 — a tecla é a posição da classe na lista do protocolo. Antes era preciso marcar inviável e corrigir depois na galeria; agora a classe entra no mesmo clique, e a segmentação por clique herda ela. V e I continuam como sempre foram, marcando sem classe fina. Em orquídea, que usa viável/inviável, nada muda: os botões só aparecem com protocolo declarado.',
+          'Declare o protocolo na identificação da amostra (Germinação ou Forrageira) e a barra de ferramentas ganha um botão por classe da norma, com a explicação de cada uma ao passar o mouse e a tecla 1 a 6 — a tecla é a posição da classe na lista do protocolo. Por causa disso, as teclas 1 e 2 deixaram de alternar pontos e índices: agora quem faz isso é a tecla N. Antes era preciso marcar inviável e corrigir depois na galeria; agora a classe entra no mesmo clique, e a segmentação por clique herda ela. V e I continuam como sempre foram, marcando sem classe fina. Em orquídea, que usa viável/inviável, nada muda: os botões só aparecem com protocolo declarado.',
       },
       {
         tipo: 'novo',

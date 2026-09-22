@@ -38,7 +38,7 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
       // ajuda não pode prometer "dormente" para quem declarou outro. Sem
       // protocolo, as teclas não fazem nada.
       ...[1, 2, 3, 4, 5, 6].map((posicao) => ({
-        teclas: String(posicao + 2),
+        teclas: String(posicao),
         acao: `${posicao}ª classe do protocolo declarado`,
       })),
       { teclas: 'Alt', acao: 'Borracha enquanto segurar' },
@@ -61,8 +61,7 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
   {
     titulo: 'Visualização',
     atalhos: [
-      { teclas: '1', acao: 'Ver pontos' },
-      { teclas: '2', acao: 'Ver índices' },
+      { teclas: 'N', acao: 'Alterna pontos ↔ índices' },
       { teclas: 'M', acao: 'Máscara: tudo → só pontos → nada' },
       { teclas: 'G', acao: 'Galeria de objetos' },
       { teclas: '+ / −', acao: 'Zoom' },

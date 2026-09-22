@@ -133,17 +133,19 @@ export function Counters({
         <div className="flex gap-2 pt-1">
           <button
             onClick={() => setVisualMode('dots')}
+            title="Marca como ponto. A tecla N alterna entre pontos e índices."
             className={botaoModo(visualMode === 'dots')}
           >
             <Circle size={14} strokeWidth={2.25} aria-hidden="true" />
-            <span>Pontos (1)</span>
+            <span>Pontos</span>
           </button>
           <button
             onClick={() => setVisualMode('numbers')}
+            title="Marca com o número do objeto. A tecla N alterna entre pontos e índices."
             className={botaoModo(visualMode === 'numbers')}
           >
             <Hash size={14} strokeWidth={2.25} aria-hidden="true" />
-            <span>Índices (2)</span>
+            <span>Índices</span>
           </button>
         </div>
 
