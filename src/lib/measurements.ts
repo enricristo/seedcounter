@@ -19,12 +19,32 @@ import { enumerarObjetos, pointInPolygon, type ObjetoDaCena } from './objetos';
 
 export { pointInPolygon };
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
+import { CLASSES } from './normas/classes-de-semente';
 
 export interface SeedMeasurement {
   /** Identificador sequencial dentro da amostra. */
   objectId: number;
   /** 'viavel' | 'inviavel' */
   classe: string;
+  /**
+   * A classe fina do teste, quando alguém a declarou: `normal`, `anormal`,
+   * `dura`, `dormente`, `morta`, `vazia` (`lib/normas/classes-de-semente.ts`).
+   *
+   * Vazia quando ninguém classificou — e vazia significa "não foi declarado",
+   * nunca "é normal" (Lei 2). A coluna `classe` continua dizendo viável ou
+   * inviável para toda linha, como sempre disse.
+   */
+  classeNorma?: string;
+  /** O rótulo da classe fina, para a planilha ser lida sem decorar chave. */
+  classeRotulo?: string;
+  /**
+   * `sim`/`nao`: esta linha entra no denominador da porcentagem?
+   *
+   * É a única coluna aqui que muda uma CONTA: pela RAS, unidade de dispersão
+   * sem semente dentro é material inerte e sai do denominador. Sem classe fina
+   * declarada, fica vazia — quem exporta decide, e o app não arbitra.
+   */
+  contaComoSemente?: string;
   /** Origem do dado: manual, ia ou assistida. */
   origem: string;
   /** Classe extra herdada do dataset multiclasse ou YOLO */
@@ -158,6 +178,27 @@ function origemDaLinha(objeto: ObjetoDaCena): string {
 }
 
 /**
+ * As três colunas da classe fina, quando alguém a declarou.
+ *
+ * A classe mora na MARCA (`subclasse`), gravada pela galeria ou pelo menu
+ * radial; um contorno de modelo sem marca não tem onde carregá-la, e por isso
+ * a linha dele sai com as três vazias. Chave desconhecida — o que a fatia de
+ * classes definidas por quem usa vai produzir — também sai vazia, em vez de
+ * virar um `undefined` disfarçado de classe.
+ */
+function classeDaNorma(objeto: ObjetoDaCena): Partial<SeedMeasurement> {
+  const chave = objeto.marca?.subclasse;
+  if (!chave) return {};
+  const descricao = CLASSES[chave];
+  if (!descricao) return { classeNorma: chave };
+  return {
+    classeNorma: chave,
+    classeRotulo: descricao.rotulo,
+    contaComoSemente: descricao.ehSemente ? 'sim' : 'nao',
+  };
+}
+
+/**
  * Monta a tabela de medidas. Cada marcação vira uma linha; se houver um
  * contorno correspondente, a linha ganha as colunas morfométricas.
  */
@@ -177,6 +218,7 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
     const row: SeedMeasurement = {
       objectId: objeto.indice,
       classe: objeto.categoria === 'viable' ? 'viavel' : 'inviavel',
+      ...classeDaNorma(objeto),
       classeExterna: objeto.marca?.classeExterna || objeto.contorno?.classeExterna,
       origem: origemDaLinha(objeto),
       x: Math.round(objeto.x),
@@ -274,6 +316,16 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
 const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'objectId', label: 'objeto_id' },
   { key: 'classe', label: 'classe' },
+  // A classe fina e o que ela significa para a conta. Vieram depois de
+  // `classe` de propósito: quem já tem planilha montada continua achando as
+  // colunas antigas nas mesmas posições relativas, e as novas chegam juntas.
+  { key: 'classeNorma', label: 'classe_norma' },
+  { key: 'classeRotulo', label: 'classe_rotulo' },
+  { key: 'contaComoSemente', label: 'conta_como_semente' },
+  // Calculada desde sempre e nunca exportada: o nome cru que veio de um
+  // dataset de terceiros ('amendoim com mofo', 'trigo duro'). Sem ela, a
+  // curadoria de quem abriu um dataset alheio sumia na exportação.
+  { key: 'classeExterna', label: 'classe_externa' },
   { key: 'origem', label: 'origem' },
   { key: 'x', label: 'x_px' },
   { key: 'y', label: 'y_px' },
@@ -393,7 +445,10 @@ export function measurementsToCSV(
         { label: 'dpi_declarado', value: metadata.procedencia?.dpiDeclarado ?? '' },
         { label: 'dpi_medido', value: arredondar(metadata.procedencia?.dpiMedido, 1) },
         { label: 'calibracao_n', value: metadata.procedencia?.leiturasDeCalibracao ?? '' },
-        { label: 'calibracao_cv_pct', value: arredondar(metadata.procedencia?.cvDaCalibracaoPercent, 3) },
+        {
+          label: 'calibracao_cv_pct',
+          value: arredondar(metadata.procedencia?.cvDaCalibracaoPercent, 3),
+        },
         { label: 'versao_app', value: metadata.procedencia?.versaoDoApp ?? '' },
         { label: 'commit', value: metadata.procedencia?.commit ?? '' },
       ]
