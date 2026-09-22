@@ -40,7 +40,11 @@ contagem sem alguém aceitar; todo número sai dizendo quem o produziu.
    `text-accent-on`, `text-ink-2`, `border-line`, `bg-surface-2`…). **Nunca
    `text-white`, `rounded-xl`, `amber-500`** ou cor literal do Tailwind — o
    tema escuro redefine o token, não a utilitária.
-   `src/theme/__tests__/design-tokens.test.ts` reprova.
+   `src/theme/__tests__/design-tokens.test.ts` reprova tom inexistente e hex
+   em gráfico; `divida-de-tokens.test.ts` é a **catraca** da dívida antiga
+   (424 cores literais e 374 raios fora do sistema em 23/09, medidos em
+   `divida-de-tokens.json`): reprova se subir e pede para baixar o teto se
+   descer (`ATUALIZAR_DIVIDA=1 npx vitest run src/theme`).
 6. **Nunca o nome da instituição.** Em nenhum arquivo, comentário, teste,
    e-mail de exemplo ou documento. Os grupos (GPEOrq, GPSEM) e as pessoas
    podem aparecer; a universidade, não. Varra o repositório inteiro antes de
