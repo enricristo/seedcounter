@@ -18,10 +18,11 @@
 //      não custa (Lei 8).
 //   2. `V` e `I` não mudam de sentido: continuam marcando viável/inviável SEM
 //      classe fina. Refinar depois na galeria continua valendo.
-//   3. A tecla da classe é a POSIÇÃO dela na lista do protocolo — 3 a 8 —
-//      porque a norma publica essa lista em ordem, e porque 1 e 2 são modos de
-//      exibição desde a primeira versão: memória de quem já usa não se quebra
-//      por simetria.
+//   3. A tecla da classe é a POSIÇÃO dela na lista do protocolo — 1 a 6 —
+//      porque a norma publica essa lista em ordem e porque é assim que um
+//      analista lê a tabela impressa: "classe 1, classe 2". As teclas 1 e 2
+//      eram os modos de exibição até 23/09; eles passaram para `N`, que
+//      alterna pontos e índices, porque número na mão de quem conta é classe.
 //   4. A categoria (viável/inviável) da marca vem de `germinou`, nunca de uma
 //      segunda tabela escrita aqui (Lei 1).
 // =============================================================================
@@ -46,15 +47,15 @@ const ICONES: Record<ClasseDeSemente, IconeDeClasse> = {
   vazia: 'cortado',
 };
 
-/** A primeira tecla das classes. 1 e 2 são os modos de exibição. */
-export const PRIMEIRA_TECLA = 3;
+/** A primeira tecla das classes: a primeira classe é a tecla 1. */
+export const PRIMEIRA_TECLA = 1;
 
 export interface FerramentaDeClasse {
   classe: ClasseDeSemente;
   rotulo: string;
   /** A frase que explica a classe — o aluno precisa dela junto do botão. */
   explicacao: string;
-  /** A tecla, como a pessoa a lê: '3', '4'… */
+  /** A tecla, como a pessoa a lê: '1', '2'… */
   atalho: string;
   icone: IconeDeClasse;
   /** O que a marca vira: viável quando a classe germinou. */
@@ -92,7 +93,7 @@ export function ferramentasDoProtocolo(protocolo: Protocolo | undefined): Ferram
  * A classe que uma tecla escolhe, dentro do protocolo — ou `null`.
  *
  * `null` para tecla fora da faixa E para protocolo que não tem aquela posição:
- * apertar 8 num protocolo de cinco classes não pode marcar a última "porque
+ * apertar 6 num protocolo de cinco classes não pode marcar a última "porque
  * estava perto".
  */
 export function classeDaTecla(

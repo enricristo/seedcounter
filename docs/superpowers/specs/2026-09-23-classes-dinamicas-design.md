@@ -105,11 +105,12 @@ forrageira os vê sempre. O que o modo esconde também não custa (Lei 8).
 
 **V e I não mudam de sentido.** Continuam marcando viável/inviável *sem* classe
 fina — é o gesto rápido de sempre, e refinar depois na galeria continua valendo.
-As classes finas têm teclas próprias: **3 a 8, na ordem do protocolo**, porque a
-tecla é a POSIÇÃO na lista que a norma já publica, e porque 1 e 2 são modos de
-exibição desde a primeira versão (memória de quem já usa não se quebra por
-simetria). O menu radial (botão direito + arraste) continua sendo o caminho sem
-tecla, e já oferece exatamente as seis raízes.
+As classes finas têm teclas próprias: **1 a 6, na ordem do protocolo**, porque a
+tecla é a POSIÇÃO na lista que a norma já publica — é assim que um analista lê a
+tabela impressa ("classe 1, classe 2"). As teclas 1 e 2 eram os modos de
+exibição; o dono decidiu em 23/09 que **número na mão de quem conta é classe**, e
+a alternância pontos ↔ índices passou para **N**. O menu radial (botão direito +
+arraste) continua sendo o caminho sem tecla, e já oferece as seis raízes.
 
 **Como a marca nasce.** Marcar na classe `c` cria `{ type: categoriaDaClasse(c),
 subclasse: c }` — `categoriaDaClasse` vem de `germinou`, para não existir uma

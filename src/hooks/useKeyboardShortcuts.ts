@@ -3,7 +3,14 @@ import { useEffect } from 'react';
 interface KeyboardShortcutsProps {
   onUndo: () => void;
   onRedo: () => void;
-  onSetVisualMode: (mode: 'dots' | 'numbers') => void;
+  /**
+   * Alterna pontos ↔ índices.
+   *
+   * Era `1` e `2` até 23/09. As duas teclas passaram para as classes do
+   * protocolo — número na mão de quem conta é classe, não modo de exibição —
+   * e a alternância ganhou `N`, de "números".
+   */
+  onAlternarVisualMode: () => void;
   /**
    * Escolhe a classe fina pela tecla (3 a 8, a posição no protocolo).
    *
@@ -43,7 +50,7 @@ interface KeyboardShortcutsProps {
 export function useKeyboardShortcuts({
   onUndo,
   onRedo,
-  onSetVisualMode,
+  onAlternarVisualMode,
   onEscolherClasseFina,
   onNextImage,
   onPrevImage,
@@ -130,23 +137,20 @@ export function useKeyboardShortcuts({
       if (isTyping) return;
 
       switch (e.key.toLowerCase()) {
+        case 'n':
+          // Pontos ↔ índices. Herdou o lugar do 1/2, que viraram classes.
+          e.preventDefault();
+          onAlternarVisualMode();
+          break;
+        // As classes finas do protocolo, na ordem em que ele as declara — a
+        // tecla é a posição na lista. Só existem com protocolo declarado; sem
+        // ele, `onEscolherClasseFina` não faz nada e a tecla segue livre.
         case '1':
-          e.preventDefault();
-          onSetVisualMode('dots');
-          break;
         case '2':
-          e.preventDefault();
-          onSetVisualMode('numbers');
-          break;
-        // As classes finas do protocolo, na ordem em que ele as declara. Só
-        // existem com protocolo declarado; sem ele, `onEscolherClasseFina`
-        // não faz nada e a tecla segue livre.
         case '3':
         case '4':
         case '5':
         case '6':
-        case '7':
-        case '8':
           e.preventDefault();
           onEscolherClasseFina?.(e.key);
           break;
@@ -208,7 +212,7 @@ export function useKeyboardShortcuts({
   }, [
     onUndo,
     onRedo,
-    onSetVisualMode,
+    onAlternarVisualMode,
     onEscolherClasseFina,
     onNextImage,
     onPrevImage,
