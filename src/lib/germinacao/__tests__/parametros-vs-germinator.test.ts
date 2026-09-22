@@ -134,13 +134,15 @@ describe('definições dos parâmetros, com os a, b, c da planilha', () => {
     }
   });
 
-  it('a planilha respeita a ≤ gMAX, e a restrição está ativa em 5 amostras', () => {
-    let ativas = 0;
-    for (const { saida } of casos) {
+  it('a planilha respeita a ≤ gMAX, e a restrição está ativa em 4 amostras', () => {
+    // Contado na fixture: T8#2 (0,38), T16#2 (0,40), T32#4 (0,36), T48#2 (0,42).
+    // A primeira versão deste teste dizia 5 — era o número errado, não o código.
+    const ativas: string[] = [];
+    for (const { nome, saida } of casos) {
       expect(saida.a).toBeLessThanOrEqual(saida['gMAX (%)'] + 1e-12);
-      if (saida.a === saida['gMAX (%)']) ativas++;
+      if (Math.abs(saida.a - saida['gMAX (%)']) < 1e-12) ativas.push(nome);
     }
-    expect(ativas).toBe(5);
+    expect(ativas).toEqual(['T8#2', 'T16#2', 'T32#4', 'T48#2']);
   });
 });
 
@@ -179,10 +181,38 @@ describe('ajuste contra a planilha', () => {
     expect(Math.abs(p.r2 - saida.r2)).toBeLessThan(1e-5);
   });
 
-  it.each(naoConvergidos)('$nome: a planilha parou antes; o nosso mínimo é melhor e c fica na mesma região', ({ nosso, ajustePlanilha }) => {
+  // Dois jeitos diferentes de a planilha não ter convergido, e o teste
+  // precisa distinguir, porque a garantia é diferente em cada um:
+  //
+  // (a) PAROU PERTO DO CHUTE: b ficou em ~20 (o valor inicial) e o Solver
+  //     declarou vitória cedo. O nosso mínimo é melhor e o t50 (c) fica na
+  //     mesma região — mesmo vale, só mais fundo.
+  // (b) CAIU EM MÍNIMO LOCAL: c ≈ 151 h com r² < 0,9 (T8#1, T16#3, T32#3).
+  //     Aqui c NÃO fica na mesma região — o nosso está em outro vale, e o
+  //     critério honesto é que o r² nosso seja claramente maior.
+  //
+  // A primeira versão deste teste exigia "b desce" para todos: verdadeiro em
+  // 15, falso em T8#2 (r² da planilha já era 1). A segunda exigia "c na mesma
+  // região" para todos: falso nos três do caso (b). O critério da planilha
+  // para separar os dois casos é o próprio r² dela.
+  const minimoLocal = naoConvergidos.filter((c) => c.saida.r2 < 0.9);
+  const pararamCedo = naoConvergidos.filter((c) => !minimoLocal.includes(c));
+
+  it('os três do mínimo local são os esperados', () => {
+    expect(minimoLocal.map((c) => c.nome).sort()).toEqual(['T16#3', 'T32#3', 'T8#1']);
+  });
+
+  it.each(pararamCedo)('$nome: a planilha parou perto do chute; o nosso mínimo é melhor e c fica na mesma região', ({ nosso, ajustePlanilha }) => {
     expect(nosso.somaDeQuadrados).toBeLessThan(ajustePlanilha.somaDeQuadrados);
-    // b da planilha ficou preso perto do chute 20 (ou no mínimo local c≈151); o nosso desce
-    expect(nosso.b).toBeLessThan(ajustePlanilha.b);
+    expect(Math.abs(nosso.c - ajustePlanilha.c) / ajustePlanilha.c).toBeLessThan(0.15);
+  });
+
+  it.each(minimoLocal)('$nome: a planilha caiu num mínimo local (c≈151, r²<0,9); o nosso r² é claramente maior', ({ nosso, ajustePlanilha, saida, amostra }) => {
+    expect(nosso.somaDeQuadrados).toBeLessThan(ajustePlanilha.somaDeQuadrados);
+    const horas = amostra.leituras.map((l) => l.horas);
+    const fracoes = amostra.leituras.map((l) => l.acumulado / amostra.sementes);
+    const r2Nosso = r2DoAjuste(horas, fracoes, nosso);
+    expect(r2Nosso).toBeGreaterThan(saida.r2 + 0.05);
   });
 
   it('o otimizador converge nas duas passadas e fica bem abaixo das 10 000 iterações', () => {

@@ -161,7 +161,11 @@ export function r2DoAjuste(horas: readonly number[], fracoes: readonly number[],
   const media = fracoes.reduce((s, v) => s + v, 0) / fracoes.length;
   const sqTot = fracoes.reduce((s, v) => s + (v - media) * (v - media), 0);
   const sqRes = somaDeQuadrados(horas, fracoes, ajuste.y0, ajuste.a, ajuste.b, ajuste.c);
-  if (sqTot === 0) return sqRes === 0 ? 1 : 0;
+  // Leituras constantes: a variância total não é ZERO em ponto flutuante —
+  // é 1e-33 — e dividir por ela devolvia r² = −1,7e31. Um teste pegou.
+  // "Praticamente zero" tem que ser relativo à escala dos dados.
+  const escala = Math.max(1, media * media) * fracoes.length;
+  if (sqTot <= 1e-15 * escala) return sqRes <= 1e-15 * escala ? 1 : 0;
   return 1 - sqRes / sqTot;
 }
 
