@@ -32,7 +32,7 @@
 // isso, "o gráfico mudou" nunca se distingue de "o gerador é aleatório".
 //
 // Fundamentação e referências: docs/superpowers/specs/
-// 2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md
+// spec de linhas de pesquisa do grupo (documentação privada)
 // =============================================================================
 
 import { criarRng } from './rng';

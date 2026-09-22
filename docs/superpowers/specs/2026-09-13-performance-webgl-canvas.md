@@ -1,6 +1,6 @@
 # Estratégia de Performance: WebGL, Canvas e React (60 FPS Strict)
 **Data:** 2026-09-13
-**Documento de Origem:** `specs/2026-09-13-escala-industrial-arquitetura.md`
+**Documento de Origem:** `escala-industrial-arquitetura.md` (documentação privada)
 **Domínio:** Otimização de Frontend, Edge AI, Computação Gráfica
 
 Este documento é fruto de um brainstorming técnico focado exclusivamente em **Performance Extrema**. Para que o "Oráculo Visual" e o "Focus Peaking" rodem ao vivo na bancada do laboratório sem derreter a bateria de um notebook ou engasgar a interface, o SeedCounter deve adotar as arquiteturas da indústria de *Web Games* (Isométrica/WebGL) e fugir do ciclo tradicional de renderização do React.

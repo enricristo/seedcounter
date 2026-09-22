@@ -126,7 +126,7 @@ Um conjunto do Roboflow não é automaticamente utilizável. Ordem de conferênc
   que fenotipagem, mas úteis para morfologia de referência por espécie.
 - **Repositórios de artigos de fenotipagem** — AIseed, SmartGrain, GrainScan e
   SeedExtractor publicam material suplementar; ver
-  [`2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md`](../superpowers/specs/2026-09-03-linhas-de-pesquisa-machado-neto-custodio.md).
+  a spec de linhas de pesquisa do grupo (documentação privada).
 
 ### 3.3 Catálogo legível por máquina
 

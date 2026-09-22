@@ -29,16 +29,9 @@ mas **ainda não está integrado** ao frontend (roda isolado, via CLI).
 ## 2. Pré-requisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado.
-- Um arquivo `.env` na pasta `seedcounter/` (copie de `.env.example`):
-
-  ```bash
-  cp .env.example .env
-  # edite .env e preencha GEMINI_API_KEY
-  ```
-
-  > ⚠️ A `GEMINI_API_KEY` é embutida no JavaScript do cliente (mesmo
-  > comportamento atual no Vercel). Use uma chave com restrição de domínio/uso
-  > no Google AI Studio — nunca uma chave sensível e irrestrita.
+- Opcionalmente, um arquivo `.env` na pasta `seedcounter/` (copie de
+  `.env.example`) — só é preciso para ligar a conta Google ou apontar um
+  backend. **Sem ele o aplicativo roda inteiro**, anônimo e offline.
 
 ---
 
@@ -161,9 +154,7 @@ a `main` por conta própria.
 docker login
 
 # 2. buildar a imagem de produção já com a tag do Docker Hub
-#    (passe a chave como build-arg; ela fica embutida no bundle)
-docker build -t docker.io/enricristo/seedcounter:latest \
-  --build-arg GEMINI_API_KEY=SUA_CHAVE .
+docker build -t docker.io/enricristo/seedcounter:latest .
 
 # 3. enviar para o Docker Hub
 docker push docker.io/enricristo/seedcounter:latest
@@ -172,10 +163,9 @@ docker push docker.io/enricristo/seedcounter:latest
 docker run -d -p 80:80 docker.io/enricristo/seedcounter:latest
 ```
 
-> ⚠️ Como a `GEMINI_API_KEY` fica embutida no JavaScript do cliente, **não
-> publique uma imagem pública** com uma chave sensível. Para imagem pública, use
-> uma chave restrita por domínio/uso no Google AI Studio, ou mantenha o
-> repositório do Docker Hub como **privado**.
+> A imagem não contém nenhuma chave: o aplicativo não fala com serviço de IA
+> externo. Se um dia falar, a chave vai num backend, nunca no build — o
+> `define` do Vite a deixaria visível no JavaScript do cliente.
 
 ---
 
