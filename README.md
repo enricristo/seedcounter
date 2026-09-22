@@ -39,9 +39,9 @@ Uma aplicação web que roda **inteiramente no navegador**, sem servidor, sem en
 | **Comparação** | **Modo Multibancada**: até quatro cenas abertas, cada uma com imagem, medidas e calibração próprias |
 | **Saída** | CSV por objeto (com a origem de cada um), banco SQL, laudo PDF, imagem anotada e dataset YOLO |
 
-## O que as versões 3.6 e 3.7 trouxeram
+## O que as versões 3.6 a 3.8 trouxeram
 
-**Pronto para a bancada.** A 3.6.0 é a versão que a primeira usuária real leva para o laboratório, e a 3.7.0 é o que a verificação do trabalho seguinte encontrou — inclusive dois defeitos que teriam invalidado qualquer resultado da fila com IA (toda semente saía inviável; nenhum contorno chegava) e que nunca chegaram a produção.
+**Pronto para a bancada.** A 3.6.0 é a versão que a primeira usuária real leva para o laboratório; a 3.7.0 é o que a verificação do trabalho seguinte encontrou — inclusive dois defeitos que teriam invalidado qualquer resultado da fila com IA (toda semente saía inviável; nenhum contorno chegava) e que nunca chegaram a produção; e a 3.8.0 é a versão que se explica sozinha — o critério foi: alguém que nunca viu uma análise vai da abertura ao CSV sem um PDF ao lado.
 
 | | |
 |---|---|
@@ -51,8 +51,11 @@ Uma aplicação web que roda **inteiramente no navegador**, sem servidor, sem en
 | **Marcas que não tapam a semente** | Disco, anel, ponto ou cruz, com opacidade. Em todos, viável e inviável diferem também na forma. |
 | **Volumes com as equações na tela** | Embrião (esferoide prolato), semente (dois cones) e ar — escritas ao lado do resultado, para quem apresenta poder apontar. |
 | **Uma fonte para cada número** | Contagem, índice e classe vêm de um lugar só; um teste estático impede que alguém volte a contar por conta própria. Sete lugares foram corrigidos. |
-| **Germinator dentro do app** | O ajuste de Hill de quatro parâmetros e tudo que a planilha extrai (t50, uniformidade, AUC, MGT), validado contra 24 amostras reais da planilha original. |
-| **Regressão polinomial e ponto de ótimo** | A análise certa para fator quantitativo (MPa, horas, meses): graus 1 a 3, F sequencial, ótimo só dentro da faixa observada. |
+| **Germinator dentro do app** | A aba Germinação: cole a aba INPUT da planilha, ou importe do longitudinal; o ajuste de Hill de quatro parâmetros e tudo que a planilha extrai (t50, uniformidade, AUC, MGT), curvas por tratamento, Tukey com letras, exportação no formato da planilha. Validado contra 24 amostras reais — e onde o Solver do Excel parou cedo, o ajuste daqui converge e diz. |
+| **Regressão polinomial e ponto de ótimo** | A análise certa para fator quantitativo (MPa, horas, meses): graus 1 a 3, F sequencial, ótimo só dentro da faixa observada. Aparece sozinha em Estatísticas → Tratamentos quando três ou mais tratamentos têm um número no rótulo (T0, T8, T16), ao lado da ANOVA — não no lugar dela. |
+| **Cinco perfis na primeira abertura** | Analista de laboratório comercial, pesquisador de orquídea, de forrageira, aluno em treinamento, apresentação. Um clique responde a cinco perguntas (modo, marca, receita, protocolo, cronômetro); tudo continua mudável depois, e Configurações diz o que vai mudar antes de mudar. |
+| **Ajuda por tarefa, com o porquê** | Dez tarefas nas Instruções de Uso — calibrar para publicar, contar, ver a semente por baixo da marca, medir, o relógio, exportar com procedência, relatar, letras ou curva, curva de germinação, o que vai no artigo — cada uma com a pergunta da bancada, o porquê em uma frase, os passos e o que conferir. |
+| **A tabela de classes, num lugar só** | O exportador de dataset YOLO escrevia as classes ao contrário do modelo (viável 0); agora a ordem é sempre a do treino, o `dataset.yaml` traz as duas classes, e um teste amarra o exportador à tabela. Quem exportou antes troca 0↔1. |
 | **Carregar com a cena ocupada** | Substituir ou adicionar à fila, com a continuidade do experimento proposta pelo nome do arquivo — e a origem de cada proposta visível. |
 | **Modos de visualização** | Completo, contagem, laudo, apresentação; dezesseis partes ligáveis; o que o modo esconde também não custa. |
 | **Fila com IA cancelável** | "Processar Fila" vira "Parar fila"; a imagem em andamento não vira sessão; falhas e duplicatas no relato. |
@@ -258,14 +261,14 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 |---|---|---|
 | **Registro de curadoria** | A metade fácil está feita: cada objeto já carrega a origem (manual, ia, modelo, referência) no CSV. Falta a decisão — aceita, corrigida, rejeitada —, que é o que responde "o modelo ajuda ou cria retrabalho?" | Metade feita |
 | **Classificador calibrável** | Um limiar sobre o a\* que se recalibra com o que a pessoa curou — auditável, ao contrário de uma rede | Desenhado; depende do registro |
-| **Regressão polinomial** | Os ensaios de estresse osmótico têm fator **quantitativo** (MPa), e a análise publicada é regressão com ponto de ótimo — não separação de médias por letras | Núcleo pronto na 3.7.0 (`lib/regressao-polinomial.ts`); falta a tela |
+| **Regressão polinomial** | Os ensaios de estresse osmótico têm fator **quantitativo** (MPa), e a análise publicada é regressão com ponto de ótimo — não separação de médias por letras | Feito na 3.8.0: núcleo (`lib/regressao-polinomial.ts`) e cartão na aba Tratamentos. Falta só declarar o fator à mão quando o rótulo não tem número |
 | **Blocos casualizados (DBC)** | Delineamento dos ensaios de campo de produção de sementes. A ANOVA atual é só de um fator | Lacuna aberta |
 | **Classes dinâmicas** | Em forrageira, semente não germinada pode ser dormente, dura, vazia ou morta. A dicotomia viável/inviável não cobre, e contar espigueta vazia como semente produz porcentagem errada | Lacuna aberta |
 | **Protocolo por espécie** | Pré-condicionamento, escarificação e clareamento variam por gênero — a Tabela 1 do boletim de 2021 é um catálogo pronto | Lacuna aberta |
 | **Separação de sementes encostadas** | O corte por concavidade separa 95,8% dos pares reais, e o aviso de aglomerado passou a sair da própria população da imagem (falso alarme em orquídea caiu de 78% para 13%). O que falta é separar automaticamente sem a pessoa pedir — e em semente alongada o watershed comprovadamente fatia a semente ao meio | Parcialmente resolvido |
 | **Textura (GLCM)** | As 28 características que faltam para completar as 54 do AIseed. Servem para pureza física e cariopse vazia, não para tetrazólio — por isso não são prioridade | Adiado com motivo |
 | **Validação da morfometria** | Contra medição manual com paquímetro. Espera dados de outras culturas | Aguardando dados |
-| **Teste de interface** | O projeto não tem biblioteca de teste de componente: tipos, mais de 1 300 testes de lógica e testes estáticos de estrutura são a rede, mas nenhum deles renderiza tela. Cada entrega de interface depende de um roteiro manual — que fica escrito nos planos, não na cabeça de ninguém | Decisão consciente |
+| **Teste de interface** | O projeto não tem biblioteca de teste de componente: tipos, quase 1 500 testes de lógica e testes estáticos de estrutura (fonte única, tokens de design com catraca, dependências, atalhos) são a rede, mas nenhum deles renderiza tela. Cada entrega de interface depende de um roteiro manual — que fica escrito nos planos, não na cabeça de ninguém | Decisão consciente |
 | **Verificação do pacote de produção** | O CI compila mas nunca **abre** a página compilada. Um ciclo entre pedaços do empacotamento derrubou o site em 2026-09-06 com todo o portão de qualidade verde — foi verificado que o empacotador não avisa desse caso | Risco conhecido |
 
 ## Equipe
