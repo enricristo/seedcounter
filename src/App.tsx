@@ -36,6 +36,7 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 import { useTheme } from './hooks/useTheme';
 import { useBancadas } from './hooks/useBancadas';
 import { useCronometro } from './hooks/useCronometro';
+import type { ModoDeAnalise } from './lib/cronometro-de-analise';
 import { useVisibilidade } from './features/visualizacao/useModoDeVisualizacao';
 import {
   sugerirDoArquivo,
@@ -81,6 +82,14 @@ import { GaleriaModal } from './features/galeria';
 // Sob demanda: os dois carregam o `recharts` (ver `features/analytics/index.ts`).
 import { AnalyticsPanel, AnalyticsModal } from './features/analytics';
 import { NovidadesModal } from './features/novidades';
+import {
+  TelaDePerfil,
+  lerPerfilAtual,
+  ehReceitaPadrao,
+  ehModoDeAnalise,
+  CHAVE_RECEITA_PADRAO,
+  CHAVE_MODO_DE_ANALISE_PADRAO,
+} from './features/perfis';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
 import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
 import {
@@ -135,6 +144,7 @@ import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
 import {
+  RECEITAS,
   RECEITAS_DO_ENSAIO,
   receitaPelaEspecie,
   receitaDeSalva,
@@ -201,7 +211,50 @@ function centroide(pontos: [number, number][]): [number, number] {
 
 import { renderMarksToContext } from './lib/render-marks';
 
+/**
+ * A pré-definição por perfil, na primeira abertura.
+ *
+ * A tela dos cinco cartões vem ANTES de `AppInterno` montar, e não por cima
+ * dele: cada consumidor de preferência (estilo da marca, receita, cronômetro,
+ * sugestões) lê a própria chave ao montar, então o perfil precisa estar
+ * gravado antes da montagem — senão a escolha só valeria depois de um F5. O
+ * modo de visualização é a exceção: o Provider dele já está montado em
+ * `main.tsx`, e a tela o aplica pelo contexto. `sc:perfil` ausente é a única
+ * condição que mostra a tela; 'nenhum' (fechou sem escolher) não pergunta de
+ * novo. Um modo fixado pela URL (`?modo=apresentacao`, o link de gravar
+ * vídeo) também não pergunta: um link tem que dar o mesmo resultado em
+ * qualquer máquina, e não grava nada — a pergunta fica para a próxima
+ * abertura normal.
+ */
 export default function App() {
+  // O tema é a classe `.dark` no <html>, posta por `useTheme` — que só
+  // `AppInterno` chamava. Sem isto a tela de perfil abriria clara para quem
+  // usa o escuro, e piscaria ao entrar no app.
+  useTheme();
+  const { fixadoPelaUrl } = useVisibilidade();
+  const [perfilPendente, setPerfilPendente] = useState(
+    () => !fixadoPelaUrl && lerPerfilAtual() === undefined
+  );
+  if (perfilPendente) {
+    return <TelaDePerfil onConcluir={() => setPerfilPendente(false)} />;
+  }
+  return <AppInterno />;
+}
+
+/** A receita que o painel Encontrar carrega ao abrir, se o perfil definiu uma fixa. */
+function receitaPadraoInicial(): Receita | null {
+  const id = lerPreferenciaTexto(CHAVE_RECEITA_PADRAO, 'nenhuma');
+  if (!ehReceitaPadrao(id) || id === 'nenhuma') return null;
+  return RECEITAS.find((r) => r.id === id) ?? null;
+}
+
+/** O modo com que o cronômetro começa, se o perfil definiu um. */
+function modoDeAnaliseInicial(): ModoDeAnalise {
+  const modo = lerPreferenciaTexto(CHAVE_MODO_DE_ANALISE_PADRAO, 'assistida');
+  return ehModoDeAnalise(modo) ? modo : 'assistida';
+}
+
+function AppInterno() {
   // Theme & Darkmode State
   const { isDarkMode, toggleTheme } = useTheme();
 
@@ -500,7 +553,7 @@ export default function App() {
    * lê isto para inicializar os controles; editar os controles depois NÃO
    * escreve de volta aqui — só uma nova receita escolhida troca este estado.
    */
-  const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(null);
+  const [receitaAtiva, setReceitaAtiva] = useState<Receita | null>(receitaPadraoInicial);
 
   // Sessions CRUD history
   const { sessions, addSession, deleteSession, clearSessions, importSessions } = useSessions();
@@ -1362,8 +1415,13 @@ export default function App() {
 
   // O cronômetro é POR CENA: a chave junta bancada, arquivo e página, então
   // trocar de página do TIFF zera — é outra espécie, é outra amostra, é outro
-  // tempo. Ver `useCronometro`, decisão 3.
-  const cronometro = useCronometro(`${bancada.id}|${filename}|${paginaDoTiff}`);
+  // tempo. Ver `useCronometro`, decisão 3. O modo inicial vem do perfil
+  // (`sc:modoDeAnalisePadrao`), lido uma vez: o hook só o usa ao montar.
+  const [modoDeAnalisePadrao] = useState(modoDeAnaliseInicial);
+  const cronometro = useCronometro(
+    `${bancada.id}|${filename}|${paginaDoTiff}`,
+    modoDeAnalisePadrao
+  );
 
   // Só o rodapé precisa disto aqui: Header e laterais leem o contexto sozinhos.
   const { visibilidade } = useVisibilidade();
