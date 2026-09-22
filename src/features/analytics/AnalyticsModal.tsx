@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { X, Maximize2, PieChart as PieIcon, Activity, Download } from 'lucide-react';
+import { X, Activity, Download } from 'lucide-react';
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -24,7 +24,7 @@ interface AnalyticsModalProps {
   getMedicoesCompletas: () => SeedMeasurement[];
 }
 
-export function AnalyticsModal({ onClose, sessions, getMedicoesCompletas }: AnalyticsModalProps) {
+export function AnalyticsModal({ onClose, getMedicoesCompletas }: AnalyticsModalProps) {
   const [medicoesAtuais, setMedicoesAtuais] = useState<SeedMeasurement[]>([]);
   const [carregando, setCarregando] = useState(true);
   const dashboardRef = useRef<HTMLDivElement>(null);

@@ -16,7 +16,6 @@ import {
 import type {
   PresignedUrlRequest,
   PresignedUrlResponse,
-  SessionCommitResponse,
   TelemetryConfig,
   TelemetryPayload,
   TelemetryQueueRecord,
@@ -401,7 +400,8 @@ export class TelemetryClient {
         throw new Error(`Session ingestion HTTP ${commitRes.status}: ${errText}`);
       }
 
-      const commitData: SessionCommitResponse = await commitRes.json();
+      // O corpo é lido para validar o JSON; o conteúdo não é usado.
+      await commitRes.json();
 
       // Step 4: Mark as synced and evict local blob to reclaim storage
       await markTelemetryStatus(record.id, 'synced', {

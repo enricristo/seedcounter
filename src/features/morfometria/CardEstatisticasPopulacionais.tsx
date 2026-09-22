@@ -39,7 +39,6 @@ function LinhaMetrica({
 }) {
   if (!estatPx && !estatMm) return null;
 
-  const principal = estatMm ?? estatPx!;
   const secundario = estatMm ? estatPx : null;
 
   const valorMediana = estatMm ? mm(estatMm.mediana, casasMm) : px(estatPx!.mediana);

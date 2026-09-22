@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Save, Beaker } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import type { Experiment, Treatment, CultureMedium } from '../../types';
 import { useExperiments } from '../../hooks/useExperiments';
 import { CULTURE_MEDIUM_LABELS } from '../../types';
@@ -411,7 +411,7 @@ export function ExperimentModal({ isOpen, onClose, experiment, onSave }: Experim
             </div>
 
             <div className="space-y-3">
-              {treatments.map((t, idx) => (
+              {treatments.map((t) => (
                 <div
                   key={t.id}
                   className="flex flex-col sm:flex-row gap-3 p-4 bg-surface-2 border border-line rounded-2xl relative"

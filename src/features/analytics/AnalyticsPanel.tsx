@@ -29,7 +29,6 @@ const COLORS = ['#2ecc71', '#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#34495e'
 export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   medicoes,
   totalCount,
-  viableCount,
   inviableCount,
   onExpand,
 }) => {

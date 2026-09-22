@@ -76,8 +76,9 @@ contagem sem alguém aceitar; todo número sai dizendo quem o produziu.
   vigiam as leis: `fonte-unica`, `design-tokens`, `registro-de-atalhos`,
   `atalhos-prometidos`, `sob-demanda`, `dependencias`.
 - **Verificação antes de qualquer commit:** `npx tsc --noEmit` limpo,
-  `npx vitest run` verde (≈1 300 testes), `npx eslint src --ext .ts,.tsx` sem
-  aviso novo, `npm run build` ok. **O CI é o árbitro, não a máquina local** —
+  `npx vitest run` verde (≈1 500 testes), `npx eslint src --ext .ts,.tsx
+  --max-warnings 27` (o CI bloqueia acima do teto; os 27 são exhaustive-deps
+  antigos), `npm run build` ok. **O CI é o árbitro, não a máquina local** —
   já houve build que passava local e falhava no CI por um `node_modules`
   perdido acima da pasta.
 - **Git:** `main` é produção (Vercel); `develop` é a preview `-teste`.
