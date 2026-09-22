@@ -109,9 +109,30 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
           // Não faz sentido pré-cachear arquivos enormes (modelos ONNX, imagens
           // de origem). Sem isso o build FALHA quando algum passa de 2 MiB.
-          globIgnores: ['**/models/**', '**/*.onnx'],
+          //
+          // Os EXEMPLOS também ficam fora: eram 63 MB dos 66 MB do precache —
+          // toda pessoa baixava 92 imagens de exemplo na primeira visita, e de
+          // novo a cada versão que as mudasse, tenha ou não aberto uma. Passam
+          // ao cache em tempo de execução (abaixo): a que a pessoa abrir fica
+          // guardada e funciona sem rede depois; as outras não custam nada.
+          globIgnores: ['**/models/**', '**/*.onnx', '**/exemplos/**'],
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           runtimeCaching: [
+            {
+              // Exemplos reais e o catálogo: sob demanda, e ficam.
+              urlPattern: ({ url }) => url.pathname.includes('/exemplos/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'exemplos-cache',
+                expiration: {
+                  maxEntries: 120,
+                  maxAgeSeconds: 60 * 60 * 24 * 90, // 90 dias
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
