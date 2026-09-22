@@ -31,7 +31,12 @@ import type { EscopoDaExportacao } from '../../components/modals/ImageExportModa
 import type { IdentificacaoDoLaboratorio } from '../../lib/normas/identificacao';
 import type { TempoDaAnalise } from '../../lib/cronometro-de-analise';
 import { buildMeasurements, measurementsToCSV, measurementsToSQL } from '../../lib/measurements';
-import { exportarLaudo, exportarLaudosEmLote, montarMetricasAvancadas } from '../../lib/laudo';
+// O laudo entra por `import()` no clique, e não no topo: `lib/laudo` puxa o
+// jsPDF, e um import estático aqui fazia o HTML pré-carregar o pedaço
+// `pdf-export` (jspdf + html2canvas) na abertura do app — para quem só vai
+// contar. O mesmo padrão que o app já usa para `jszip` e `export-image`.
+// `montarMetricasAvancadas` é puro e leve, e vem de `montagem` direto.
+import { montarMetricasAvancadas } from '../../lib/laudo/montagem';
 import { baixarArquivo } from '../../lib/download';
 import { registrarEvento } from '../../lib/diagnostico/trilha';
 import { comAtividade } from '../atividade/atividade';
@@ -311,6 +316,7 @@ export function useExportacoes(e: EntradaDasExportacoes) {
       ? (montarMetricasAvancadas(buildMeasurements(buildMeasurementContext())) ?? undefined)
       : undefined;
 
+    const { exportarLaudo } = await import('../../lib/laudo');
     const r = await comAtividade('pdf', 'Gerando o laudo.', () =>
       exportarLaudo({
         filename: filename || 'sem-titulo.jpg',
@@ -332,6 +338,7 @@ export function useExportacoes(e: EntradaDasExportacoes) {
 
   const handleExportHistoryBatchPDF = async () => {
     registrarEvento('exportar', { tipo: 'PDF', saida: 'historico', sessoes: sessions.length });
+    const { exportarLaudosEmLote } = await import('../../lib/laudo');
     const r = await comAtividade('pdf', `Gerando ${sessions.length} laudos…`, () =>
       exportarLaudosEmLote(sessions, {
         visualMode,
