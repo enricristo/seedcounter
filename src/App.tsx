@@ -171,6 +171,12 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 import { contarObjetos } from './lib/contagem';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
+import { protocoloPorChave } from './lib/normas/classes-de-semente';
+import {
+  categoriaDaClasse,
+  classeDaTecla,
+  ferramentasDoProtocolo,
+} from './features/classes/ferramentas-de-classe';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements } from './lib/measurements';
 import {
@@ -426,13 +432,31 @@ function AppInterno() {
     isIdentificacaoOpen;
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
+  /**
+   * A classe fina do protocolo que está armada para o próximo clique.
+   *
+   * `null` = marcar como sempre se marcou, viável/inviável sem classe fina —
+   * é o estado de quem não declarou protocolo, e o de quem escolheu V ou I de
+   * propósito. Só o protocolo decide quais classes existem; a tecla é a
+   * posição dela na lista (`features/classes`).
+   */
+  const [classeAtiva, setClasseAtiva] = useState<ClasseDeSemente | null>(null);
+
   const {
     activeTool,
     setActiveTool,
     eraserRadius,
     setEraserRadius,
     isTemporary: isToolTemporary,
-  } = useTools({ disabled: isAnyModalOpen });
+  } = useTools({
+    disabled: isAnyModalOpen,
+    // V, I ou X pelo teclado = "agora eu marco grosso": a classe fina armada
+    // cai. Ferramenta de instrumento (onda, contorno) não desarma nada — a
+    // onda marca na classe armada de propósito.
+    onFerramentaPorTecla: (id) => {
+      if (id === 'viable' || id === 'inviable') setClasseAtiva(null);
+    },
+  });
 
   // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
   const { toggle: toggleFlag } = useFeatureFlags();
@@ -462,10 +486,14 @@ function AppInterno() {
   const escolherClasse = useCallback(
     (tipo: 'viable' | 'inviable') => {
       setActiveClassification(tipo);
+      // Escolher V ou I é dizer "agora eu marco grosso": desarma a classe
+      // fina, em vez de deixá-la grudada num gesto que não a pediu.
+      setClasseAtiva(null);
       setActiveTool((atual) => (atual === 'viable' || atual === 'inviable' ? tipo : atual));
     },
     [setActiveTool]
   );
+
   const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
 
   // DOM Refs
@@ -1147,13 +1175,46 @@ function AppInterno() {
   // outros temas a leem (`handleDesenhoConcluido`), não só a onda.
   const classeExternaDaImagem = classeExternaDe(metadata.dataset?.classesDaImagem);
 
+  /** As classes que o protocolo declarado oferece. Vazio = só viável/inviável. */
+  const ferramentasDeClasse = useMemo(
+    () => ferramentasDoProtocolo(protocoloPorChave(metadata.protocolo)),
+    [metadata.protocolo]
+  );
+
+  /**
+   * Armar uma classe fina: ela vai no próximo clique, e a ferramenta de
+   * marcação passa a ser a que corresponde à categoria dela — o canvas não
+   * aprende classe nenhuma, continua sabendo só viável e inviável.
+   */
+  const escolherClasseFina = useCallback(
+    (classe: ClasseDeSemente) => {
+      const categoria = categoriaDaClasse(classe);
+      setClasseAtiva(classe);
+      setActiveClassification(categoria);
+      setActiveTool((atual) => (atual === 'viable' || atual === 'inviable' ? categoria : atual));
+    },
+    [setActiveTool]
+  );
+
+  /** A tecla 3..8 escolhe pela POSIÇÃO no protocolo; fora dele, não faz nada. */
+  const escolherClassePelaTecla = useCallback(
+    (tecla: string) => {
+      const classe = classeDaTecla(tecla, protocoloPorChave(metadata.protocolo));
+      if (classe) escolherClasseFina(classe);
+    },
+    [metadata.protocolo, escolherClasseFina]
+  );
+
   const marcarComSom = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      const id = addMark(x, y, tipo, classeExternaDaImagem);
+      // A classe fina armada entra no MESMO gesto. Vale para o clique simples
+      // e para a onda, que chama isto por dentro: marcar "dormente" e medir o
+      // contorno é um gesto só.
+      const id = addMark(x, y, tipo, classeExternaDaImagem, undefined, classeAtiva ?? undefined);
       tocarMarca(tipo);
       return id;
     },
-    [addMark, classeExternaDaImagem]
+    [addMark, classeExternaDaImagem, classeAtiva]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -2385,6 +2446,7 @@ function AppInterno() {
     onUndo: desfazer,
     onRedo: refazer,
     onSetVisualMode: setVisualMode,
+    onEscolherClasseFina: escolherClassePelaTecla,
     onNextImage: handleNextImage,
     onPrevImage: handlePrevImage,
     onTogglePanning: togglePanningMode,
@@ -2675,7 +2737,16 @@ function AppInterno() {
             {image && (
               <Toolbar
                 activeTool={activeTool}
-                onSelect={setActiveTool}
+                onSelect={(t) => {
+                  // Escolher a ferramenta na barra desarma a classe fina
+                  // quando se volta a V ou I: é o mesmo gesto de "agora eu
+                  // marco grosso" que `escolherClasse` faz pelo painel.
+                  if (t === 'viable' || t === 'inviable') setClasseAtiva(null);
+                  setActiveTool(t);
+                }}
+                ferramentasDeClasse={ferramentasDeClasse}
+                classeAtiva={classeAtiva}
+                onEscolherClasse={escolherClasseFina}
                 eraserRadius={eraserRadius}
                 onEraserRadiusChange={setEraserRadius}
                 isTemporary={isToolTemporary}

@@ -108,6 +108,12 @@ export const VERSOES: Versao[] = [
       },
       {
         tipo: 'novo',
+        titulo: 'Marcar direto na classe: dormente, dura, anormal, vazia',
+        detalhe:
+          'Declare o protocolo na identificação da amostra (Germinação ou Forrageira) e a barra de ferramentas ganha um botão por classe da norma, com a explicação de cada uma ao passar o mouse e a tecla 3 a 8 — a tecla é a posição da classe na lista do protocolo. Antes era preciso marcar inviável e corrigir depois na galeria; agora a classe entra no mesmo clique, e a segmentação por clique herda ela. V e I continuam como sempre foram, marcando sem classe fina. Em orquídea, que usa viável/inviável, nada muda: os botões só aparecem com protocolo declarado.',
+      },
+      {
+        tipo: 'novo',
         titulo: 'Detrito deixa de contar como semente inviável',
         detalhe:
           'Quando você classifica um objeto como "Vazia (inerte)" — casca, espigueta sem semente dentro, detrito —, ele sai da conta: não é semente viável nem inviável, e não entra no denominador da porcentagem. A norma manda assim, e a diferença não é pequena: 400 objetos com 80 vazios dão porcentagem sobre 320, não sobre 400. O painel mostra uma linha "Inerte (fora da conta)" para você ver quantos saíram, e o CSV ganhou as colunas classe_norma, classe_rotulo, conta_como_semente e classe_externa. Enquanto ninguém classificar nada como inerte, nenhum número muda.',

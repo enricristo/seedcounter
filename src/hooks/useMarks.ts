@@ -110,9 +110,19 @@ export function useMarks() {
   // VINCULAR os dois. Sem o id, o vinculo ficava implicito (ponto dentro do
   // poligono), e implicito quebra quando o poligono e cortado ao meio.
   const addMark = useCallback(
-    (x: number, y: number, type: 'viable' | 'inviable', classeExterna?: string, op?: OpcoesDeRegistro): number => {
+    (
+      x: number,
+      y: number,
+      type: 'viable' | 'inviable',
+      classeExterna?: string,
+      op?: OpcoesDeRegistro,
+      // A classe fina do protocolo, quando alguém marcou direto nela. Entra
+      // no MESMO gesto: marcar "dormente" e ter de reclassificar na galeria
+      // depois é o passo que esta fatia existe para tirar.
+      subclasse?: Mark['subclasse']
+    ): number => {
       const id = Date.now() + Math.random();
-      setMarks((prev) => [...prev, { x, y, type, id, classeExterna }], op);
+      setMarks((prev) => [...prev, { x, y, type, id, classeExterna, subclasse }], op);
       return id;
     },
     [setMarks]
@@ -211,7 +221,11 @@ export function useMarks() {
   /** Limpa tudo num passo só — e um passo que o Ctrl+Z devolve. */
   const resetAllAnnotations = useCallback(() => {
     mutar((antes) =>
-      antes.marks.length === 0 && antes.segmentacoes.length === 0 && antes.anotacoesVisuais.length === 0 ? antes : VAZIO
+      antes.marks.length === 0 &&
+      antes.segmentacoes.length === 0 &&
+      antes.anotacoesVisuais.length === 0
+        ? antes
+        : VAZIO
     );
     setSegmentsVisible(true);
   }, [mutar]);
