@@ -95,6 +95,24 @@ export const VERSOES: Versao[] = [
           'Os gráficos e o gerador de PDF só são baixados quando alguém os abre — antes o navegador os pré-carregava na abertura, 1 MB para quem nunca ia usar. E três dependências que nenhum código usava foram removidas.',
       },
       {
+        tipo: 'corrigido',
+        titulo: 'Exportar dataset YOLO escrevia as classes ao contrário do modelo',
+        detalhe:
+          'O exportador tinha a própria tabela — viável 0, inviável 1 — enquanto o modelo foi treinado com inviável 0, viável 1. Um dataset exportado e somado ao de treino trocaria a classe de cada semente sem aviso. Agora a ordem é sempre a do treino, e o dataset.yaml traz as duas classes mesmo quando só as viáveis são exportadas. Se você exportou antes desta versão e quer juntar ao treino: troque 0 por 1 nos rótulos, ou exporte de novo.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'A sugestão "Salvar sessão" não salvava',
+        detalhe:
+          'Clicar na sugestão do painel não fazia nada — ela guardava uma versão antiga da função, de antes de haver imagem. Ctrl+S e o botão sempre funcionaram; a sugestão agora também.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Arquivo JSON malformado era aceito e virava contorno inválido',
+        detalhe:
+          'Importar um JSON com campo do tipo errado (uma lista de pontos que não era lista) entrava no estado como lixo. Agora é recusado com uma frase que diz o índice e o campo: "Segmentação 3: polygon_points deveria ser uma lista de pares [x, y]".',
+      },
+      {
         tipo: 'melhorado',
         titulo: 'Documentação sensível saiu do repositório público',
         detalhe:
