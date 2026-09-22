@@ -613,10 +613,9 @@ def catalogar(pasta: Path, tabela, blocos, kaggle_baixados, docs):
     elif no_docs and no_docs["url"]:
         origem, fonte["origem"] = no_docs["url"], "README"
     else:
+        # Inclui as pastas do laboratório: sabe-se de onde vieram (é a nossa
+        # bancada), mas não está escrito em lugar nenhum — então é dedução.
         origem, fonte["origem"] = origem_heuristica(nome, caminhos), "heuristica"
-        if de_lab:
-            # Sabe-se de onde veio (é a nossa bancada); só não está escrito em lugar nenhum.
-            fonte["origem"] = "heuristica"
     if not url:
         url = da_pasta["url"] or (no_docs["url"] if no_docs else None)
         if not url and bloco:
