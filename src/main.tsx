@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { registerSW } from 'virtual:pwa-register';
 import { FeatureFlagProvider } from './context/FeatureFlagContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ModoDeVisualizacaoProvider } from './features/visualizacao';
 import { instalarCapturaGlobal } from './lib/diagnostico/instalar';
 import App from './App.tsx';
 import './index.css';
@@ -66,11 +67,16 @@ createRoot(document.getElementById('root')!).render(
   // da árvore que pode quebrar.
   <StrictMode>
     <ErrorBoundary>
+      {/* O modo de visualização fica ACIMA do provedor de funcionalidades: é o
+          que decide o que a tela mostra, e precisa existir antes de qualquer
+          painel que ele esconde. Lê a URL e a preferência sozinho. */}
+      <ModoDeVisualizacaoProvider>
       <FeatureFlagProvider>
         <App />
         <Analytics />
         <SpeedInsights />
       </FeatureFlagProvider>
+      </ModoDeVisualizacaoProvider>
     </ErrorBoundary>
   </StrictMode>
 );

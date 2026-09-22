@@ -47,6 +47,7 @@ import {
   type MarcaClassificavel,
 } from '../normas/classes-de-semente';
 import type { Metadata } from '../../types';
+import type { SeedMeasurement } from '../measurements';
 
 /** O que se escreve onde não há valor. Nunca espaço em branco. */
 export const AUSENTE = '—';
@@ -125,6 +126,10 @@ export interface EntradaDoLaudo {
    * Ausente = o laudo fica so com viavel/inviavel.
    */
   marcas?: MarcaClassificavel[];
+  /**
+   * O bloco de métricas por classe (área média, a*, L*, b*), já montado por
+   * `montarMetricasAvancadas`. Ausente = o laudo não fala de cor nem de área.
+   */
   metricasAvancadas?: Bloco;
 }
 
@@ -482,6 +487,95 @@ function montarRastreabilidade(dados: {
   });
 
   return campos;
+}
+
+// ---------------------------------------------------------------------------
+// Métricas avançadas — área e cor, POR CLASSE
+// ---------------------------------------------------------------------------
+
+/** Média aritmética; `null` para lista vazia — nunca NaN num campo de laudo. */
+function media(valores: number[]): number | null {
+  if (valores.length === 0) return null;
+  return valores.reduce((a, b) => a + b, 0) / valores.length;
+}
+
+/** Número com vírgula decimal e sinal explícito quando pedido — "+18,4" diz "vermelho" sem legenda. */
+function numeroBR(valor: number, casas: number, comSinal = false): string {
+  const texto = formatar(medido(valor), casas);
+  return comSinal && valor > 0 ? `+${texto}` : texto;
+}
+
+/**
+ * O bloco "Métricas avançadas" do laudo, a partir da tabela de medidas.
+ *
+ * POR CLASSE, NÃO UMA MÉDIA SÓ. No tetrazólio o que interessa é a distância
+ * entre o a* das viáveis (embrião vermelho, a* alto) e o das inviáveis
+ * (branco, a* perto de zero). Uma média única mistura as duas e diz nada:
+ * 60 viáveis a +20 com 40 inviáveis a +2 dão +12,8 — um número que não
+ * descreve nenhuma semente da placa. A primeira versão fazia exatamente isso.
+ *
+ * A UNIDADE DIZ O QUE É. Sem calibração a área sai em px², e o laudo escreve
+ * "px²" — uma área sem unidade num documento é um número que alguém vai ler
+ * como mm². Com calibração sai em mm² (é assim que o lote é descrito).
+ *
+ * SEM PIXELS, SEM COR. As colunas de cor só existem quando `buildMeasurements`
+ * recebeu a imagem; num laudo só de contagem elas não existem e as linhas de
+ * cor somem — não saem "NaN", nem "0,0". A área continua, porque vem do
+ * contorno e não da foto.
+ *
+ * O que entra é a MESMA tabela do CSV: se o laudo e a planilha divergissem
+ * na área média, um dos dois estaria errado.
+ *
+ * Devolve `null` quando não há nenhuma semente com contorno: sem contorno não
+ * há área nem cor, e um bloco vazio só ocuparia lugar.
+ */
+export function montarMetricasAvancadas(medicoes: SeedMeasurement[]): Bloco | null {
+  const comContorno = medicoes.filter((m) => m.areaPx !== undefined);
+  if (comContorno.length === 0) return null;
+
+  // Calibrado = toda linha com contorno tem `areaMm2` (buildMeasurements só
+  // preenche quando há µm/px). Meio calibrado não existe: é a mesma imagem.
+  const calibrado = comContorno.every((m) => m.areaMm2 !== undefined);
+  const campos: Campo[] = [];
+
+  for (const classe of ['viavel', 'inviavel'] as const) {
+    const rotulo = classe === 'viavel' ? 'Viáveis' : 'Inviáveis';
+    const linhas = comContorno.filter((m) => m.classe === classe);
+    if (linhas.length === 0) continue;
+
+    const areaMedia = calibrado
+      ? media(linhas.map((m) => m.areaMm2 ?? 0))
+      : media(linhas.map((m) => m.areaPx ?? 0));
+    if (areaMedia !== null) {
+      campos.push({
+        rotulo: `${rotulo} — área média (n = ${linhas.length})`,
+        valor: calibrado ? `${numeroBR(areaMedia, 3)} mm²` : `${quantidadeBR(Math.round(areaMedia))} px² (não calibrado)`,
+      });
+    }
+
+    const comCor = linhas.filter((m) => m.aMean !== undefined);
+    const a = media(comCor.map((m) => m.aMean ?? 0));
+    const l = media(comCor.map((m) => m.lMean ?? 0));
+    const b = media(comCor.map((m) => m.labBMean ?? 0));
+    if (a !== null && l !== null && b !== null) {
+      const n = comCor.length !== linhas.length ? ` (cor em ${comCor.length} de ${linhas.length})` : '';
+      campos.push({ rotulo: `${rotulo} — a* CIELAB, sinal do tetrazólio${n}`, valor: numeroBR(a, 1, true) });
+      campos.push({ rotulo: `${rotulo} — L* CIELAB, luminosidade`, valor: numeroBR(l, 1) });
+      campos.push({ rotulo: `${rotulo} — b* CIELAB, eixo azul–amarelo`, valor: numeroBR(b, 1, true) });
+    }
+  }
+
+  const haCor = campos.some((c) => c.rotulo.includes('a* CIELAB'));
+  campos.push({
+    rotulo: 'Leitura',
+    valor:
+      'Médias por classe, sobre as sementes com contorno. ' +
+      (haCor
+        ? 'a* positivo = vermelho (tetrazólio); a* próximo de zero = sem coloração. Cor medida dentro do contorno.'
+        : 'Sem medidas de cor: o laudo foi gerado sem a imagem.'),
+  });
+
+  return { titulo: 'Métricas avançadas', campos };
 }
 
 /** O nome do arquivo que sai. */

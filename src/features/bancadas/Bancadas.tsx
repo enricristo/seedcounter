@@ -29,6 +29,7 @@ import { X } from 'lucide-react';
 import { ImageViewport } from '../../components/canvas/ImageViewport';
 import { MarkingCanvas } from '../../components/canvas/MarkingCanvas';
 import { mostraContornos, mostraPontos } from '../mascara';
+import { contarObjetos } from '../../lib/contagem';
 import type { Bancada } from '../../hooks/useBancada';
 import type { Bancadas as BancadasEstado } from '../../hooks/useBancadas';
 import type { Mark, YoloSegmentation } from '../../types';
@@ -162,8 +163,12 @@ function tituloDaBancada(b: Bancada): string {
   return b.fila.filename || 'Sem imagem';
 }
 
+/**
+ * O mesmo número do contador principal. Somar marcas e contornos dobrava a
+ * semente clicada (o clique cria os dois) — a aba dizia 24 onde o laudo dizia 12.
+ */
 function contagemDaBancada(b: Bancada): number {
-  return b.anotacoes.marks.length + b.anotacoes.yoloSegmentations.length;
+  return contarObjetos(b.anotacoes.marks, b.anotacoes.yoloSegmentations).total;
 }
 
 function classeDaGrade(abertas: number): string {

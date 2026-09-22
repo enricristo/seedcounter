@@ -19,12 +19,13 @@ import {
 import { Counters } from '../sidebar/Counters';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { CardEstatisticasPopulacionais } from '../../features/morfometria/CardEstatisticasPopulacionais';
-import { CardHistogramas } from '../../features/morfometria/CardHistogramas';
+import { CardHistogramas } from '../../features/morfometria/CardHistogramas.sob-demanda';
 import { CardRegrasSemiAutomaticas } from '../../features/morfometria/CardRegrasSemiAutomaticas';
 import type { ResumoDeMorfometria } from '../../features/morfometria/resumo';
 import type { SeedMeasurement } from '../../lib/measurements';
 import type { RegraParametrica } from '../../features/morfometria/regras';
 import type { Session } from '../../types';
+import { useVisibilidade } from '../../features/visualizacao/useModoDeVisualizacao';
 
 interface RightSidebarProps {
   viableCount: number;
@@ -108,6 +109,10 @@ export function RightSidebar({
   analyticsContent,
   comparacaoContent,
 }: RightSidebarProps) {
+  // Modo de visualização (`features/visualizacao`): o painel inteiro e o
+  // bloco de morfometria da aba Resultados respondem ao menu "Exibir".
+  const { visibilidade } = useVisibilidade();
+  if (!visibilidade.lateralDireita) return null;
 
   return (
     <div className="flex flex-row h-full shrink-0">
@@ -233,6 +238,8 @@ export function RightSidebar({
                 Exportar Laudo / Dados
               </button>
 
+              {visibilidade.morfometria && (
+              <>
               <hr className="border-neutral-100 dark:border-zinc-800" />
 
               <div className="space-y-2">
@@ -278,6 +285,8 @@ export function RightSidebar({
                   />
                 </CollapsibleSection>
               </div>
+              </>
+              )}
             </div>
 
             <div className={activeTab === 'inspetor' ? 'flex flex-col gap-4' : 'hidden'}>

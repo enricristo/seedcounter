@@ -22,8 +22,10 @@ import { simplifyContour, traceContour } from './contour';
 /** Origem do runtime ONNX. Fixada em versão para builds reproduzíveis. */
 const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.0';
 
-export const YOLO_CLASSES = ['inviavel', 'viavel'] as const;
-export type YoloClassName = (typeof YOLO_CLASSES)[number];
+// A tabela de classes mora em `classe-do-modelo.ts`, junto da tradução para
+// viável/inviável — para não existir uma cópia aqui e outra lá.
+import { YOLO_CLASSES, type YoloClassName } from './classe-do-modelo';
+export { YOLO_CLASSES, type YoloClassName } from './classe-do-modelo';
 
 /**
  * Modelo publicado: quantizado int8, 28 MB, cabe no repositório e carrega rápido.

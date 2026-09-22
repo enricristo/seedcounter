@@ -89,6 +89,16 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
       },
     ],
   },
+  {
+    titulo: 'Desenvolvimento',
+    atalhos: [
+      {
+        teclas: 'Ctrl + Shift + D',
+        acao: 'Painel de recursos experimentais (flags)',
+        nota: 'Para quem testa: liga e desliga funcionalidades em fase. Nada ali muda um resultado já medido.',
+      },
+    ],
+  },
 ];
 
 export interface InstrucaoDoMouse {

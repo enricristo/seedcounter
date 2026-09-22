@@ -36,6 +36,7 @@ import { ConfirmDialog } from './components/modals/ConfirmDialog';
 import { useTheme } from './hooks/useTheme';
 import { useBancadas } from './hooks/useBancadas';
 import { useCronometro } from './hooks/useCronometro';
+import { useVisibilidade } from './features/visualizacao/useModoDeVisualizacao';
 import {
   sugerirDoArquivo,
   quantasSugestoes,
@@ -44,6 +45,17 @@ import {
 import { useSessions } from './hooks/useSessions';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useDragDrop } from './hooks/useDragDrop';
+import {
+  DialogoDeCarregar,
+  decidirAoCarregar,
+  haTrabalhoNaoSalvo,
+  proporContinuidade,
+  aplicarContinuidade,
+  type Continuidade,
+  type ConfirmacaoDeCarregar,
+  type CampoDeContinuidade,
+  type PropostaDeContinuidade,
+} from './features/carregar';
 import { useViewNavigation } from './hooks/useViewNavigation';
 import { useTools } from './hooks/useTools';
 import {
@@ -64,8 +76,8 @@ import { CalibrationPanel } from './features/calibration';
 import { FeaturesModal } from './features/settings';
 import { IdentificacaoModal } from './features/normas';
 import { GaleriaModal } from './features/galeria';
-import { AnalyticsPanel } from './features/analytics/AnalyticsPanel';
-import { AnalyticsModal } from './features/analytics/AnalyticsModal';
+// Sob demanda: os dois carregam o `recharts` (ver `features/analytics/index.ts`).
+import { AnalyticsPanel, AnalyticsModal } from './features/analytics';
 import { NovidadesModal } from './features/novidades';
 import { BotaoDeConta, useConta, aplicarPreferencia } from './features/conta';
 import { useEasterEggs, Florescer, PassoDaMontanha, Germinar, tocarMarca } from './features/easter';
@@ -144,6 +156,7 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
+import { categoriaImportada, categoriaDoNome, nomeDaCategoria } from './lib/classe-do-modelo';
 import { limiaresDaPopulacao } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { calculateSeedDimensions } from './lib/pca-utils';
@@ -154,7 +167,7 @@ import {
   isNeutral,
   toCssFilter,
 } from './lib/image-adjust';
-import { exportarLaudo, exportarLaudosEmLote } from './lib/laudo';
+import { exportarLaudo, exportarLaudosEmLote, montarMetricasAvancadas } from './lib/laudo';
 import { baixarArquivo, nomeDeExportacao } from './lib/download';
 import { registrarEvento, extensaoDe } from './lib/diagnostico/trilha';
 import type { ContextoDoRelatorio } from './lib/diagnostico/relatorio';
@@ -448,6 +461,29 @@ export default function App() {
   const [sugestoes, setSugestoes] = useState<SugestoesDaAmostra | null>(null);
 
   /**
+   * Carregar com cena ocupada (ver `features/carregar`): os arquivos ficam
+   * aqui, SEGURADOS, enquanto o diálogo pergunta o que fazer. Cancelar zera
+   * isto e nada abre. Vários arquivos de uma vez = uma pergunta só, sobre o
+   * primeiro; os outros seguem o mesmo destino.
+   */
+  const [carregamentoPendente, setCarregamentoPendente] = useState<{
+    arquivos: File[];
+    continuidade: Continuidade;
+  } | null>(null);
+  /**
+   * A continuidade que a pessoa confirmou, à espera da imagem que ela
+   * descreve. É aplicada em `onImageLoaded`, quando ESSA imagem abre — e não
+   * no clique — porque "adicionar à fila" deixa a cena atual na tela, e
+   * escrever "T8" no metadado da placa que ainda está sendo contada seria
+   * errado. A chave é nome+tamanho, a mesma de `useBancada`.
+   */
+  const continuidadePendente = useRef<{
+    chave: string;
+    proposta: PropostaDeContinuidade;
+    marcados: Set<CampoDeContinuidade>;
+  } | null>(null);
+
+  /**
    * Ensaio ao carregar (Fase I, atrás da flag `ensaioAoCarregar`).
    *
    * `resultados` acumula um `ResultadoDoEnsaio` por receita conforme cada uma
@@ -487,6 +523,12 @@ export default function App() {
   // entra) NÃO mora mais aqui: é `useBancada` quem cuida disso agora, porque
   // é estado da CENA que carregou a imagem, não deste callback global (ver
   // `useBancada.ts`).
+  // O modo de visualização decide se o ensaio roda (ver `modo.ts`, "o que o
+  // modo esconde também não custa"). Lido aqui, e não no `useVisibilidade` do
+  // rodapé mais abaixo, porque este fecho é declarado antes dele — e um
+  // segundo `useContext` custa nada.
+  const { visibilidade: visibilidadeDoModo } = useVisibilidade();
+
   const onImageLoaded = (indice: number, img: HTMLImageElement, file: File) => {
     // A bancada que carregou a imagem — não necessariamente a ativa (Task 3
     // ainda não liga `ativar` a nenhuma interação, então hoje é sempre a
@@ -523,6 +565,17 @@ export default function App() {
     );
     setChipDeClasseDispensado(null);
 
+    // Continuidade confirmada no diálogo de carregar, se for ESTA imagem:
+    // só os campos marcados entram (ver `aplicarContinuidade`). Outra imagem
+    // abrindo antes — a pessoa navegou na fila — não consome a pendência.
+    const continuidade = continuidadePendente.current;
+    if (continuidade && continuidade.chave === `${file.name}:${file.size}`) {
+      continuidadePendente.current = null;
+      alvo.meta.setMetadata((prev) =>
+        aplicarContinuidade(prev, continuidade.proposta, continuidade.marcados)
+      );
+    }
+
     if (containerRef.current) {
       const container = containerRef.current;
       alvo.zoom.fitToScreen(container.clientWidth, container.clientHeight, img.width, img.height);
@@ -536,7 +589,14 @@ export default function App() {
     // bancada que não está em tela não pode disparar um ensaio caro que
     // ninguém vai ver — com quatro bancadas isso multiplicaria o trabalho por
     // até quatro sem nenhum ganho.
-    if (isEnsaioAoCarregarEnabled && indice === bancadas.indiceAtivo) {
+    //
+    // E só nos modos que MOSTRAM o ensaio: "contagem" o desliga
+    // (`visibilidadePadrao('contagem').ensaioAoCarregar === false`), e o
+    // menu Exibir permite ligar ou desligar por cima do modo. É o primeiro
+    // caso de "o que o modo esconde também não custa": rodar três receitas
+    // sobre uma digitalização grande são segundos que quem só conta não
+    // pediu. A flag continua mandando — o modo só desliga, nunca liga.
+    if (isEnsaioAoCarregarEnabled && visibilidadeDoModo.ensaioAoCarregar && indice === bancadas.indiceAtivo) {
       ensaioCancelado.current = false;
       abrirAbaDireita('inspetor');
 
@@ -616,7 +676,7 @@ export default function App() {
     loadError,
     setLoadError,
     loadFiles,
-    handleFileUpload,
+    adicionarAFila,
     handleNextImage,
     handlePrevImage,
     loadImageFromFile,
@@ -685,6 +745,85 @@ export default function App() {
     referenciaJaCarregada,
     setReferenciaJaCarregada,
   } = bancada.cena;
+
+  // --- Carregar imagem com cena aberta (ver `features/carregar`) -------------
+  //
+  // A porta de entrada de quem ESCOLHE um arquivo: o botão da barra lateral e
+  // o arrastar-e-soltar. Com a cena vazia (ou sem marcação) abre direto, como
+  // sempre abriu; com cena ocupada segura os arquivos e pergunta. Os outros
+  // caminhos que chamam `loadFiles` — exemplo, dataset, câmera, dividir,
+  // recorte — NÃO passam por aqui: cada um deles já escreve metadado ou troca
+  // a própria imagem no mesmo gesto, e um diálogo no meio quebraria isso.
+  const carregarArquivos = useCallback(
+    (files: File[]) => {
+      const decisao = decidirAoCarregar({
+        temImagem: image !== null,
+        totalDeMarcas: marks.length,
+        totalDeContornos: yoloSegmentations.length,
+        ultimaGravacao,
+      });
+      if (decisao === 'abrir' || files.length === 0) {
+        loadFiles(files);
+        return;
+      }
+      const primeiro = files[0];
+      const caminho = (primeiro as File & { webkitRelativePath?: string }).webkitRelativePath;
+      const pasta = caminho ? caminho.split('/').slice(-2, -1)[0] : undefined;
+      const continuidade = proporContinuidade(
+        {
+          researcher: metadata.researcher,
+          project: metadata.project,
+          treatment: metadata.treatment,
+          plate: metadata.plate,
+          especie: metadata.amostra?.especieNomeCientifico,
+        },
+        sugerirDoArquivo({ nomeDoArquivo: primeiro.name, pasta }),
+        primeiro.name
+      );
+      setCarregamentoPendente({ arquivos: files, continuidade });
+    },
+    [image, marks.length, yoloSegmentations.length, ultimaGravacao, metadata, loadFiles]
+  );
+
+  /** Mesma assinatura do `handleFileUpload` da fila — a barra lateral não muda. */
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      carregarArquivos(Array.from(e.target.files || []));
+      e.target.value = '';
+    },
+    [carregarArquivos]
+  );
+
+  const cancelarCarregamento = useCallback(() => {
+    registrarEvento('carregar:decisao', { escolha: 'cancelar' });
+    setCarregamentoPendente(null);
+  }, []);
+
+  const confirmarCarregamento = useCallback(
+    ({ escolha, tipo, marcados }: ConfirmacaoDeCarregar) => {
+      if (!carregamentoPendente) return;
+      const { arquivos, continuidade } = carregamentoPendente;
+      setCarregamentoPendente(null);
+      // Só a escolha e o tipo — nunca o nome do arquivo (ver `trilha.ts`).
+      registrarEvento('carregar:decisao', { escolha, continuidade: tipo, campos: marcados.size });
+
+      const proposta = continuidade.propostas.find((p) => p.tipo === tipo);
+      const primeiro = arquivos[0];
+      if (proposta && marcados.size > 0) {
+        continuidadePendente.current = {
+          chave: `${primeiro.name}:${primeiro.size}`,
+          proposta,
+          marcados,
+        };
+      } else {
+        continuidadePendente.current = null;
+      }
+
+      if (escolha === 'substituir') loadFiles(arquivos);
+      else adicionarAFila(arquivos, escolha === 'adicionar-e-ir');
+    },
+    [carregamentoPendente, loadFiles, adicionarAFila]
+  );
 
   // O comprimento tipico de um objeto DESTA imagem, em pixels: a mediana do
   // maior lado dos contornos ja segmentados. E o que permite conferir se a
@@ -1142,15 +1281,15 @@ export default function App() {
               const polygon_points = seg.polygon_points || seg.points || [];
               const { width, height } = calculateSeedDimensions(polygon_points);
 
-              let category: 'viable' | 'inviable' = 'viable';
-              if (seg.category === 'inviable' || seg.class_name === 'inviavel' || seg.class === 1) {
-                category = 'inviable';
-              }
+              // `category` → `class_name` (com ou sem acento) → índice pela tabela
+              // do treino. Antes `class === 1` virava inviável aqui, mas 1 é
+              // VIÁVEL em `YOLO_CLASSES` — o mesmo engano que a fila com IA teve.
+              const category = categoriaImportada(seg);
 
               return {
                 id: seg.id ?? idx,
                 category,
-                class_name: category === 'viable' ? 'viavel' : 'inviavel',
+                class_name: nomeDaCategoria(category),
                 confidence: seg.confidence ?? 1.0,
                 polygon_points,
                 visible: seg.visible !== false,
@@ -1217,13 +1356,14 @@ export default function App() {
       const jsons = files.filter((f) => f.name.endsWith('.json') || f.type === 'application/json');
 
       if (images.length > 0) {
-        loadFiles(images);
+        // Mesmo caminho do botão: com cena ocupada, pergunta antes de abrir.
+        carregarArquivos(images);
       }
       if (jsons.length > 0) {
         processJSONFile(jsons[0]);
       }
     },
-    [loadFiles, processJSONFile]
+    [carregarArquivos, processJSONFile]
   );
 
   const { isDragActive } = useDragDrop({ onFilesDropped });
@@ -1328,6 +1468,9 @@ export default function App() {
   // trocar de página do TIFF zera — é outra espécie, é outra amostra, é outro
   // tempo. Ver `useCronometro`, decisão 3.
   const cronometro = useCronometro(`${bancada.id}|${filename}|${paginaDoTiff}`);
+
+  // Só o rodapé precisa disto aqui: Header e laterais leem o contexto sozinhos.
+  const { visibilidade } = useVisibilidade();
 
   /**
    * O que produziu estes números: versão, página, escala e custo.
@@ -1446,7 +1589,10 @@ export default function App() {
         yoloSegmentations,
         options,
         visualMode,
-        ajusteDaMarca
+        ajusteDaMarca,
+        // O PNG sai com a MESMA marca que a pessoa conferiu na tela — antes
+        // saía sempre disco opaco, e a imagem exportada contradizia o canvas.
+        { estiloDaMarca, opacidadeDaMarca }
       );
       
       offscreenCanvas.toBlob((blob) => {
@@ -1464,13 +1610,17 @@ export default function App() {
       await comAtividade('png-batch', `Exportando ${sessions.length} fotos...`, async () => {
         for (let i = 0; i < sessions.length; i++) {
           const sessao = sessions[i];
-          if (!sessao.imageData) continue;
+          // Guardado numa constante para o TypeScript estreitar o tipo: dentro
+          // do fechamento abaixo o `!` era a única forma, e `!` é promessa sem
+          // fiador.
+          const fonteDaImagem = sessao.imageData;
+          if (!fonteDaImagem) continue;
           
           const img = new Image();
           await new Promise<void>((resolve, reject) => {
             img.onload = () => resolve();
             img.onerror = reject;
-            img.src = sessao.imageData!;
+            img.src = fonteDaImagem;
           });
           
           const offscreenCanvas = document.createElement('canvas');
@@ -1485,7 +1635,8 @@ export default function App() {
             sessao.yoloSegmentations || [],
             options,
             visualMode,
-            ajusteDaMarca
+            ajusteDaMarca,
+            { estiloDaMarca, opacidadeDaMarca }
           );
           
           const blob = await new Promise<Blob | null>((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
@@ -1505,44 +1656,14 @@ export default function App() {
   const handleExportPDF = async () => {
     registrarEvento('exportar', { tipo: 'PDF', total: totalCount, temImagem: !!image });
     
-    let metricasAvancadas = undefined;
-    if (image && (yoloSegmentations.length > 0 || marks.length > 0)) {
-      const ctx = buildMeasurementContext();
-      const { buildMeasurements } = await import('./lib/measurements');
-      const medicoes = buildMeasurements(ctx);
-      
-      let aMeanAcc = 0;
-      let lMeanAcc = 0;
-      let bMeanAcc = 0;
-      let areaPxAcc = 0;
-      let qty = 0;
-      for (const m of medicoes) {
-        if (m.aMean !== undefined) {
-           aMeanAcc += m.aMean;
-           lMeanAcc += m.lMean!;
-           bMeanAcc += m.bMean!;
-           areaPxAcc += m.areaPx ?? 0;
-           qty++;
-        }
-      }
-      
-      if (qty > 0) {
-        const aM = (aMeanAcc / qty).toFixed(1);
-        const lM = (lMeanAcc / qty).toFixed(1);
-        const bM = (bMeanAcc / qty).toFixed(1);
-        const areaM = (areaPxAcc / qty).toFixed(0);
-        
-        metricasAvancadas = {
-           titulo: 'Métricas Avançadas',
-           campos: [
-             { rotulo: 'Sinal Tetrazólio (a* CIELAB)', valor: `${aM}` },
-             { rotulo: 'Luminosidade (L* CIELAB)', valor: `${lM}` },
-             { rotulo: 'Tom (b* CIELAB)', valor: `${bM}` },
-             { rotulo: 'Área Média (pixels)', valor: `${areaM}` }
-           ]
-        };
-      }
-    }
+    // Métricas por classe (área média, a*, L*, b*) a partir da MESMA tabela
+    // do CSV. Os pixels são lidos sob demanda por `buildMeasurementContext`
+    // (~117 MB numa digitalização) e morrem com esta chamada — nada fica no
+    // estado. Sem imagem a área ainda sai (vem do contorno); só a cor não.
+    const metricasAvancadas =
+      yoloSegmentations.length > 0 || marks.length > 0
+        ? (montarMetricasAvancadas(buildMeasurements(buildMeasurementContext())) ?? undefined)
+        : undefined;
 
     const r = await comAtividade('pdf', 'Gerando o laudo.', () =>
       exportarLaudo({
@@ -1693,6 +1814,7 @@ export default function App() {
       } catch (e) {
         console.error('Falha ao gerar a cena de exemplo', e);
       } finally {
+      setFilaIARodando(false);
         setExemploCarregando(null);
       }
     },
@@ -1768,9 +1890,8 @@ export default function App() {
    */
   const normalizarClasseExterna = useCallback(
     (classe: string): { category: 'viable' | 'inviable'; class_name: string; classeExterna?: string } => {
-      const c = classe.trim().toLowerCase();
-      if (c === 'viavel' || c === 'viável') return { category: 'viable', class_name: 'viavel' };
-      if (c === 'inviavel' || c === 'inviável') return { category: 'inviable', class_name: 'inviavel' };
+      const category = categoriaDoNome(classe);
+      if (category) return { category, class_name: nomeDaCategoria(category) };
       return { category: 'viable', class_name: 'viavel', classeExterna: classe };
     },
     []
@@ -2109,92 +2230,64 @@ export default function App() {
     setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
   }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
 
+  /**
+   * "Processar Fila (IA)": o YOLO em cada imagem da fila, uma sessão por
+   * imagem na Galeria. O laço, o cancelamento, a duplicata e o isolamento de
+   * erro moram em `features/lote/fila-ia.ts` (testado em node); aqui só se
+   * liga o que é do navegador — worker, Dexie, barra de atividade, alerta.
+   *
+   * A cena aberta NÃO é tocada: nada aqui escreve em marcas, contornos ou
+   * imagem da bancada. Trocar de bancada no meio é seguro — as sessões vão
+   * para a Galeria (global) com os metadados da bancada de onde a fila foi
+   * disparada, que é a procedência certa. O que o botão captura no clique
+   * (fila e metadados) é o que se promete processar; o que mudar depois não
+   * entra. Parar: `cancelarFilaIA()` do mesmo módulo, ligável a um botão.
+   */
+  const [filaIARodando, setFilaIARodando] = useState(false);
+  const handlePararFilaIA = useCallback(async () => {
+    const { cancelarFilaIA } = await import('./features/lote/fila-ia');
+    cancelarFilaIA();
+  }, []);
+
   const handleProcessarFilaIA = useCallback(async () => {
     if (imageQueue.length === 0) return;
-    setSegmentandoLote({ feitas: 0, total: imageQueue.length });
-
-    try {
-      const { detectarNoWorker } = await import('./lib/yolo-worker-client');
-      const { ehTiff } = await import('./lib/image-crop');
-      const { decodificarTiff } = await import('./lib/tiff');
-
-      for (let i = 0; i < imageQueue.length; i++) {
-        if (ensaioCancelado.current) break; // Reusing the cancel ref
-        
-        const file = imageQueue[i];
-        let bitmapCompleto: ImageBitmap;
-        
-        if (ehTiff(file)) {
-          const buffer = await file.arrayBuffer();
-          const dec = decodificarTiff(buffer, 0);
-          if (!dec) continue;
-          const canvasTiff = document.createElement('canvas');
-          canvasTiff.width = dec.width;
-          canvasTiff.height = dec.height;
-          const ctxT = canvasTiff.getContext('2d');
-          if (!ctxT) continue;
-          ctxT.putImageData(new ImageData(dec.rgba, dec.width, dec.height), 0, 0);
-          const blob = await new Promise<Blob>((res, rej) => canvasTiff.toBlob((b) => b ? res(b) : rej(), 'image/png'));
-          bitmapCompleto = await createImageBitmap(blob);
-        } else {
-          bitmapCompleto = await createImageBitmap(file);
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmapCompleto.width;
-        canvas.height = bitmapCompleto.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) continue;
-        
-        ctx.drawImage(bitmapCompleto, 0, 0);
-        bitmapCompleto.close();
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const imageDataStr = canvas.toDataURL('image/jpeg', 0.85);
-
-        const detections = await detectarNoWorker(imageData);
-        const resultados: YoloSegmentation[] = detections.map((det, index) => {
-          let category: 'viable' | 'inviable' = 'viable';
-          if (det.className === 'inviavel' || det.classId === 1) category = 'inviable';
-          return {
-            id: index,
-            category,
-            class_name: det.className,
-            confidence: det.confidence,
-            polygon_points: det.polygon ?? [],
-            visible: true,
-            width: det.bbox.width,
-            height: det.bbox.height,
-          };
-        });
-
-        const viableCount = resultados.filter(s => s.category === 'viable').length;
-        const inviableCount = resultados.filter(s => s.category === 'inviable').length;
-
-        const session: Session = {
-          id: Date.now().toString() + '-' + i,
-          date: new Date().toISOString(),
-          filename: file.name,
-          viableCount,
-          inviableCount,
-          metadata: { ...metadata },
-          marks: [],
-          yoloSegmentations: resultados,
-          imageData: imageDataStr,
-        };
-
-        addSession(session);
-        setSegmentandoLote({ feitas: i + 1, total: imageQueue.length });
-      }
-      
-      alert(`Processamento da Fila (IA) concluído: ${imageQueue.length} imagens analisadas e salvas no Histórico.`);
-    } catch (e) {
-      console.error(e);
-      alert('Erro ao processar fila com IA.');
-    } finally {
-      setSegmentandoLote(null);
+    const { processarFilaComIA, analisarComModelo, filaIAEmAndamento, descreverRelato } = await import(
+      './features/lote/fila-ia'
+    );
+    // Um worker só: uma segunda fila cancelaria as detecções da primeira.
+    if (filaIAEmAndamento()) {
+      alert('Já há uma fila com IA em andamento. Espere terminar ou cancele antes de começar outra.');
+      return;
     }
-  }, [imageQueue, metadata, addSession]);
+    const { detectarNoWorker } = await import('./lib/yolo-worker-client');
+
+    const total = imageQueue.length;
+    const encerrar = iniciarAtividade('fila-ia', `IA na fila: imagem 1 de ${total}…`);
+    // `filaIAEmAndamento()` é um sinalizador de módulo, e o React não
+    // re-renderiza por ele. Este estado espelha o sinalizador só para o
+    // cabeçalho trocar "Processar" por "Parar" e voltar.
+    setFilaIARodando(true);
+    try {
+      const relato = await processarFilaComIA(imageQueue, {
+        metadataBase: metadata,
+        sessoesExistentes: sessions,
+        analisar: (file) => analisarComModelo(file, detectarNoWorker),
+        gravar: addSession,
+        progresso: (feito, n) =>
+          atualizarProgresso('fila-ia', feito / n, `IA na fila: imagem ${feito + 1} de ${n}…`),
+        versaoDoApp: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : undefined,
+        commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : undefined,
+      });
+      alert(descreverRelato(relato));
+    } catch (e) {
+      // Só o que o laço não isola chega aqui (uma segunda fila, ou o módulo
+      // que não carregou) — a falha por imagem já foi para o relato.
+      console.error(e);
+      alert(`Não foi possível processar a fila com IA: ${e instanceof Error ? e.message : 'erro desconhecido'}.`);
+    } finally {
+      encerrar();
+    }
+  }, [imageQueue, metadata, sessions, addSession]);
 
 
 
@@ -3085,6 +3178,8 @@ export default function App() {
         onExport={() => setIsExportModalOpen(true)}
         hasImage={!!image}
         onProcessarFilaIA={handleProcessarFilaIA}
+        filaIARodando={filaIARodando}
+        onPararFilaIA={handlePararFilaIA}
 
         currentView={currentView}
         onViewChange={navigate}
@@ -3277,7 +3372,7 @@ export default function App() {
                 mascara={mascara}
                 onCiclarMascara={ciclarMascara}
                 onAbrirGaleria={() => abrirAbaDireita('galeria')}
-                totalDeObjetos={marks.length + yoloSegmentations.length}
+                totalDeObjetos={contagem.total}
                 ajusteDaMarca={ajusteDaMarca}
                 onAjusteDaMarcaChange={setAjusteDaMarca}
                 estiloDaMarca={estiloDaMarca}
@@ -3788,7 +3883,7 @@ export default function App() {
       )}
 
       {/* 5. Footer Status Bar */}
-      {currentView === 'counter' && (
+      {currentView === 'counter' && visibilidade.rodape && (
         <Footer
           tempoAtivoMs={image ? cronometro.tempo.ativoMs : undefined}
           modoDeAnalise={cronometro.tempo.modo}
@@ -3837,7 +3932,7 @@ export default function App() {
             exportCSV={handleExportCSV}
             exportMeasurementsCSV={handleExportMeasurementsCSV}
             exportSQL={handleExportSQL}
-            measurementCount={marks.length}
+            measurementCount={contagem.total}
             hasMorphometry={yoloSegmentations.some(
               (s) => s.visible !== false && s.polygon_points?.length >= 3
             )}
@@ -3979,6 +4074,28 @@ export default function App() {
               'Tratamento',
               'Imagem carregada',
             ]}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Carregar com cena ocupada — substituir ou enfileirar, e o que a
+          imagem nova é. Esc cancela e nada abre (ver `features/carregar`). */}
+      <AnimatePresence>
+        {carregamentoPendente && (
+          <DialogoDeCarregar
+            key={`${carregamentoPendente.arquivos[0].name}:${carregamentoPendente.arquivos[0].size}`}
+            nomeDoArquivo={carregamentoPendente.arquivos[0].name}
+            quantosArquivos={carregamentoPendente.arquivos.length}
+            avisoDeNaoSalvo={haTrabalhoNaoSalvo({
+              temImagem: image !== null,
+              totalDeMarcas: marks.length,
+              totalDeContornos: yoloSegmentations.length,
+              ultimaGravacao,
+            })}
+            continuidade={carregamentoPendente.continuidade}
+            metadata={metadata}
+            onCancelar={cancelarCarregamento}
+            onConfirmar={confirmarCarregamento}
           />
         )}
       </AnimatePresence>

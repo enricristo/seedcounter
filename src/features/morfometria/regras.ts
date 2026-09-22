@@ -8,6 +8,8 @@
 
 import type { Mark, YoloSegmentation } from '../../types';
 import type { SeedMeasurement } from '../../lib/measurements';
+import { enumerarObjetos } from '../../lib/objetos';
+import { nomeDaCategoria, type Categoria } from '../../lib/classe-do-modelo';
 
 export type TipoDeRegra = 'filtro-impurezas' | 'deteccao-aglomerados' | 'limiar-viabilidade';
 
@@ -119,63 +121,46 @@ export function aplicarRegra(
     return { marks, segmentacoes, totalAfetadas: 0 };
   }
 
-  // Mapeia objectId (1-based da lista de marks) para mark
-  const marksAfetadas = new Set<number>();
-  medicoes.forEach((m) => {
-    if (idsAfetados.has(m.objectId)) {
-      // O objectId corresponde ao índice i + 1 de marks
-      const markIndex = m.objectId - 1;
-      if (marks[markIndex]) {
-        marksAfetadas.add(marks[markIndex].id);
-      }
-    }
-  });
+  // `objectId` é o `indice` de `enumerarObjetos` — a MESMA lista que
+  // `buildMeasurements` percorreu para produzir `medicoes`. Traduzir para
+  // posição em `marks` (`objectId - 1`) só funcionava porque as marcas vêm
+  // primeiro na enumeração, e deixava de fora os contornos órfãos: uma
+  // semente que só o modelo viu passava ilesa pela regra, sem aviso.
+  const objetos = enumerarObjetos(marks, segmentacoes).filter((o) => idsAfetados.has(o.indice));
+  const marcasAfetadas = new Set<number>();
+  const contornosAfetados = new Set<number>();
+  for (const o of objetos) {
+    if (o.marca) marcasAfetadas.add(o.marca.id);
+    if (o.contorno) contornosAfetados.add(o.contorno.id);
+  }
+  // Um contorno é afetado se é o da semente, ou se declara pertencer a uma
+  // marca afetada (`marcaId`) — o vínculo explícito vale mesmo quando a
+  // enumeração não o pareou (polígono degenerado, por exemplo).
+  const contornoAfetado = (s: YoloSegmentation): boolean =>
+    contornosAfetados.has(s.id) || (s.marcaId != null && marcasAfetadas.has(s.marcaId));
+  const totalAfetadas = objetos.length;
 
   if (regra.acao === 'remover') {
-    const novasMarcas = marks.filter((m) => !marksAfetadas.has(m.id));
-    // Remove também as segmentações vinculadas às marcas removidas
-    const novasSegs = segmentacoes.filter(
-      (s) => s.marcaId == null || !marksAfetadas.has(s.marcaId)
-    );
     return {
-      marks: novasMarcas,
-      segmentacoes: novasSegs,
-      totalAfetadas: marksAfetadas.size,
+      marks: marks.filter((m) => !marcasAfetadas.has(m.id)),
+      segmentacoes: segmentacoes.filter((s) => !contornoAfetado(s)),
+      totalAfetadas,
     };
   }
 
   if (regra.acao === 'marcar-inviavel' || regra.acao === 'marcar-viavel') {
-    const novoTipo: 'viable' | 'inviable' =
-      regra.acao === 'marcar-viavel' ? 'viable' : 'inviable';
-    const novaClasse: 'viavel' | 'inviavel' =
-      novoTipo === 'viable' ? 'viavel' : 'inviavel';
-
-    const novasMarcas = marks.map((m) =>
-      marksAfetadas.has(m.id) ? { ...m, type: novoTipo } : m
-    );
-
-    const novasSegs = segmentacoes.map((s) => {
-      if (s.marcaId != null && marksAfetadas.has(s.marcaId)) {
-        return {
-          ...s,
-          category: novoTipo,
-          class_name: novaClasse,
-        };
-      }
-      return s;
-    });
+    const novoTipo: Categoria = regra.acao === 'marcar-viavel' ? 'viable' : 'inviable';
+    const novaClasse = nomeDaCategoria(novoTipo);
 
     return {
-      marks: novasMarcas,
-      segmentacoes: novasSegs,
-      totalAfetadas: marksAfetadas.size,
+      marks: marks.map((m) => (marcasAfetadas.has(m.id) ? { ...m, type: novoTipo } : m)),
+      segmentacoes: segmentacoes.map((s) =>
+        contornoAfetado(s) ? { ...s, category: novoTipo, class_name: novaClasse } : s
+      ),
+      totalAfetadas,
     };
   }
 
   // Se a ação for apenas sinalizar-corte, não muta a lista, apenas devolve o total afetado
-  return {
-    marks,
-    segmentacoes,
-    totalAfetadas: marksAfetadas.size,
-  };
+  return { marks, segmentacoes, totalAfetadas };
 }
