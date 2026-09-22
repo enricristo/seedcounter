@@ -19,11 +19,15 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - `docs/PRIVADO.md` — o que vive no repositório privado, e por quê.
 
 ### Alterado
-- `App.tsx` 4 190 → 3 841: exportações em `features/exportar/` (`useExportacoes`, `contexto.ts`; 14 testes).
+- `App.tsx` 4 190 → 3 841 → 3 699: exportações em `features/exportar/` (`useExportacoes`, `contexto.ts`; 14 testes); importação em `features/importar/` (`classificarJSON`/`interpretarJSON` conferem o que leem — campo com tipo errado vira frase com índice e nome; 25 testes) e sessão em `features/sessao/` (`montarSessao`, `useSessao`; formato gravado provado idêntico; 9 testes). Sidebar e HistoryModal usam o mesmo `handleImportHistoryJSON`; `reader.onerror` deixa de ser silêncio.
 - `package.json`: saem `@google/genai`, `express`, `dotenv`, `@types/express`; `vite`, plugins e `@types/jszip` para dev. `GEMINI_API_KEY` sai de vite/Docker/compose/CI/.env.example/docs.
 - `vite.config.ts`: `manualChunks` como função; `react-vendor` próprio; preload-helper do Vite fora do `pdf-export`; `lib/laudo` por `import()` no clique. HTML inicial pré-carrega só `react-vendor` e `db-lib` (antes: + `recharts-charts` 461 kB + `pdf-export` 593 kB).
 - README para 3.7.0; arquitetura apontando para `AGENTS.md`.
-- Testes: 1288 → 1447.
+- Testes: 1288 → 1488.
+
+### Corrigido
+- A sugestão "Salvar sessão" do painel de sugestões não gravava nada: `handleAcaoDeSugestao` capturava o `saveCurrentSession` do primeiro render (`filename` vazio). Entra nas deps.
+- JSON importado com campo de tipo errado (`polygon_points: "abc"`) virava contorno inválido no estado; agora é recusado com frase.
 
 ### Removido do público
 - `docs/backend/`, `docs/roteiros/`, `docs/mercado/`, `docs/visao/`, sete specs de posicionamento/backend/scale-up/ToupView, dois planos de negócio → `seedcounter-docs` (privado). Quatro menções à instituição corrigidas nas specs restantes.
