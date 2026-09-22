@@ -140,6 +140,8 @@ import {
 import { useLaboratorio } from './hooks/useLaboratorio';
 import { useExemplos } from './features/demo/useExemplos';
 import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
+import { useOnda } from './features/segmentacao/useOnda';
+import { classeExternaDe } from './features/segmentacao/contorno-do-clique';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
@@ -1130,9 +1132,12 @@ function AppInterno() {
    * neste gesto (politica de autoplay), entao chamar sempre e seguro: sem
    * preferencia ligada, silencio.
    */
-  const classeExternaDaImagem = metadata.dataset?.classesDaImagem && metadata.dataset.classesDaImagem.length > 0
-    ? metadata.dataset.classesDaImagem.join(' + ')
-    : undefined;
+  // A fórmula é a mesma de antes (join(' + ') de metadata.dataset.classesDaImagem);
+  // só passou a viver em `features/segmentacao/contorno-do-clique.ts`
+  // (`classeExternaDe`), que `propostosParaSegmentacoes`, mais abaixo, também
+  // usa — uma fonte só para a mesma conta. A variável continua aqui porque
+  // outros temas a leem (`handleDesenhoConcluido`), não só a onda.
+  const classeExternaDaImagem = classeExternaDe(metadata.dataset?.classesDaImagem);
 
   const marcarComSom = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
@@ -1141,66 +1146,6 @@ function AppInterno() {
       return id;
     },
     [addMark, classeExternaDaImagem]
-  );
-
-  const segmentarComOnda = useCallback(
-    (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      // `imagemParaAutomacoes` some quando forcarOriginalNasAutomacoes está
-      // ligado mas a imagem original ainda não carregou — guarda de tipo, não
-      // caso novo: sem ela, segmentarNoCanvas nem tem o que ler.
-      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
-      const marcaId = marcarComSom(x, y, tipo);
-
-      const inicio = performance.now();
-      // A imagem de TRABALHO, nao a original: se a pessoa achatou o fundo, foi
-      // exatamente para a onda parar na borda certa. Passar a original aqui
-      // tornava o achatamento decorativo.
-      const r = segmentarNoCanvas(imagemParaAutomacoes, { x, y });
-      const ms = Math.round(performance.now() - inicio);
-
-      if (!r) {
-        setRecadoDaOnda({ tom: 'aviso', texto: 'Não foi possível ler os pixels desta imagem.' });
-        return;
-      }
-
-      if (r.tocouBorda) {
-        setRecadoDaOnda({
-          tom: 'aviso',
-          texto: 'Contagem registrada, sem contorno: a onda escapou. Clique mais para dentro da semente.', // prettier-ignore
-        });
-        return;
-      }
-
-      const area = metadata.umPerPixel
-        ? `${((r.areaPx * metadata.umPerPixel ** 2) / 1e6).toFixed(3)} mm²`
-        : `${r.areaPx} px`;
-
-      // Comprimento e largura pelos EIXOS PRINCIPAIS do contorno, e nao pela
-      // caixa alinhada aos eixos da imagem: uma semente deitada na diagonal tem
-      // caixa quase quadrada, e a caixa mediria a diagonal em vez da semente.
-      // A PCA gira o objeto ate ele deitar, e ai mede.
-      const { width, height } = calculateSeedDimensions(r.contorno);
-
-      appendYoloSegmentation({
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        category: tipo,
-        class_name: tipo === 'viable' ? 'viavel' : 'inviavel',
-        classeExterna: classeExternaDaImagem,
-        // Não é probabilidade de modelo: foi a pessoa que apontou a semente.
-        confidence: 1,
-        polygon_points: r.contorno,
-        visible: true,
-        width,
-        height,
-        // A marcação criada por este mesmo clique é quem conta a semente.
-        origem: 'clique',
-        marcaId,
-      // Marca e contorno sairam do MESMO clique: um Ctrl+Z tira os dois.
-      }, { fundir: true });
-
-      setRecadoDaOnda({ tom: 'ok', texto: `Contorno medido — ${area} · ${ms} ms` });
-    },
-    [imagemDeTrabalho, marcarComSom, appendYoloSegmentation, metadata.umPerPixel, classeExternaDaImagem]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -2102,125 +2047,25 @@ function AppInterno() {
     [saveCurrentSession, abrirAbaDireita, setActiveTool, handleCarregarReferencia]
   );
 
-  const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
-    null
-  );
-
-  /**
-   * Roda a onda a partir de cada marcacao sem contorno.
-   *
-   * O trabalho ja foi feito pela pessoa quando ela marcou: o clique diz ONDE ha
-   * semente, e a onda so precisa medir a borda. E por isso que isto e barato e
-   * confiavel de um jeito que "detectar tudo do zero" nunca e.
-   *
-   * TRES REGRAS QUE NAO PODEM CAIR:
-   *
-   * 1. A CONTAGEM NAO MUDA. Nenhuma marcacao e criada nem apagada aqui — so
-   *    contornos sao acrescentados. Se o lote errasse e criasse marcacao, o
-   *    numero do laudo mudaria por causa de um botao de conveniencia.
-   * 2. CONTORNO DUVIDOSO NAO ENTRA. A mesma regra do clique avulso: o contorno
-   *    vira area e medida no CSV, e um numero errado e pior que numero nenhum.
-   * 3. CEDE A TELA. Duzentas ondas seguidas travariam o navegador sem dizer
-   *    nada; o laco solta o fio a cada poucas sementes e mostra o progresso.
-   */
-  /**
-   * Contorna UMA marcacao, escolhida na galeria.
-   *
-   * Existe ao lado do lote porque sao gestos diferentes: o lote e "confio,
-   * resolve tudo"; este e "quero ver o que a onda faz NESTA aqui". Serve para
-   * conferir uma semente duvidosa antes de mandar o lote, e para o caso em que
-   * so uma ficou de fora.
-   */
-  const handleSegmentarUma = useCallback(
-    (marcaId: number) => {
-      if (!imagemDeTrabalho || !imagemParaAutomacoes) return;
-      const marca = marks.find((m) => m.id === marcaId);
-      if (!marca) return;
-
-      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
-      if (!r || r.tocouBorda) {
-        setRecadoDaOnda({
-          tom: 'aviso',
-          texto: 'A onda escapou nesta marcação — sem contorno. Tente ajustar o fundo ou o ponto.',
-        });
-        return;
-      }
-
-      const { width, height } = calculateSeedDimensions(r.contorno);
-      appendYoloSegmentation({
-        id: Date.now(),
-        category: marca.type,
-        class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
-        classeExterna: marca.classeExterna,
-        confidence: 1,
-        polygon_points: r.contorno,
-        visible: true,
-        width,
-        height,
-        origem: 'clique',
-        marcaId: marca.id,
-      });
-      setRecadoDaOnda({ tom: 'ok', texto: 'Contorno medido.' });
-    },
-    [imagemDeTrabalho, marks, appendYoloSegmentation]
-  );
-
-  const handleSegmentarPendentes = useCallback(async () => {
-    if (!imagemDeTrabalho || !imagemParaAutomacoes || marcasSemContorno.length === 0) return;
-
-    const pendentes = [...marcasSemContorno];
-    setSegmentandoLote({ feitas: 0, total: pendentes.length });
-    const encerrar = iniciarAtividade('lote', `Contornando ${pendentes.length} marcações…`);
-
-    let medidas = 0;
-    let escaparam = 0;
-
-    for (let i = 0; i < pendentes.length; i++) {
-      const marca = pendentes[i];
-      const r = segmentarNoCanvas(imagemParaAutomacoes, { x: marca.x, y: marca.y });
-
-      if (r && !r.tocouBorda) {
-        const { width, height } = calculateSeedDimensions(r.contorno);
-        appendYoloSegmentation(
-          {
-            id: Date.now() + i,
-            category: marca.type,
-            class_name: marca.type === 'viable' ? 'viavel' : 'inviavel',
-            classeExterna: marca.classeExterna,
-            confidence: 1,
-            polygon_points: r.contorno,
-            visible: true,
-            width,
-            height,
-            origem: 'clique',
-            marcaId: marca.id,
-          },
-          // O lote e um pedido so; Ctrl+Z desfaz o lote, nao um contorno.
-          { fundir: medidas > 0 }
-        );
-        medidas++;
-      } else {
-        escaparam++;
-      }
-
-      if (i % 4 === 3) {
-        setSegmentandoLote({ feitas: i + 1, total: pendentes.length });
-        atualizarProgresso('lote', (i + 1) / pendentes.length);
-        await new Promise((r) => setTimeout(r, 0));
-      }
-    }
-
-    encerrar();
-    setSegmentandoLote(null);
-    setRecadoDaOnda({
-      tom: escaparam > 0 ? 'aviso' : 'ok',
-      texto:
-        `${medidas} de ${pendentes.length} contornos medidos.` +
-        (escaparam > 0
-          ? ` ${escaparam} ${escaparam === 1 ? 'ficou' : 'ficaram'} sem contorno — a onda escapou. A contagem não mudou.`
-          : ' A contagem não mudou.'),
-    });
-  }, [imagemDeTrabalho, marcasSemContorno, appendYoloSegmentation]);
+  // A onda: contorno por clique (`segmentarComOnda`), "contornar esta"
+  // (`handleSegmentarUma`) e o lote de pendentes (`handleSegmentarPendentes`
+  // + `segmentandoLote`) moram em `features/segmentacao/useOnda.ts` — ver o
+  // cabeçalho de lá sobre as três regras do lote, as três fórmulas de id, e
+  // por que `marcarComSom` continua aqui (handleCanvasClick também a usa,
+  // fora da onda).
+  const { segmentarComOnda, handleSegmentarUma, handleSegmentarPendentes, segmentandoLote } = useOnda({
+    imagemDeTrabalho,
+    imagemParaAutomacoes,
+    marks,
+    marcasSemContorno,
+    appendYoloSegmentation,
+    marcarComSom,
+    umPerPixel: metadata.umPerPixel,
+    classeExterna: classeExternaDaImagem,
+    avisar: setRecadoDaOnda,
+    iniciarAtividade,
+    atualizarProgresso,
+  });
 
   /**
    * Contornos propostos (ensaio, ou o painel Encontrar) → segmentações.
@@ -2233,9 +2078,9 @@ function AppInterno() {
    */
   const propostosParaSegmentacoes = useCallback(
     (propostos: ContornoProposto[]): YoloSegmentation[] => {
-      const classesDaImagem = metadata.dataset?.classesDaImagem;
-      const classeExterna =
-        classesDaImagem && classesDaImagem.length > 0 ? classesDaImagem.join(' + ') : undefined;
+      // Mesma conta de `classeExternaDaImagem`, agora por `classeExternaDe`
+      // (`features/segmentacao/contorno-do-clique.ts`) — fonte única.
+      const classeExterna = classeExternaDe(metadata.dataset?.classesDaImagem);
 
       return propostos.map((p, i) => {
         const { width, height } = calculateSeedDimensions(p.contorno);
