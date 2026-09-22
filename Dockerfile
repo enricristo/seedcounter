@@ -2,10 +2,10 @@
 # Estagio 1: builda os arquivos estaticos com Vite.
 # Estagio 2: serve a pasta dist/ com nginx (imagem final pequena, ~50MB).
 #
-# IMPORTANTE: a GEMINI_API_KEY e injetada no bundle em tempo de build
-# (vite "define"). Isso significa que ela fica VISIVEL no JavaScript do
-# cliente — mesmo comportamento que voce ja tem hoje no Vercel. Nao use
-# uma chave sensivel sem restricoes de dominio/uso no Google AI Studio.
+# Nenhuma chave de API entra no build: o aplicativo roda inteiro no navegador
+# e nao fala com nenhum servico de IA externo. Se um dia falar, a chave NAO
+# pode ser injetada aqui — "define" do Vite a deixa visivel no JavaScript do
+# cliente. O caminho e um backend que a guarde.
 
 # ---- Estagio de build ----
 FROM node:22-alpine AS build
@@ -19,10 +19,6 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-
-# Recebe a chave como build-arg e expoe como env para o vite build.
-ARG GEMINI_API_KEY
-ENV GEMINI_API_KEY=$GEMINI_API_KEY
 
 RUN npm run build
 
