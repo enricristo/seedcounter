@@ -16,7 +16,6 @@ import { MarkingCanvas, type DetectionPreview } from './components/canvas/Markin
 import { SeedInspector } from './components/canvas/SeedInspector';
 import { ListaDeSementes } from './components/canvas/ListaDeSementes';
 import { EscalaGrafica } from './components/canvas/EscalaGrafica';
-import { carregarExemploReal, type ExemploReal } from './features/demo/exemplos-reais';
 import { Toolbar } from './components/canvas/Toolbar';
 import { ZoomControls } from './components/canvas/ZoomControls';
 import { Bancadas } from './features/bancadas/Bancadas';
@@ -139,9 +138,8 @@ import {
   proxima as proximaMascara,
 } from './features/mascara';
 import { useLaboratorio } from './hooks/useLaboratorio';
-import { carregarExemplo } from './features/demo/exemplos';
+import { useExemplos } from './features/demo/useExemplos';
 import { segmentarNoCanvas } from './features/segmentacao/onda-no-canvas';
-import { AVISO_CENA, type PresetDeCena } from './lib/synthetic-scene';
 import { ImageAdjustPanel } from './features/image-adjust';
 import { SplitModal } from './features/split';
 import { RoiModal } from './features/roi';
@@ -1354,69 +1352,24 @@ function AppInterno() {
     return () => clearTimeout(t);
   }, [recadoDaOnda]);
 
-  // Cena de exemplo: entra pela mesma porta que qualquer imagem, para exercitar
-  // o fluxo real — fila, contagem, medida, exportação — e não um caminho
-  // paralelo que só funciona na demonstração.
-  const [exemploCarregando, setExemploCarregando] = useState<PresetDeCena | null>(null);
-
-  const handleCarregarExemplo = useCallback(
-    async (preset: PresetDeCena) => {
-      setExemploCarregando(preset);
-      try {
-        const { arquivo, cena, projeto } = await carregarExemplo(preset);
-        loadFiles([arquivo]);
-        // A escala vem declarada pela cena: sem ela a morfometria sairia em
-        // pixels, e o exemplo não mostraria milímetros — que é metade do ponto.
-        setMetadata((prev) => ({
-          ...prev,
-          project: projeto,
-          treatment: '',
-          plate: '',
-          quadrant: '',
-          notes: AVISO_CENA,
-          umPerPixel: cena.umPorPixel,
-          dataset: undefined,
-        }));
-      } catch (e) {
-        console.error('Falha ao gerar a cena de exemplo', e);
-      } finally {
-      setFilaIARodando(false);
-        setExemploCarregando(null);
-      }
-    },
-    [loadFiles, setMetadata]
-  );
-
-  const [exemploRealCarregando, setExemploRealCarregando] = useState<string | null>(null);
-  /**
-   * Exemplo REAL: a imagem vem de public/exemplos e os metadados que se
-   * conhecem (espécie, origem, classe, escala quando medida) já entram — o
-   * que não se conhece fica vazio e o app pede, em vez de inventar.
-   */
-  const handleCarregarExemploReal = useCallback(
-    async (e: ExemploReal) => {
-      setExemploRealCarregando(e.slug);
-      try {
-        const { arquivo, metadados } = await carregarExemploReal(e);
-        loadFiles([arquivo]);
-        setMetadata((prev) => ({
-          ...prev,
-          ...metadados,
-          plate: '',
-          quadrant: '',
-          // A imagem anterior pode ter vindo do explorador; a classe dela não é desta.
-          dataset: undefined,
-          amostra: { ...prev.amostra, ...metadados.amostra },
-        }));
-      } catch (err) {
-        console.error('Falha ao abrir o exemplo real', err);
-        setLoadError(`Não foi possível abrir o exemplo "${e.rotulo}".`);
-      } finally {
-        setExemploRealCarregando(null);
-      }
-    },
-    [loadFiles, setMetadata, setLoadError]
-  );
+  // Cena de exemplo (simulada) e exemplo real moram em `features/demo` (ver o
+  // cabeçalho de `useExemplos.ts`). Ambos entram pela mesma porta que
+  // qualquer imagem — fila, contagem, medida, exportação — e não um caminho
+  // paralelo que só funciona na demonstração; a montagem do metadado é pura e
+  // testada em `metadados-do-exemplo.ts`. `pararFilaIA` é o estado do
+  // cabeçalho da fila com IA, sem relação com exemplos — ver o porquê no
+  // cabeçalho do hook.
+  const {
+    exemploCarregando,
+    handleCarregarExemplo,
+    exemploRealCarregando,
+    handleCarregarExemploReal,
+  } = useExemplos({
+    loadFiles,
+    setMetadata,
+    setLoadError,
+    pararFilaIA: () => setFilaIARodando(false),
+  });
 
   // --- Explorador de datasets (Lote B) ---------------------------------------
   //
