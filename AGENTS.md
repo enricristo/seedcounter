@@ -104,8 +104,8 @@ contagem sem alguém aceitar; todo número sai dizendo quem o produziu.
 
 ```
 src/
-  App.tsx                  ← a casca; ainda grande (3,6k linhas), em extração por tema
-                             (já saíram: exportar, importar, sessao, demo, datasets — o molde
+  App.tsx                  ← a casca; ainda grande (3,5k linhas), em extração por tema
+                             (já saíram: exportar, importar, sessao, demo, datasets, onda — o molde
                              é features/sessao/: módulo puro + hook + teste do formato antigo)
   lib/                     ← o núcleo puro e testado (60 módulos)
     objetos.ts             enumeração canônica          classe-do-modelo.ts  tradução de classe
@@ -127,6 +127,7 @@ src/
     demo/                  exemplos simulados e reais   sugestoes/           regras + ações (teste: toda ação tem case)
     germinacao/            aba Germinação (Germinator)  perfis/              as cinco pré-definições
     stats/                 ANOVA + fator quantitativo   ajuda/               atalhos e tarefas
+    segmentacao/           a onda: clique, uma, lote (contorno-do-clique.ts + useOnda.ts)
   hooks/                   useBancada (a cena), useBancadas, useCronometro, useImageQueue, useMetadata
   theme/specimen.ts        cores e formas das marcas    index.css            tokens (light/dark)
 docs/
