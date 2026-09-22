@@ -80,7 +80,7 @@ export const VERSOES: Versao[] = [
         tipo: 'novo',
         titulo: 'Regressão polinomial e ponto de ótimo',
         detalhe:
-          'Para fator quantitativo — potencial osmótico em MPa, horas de embebição, meses de armazenamento — a análise certa não é separar médias por letras; é ajustar a curva e achar o ótimo. Graus 1 a 3, com o teste de cada grau, e o ótimo só dentro da faixa observada: fora dela é extrapolação, e o app diz isso em vez de devolver um número. Por enquanto é núcleo, sem tela.',
+          'Para fator quantitativo — potencial osmótico em MPa, horas de embebição, meses de armazenamento — a análise certa não é separar médias por letras; é ajustar a curva e achar o ótimo. Graus 1 a 3, com o teste de cada grau, e o ótimo só dentro da faixa observada: fora dela é extrapolação, e o app diz isso em vez de devolver um número. Aparece em Estatísticas → Comparação de Tratamentos, abaixo da ANOVA, sozinho, quando três ou mais tratamentos têm um número no rótulo (T0, T8, T16; −0,3 MPa).',
       },
       {
         tipo: 'novo',
