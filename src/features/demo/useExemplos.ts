@@ -15,18 +15,11 @@
 // só orquestra: busca o arquivo (`carregarExemplo`/`carregarExemploReal`),
 // entrega à fila e liga/desliga os dois estados de "carregando".
 //
-// `pararFilaIA` — chamado no `finally` do exemplo SIMULADO, não no do real —
-// NÃO TEM NADA A VER COM EXEMPLOS. É `setFilaIARodando(false)`, o estado que
-// troca "Processar" por "Parar" no cabeçalho da fila com IA
-// (`handleProcessarFilaIA`, App.tsx). No App original a chamada já morava
-// aqui, e SÓ aqui: `handleProcessarFilaIA` liga `filaIARodando` no início mas
-// nunca a desliga no próprio `finally` — quem desliga é este handler, de um
-// fluxo completamente diferente. Isso tem cheiro de cópia-e-cola no lugar
-// errado (ver o relatório do PR para a proposta), mas a extração promete
-// comportamento IDÊNTICO, não consertar o que encontra pelo caminho — por
-// isso a chamada continua aqui, e só aqui. Por ser estado do App (não da
-// cena), o hook recebe um callback em vez de mexer num `useState` que não é
-// dele.
+// Até 23/09 o `finally` do exemplo simulado desligava `filaIARodando` — o
+// estado do cabeçalho da fila com IA, que nada tem a ver com exemplos. Era
+// uma cópia no lugar errado: a fila ligava o estado e nunca desligava; quem
+// desligava era este handler. A fila agora desliga o que liga (App.tsx,
+// `handleProcessarFilaIA`), e daqui saiu.
 // =============================================================================
 
 import { useCallback, useState } from 'react';
@@ -40,12 +33,10 @@ export interface EntradaDeExemplos {
   loadFiles: (files: File[]) => void;
   setMetadata: (m: Metadata | ((prev: Metadata) => Metadata)) => void;
   setLoadError: (mensagem: string) => void;
-  /** Ver o cabeçalho: estado do App, sem relação com exemplos. */
-  pararFilaIA: () => void;
 }
 
 export function useExemplos(entrada: EntradaDeExemplos) {
-  const { loadFiles, setMetadata, setLoadError, pararFilaIA } = entrada;
+  const { loadFiles, setMetadata, setLoadError } = entrada;
 
   // Cena de exemplo: entra pela mesma porta que qualquer imagem, para
   // exercitar o fluxo real — fila, contagem, medida, exportação — e não um
@@ -62,11 +53,10 @@ export function useExemplos(entrada: EntradaDeExemplos) {
       } catch (err) {
         console.error('Falha ao gerar a cena de exemplo', err);
       } finally {
-        pararFilaIA();
         setExemploCarregando(null);
       }
     },
-    [loadFiles, setMetadata, pararFilaIA]
+    [loadFiles, setMetadata]
   );
 
   const [exemploRealCarregando, setExemploRealCarregando] = useState<string | null>(null);

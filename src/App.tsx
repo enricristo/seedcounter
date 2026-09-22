@@ -1354,20 +1354,13 @@ function AppInterno() {
   // cabeçalho de `useExemplos.ts`). Ambos entram pela mesma porta que
   // qualquer imagem — fila, contagem, medida, exportação — e não um caminho
   // paralelo que só funciona na demonstração; a montagem do metadado é pura e
-  // testada em `metadados-do-exemplo.ts`. `pararFilaIA` é o estado do
-  // cabeçalho da fila com IA, sem relação com exemplos — ver o porquê no
-  // cabeçalho do hook.
+  // testada em `metadados-do-exemplo.ts`.
   const {
     exemploCarregando,
     handleCarregarExemplo,
     exemploRealCarregando,
     handleCarregarExemploReal,
-  } = useExemplos({
-    loadFiles,
-    setMetadata,
-    setLoadError,
-    pararFilaIA: () => setFilaIARodando(false),
-  });
+  } = useExemplos({ loadFiles, setMetadata, setLoadError });
 
   // --- Explorador de datasets (Lote B) ---------------------------------------
   //
@@ -1739,6 +1732,10 @@ function AppInterno() {
       alert(`Não foi possível processar a fila com IA: ${e instanceof Error ? e.message : 'erro desconhecido'}.`);
     } finally {
       encerrar();
+      // Quem liga, desliga. Até 23/09 o `false` morava só em
+      // `handleCarregarExemplo` (cópia no lugar errado): terminada a fila, o
+      // cabeçalho ficava preso em "Parar" até alguém abrir um exemplo simulado.
+      setFilaIARodando(false);
     }
   }, [imageQueue, metadata, sessions, addSession]);
 
@@ -2069,7 +2066,10 @@ function AppInterno() {
           break;
         case 'abrir-calibracao':
           setActiveTool('viable');
-          document.getElementById('etapa-calibracao')?.scrollIntoView({ behavior: 'smooth' });
+          // A seção da lateral é `sec-calibrar` (Sidebar); o id antigo,
+          // `etapa-calibracao`, não existia em componente nenhum — o botão
+          // "Abrir calibração" rolava para lugar nenhum.
+          document.getElementById('sec-calibrar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           break;
         case 'ferramenta-contorno':
           setActiveTool('contorno');
@@ -2080,13 +2080,26 @@ function AppInterno() {
         case 'abrir-identificacao':
           setIsIdentificacaoOpen(true);
           break;
+        // Os três abaixo não tinham `case`: a regra emitia o botão, a pessoa
+        // clicava, nada acontecia. `acoes-prometidas.test.ts` agora exige um
+        // `case` para cada id que alguma regra emite.
+        case 'mostrar-eixos':
+          setMostrarEixos(true);
+          gravarPreferencia('sc:eixosDasMedidas', true);
+          break;
+        case 'carregar-referencia':
+          handleCarregarReferencia();
+          break;
+        case 'abrir-funcionalidades':
+          setIsFeaturesOpen(true);
+          break;
       }
     },
     // Antes: deps `[]` com a nota "saveCurrentSession le refs por dentro". Nao
     // lia: capturava o fecho do PRIMEIRO render (filename vazio), e a sugestao
     // "Salvar sessao" nao fazia nada ao clicar. Desde que `useSessao` a devolve
     // memoizada, ela entra nas deps como qualquer outra.
-    [saveCurrentSession, abrirAbaDireita, setActiveTool]
+    [saveCurrentSession, abrirAbaDireita, setActiveTool, handleCarregarReferencia]
   );
 
   const [segmentandoLote, setSegmentandoLote] = useState<{ feitas: number; total: number } | null>(
