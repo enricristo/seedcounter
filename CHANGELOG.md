@@ -11,7 +11,8 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - `features/perfis/` — cinco pré-definições (spec `docs/superpowers/specs/2026-09-22-predefinicoes-por-perfil-design.md`): `TelaDePerfil` na primeira abertura, `SecaoDePerfil` em Configurações com `oQueMuda`, origem no `MenuExibir`; chaves novas `sc:perfil`, `sc:receitaPadrao`, `sc:protocoloPadrao`, `sc:modoDeAnalisePadrao`; `aplicar(modo, sobrescritas, {persistir})` no contexto de visualização. 25 testes.
 - `features/germinacao/` — a aba Germinação: `entrada.ts` (colar INPUT / escrever INPUT / do longitudinal), `analise.ts` (output + ANOVA/Tukey), `letras.ts` (Piepho 2004), `curvas.ts`, `saida.ts` (CSV/TSV `output`), `colunas.ts` (ajuda por coluna), `PainelDeGerminacao` e `GraficoDeGerminacao` sob demanda; parte `germinacao` em `visualizacao/modo.ts`; `uniformidadeEntre` em `lib/germinacao`. 85 testes.
 - `lib/regressao-polinomial.ts` — graus 1–3, F sequencial, ponto de ótimo dentro da faixa; `fCdf` exportada de `stats.ts`. 12 testes.
-- `features/ajuda/tarefas.ts` + aba "Tarefas" no `HelpTip` — sete tarefas; conteúdo genérico por teste.
+- `features/stats/fator-quantitativo.ts` + `CardFatorQuantitativo` — a regressão na aba Tratamentos, ao lado da ANOVA, quando ≥ 3 tratamentos têm número no rótulo (leitura conservadora: dois números = sem nível). 6 testes.
+- `features/ajuda/tarefas.ts` + aba "Tarefas" no `HelpTip` — dez tarefas (calibrar, contar, ver a semente, medir, relógio, exportar, relatar, comparar tratamentos, curva de germinação, o que vai no artigo); conteúdo genérico por teste.
 - `scripts/gerar-catalogo-de-datasets.py` → `public/exemplos/catalogo-de-datasets.json` (23 pastas, 8 referenciáveis); `lib/datasets/catalogo.ts`; chip no explorador; `escalaDe` nos exemplos; 54 → 92 exemplos.
 - `AGENTS.md` (doze leis, como se trabalha, mapa) e `CLAUDE.md`.
 - `docs/PRIVADO.md` — o que vive no repositório privado, e por quê.
@@ -21,7 +22,7 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - `package.json`: saem `@google/genai`, `express`, `dotenv`, `@types/express`; `vite`, plugins e `@types/jszip` para dev. `GEMINI_API_KEY` sai de vite/Docker/compose/CI/.env.example/docs.
 - `vite.config.ts`: `manualChunks` como função; `react-vendor` próprio; preload-helper do Vite fora do `pdf-export`; `lib/laudo` por `import()` no clique. HTML inicial pré-carrega só `react-vendor` e `db-lib` (antes: + `recharts-charts` 461 kB + `pdf-export` 593 kB).
 - README para 3.7.0; arquitetura apontando para `AGENTS.md`.
-- Testes: 1288 → 1441.
+- Testes: 1288 → 1447.
 
 ### Removido do público
 - `docs/backend/`, `docs/roteiros/`, `docs/mercado/`, `docs/visao/`, sete specs de posicionamento/backend/scale-up/ToupView, dois planos de negócio → `seedcounter-docs` (privado). Quatro menções à instituição corrigidas nas specs restantes.
