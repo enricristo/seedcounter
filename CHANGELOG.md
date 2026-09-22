@@ -20,11 +20,11 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - `docs/PRIVADO.md` — o que vive no repositório privado, e por quê.
 
 ### Alterado
-- `App.tsx` 4 190 → 3 841 → 3 699 → 3 646: exportações em `features/exportar/` (`useExportacoes`, `contexto.ts`; 14 testes); importação em `features/importar/` (`classificarJSON`/`interpretarJSON` conferem o que leem — campo com tipo errado vira frase com índice e nome; 25 testes) e sessão em `features/sessao/` (`montarSessao`, `useSessao`; formato gravado provado idêntico; 9 testes). Sidebar e HistoryModal usam o mesmo `handleImportHistoryJSON`; `reader.onerror` deixa de ser silêncio. Exemplos em `features/demo/` (`metadadosDaCena`, `metadadosDoExemploReal`, `useExemplos`; 9 testes) e explorador em `features/datasets/` (`referencia.ts`: `objetosDaReferencia`, `podeCarregarReferencia`; `useExplorador`; 19 testes).
+- `App.tsx` 4 190 → 3 841 → 3 699 → 3 646 → 3 504: exportações em `features/exportar/` (`useExportacoes`, `contexto.ts`; 14 testes); importação em `features/importar/` (`classificarJSON`/`interpretarJSON` conferem o que leem — campo com tipo errado vira frase com índice e nome; 25 testes) e sessão em `features/sessao/` (`montarSessao`, `useSessao`; formato gravado provado idêntico; 9 testes). Sidebar e HistoryModal usam o mesmo `handleImportHistoryJSON`; `reader.onerror` deixa de ser silêncio. Exemplos em `features/demo/` (`metadadosDaCena`, `metadadosDoExemploReal`, `useExemplos`; 9 testes) e explorador em `features/datasets/` (`referencia.ts`: `objetosDaReferencia`, `podeCarregarReferencia`; `useExplorador`; 19 testes). A onda em `features/segmentacao/` (`contorno-do-clique.ts`: o objeto, os recados, a área; `useOnda`: clique, uma, lote; 21 testes).
 - `package.json`: saem `@google/genai`, `express`, `dotenv`, `@types/express`; `vite`, plugins e `@types/jszip` para dev. `GEMINI_API_KEY` sai de vite/Docker/compose/CI/.env.example/docs.
 - `vite.config.ts`: `manualChunks` como função; `react-vendor` próprio; preload-helper do Vite fora do `pdf-export`; `lib/laudo` por `import()` no clique. HTML inicial pré-carrega só `react-vendor` e `db-lib` (antes: + `recharts-charts` 461 kB + `pdf-export` 593 kB).
 - README para 3.7.0; arquitetura apontando para `AGENTS.md`.
-- Testes: 1288 → 1524.
+- Testes: 1288 → 1548.
 
 ### Corrigido
 - **Exportação YOLO escrevia as classes invertidas em relação ao treino** (`CLASS_VIABLE = 0`, tabela própria): coerente consigo mesma, mas um dataset exportado somado ao conjunto de treino trocaria a classe de toda semente. Agora usa `indiceDaCategoria` (`classe-do-modelo.ts`): 0 inviável, 1 viável; o `dataset.yaml` traz sempre as duas classes (`nc: 2`), mesmo exportando só viáveis. 5 testes.
