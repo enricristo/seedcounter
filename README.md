@@ -8,7 +8,7 @@
 
 <sub>A marca é o que o aplicativo faz: a semente, e em volta o contorno tracejado que a segmentação propõe — ainda não aceito, esperando o olho de quem analisa.</sub>
 
-[![App](https://img.shields.io/badge/app-produção%20v3.7.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
+[![App](https://img.shields.io/badge/app-produção%20v3.8.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
 [![Beta](https://img.shields.io/badge/beta-versão%20de%20teste-f0b45a?style=flat-square)](https://seedcounter-teste.vercel.app)
 [![PWA](https://img.shields.io/badge/PWA-offline-5a0fc8?style=flat-square)](#privacidade-e-dados)
 [![Licença](https://img.shields.io/badge/licença-MIT-3b82f6?style=flat-square)](LICENSE)
@@ -179,7 +179,7 @@ Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensai
 
 | Versão | Endereço | Conteúdo |
 |---|---|---|
-| **Produção** | https://seedcounter.vercel.app | v3.7.0 — recursos validados para uso em pesquisa |
+| **Produção** | https://seedcounter.vercel.app | v3.8.0 — recursos validados para uso em pesquisa |
 | **Teste** | https://seedcounter-teste.vercel.app | O que está sendo avaliado antes de virar produção |
 
 O histórico completo, em linguagem de quem usa, está dentro do aplicativo (número da versão no rodapé) e, em detalhe técnico, no [`CHANGELOG.md`](CHANGELOG.md).
