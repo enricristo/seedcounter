@@ -10,12 +10,21 @@
 //
 // Por que os metadados vêm junto: um exemplo real só é útil se a pessoa não
 // tiver de descobrir de onde ele veio, de que espécie é e em que escala está.
-// O que se sabe fica preenchido (espécie, origem, classe, µm/px quando o
-// scanner tem DPI declarado); o que não se sabe fica vazio e o app pede.
+// O que se sabe fica preenchido (espécie, origem, classe, µm/px); o que não
+// se sabe fica vazio e o app pede.
+//
+// A escala diz de onde veio (`escalaDe`): "regua-medida" é o único valor
+// MEDIDO (a régua da própria digitalização, docs/datasets/auditoria-de-medida.md);
+// "dpi-declarado" é o DPI gravado no cabeçalho do arquivo usado como escala
+// INICIAL — declaração, não medida, e a régua na imagem é a conferência;
+// null é sem escala. A mesma postura do painel de calibração, que parte do
+// DPI do driver e diz que ele é declaração.
 // =============================================================================
 import type { Metadata } from '../../types';
 
 export type TipoDeExemplo = 'digitalizacao' | 'foto' | 'foto-individual' | 'macro' | 'recorte';
+
+export type OrigemDaEscala = 'regua-medida' | 'dpi-declarado';
 
 export interface ExemploReal {
   slug: string;
@@ -30,9 +39,21 @@ export interface ExemploReal {
   imagem: string;
   largura: number;
   altura: number;
-  original: { arquivo: string; largura: number; altura: number; fatorDeReducao: number; recorteEm: [number, number] };
+  original: {
+    arquivo: string;
+    largura: number;
+    altura: number;
+    fatorDeReducao: number;
+    recorteEm: [number, number];
+    /** Página do TIFF de origem, base 1, quando veio de um arquivo de várias. */
+    pagina?: number;
+  };
   /** Já corrigido pelo fator de redução; null = sem escala conhecida. */
   umPorPixel: number | null;
+  /** De onde `umPorPixel` veio; null quando não há escala. */
+  escalaDe: OrigemDaEscala | null;
+  /** O DPI que o arquivo de origem declara, quando declara — informação, não veredito. */
+  dpiDeclarado: number | null;
   notaEscala: string;
   classesDaImagem: string[];
   origem: string;
@@ -61,6 +82,12 @@ const ROTULOS_DE_CULTURA: Record<string, string> = {
 
 export function rotuloDaCultura(cultura: string): string {
   return ROTULOS_DE_CULTURA[cultura] ?? cultura;
+}
+
+/** Sufixo curto para a lista: a pessoa vê se a escala é medida, declarada ou inexistente antes de abrir. */
+export function sufixoDaEscala(e: Pick<ExemploReal, 'umPorPixel' | 'escalaDe'>): string {
+  if (e.umPorPixel == null) return '';
+  return e.escalaDe === 'regua-medida' ? ' · escala medida' : ' · DPI declarado';
 }
 
 function base(): string {
