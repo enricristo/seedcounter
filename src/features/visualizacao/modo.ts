@@ -56,6 +56,13 @@ export interface Visibilidade {
   // --- Cabeçalho, linha 1 ---
   /** Contagem · Longitudinal · Estatísticas. */
   abasDeNavegacao: boolean;
+  /**
+   * A aba Germinação (curva de Hill, parâmetros do Germinator, Tukey). É
+   * ciência de laboratório: o analista comercial que só conta não a vê, e a
+   * apresentação também não — o modo de gravar vídeo não pode ganhar uma aba
+   * que não existia quando o roteiro foi escrito.
+   */
+  germinacao: boolean;
   /** O selo ao lado da marca (hoje diz "Analytics"; só a apresentação o mostra). */
   seloDoModo: boolean;
   /** O chip "Espécie: ..." (C7). */
@@ -105,6 +112,7 @@ export type ParteDaInterface = keyof Visibilidade;
 /** Todas as partes, na ordem do menu (cabeçalho → esquerda → direita → rodapé). */
 export const PARTES: readonly ParteDaInterface[] = [
   'abasDeNavegacao',
+  'germinacao',
   'seloDoModo',
   'chipDeEspecie',
   'seletorDeBancadas',
@@ -126,6 +134,7 @@ export const PARTES: readonly ParteDaInterface[] = [
 /** Rótulo de cada parte, para o menu. Em minúsculas: é item de lista, não título. */
 export const ROTULO_DA_PARTE: Record<ParteDaInterface, string> = {
   abasDeNavegacao: 'Abas de navegação',
+  germinacao: 'Aba Germinação',
   seloDoModo: 'Selo do modo',
   chipDeEspecie: 'Chip de espécie',
   seletorDeBancadas: 'Seletor de bancadas',
@@ -147,6 +156,7 @@ export const ROTULO_DA_PARTE: Record<ParteDaInterface, string> = {
 /** Tudo visível — o ponto de partida de todos os modos. */
 const TUDO: Visibilidade = {
   abasDeNavegacao: true,
+  germinacao: true,
   seloDoModo: false, // o selo é a exceção: só existe para dizer "isto é apresentação"
   chipDeEspecie: true,
   seletorDeBancadas: true,
@@ -183,6 +193,7 @@ export function visibilidadePadrao(modo: ModoDeVisualizacao): Visibilidade {
       // pelo custo: contar não precisa de três receitas por imagem.
       return {
         ...TUDO,
+        germinacao: false,
         botaoDeRecursos: false,
         exemplos: false,
         calibrarEscala: false,
@@ -207,9 +218,12 @@ export function visibilidadePadrao(modo: ModoDeVisualizacao): Visibilidade {
       //   Header  — abas de navegação e o botão de recursos; mostra o selo.
       //   Sidebar — "Preparar imagem" e "Identificar amostra" (seções e trilho).
       // Nada mais. Ver o cabeçalho deste arquivo sobre por que não muda.
+      // A aba Germinação (21/09) nasceu depois e fica fora por construção:
+      // as abas de navegação já estão escondidas, e ela mora entre elas.
       return {
         ...TUDO,
         abasDeNavegacao: false,
+        germinacao: false,
         seloDoModo: true,
         botaoDeRecursos: false,
         prepararImagem: false,

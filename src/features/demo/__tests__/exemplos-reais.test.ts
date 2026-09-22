@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { agruparPorCultura, metadadosDoExemplo, type CatalogoDeExemplos } from '../exemplos-reais';
+import { agruparPorCultura, metadadosDoExemplo, sufixoDaEscala, type CatalogoDeExemplos } from '../exemplos-reais';
 
 const PUBLIC = join(__dirname, '..', '..', '..', '..', 'public');
 const catalogo = JSON.parse(readFileSync(join(PUBLIC, 'exemplos', 'catalogo.json'), 'utf8')) as CatalogoDeExemplos;
@@ -40,16 +40,54 @@ describe('catálogo de exemplos reais', () => {
     }
   });
 
-  it('só a digitalização com régua auditada tem µm/px: 1864 px / 10 mm (DPI efetivo ≈ 4735), corrigido pela redução', () => {
+  it('µm/px MEDIDO só na digitalização com régua auditada: 1864 px / 10 mm (DPI efetivo ≈ 4735), corrigido pela redução', () => {
     // A auditoria C3.2 (docs/datasets/auditoria-de-medida.md) mediu a régua do
-    // próprio scanner e achou +31% sobre os 3600 DPI declarados. O catálogo
-    // NÃO usa o DPI declarado; usa o medido — e só onde foi medido.
-    const comEscala = catalogo.exemplos.filter((e) => e.umPorPixel != null);
-    expect(comEscala.length).toBeGreaterThan(0);
-    for (const e of comEscala) {
+    // próprio scanner e achou +31% sobre os 3600 DPI declarados. O valor
+    // medido existe só onde foi medido, e o catálogo diz que é medido.
+    const medidos = catalogo.exemplos.filter((e) => e.escalaDe === 'regua-medida');
+    expect(medidos.length).toBeGreaterThan(0);
+    for (const e of medidos) {
       const esperado = 10000 / 1864 / e.original.fatorDeReducao;
       expect(e.umPorPixel, e.slug).toBeCloseTo(esperado, 3);
       expect(e.conjunto, e.slug).toBe('gpeorq-scan');
+    }
+  });
+
+  it('DPI declarado vira escala INICIAL só nas digitalizações do laboratório, e cada uma diz que é declaração', () => {
+    // Todo exemplo com escala declara de onde ela veio; quem não tem escala
+    // não tem origem de escala. O DPI declarado (cabeçalho do arquivo) é a
+    // mesma postura do painel de calibração: parte do DPI, confere na régua.
+    const declarados = catalogo.exemplos.filter((e) => e.escalaDe === 'dpi-declarado');
+    expect(declarados.length).toBeGreaterThan(0);
+    for (const e of declarados) {
+      expect(e.dpiDeclarado, e.slug).toBeGreaterThan(0);
+      expect(e.tipo, e.slug).toBe('digitalizacao');
+      expect(e.umPorPixel, e.slug).toBeCloseTo(25400 / (e.dpiDeclarado ?? 1) / e.original.fatorDeReducao, 3);
+      expect(e.notaEscala, e.slug).toMatch(/declara/i);
+    }
+    for (const e of catalogo.exemplos) {
+      expect(e.umPorPixel != null, e.slug).toBe(e.escalaDe != null);
+    }
+    // Um PNG com "96 dpi" gravado por editor de imagem também declara DPI; isso NÃO vira escala.
+    const tig = catalogo.exemplos.find((e) => e.conjunto === 'gpeorq-tig');
+    expect(tig?.dpiDeclarado).toBe(96);
+    expect(tig?.escalaDe).toBeNull();
+    expect(sufixoDaEscala({ umPorPixel: 1, escalaDe: 'regua-medida' })).toBe(' · escala medida');
+    expect(sufixoDaEscala({ umPorPixel: 1, escalaDe: 'dpi-declarado' })).toBe(' · DPI declarado');
+    expect(sufixoDaEscala({ umPorPixel: null, escalaDe: null })).toBe('');
+  });
+
+  it('tem dezenas de casos de tetrazólio em orquídea, com legenda de uma linha e sem nome de gente nem de instituição', () => {
+    const tz = catalogo.exemplos.filter((e) => e.cultura === 'orquidea');
+    expect(tz.length).toBeGreaterThanOrEqual(40);
+    const dezEspecies = catalogo.exemplos.filter((e) => e.conjunto === 'tz-10especies');
+    expect(dezEspecies.map((e) => e.original.pagina)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    for (const e of tz) {
+      expect(e.dica.includes('\n'), e.slug).toBe(false);
+      expect(e.dica.length, e.slug).toBeLessThanOrEqual(120);
+      // Subpasta com nome de quem digitalizou não entra: só `subpasta-N` ou termo técnico.
+      expect(e.original.arquivo, e.slug).not.toMatch(/(^|\/)tz [a-z]/i);
+      expect(`${e.rotulo} ${e.dica} ${e.origem}`, e.slug).not.toMatch(/universidade|university|univ\./i);
     }
   });
 

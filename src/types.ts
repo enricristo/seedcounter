@@ -442,4 +442,4 @@ export interface ComparisonPair {
 // App Navigation
 // ---------------------------------------------------------------------------
 
-export type AppView = 'counter' | 'longitudinal' | 'stats' | 'history' | 'experiments';
+export type AppView = 'counter' | 'longitudinal' | 'stats' | 'germinacao' | 'history' | 'experiments';

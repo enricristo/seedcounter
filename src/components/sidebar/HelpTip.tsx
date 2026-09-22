@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Info, Keyboard, MousePointer, Route } from 'lucide-react';
+import { Info, Keyboard, MousePointer, Route, ListChecks } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GRUPOS_DE_ATALHOS, INSTRUCOES_DO_MOUSE, FLUXO_DE_TRABALHO } from '../../features/ajuda/atalhos';
+import { TAREFAS } from '../../features/ajuda/tarefas';
 import { Fluxograma } from './Fluxograma';
 
 /**
@@ -12,7 +13,8 @@ import { Fluxograma } from './Fluxograma';
  * ferramenta, a tecla dela no título, e um gesto por linha.
  */
 export function HelpTip() {
-  const [tab, setTab] = useState<'fluxo' | 'mouse' | 'keyboard'>('fluxo');
+  const [tab, setTab] = useState<'fluxo' | 'tarefas' | 'mouse' | 'keyboard'>('fluxo');
+  const [tarefaAberta, setTarefaAberta] = useState<string | null>(null);
   const [formaDoFluxo, setFormaDoFluxo] = useState<'diagrama' | 'lista'>('diagrama');
 
   return (
@@ -34,6 +36,15 @@ export function HelpTip() {
         >
           <Route size={11} />
           <span>Fluxo</span>
+        </button>
+        <button
+          onClick={() => setTab('tarefas')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer
+            ${tab === 'tarefas' ? 'bg-surface-1 text-accent shadow-sm' : 'text-ink-3 hover:text-ink-2'}
+          `}
+        >
+          <ListChecks size={11} />
+          <span>Tarefas</span>
         </button>
         <button
           onClick={() => setTab('mouse')}
@@ -62,7 +73,54 @@ export function HelpTip() {
       </div>
 
       <AnimatePresence mode="wait">
-        {tab === 'fluxo' ? (
+        {tab === 'tarefas' ? (
+          /* Por tarefa, com o porquê: a metade "sem PDF ao lado" do critério
+             de pronto. Cada item abre sozinho; um por vez, para a lateral
+             estreita não virar uma parede de texto. */
+          <motion.ul
+            key="tarefas"
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-1.5"
+          >
+            {TAREFAS.map((t) => {
+              const aberta = tarefaAberta === t.id;
+              return (
+                <li key={t.id} className="border-line-soft bg-surface-1/60 rounded-control border">
+                  <button
+                    type="button"
+                    onClick={() => setTarefaAberta(aberta ? null : t.id)}
+                    aria-expanded={aberta}
+                    className="text-ink-1 hover:text-accent flex w-full cursor-pointer items-start justify-between gap-2 px-2 py-1.5 text-left text-[11px] font-semibold"
+                  >
+                    <span>{t.titulo}</span>
+                    <span className="text-ink-3 shrink-0 text-[10px]">{aberta ? '−' : '+'}</span>
+                  </button>
+                  {aberta && (
+                    <div className="space-y-1.5 px-2 pb-2">
+                      <p className="text-ink-3 text-[10px] italic">{t.pergunta}</p>
+                      <p className="text-ink-2 text-[10px] leading-snug">{t.porque}</p>
+                      <ol className="text-ink-1 list-decimal space-y-0.5 pl-4 text-[10px] leading-snug">
+                        {t.passos.map((p, i) => (
+                          <li key={i}>
+                            {p.faca}
+                            {p.onde && <span className="text-ink-3"> — {p.onde}</span>}
+                          </li>
+                        ))}
+                      </ol>
+                      <p className="text-accent text-[10px] leading-snug">
+                        <span className="font-bold uppercase tracking-wide">Confira: </span>
+                        {t.confira}
+                      </p>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </motion.ul>
+        ) : tab === 'fluxo' ? (
           <motion.ol
             key="fluxo"
             initial={{ opacity: 0, y: 3 }}

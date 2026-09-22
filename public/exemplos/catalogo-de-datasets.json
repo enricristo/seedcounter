@@ -1,0 +1,1274 @@
+{
+  "versao": 1,
+  "geradoPor": "scripts/gerar-catalogo-de-datasets.py",
+  "raiz": "datasets/",
+  "fontes": {
+    "README": [
+      "datasets/README.md",
+      "docs/datasets/README.md"
+    ],
+    "pasta": [
+      "README.dataset.txt",
+      "data.yaml",
+      "LICENSE*",
+      "README.md",
+      "*Citation*.txt"
+    ]
+  },
+  "formatos": [
+    "yolo",
+    "roboflow-multiclass",
+    "mascara-de-instancia",
+    "mascara-binaria",
+    "pasta-por-classe",
+    "solto",
+    "tabular",
+    "desconhecido"
+  ],
+  "entradas": [
+    {
+      "nome": "coffee-beans-roasting",
+      "caminhoRelativo": "coffee-beans-roasting",
+      "formatoDetectado": "pasta-por-classe",
+      "imagens": {
+        "total": 1600,
+        "porExtensao": {
+          ".png": 1600
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 1
+      },
+      "anotacoes": [
+        "classe = nome da subpasta",
+        "planilha"
+      ],
+      "classes": [
+        "test",
+        "train"
+      ],
+      "cultura": "Café (4 níveis de torra: Dark, Green, Light, Medium)",
+      "culturaChave": "cafe",
+      "origem": "https://www.kaggle.com/datasets/gpiosenka/coffee-bean-dataset-resized-224-x-224",
+      "url": "https://www.kaggle.com/datasets/gpiosenka/coffee-bean-dataset-resized-224-x-224",
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Treinamento de análise espectral e tonometria/colorimetria em grãos.",
+      "segundoReadme": {
+        "formato": "Imagens individuais recortadas",
+        "quantidade": "1.600 imagens"
+      },
+      "tamanhoBytes": 155191987,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": {
+        "subpasta": "test|train",
+        "formato": "pasta-por-classe",
+        "classes": [
+          "Dark",
+          "Green",
+          "Light",
+          "Medium"
+        ]
+      },
+      "observacoes": [
+        "ao abrir datasets/ o app vê 'pasta-por-classe'; ao abrir a subpasta 'test|train' vê 'pasta-por-classe'"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "durum-wheat-dataset",
+      "caminhoRelativo": "durum-wheat-dataset",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 325,
+        "porExtensao": {
+          ".tif": 325
+        }
+      },
+      "outrosArquivos": {
+        ".avi": 4,
+        ".docx": 2,
+        ".txt": 1,
+        ".xlsx": 1
+      },
+      "anotacoes": [
+        "planilha"
+      ],
+      "classes": [],
+      "cultura": "Trigo Duro (Durum Wheat)",
+      "culturaChave": "trigo",
+      "origem": "Kaggle",
+      "url": "https://doi.org/10.1016/j.compag.2019.105016",
+      "licenca": "desconhecida",
+      "citacao": "Kaya, E., & Saritas, İ. (2019). Towards a real-time sorting system: identification of vitreous durum wheat kernels using ANN based on their morphological, colour, wavelet and gaborlet features. Computers and Electronics in Agriculture, 166, 105016.",
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Análise morfológica e pureza física de cariopses de trigo.",
+      "segundoReadme": {
+        "formato": "Imagens de alta resolução por variedade",
+        "quantidade": "325 imagens"
+      },
+      "tamanhoBytes": 1690544364,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "72": 4,
+          "96": 1
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "pasta",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "green-coffee-defects",
+      "caminhoRelativo": "green-coffee-defects",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 11,
+        "porExtensao": {
+          ".jpg": 11
+        }
+      },
+      "outrosArquivos": {
+        "(sem extensao)": 1,
+        ".md": 1
+      },
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Café Verde (Defeitos físicos e broca)",
+      "culturaChave": "cafe",
+      "origem": "https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset",
+      "url": "https://www.kaggle.com/datasets/j4ckdev/green-coffee-beans-dataset",
+      "licenca": "CC BY-NC-SA 4.0",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Amostras de defeitos para testes pontuais de coloração e danos.",
+      "segundoReadme": {
+        "formato": "Imagens macro de defeitos (Brocado, Concha, Fungo, Negro)",
+        "quantidade": "11 imagens"
+      },
+      "tamanhoBytes": 4740651,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "350": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "pasta",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "Image Dataset of Local Indonesian Soybean Seed Var",
+      "caminhoRelativo": "Image Dataset of Local Indonesian Soybean Seed Var",
+      "formatoDetectado": "mascara-de-instancia",
+      "imagens": {
+        "total": 119,
+        "porExtensao": {
+          ".jpg": 119,
+          ".png": 12683
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [
+        "mascara de instancia (canal alfa dos recortes)"
+      ],
+      "classes": [],
+      "cultura": "Soja (Anjasmoro, Dega I, Grobogan)",
+      "culturaChave": "soja",
+      "origem": "Mendeley Data (c733bjz4m3).",
+      "url": "https://data.mendeley.com/datasets/c733bjz4m3/3",
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Morfometria de alta precisão: cálculo de IoU, calibração métrica ($\\mu\\text{m/px}$), área, perímetro e circularidade.",
+      "segundoReadme": {
+        "formato": "Scans 800–950 DPI + Recortes RGBA (Alpha = Máscara exata)",
+        "quantidade": "119 scans completos / 12.683 sementes"
+      },
+      "tamanhoBytes": 1179369492,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "800": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "images",
+      "caminhoRelativo": "images",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 1067,
+        "porExtensao": {
+          ".jpg": 425,
+          ".png": 642
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 5,
+        ".json": 300
+      },
+      "anotacoes": [
+        "json de segmentacao (Orchid Seed Analyzer)",
+        "planilha"
+      ],
+      "classes": [],
+      "cultura": "Amostras de Laboratório / Scans",
+      "culturaChave": "orquidea",
+      "origem": "laboratório",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Testes ponta a ponta do pipeline do SeedCounter (bandejas completas e recortes).",
+      "segundoReadme": {
+        "formato": "Scans de alta resolução, recortes processados e relatórios CSV",
+        "quantidade": "1.067 imagens"
+      },
+      "tamanhoBytes": 1971457819,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "96": 2,
+          "sem": 3
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "nomes de subpasta omitidos de propósito (pasta do laboratório)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "heuristica",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "lucasiturriago-seeds",
+      "caminhoRelativo": "lucasiturriago-seeds",
+      "formatoDetectado": "mascara-binaria",
+      "imagens": {
+        "total": 2807,
+        "porExtensao": {
+          ".png": 8421
+        }
+      },
+      "outrosArquivos": {
+        ".zip": 1
+      },
+      "anotacoes": [
+        "mascara binaria"
+      ],
+      "classes": [],
+      "cultura": "Sementes em geral",
+      "culturaChave": "varias",
+      "origem": "Kaggle (lucasiturriago/seeds).",
+      "url": "https://www.kaggle.com/datasets/lucasiturriago/seeds",
+      "licenca": "CC BY-SA 4.0",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Treino de segmentação semente vs fundo (U-Net, DeepLab, YOLO-seg).",
+      "segundoReadme": {
+        "formato": "Máscaras binárias semânticas (512×512, class_0 e class_1)",
+        "quantidade": "2.807 imagens (5.614 máscaras)"
+      },
+      "tamanhoBytes": 1195258427,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "README",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "maize-seed-dataset",
+      "caminhoRelativo": "maize-seed-dataset",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 17724,
+        "porExtensao": {
+          ".jpg": 17724
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Milho (Zea mays - 3 variedades: Bhihilifa, SanzalSima, WangDataa)",
+      "culturaChave": "milho",
+      "origem": "Kaggle (yungprof123/maize-seed-dataset).",
+      "url": "https://www.kaggle.com/datasets/yungprof123/maize-seed-dataset",
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Expansão de detecção, contagem e classificação varietal para milho.",
+      "segundoReadme": {
+        "formato": "Imagens de sementes individuais organizadas por variedade",
+        "quantidade": "17.724 imagens"
+      },
+      "tamanhoBytes": 57272831,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": {
+        "subpasta": "MaizeData",
+        "formato": "pasta-por-classe",
+        "classes": [
+          "Bhihilifa",
+          "SanzalSima",
+          "WangDataa"
+        ]
+      },
+      "observacoes": [
+        "ao abrir datasets/ o app vê 'solto'; ao abrir a subpasta 'MaizeData' vê 'pasta-por-classe'"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "Mayara_DOC_Qualificacao_TZ_ORQ",
+      "caminhoRelativo": "Mayara_DOC_Qualificacao_TZ_ORQ",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 11,
+        "porExtensao": {
+          ".png": 9,
+          ".tif": 2
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 2,
+        ".docx": 1,
+        ".json": 1,
+        ".pdf": 3
+      },
+      "anotacoes": [
+        "planilha"
+      ],
+      "classes": [],
+      "cultura": "Orquídea",
+      "culturaChave": "orquidea",
+      "origem": "laboratório",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": null,
+      "segundoReadme": null,
+      "tamanhoBytes": 2242324570,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "1200": 1,
+          "sem": 4
+        },
+        "paginasNoTiff": 4
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "nomes de subpasta omitidos de propósito (pasta do laboratório)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "heuristica",
+        "origem": "heuristica",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "heuristica"
+      }
+    },
+    {
+      "nome": "mayara_images",
+      "caminhoRelativo": "mayara_images",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 4,
+        "porExtensao": {
+          ".jpg": 4
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Amostras adicionais de bancada",
+      "culturaChave": "desconhecida",
+      "origem": "laboratório",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Teste de robustez a imagens capturadas por celular/bancada.",
+      "segundoReadme": {
+        "formato": "Fotografias de alta resolução",
+        "quantidade": "4 imagens"
+      },
+      "tamanhoBytes": 484498,
+      "dpiDeclarado": {
+        "amostradas": 3,
+        "valores": {
+          "96": 2,
+          "sem": 1
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "nomes de subpasta omitidos de propósito (pasta do laboratório)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "heuristica",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "nelson_phd_images_orquid_enrico",
+      "caminhoRelativo": "nelson_phd_images_orquid_enrico",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 59,
+        "porExtensao": {
+          ".jpg": 4,
+          ".png": 50,
+          ".tif": 5
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 3,
+        ".json": 24
+      },
+      "anotacoes": [
+        "json de segmentacao (Orchid Seed Analyzer)",
+        "planilha"
+      ],
+      "classes": [],
+      "cultura": "Orquídeas (Doutorado Prof. Nelson)",
+      "culturaChave": "orquidea",
+      "origem": "doutorado",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "O teste de fogo para sementes encostadas / aglomeradas e coloração com tetrazólio real.",
+      "segundoReadme": {
+        "formato": "Scans brutos, TIFs e recortes analisados",
+        "quantidade": "59 scans"
+      },
+      "tamanhoBytes": 511993553,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "3600": 1,
+          "sem": 4
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "nomes de subpasta omitidos de propósito (pasta do laboratório)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "heuristica",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "Orq_lab_semente",
+      "caminhoRelativo": "Orq_lab_semente",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 98,
+        "porExtensao": {
+          ".jpg": 94,
+          ".tif": 4
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Orquídea",
+      "culturaChave": "orquidea",
+      "origem": "laboratório",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": null,
+      "segundoReadme": null,
+      "tamanhoBytes": 5145727634,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "4800": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "nomes de subpasta omitidos de propósito (pasta do laboratório)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "heuristica",
+        "origem": "heuristica",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "heuristica"
+      }
+    },
+    {
+      "nome": "orquid_mayara_10especies",
+      "caminhoRelativo": "orquid_mayara_10especies",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 1,
+        "porExtensao": {
+          ".tif": 1
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Orquídea",
+      "culturaChave": "orquidea",
+      "origem": "laboratório",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": null,
+      "segundoReadme": null,
+      "tamanhoBytes": 1134888209,
+      "dpiDeclarado": {
+        "amostradas": 1,
+        "valores": {
+          "3200": 1
+        },
+        "paginasNoTiff": 10
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "nomes de subpasta omitidos de propósito (pasta do laboratório)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "heuristica",
+        "origem": "heuristica",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "heuristica"
+      }
+    },
+    {
+      "nome": "peanuts.v2-release.multiclass",
+      "caminhoRelativo": "peanuts.v2-release.multiclass",
+      "formatoDetectado": "roboflow-multiclass",
+      "imagens": {
+        "total": 387,
+        "porExtensao": {
+          ".jpg": 387
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 3,
+        ".txt": 2
+      },
+      "anotacoes": [
+        "classes por imagem (_classes.csv)"
+      ],
+      "classes": [
+        "with mold",
+        "without mold"
+      ],
+      "cultura": "Amendoim",
+      "culturaChave": "amendoim",
+      "origem": "https://universe.roboflow.com/roboflow-100/peanuts-sd4kf",
+      "url": "https://universe.roboflow.com/roboflow-100/peanuts-sd4kf",
+      "licenca": "CC BY 4.0",
+      "citacao": "Criado por Melanie S. Capalungan, \"B-Jay\" Daguio, Isaac Balbuena, Reanne Joy Rafael (Roboflow Universe)",
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Diagnóstico automatizado de fitopatologia e mofo/bolor.",
+      "segundoReadme": {
+        "formato": "CSV multiclasse (with mold, without mold)",
+        "quantidade": "387 imagens"
+      },
+      "tamanhoBytes": 53572997,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "pasta",
+        "licenca": "pasta",
+        "citacao": "pasta",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "referencias-tabulares",
+      "caminhoRelativo": "referencias-tabulares",
+      "formatoDetectado": "tabular",
+      "imagens": {
+        "total": 0,
+        "porExtensao": {}
+      },
+      "outrosArquivos": {
+        ".arff": 2,
+        ".csv": 3,
+        ".txt": 2,
+        ".xlsx": 2
+      },
+      "anotacoes": [
+        "planilha"
+      ],
+      "classes": [],
+      "cultura": "Feijão (13.611), Abóbora (2.500) e Arroz (18.185)",
+      "culturaChave": "varias",
+      "origem": "https://doi.org/10.1016/j.compag.2020.105507",
+      "url": "https://doi.org/10.1016/j.compag.2020.105507",
+      "licenca": "desconhecida",
+      "citacao": "KOKLU, M. and OZKAN, I.A., (2020), Multiclass Classification of Dry Beans Using Computer Vision and Machine Learning Techniques. Computers and Electronics in Agriculture, 174, 105507. DOI: https://doi.org/10.1016/j.compag.2020.105507 | KOKLU, M., SARIGIL, S., & OZBEK, O. (2021). The use of machine learning methods in classification of pumpkin seeds (Cucurbita pepo L.). Genetic Resources and Crop Evolution, 68(7), 2713-2726. Doi: https://doi.org/10.1007/s10722-021-01226-0",
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Priors Estatísticos e Gatilhos Lógicos: intervalos de confiança de área, solidez, circularidade e excentricidade para detecção de aglomerados e sanidade.",
+      "segundoReadme": {
+        "formato": "Tabelas CSV / XLSX com 12 a 17 descritores morfométricos padrão",
+        "quantidade": "34.296 registros"
+      },
+      "tamanhoBytes": 13627452,
+      "dpiDeclarado": null,
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "pasta",
+        "licenca": "heuristica",
+        "citacao": "pasta",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "rice-image-dataset",
+      "caminhoRelativo": "rice-image-dataset",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 75000,
+        "porExtensao": {
+          ".jpg": 75000
+        }
+      },
+      "outrosArquivos": {
+        ".txt": 1
+      },
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Arroz (5 cultivares: Arborio, Basmati, Ipsala, Jasmine, Karacadag)",
+      "culturaChave": "arroz",
+      "origem": "Kaggle",
+      "url": "https://doi.org/10.1016/j.compag.2021.106285",
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Referência mundial para classificação varietal e morfometria fina de grãos de arroz.",
+      "segundoReadme": {
+        "formato": "Imagens individuais recortadas de grãos",
+        "quantidade": "75.000 imagens"
+      },
+      "tamanhoBytes": 267352426,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": {
+        "subpasta": "Rice_Image_Dataset",
+        "formato": "pasta-por-classe",
+        "classes": [
+          "Arborio",
+          "Basmati",
+          "Ipsala",
+          "Jasmine",
+          "Karacadag"
+        ]
+      },
+      "observacoes": [
+        "ao abrir datasets/ o app vê 'solto'; ao abrir a subpasta 'Rice_Image_Dataset' vê 'pasta-por-classe'"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "rice.v1i.multiclass",
+      "caminhoRelativo": "rice.v1i.multiclass",
+      "formatoDetectado": "roboflow-multiclass",
+      "imagens": {
+        "total": 591,
+        "porExtensao": {
+          ".jpg": 591
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 3,
+        ".txt": 2
+      },
+      "anotacoes": [
+        "classes por imagem (_classes.csv)"
+      ],
+      "classes": [
+        "Broken kernel",
+        "Brown Rice",
+        "Damaged kernel",
+        "Echinochloa crus-galli Seed",
+        "Immature kernel",
+        "Paddy",
+        "Red kernel",
+        "Red-streaked kernel",
+        "Rice",
+        "Rice husk",
+        "Sitophilus oryzae",
+        "Stone"
+      ],
+      "cultura": "Arroz, Daninhas e Pragas (12 classes)",
+      "culturaChave": "arroz",
+      "origem": "https://universe.roboflow.com/test-rzp49/rice-te3lx",
+      "url": "https://universe.roboflow.com/test-rzp49/rice-te3lx",
+      "licenca": "CC BY 4.0",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Análise de pureza varietal e pragas de armazenamento.",
+      "segundoReadme": {
+        "formato": "CSV multiclasse (inclui gorgulho Sitophilus e capim-arroz)",
+        "quantidade": "591 imagens"
+      },
+      "tamanhoBytes": 21546252,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "pasta",
+        "licenca": "pasta",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "Seed dataset",
+      "caminhoRelativo": "Seed dataset",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 4496,
+        "porExtensao": {
+          ".jpg": 4496
+        }
+      },
+      "outrosArquivos": {
+        ".xlsx": 1
+      },
+      "anotacoes": [
+        "planilha"
+      ],
+      "classes": [],
+      "cultura": "88 espécies (forrageiras, cereais e daninhas)",
+      "culturaChave": "varias",
+      "origem": "A dataset for fine-grained seed recognition (DOI: 10.1038/s41597-024-03176-5).",
+      "url": "https://doi.org/10.1038/s41597-024-03176-5",
+      "licenca": "desconhecida",
+      "citacao": "A dataset for fine-grained seed recognition (DOI: 10.1038/s41597-024-03176-5).",
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Identificação taxonômica e reconhecimento de sementes invasoras/daninhas (weed seeds).",
+      "segundoReadme": {
+        "formato": "Imagens macro padronizadas (192×272) em fundo preto + Excel",
+        "quantidade": "4.496 imagens"
+      },
+      "tamanhoBytes": 69629135,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": {
+        "subpasta": "Seed dataset",
+        "formato": "pasta-por-classe",
+        "classes": [
+          "Achnatherum inebrians",
+          "Achnatherum splendens",
+          "Agriophyllum squarrosum",
+          "Agropyron cristatum",
+          "Agropyron elongatum",
+          "Agropyron mongolicum",
+          "Amorpha fruticosa",
+          "Amygdalus mongolica",
+          "Anemone rivularis",
+          "Apocynum pictum",
+          "Apocynum venetum",
+          "Artemisia desertorum",
+          "Artemisia ordosica",
+          "Artemisia sphaerocephala",
+          "Astragalus laxmannii",
+          "Astragalus melilotoides",
+          "Atriplex sibirica",
+          "Avena sativa",
+          "Bassia dasyphylla",
+          "Bromus inermis",
+          "Buddleja alternifolia",
+          "Calligonum mongolicum Turcz",
+          "Calligonum mongolicum",
+          "Caragana korshinskii",
+          "Caragana liouana",
+          "Caragana microphylla",
+          "Caryopteris mongholica",
+          "Clematis fruticosa",
+          "Corethrodendron lignosum",
+          "Corethrodendron scoparium",
+          "Corethrodendron fruticosum var. mongolicum",
+          "Coronilla varia",
+          "Cosmos bipinnatus",
+          "Cynanchum acutum",
+          "Descurainia sophia",
+          "Elaeagnus angustifolia",
+          "Elymus nutans",
+          "Elymus sibiricus",
+          "Elymus pendulinus subsp. pubicaulis",
+          "Euphrasia pectinata",
+          "Festuca rubra",
+          "Glycyrrhiza glabra",
+          "Halimodendron halodendron",
+          "Halogeton arachnoideus",
+          "Halostachys caspica",
+          "Haloxylon ammodendron",
+          "Hedysarum scoparium",
+          "Hippophae rhamnoides",
+          "Hordeum vulgare",
+          "Hyoscyamus niger",
+          "Iris lactea",
+          "Kochia scoparia",
+          "Leonurus japonicus",
+          "Lespedeza bicolor",
+          "Lespedeza daurica",
+          "Leymus chinensis",
+          "Ligularia virgaurea",
+          "Limonium aureum",
+          "Lolium perenne",
+          "Lycium chinese",
+          "Lycium ruthenicum",
+          "Medicago sativa",
+          "Medicago lupulina",
+          "Melilotus officinalis",
+          "Nitraria sibirica",
+          "Nitraria tangutorum",
+          "Oxytropis bicolor",
+          "Peganum harmala",
+          "Picea asperata",
+          "Pisum sativum L",
+          "Plantago major",
+          "Poa annua",
+          "Puccinellia distans",
+          "Puccinellia tenuiflora",
+          "Reaumuria songarica",
+          "Rumex nepalensis",
+          "Rumex patientia",
+          "Salsola tragus",
+          "Saposhnikovia divaricata",
+          "Setaria viridis",
+          "Stipa bungeana",
+          "Thermopsis lanceolata",
+          "Thlaspi arvense",
+          "Trifolium repens",
+          "Triticale",
+          "Vicia sativa",
+          "Vicia villosa",
+          "Zygophyllum xanthoxylon"
+        ]
+      },
+      "observacoes": [
+        "ao abrir datasets/ o app vê 'solto'; ao abrir a subpasta 'Seed dataset' vê 'pasta-por-classe'"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "README",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "seed detect.v3i.yolov8",
+      "caminhoRelativo": "seed detect.v3i.yolov8",
+      "formatoDetectado": "yolo",
+      "imagens": {
+        "total": 113,
+        "porExtensao": {
+          ".jpg": 113
+        }
+      },
+      "outrosArquivos": {
+        ".txt": 115,
+        ".yaml": 1
+      },
+      "anotacoes": [
+        "poligonos",
+        "classes (data.yaml)"
+      ],
+      "classes": [
+        "wheat-seed"
+      ],
+      "cultura": "Sementes de Trigo",
+      "culturaChave": "trigo",
+      "origem": "https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet",
+      "url": "https://universe.roboflow.com/kyoung-do-min/seed-detect-nmxet",
+      "licenca": "CC BY 4.0",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Detecção e contagem automatizada de sementes via YOLOv8/v11.",
+      "segundoReadme": {
+        "formato": "Ultralytics YOLOv8 (.txt + data.yaml)",
+        "quantidade": "113 imagens"
+      },
+      "tamanhoBytes": 3195947,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "pasta",
+        "licenca": "pasta",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "Sementes de Orquideas",
+      "caminhoRelativo": "Sementes de Orquideas",
+      "formatoDetectado": "yolo",
+      "imagens": {
+        "total": 685,
+        "porExtensao": {
+          ".jpg": 751,
+          ".png": 21
+        }
+      },
+      "outrosArquivos": {
+        ".cache": 3,
+        ".csv": 1,
+        ".pt": 2,
+        ".txt": 738,
+        ".yaml": 3
+      },
+      "anotacoes": [
+        "poligonos",
+        "classes (data.yaml)",
+        "planilha"
+      ],
+      "classes": [
+        "inviavel",
+        "viavel"
+      ],
+      "cultura": "Orquídeas (Epidendrum)",
+      "culturaChave": "orquidea",
+      "origem": "Roboflow Universe (sementes-de-orquideas/v8) / Projeto de Pesquisa (TCC).",
+      "url": "https://universe.roboflow.com/sementes-de-orqudea/sementes-de-orquideas",
+      "licenca": "CC BY 4.0",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Viabilidade por Tetrazólio (viavel vs inviavel). Detecção direta de embriões corados.",
+      "segundoReadme": {
+        "formato": "YOLOv8 Bounding Boxes (data.yaml, labels .txt)",
+        "quantidade": "772 imagens / 738 labels"
+      },
+      "tamanhoBytes": 288926692,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [
+        "YOLO: índice 0 = inviavel, 1 = viavel (ver src/lib/classe-do-modelo.ts)"
+      ],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "pasta",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "soyabean-seeds-warcoder",
+      "caminhoRelativo": "soyabean-seeds-warcoder",
+      "formatoDetectado": "solto",
+      "imagens": {
+        "total": 5513,
+        "porExtensao": {
+          ".jpg": 5513
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [],
+      "classes": [],
+      "cultura": "Soja",
+      "culturaChave": "soja",
+      "origem": "Kaggle",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": null,
+      "segundoReadme": null,
+      "tamanhoBytes": 90238975,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": {
+        "subpasta": "Soybean Seeds",
+        "formato": "pasta-por-classe",
+        "classes": [
+          "Broken soybeans",
+          "Immature soybeans",
+          "Intact soybeans",
+          "Skin-damaged soybeans",
+          "Spotted soybeans"
+        ]
+      },
+      "observacoes": [
+        "ao abrir datasets/ o app vê 'solto'; ao abrir a subpasta 'Soybean Seeds' vê 'pasta-por-classe'"
+      ],
+      "fonteDoCampo": {
+        "cultura": "heuristica",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "heuristica"
+      }
+    },
+    {
+      "nome": "soybean-defects",
+      "caminhoRelativo": "soybean-defects",
+      "formatoDetectado": "pasta-por-classe",
+      "imagens": {
+        "total": 5513,
+        "porExtensao": {
+          ".bmp": 5513
+        }
+      },
+      "outrosArquivos": {},
+      "anotacoes": [
+        "classe = nome da subpasta"
+      ],
+      "classes": [
+        "Broken soybeans",
+        "Immature soybeans",
+        "Intact soybeans",
+        "Skin-damaged soybeans",
+        "Spotted soybeans"
+      ],
+      "cultura": "Soja (5 classes de integridade física)",
+      "culturaChave": "soja",
+      "origem": "Kaggle",
+      "url": null,
+      "licenca": "desconhecida",
+      "citacao": null,
+      "podeSerReferenciado": false,
+      "usoNoSeedCounter": "Triagem de qualidade de sementes: detecção de danos mecânicos, imaturidade e manchas fúngicas.",
+      "segundoReadme": {
+        "formato": "Imagens com pastas por defeito (Broken, Immature, Intact, Skin-damaged, Spotted)",
+        "quantidade": "5.513 imagens"
+      },
+      "tamanhoBytes": 856290186,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "README",
+        "licenca": "heuristica",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "wheat quality detection.v2i.multiclass",
+      "caminhoRelativo": "wheat quality detection.v2i.multiclass",
+      "formatoDetectado": "roboflow-multiclass",
+      "imagens": {
+        "total": 7219,
+        "porExtensao": {
+          ".jpg": 7219
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 3,
+        ".txt": 2
+      },
+      "anotacoes": [
+        "classes por imagem (_classes.csv)"
+      ],
+      "classes": [
+        "bad seed",
+        "healthy seed",
+        "impurity"
+      ],
+      "cultura": "Trigo",
+      "culturaChave": "trigo",
+      "origem": "https://universe.roboflow.com/first-pijnk/wheat-quality-detection",
+      "url": "https://universe.roboflow.com/first-pijnk/wheat-quality-detection",
+      "licenca": "Public Domain",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Pureza física e sanidade: triagem de sementes danificadas vs chochas vs impurezas.",
+      "segundoReadme": {
+        "formato": "CSV multiclasse (bad seed, healthy seed, impurity)",
+        "quantidade": "7.219 imagens"
+      },
+      "tamanhoBytes": 537339614,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "pasta",
+        "licenca": "pasta",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    },
+    {
+      "nome": "wheat seed classification.v2i.multiclass",
+      "caminhoRelativo": "wheat seed classification.v2i.multiclass",
+      "formatoDetectado": "roboflow-multiclass",
+      "imagens": {
+        "total": 538,
+        "porExtensao": {
+          ".jpg": 538
+        }
+      },
+      "outrosArquivos": {
+        ".csv": 2,
+        ".txt": 2
+      },
+      "anotacoes": [
+        "classes por imagem (_classes.csv)"
+      ],
+      "classes": [
+        "bad seed",
+        "healthy seed",
+        "impurity"
+      ],
+      "cultura": "Trigo",
+      "culturaChave": "trigo",
+      "origem": "https://universe.roboflow.com/bcd-hhv9y/wheat-seed-classification",
+      "url": "https://universe.roboflow.com/bcd-hhv9y/wheat-seed-classification",
+      "licenca": "CC BY 4.0",
+      "citacao": null,
+      "podeSerReferenciado": true,
+      "usoNoSeedCounter": "Validação rápida de classificadores de grãos.",
+      "segundoReadme": {
+        "formato": "CSV multiclasse (bad seed, healthy seed, impurity)",
+        "quantidade": "538 imagens"
+      },
+      "tamanhoBytes": 36489609,
+      "dpiDeclarado": {
+        "amostradas": 5,
+        "valores": {
+          "sem": 5
+        }
+      },
+      "formatoDaSubpasta": null,
+      "observacoes": [],
+      "fonteDoCampo": {
+        "cultura": "README",
+        "origem": "pasta",
+        "licenca": "pasta",
+        "citacao": "heuristica",
+        "usoNoSeedCounter": "README"
+      }
+    }
+  ]
+}
