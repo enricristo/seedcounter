@@ -65,9 +65,18 @@ export interface OpcoesDeCorte {
    *
    * A geometria explica: dois DISCOS que mal se tocam produzem uma cintura de
    * apenas 0,248 do raio equivalente, porque o fecho convexo de duas rodelas já
-   * é quase a própria forma. Duas sementes ALONGADAS lado a lado produzem
-   * 0,852, medido em 240 pares reais de orquídea — a reentrância é funda porque
-   * o objeto é fino.
+   * é quase a própria forma. Duas sementes ALONGADAS lado a lado produzem uma
+   * reentrância funda, porque o objeto é fino.
+   *
+   * MEDIDO DE NOVO EM 22/09/2026, com um porte literal deste arquivo para
+   * Python (validado contra os 7 testes daqui). O conjunto: `Sementes de
+   * Orquideas`, DEDUPLICADO — o export do Roboflow tinha 685 arquivos para 83
+   * imagens de origem, mediana de 7 cópias. Sobram **341 pares e 2 390
+   * isoladas**, a mesma ordem dos 240 que este comentário citava antes.
+   *
+   * A separação é MAIOR do que se dizia aqui: profundidade relativa mediana
+   * 0,160 na isolada (o texto antigo dizia 0,199) e 1,278 no par (dizia
+   * 0,852). Mesma direção, distância maior.
    *
    * O padrão 0,15 serve ao caso difícil (semente redonda, sinal fraco). Para
    * semente alongada use `CORTE_PARA_SEMENTE_ALONGADA`, senão o feitio normal
