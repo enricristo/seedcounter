@@ -414,7 +414,12 @@ export interface TreatmentStats {
   n: number;
   mean: number; // Mean germination %
   sd: number; // Standard deviation
-  ci: ConfidenceInterval; // Wilson CI
+  /**
+   * Intervalo de Wilson. `null` quando não se sabe quantas SEMENTES havia por
+   * repetição — sem esse número o intervalo binomial não existe, e desenhar
+   * um mesmo assim põe uma barra inventada numa figura de artigo.
+   */
+  ci: ConfidenceInterval | null; // Wilson CI
   ivg: number; // Índice de Velocidade de Germinação (Maguire, 1962)
   mgt?: number; // Mean Germination Time
   letter?: string; // Scott-Knott / Tukey grouping letter
