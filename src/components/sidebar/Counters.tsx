@@ -12,6 +12,17 @@ interface CountersProps {
    * aparecem porque um número que encolhe sem explicação parece defeito.
    */
   inertesCount?: number;
+  /**
+   * A contagem por classe do protocolo declarado, quando há um.
+   *
+   * Vazio = protocolo simples ou nenhum, e o painel é o de sempre: dois
+   * totalizadores. Com protocolo, estes números são o que a pessoa acabou de
+   * marcar com as teclas 1 a 6 — e ficavam invisíveis aqui, que é onde ela
+   * olha para conferir.
+   */
+  porClasse?: { classe: string; rotulo: string; n: number; ehSemente: boolean }[];
+  /** Quantas marcas ainda não têm classe fina, com protocolo declarado. */
+  semClasseFina?: number;
   viablePercent: string;
   inviablePercent: string;
   totalCount: number;
@@ -27,6 +38,8 @@ export function Counters({
   viableCount,
   inviableCount,
   inertesCount = 0,
+  porClasse = [],
+  semClasseFina = 0,
   viablePercent,
   inviablePercent,
   totalCount,
@@ -108,6 +121,38 @@ export function Counters({
             style={{ width: `${barInviable}%` }}
           />
         </div>
+
+        {/* A contagem por classe do protocolo. Só existe com protocolo
+            declarado — sem ele, as classes SÃO viável e inviável, e repetir os
+            dois números abaixo deles não diria nada novo. */}
+        {porClasse.length > 0 && (
+          <div className="border-line-soft space-y-1 border-t pt-2">
+            <span className="text-ink-3 text-[10px] font-bold tracking-widest uppercase">
+              Por classe do protocolo
+            </span>
+            {porClasse.map((c) => (
+              <div
+                key={c.classe}
+                className="text-ink-2 flex items-baseline justify-between text-[11px]"
+              >
+                <span className={c.ehSemente ? '' : 'text-ink-3'}>
+                  {c.rotulo}
+                  {c.ehSemente ? '' : ' (fora da conta)'}
+                </span>
+                <span className="font-mono tabular-nums">{c.n}</span>
+              </div>
+            ))}
+            {semClasseFina > 0 && (
+              <div
+                className="text-ink-3 flex items-baseline justify-between text-[10px]"
+                title="Marcadas com V ou I, sem classe fina. Elas entram na conta pelo tipo — viável vira 'normal', inviável vira 'morta' — e é isso que o laudo vai dizer."
+              >
+                <span>sem classe fina</span>
+                <span className="font-mono tabular-nums">{semClasseFina}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* A linha do inerte só existe quando há inerte: sem classe fina
             declarada, a tela é exatamente a de sempre. */}

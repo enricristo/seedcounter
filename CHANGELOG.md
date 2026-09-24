@@ -3,7 +3,12 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
-## [3.9.0] — 2026-09-24
+## [Não publicado]
+
+### Corrigido
+- **Trocar a classe de uma semente contornada mudava a cor e não mudava o número.** A classe morava em dois lugares que ninguém sincronizava: `marca.type` (que a contagem usa no objeto pareado) e `segmentacao.category` (que a cor usa). Clicar na célula da galeria mexia só no contorno. O seletor de classe fina era pior: gravava `subclasse` sem tocar no tipo, e uma semente marcada "morta" seguia contada como viável, em ciano. Agora as três portas — célula da galeria, inspetor e canvas — passam por uma operação só, que mexe na marca e no contorno pareado numa transação do histórico (um Ctrl+Z desfaz a troca inteira). Inverter apaga a classe fina que passar a contradizer o tipo. 7 testes.
+- **Os totalizadores da direita não mostravam as classes do protocolo.** Quem marcava com as teclas 1 a 6 via só "viáveis" e "inviáveis" mudarem, e a classe escolhida sumia justamente onde se confere. Agora, com protocolo declarado, o painel lista a contagem por classe (e "sem classe fina", para as marcadas só com V ou I). Sem protocolo, o painel é o de sempre.
+
 
 Classes que saem do viável/inviável, e o laudo de problemas de 24/09 fechado.
 Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
