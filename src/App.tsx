@@ -176,7 +176,7 @@ import {
   medianaDaCena,
 } from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
-import { protocoloPorChave } from './lib/normas/classes-de-semente';
+import { CLASSES, contarPorClasse, protocoloPorChave } from './lib/normas/classes-de-semente';
 import {
   categoriaDaClasse,
   classeDaTecla,
@@ -767,7 +767,7 @@ function AppInterno() {
     setSubclasse,
     addYoloSegmentations,
     appendYoloSegmentation,
-    toggleSegmentationClass,
+    alternarClasseDoObjeto,
     deleteSegmentation,
     resetAllAnnotations,
     desfazer,
@@ -992,6 +992,30 @@ function AppInterno() {
   // número errado. No modo diferencial o total é declarado por quem semeou, e
   // não se mexe nele: ali o inerte é só informação.
   const inertesCount = contagem.inertes;
+
+  /**
+   * A contagem por classe do protocolo, para os totalizadores da direita.
+   *
+   * Ela já existia (`contarPorClasse`, usada pelo laudo e pela galeria) e não
+   * aparecia onde a pessoa olha para conferir: quem marcava com as teclas 1 a
+   * 6 via só "viáveis" e "inviáveis" mudarem, e a classe escolhida sumia da
+   * tela. Vazio sem protocolo — ali as classes SÃO viável e inviável, e
+   * repetir os dois números não diria nada novo.
+   */
+  const contagemPorClasse = useMemo(() => {
+    const protocolo = protocoloPorChave(metadata.protocolo);
+    if (protocolo.classes.length <= 2) return { porClasse: [], semClasseFina: 0 };
+    const { contagens, naoClassificadas } = contarPorClasse(marks, protocolo);
+    return {
+      porClasse: protocolo.classes.map((c) => ({
+        classe: c,
+        rotulo: CLASSES[c].rotulo,
+        n: contagens[c] ?? 0,
+        ehSemente: CLASSES[c].ehSemente,
+      })),
+      semClasseFina: naoClassificadas,
+    };
+  }, [marks, metadata.protocolo]);
 
   const totalCount =
     metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
@@ -2394,15 +2418,26 @@ function AppInterno() {
     [imagemDeTrabalho, setYoloSegmentations]
   );
 
+  // A classe de um objeto é UMA: inverter pela marca leva o contorno pareado
+  // junto (e vice-versa), e apaga a classe fina que passar a contradizer o
+  // tipo. Antes, cada porta mexia no seu lado: a cor virava e o número não,
+  // porque a contagem de um par lê a MARCA e a cor lê o CONTORNO.
   const handleToggleMarkClass = useCallback(
-    (id: number) => {
-      setMarks((prev) =>
-        prev.map((m) =>
-          m.id === id ? { ...m, type: m.type === 'viable' ? 'inviable' : 'viable' } : m
-        )
-      );
-    },
-    [setMarks]
+    (id: number) => alternarClasseDoObjeto({ marcaId: id }),
+    [alternarClasseDoObjeto]
+  );
+
+  /**
+   * Inverter pelo CONTORNO — no canvas, na galeria e no inspetor.
+   *
+   * Mesma operação: o contorno órfão (de modelo, sem marca) inverte sozinho; o
+   * contorno pareado leva a marca junto, que é quem a contagem lê.
+   * `toggleSegmentationClass` continua no hook para quem só tem contorno, mas
+   * a interface não o chama direto — por isso ele nem é desestruturado aqui.
+   */
+  const handleToggleSegmentationClass = useCallback(
+    (id: number) => alternarClasseDoObjeto({ segId: id }),
+    [alternarClasseDoObjeto]
   );
 
   // Fase F — arrastar reposiciona a marcação (correção fina da detecção).
@@ -2613,6 +2648,8 @@ function AppInterno() {
             viableCount={viableCount}
             inviableCount={inviableCount}
             inertesCount={inertesCount}
+            porClasse={contagemPorClasse.porClasse}
+            semClasseFina={contagemPorClasse.semClasseFina}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}
@@ -3001,7 +3038,7 @@ function AppInterno() {
                   isPanningMode={isPanningMode}
                   onCanvasClick={handleCanvasClick}
                   canvasRef={canvasRef}
-                  onToggleSegmentationClass={toggleSegmentationClass}
+                  onToggleSegmentationClass={handleToggleSegmentationClass}
                   onDeleteSegmentation={deleteSegmentation}
                   umPerPixel={metadata.umPerPixel}
                   detectionPreview={detectionPreview}
@@ -3120,6 +3157,8 @@ function AppInterno() {
             viableCount={viableCount}
             inviableCount={inviableCount}
             inertesCount={inertesCount}
+            porClasse={contagemPorClasse.porClasse}
+            semClasseFina={contagemPorClasse.semClasseFina}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}
@@ -3156,7 +3195,7 @@ function AppInterno() {
                   limiares={limiaresDaCena}
                   especieId={especieDeclarada}
                   perfilMedido={perfilMedidoAtivo}
-                  onToggleClass={toggleSegmentationClass}
+                  onToggleClass={handleToggleSegmentationClass}
                   onDelete={deleteSegmentation}
                   onProposeCut={handleProposeCut}
                   onClose={() => {
@@ -3210,7 +3249,7 @@ function AppInterno() {
                 image={image}
                 marks={marks}
                 yoloSegmentations={yoloSegmentations}
-                onToggleSegmentationClass={toggleSegmentationClass}
+                onToggleSegmentationClass={handleToggleSegmentationClass}
                 onDeleteSegmentation={deleteSegmentation}
                 onToggleMarkClass={handleToggleMarkClass}
                 onRemoveMark={removeMark}
@@ -3573,7 +3612,7 @@ function AppInterno() {
         image={image}
         marks={marks}
         yoloSegmentations={yoloSegmentations}
-        onToggleSegmentationClass={toggleSegmentationClass}
+        onToggleSegmentationClass={handleToggleSegmentationClass}
         onDeleteSegmentation={deleteSegmentation}
         onToggleMarkClass={handleToggleMarkClass}
         onRemoveMark={removeMark}
