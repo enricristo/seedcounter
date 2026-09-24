@@ -3,6 +3,55 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/);
 versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
+## [3.9.0] — 2026-09-24
+
+Classes que saem do viável/inviável, e o laudo de problemas de 24/09 fechado.
+Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
+
+### Adicionado — classes dinâmicas (spec `docs/superpowers/specs/2026-09-23-classes-dinamicas-design.md`)
+
+Três camadas: a **raiz normativa** (fixa, da RAS) manda na conta; o **caminho**
+refina sem mudar número; o **rótulo** é livre. Aglomerado é marcador de
+artefato, não classe.
+
+- **Marcar direto na classe do protocolo.** Com protocolo declarado e diferente de `simples`, a barra de ferramentas ganha um botão por classe (plântula normal, anormal, dura, dormente, morta, vazia), com ícone próprio, a explicação da norma no `title` e tecla **1 a 6** — a tecla é a POSIÇÃO da classe na lista do protocolo. As teclas 1 e 2, que eram os modos de exibição, passaram para **N** (alterna pontos ↔ índices): número na mão de quem conta é classe. `V` e `I` não mudam de sentido: continuam marcando viável/inviável sem classe fina, e desarmam a classe. A onda por clique herda a classe armada. `features/classes/ferramentas-de-classe.ts`, 8 testes.
+- O menu radial (botão direito arrastando sobre um contorno) entrou nas instruções do mouse, onde sempre devia ter estado.
+
+
+### Corrigido — o laudo de 24/09
+
+Seis achados conferidos no código, com arquivo e linha. Os dois do backend
+(`seedcounter-backend`, privado) bloqueavam o ar e foram fechados no PR #4 de
+lá: o lote trocava imagem não encontrada por uma **sintética** e seguia como
+sucesso (e abria caminho local vindo do cliente); e, sem o arquivo `.onnx`, o
+servidor **inventava detecções** com um aviso no log. Os dois agora falham
+fechado, e a guarda de produção exige o modelo no disco. A precisão de `0.942`
+escrita no código virou `model_annotation_share`, `null` quando não há o que
+medir.
+
+No app:
+
+- **DPI de tela não vira mais palpite de escala.** TIFF reexportado por editor guarda 1, 72 ou 96 dpi — o padrão do editor, não o do scanner —, e o app aceitava como palpite inicial, começando a morfometria com escala até 25× errada. Piso de 120 dpi (`DPI_MINIMO_PLAUSIVEL`): abaixo dele não há palpite, e o app pede a régua, que decide de qualquer forma. Conversão de pontos/cm acontece antes da comparação.
+- **Separar um aglomerado avisa quando ainda sobra cintura.** 37% dos aglomerados medidos têm três ou mais sementes (um tinha 32) e um corte separa duas: a pessoa cortava, via duas metades e seguia, com um par inteiro escondido em uma delas. O recado agora distingue "separado em dois" de "uma das metades ainda tem cintura".
+- Comentários do corte e do detector de aglomerado atualizados com a medição de 22/09 (**341 pares deduplicados**, não 240; separação maior — mediana 1,278 no par contra 0,160 na isolada) e com o preço do limiar de produção: 0,40 pega 58,4% dos pares com 0,3% de corte falso; o ótimo do erro de contagem seria 0,27.
+- **Circularidade agora diz quando é estimativa.** Todo contorno é cortado em 48 vértices, e o corte suaviza reentrâncias: perímetro encurta, circularidade sobe (mediana +9,9%, pior caso +191%). A coluna `circularidade_estimada` marca `sim` quando a solidez fica abaixo de 0,975 — a solidez já era calculada na mesma passagem. O `Math.min(1, …)` que havia na conta saiu: pela desigualdade isoperimétrica ele era código morto, e sugeria que o valor podia estourar.
+- **O CSV declara a convenção do comprimento** (`convencao_comprimento = eixo-principal-pca`). O app mede sobre os eixos principais do contorno; boa parte da literatura publica o eixo maior da elipse ajustada — 1 a 2% de diferença, e ninguém dizia qual das duas tinha lido.
+- **O lote lia só a primeira página de um TIFF, sem avisar.** Sete dos doze TIFF do laboratório guardam várias varreduras — o de dez espécies virava uma linha e nove sumiam em silêncio. Agora cada página vira uma linha (`arquivo.tif#2`), e o painel diz quantas apareceram. Arquivo de uma página passa inalterado, com o mesmo id. `features/lote/paginas-do-lote.ts`, 7 testes.
+- **O denominador da porcentagem passa a excluir o material inerte.** Objeto declarado como `vazia` (unidade de dispersão sem semente dentro — material inerte pela RAS) sai de `viaveis`/`inviaveis` e do total, e aparece numa linha própria, "Inerte (fora da conta)". Antes ele contava como semente inviável, o que faz a germinação parecer menor do que é. Enquanto ninguém classificar nada como inerte, `sementes === total` e nenhum número muda. `contarObjetos` devolve `inertes` e `sementes`; os três grupos sempre somam o total.
+- A classe fina (`Mark.subclasse`, gravada pela galeria e pelo menu radial) e a classe externa de datasets de terceiros eram calculadas e **não saíam no CSV** — a curadoria morria na exportação. Agora saem em `classe_norma`, `classe_rotulo`, `conta_como_semente` e `classe_externa`; vazias quando ninguém declarou. Spec: `docs/superpowers/specs/2026-09-23-classes-dinamicas-design.md`.
+
+### Uma correção ao laudo
+
+O laudo dizia que o `Math.min(1, …)` da circularidade escondia o viés nas
+sementes redondas ("0,95 aparece como 1,000"). Não escondia: pela desigualdade
+isoperimétrica, `4πA/P² ≤ 1` em qualquer polígono simples, e as duas funções
+fecham o polígono. O teto era **código morto** — um polígono regular de 48
+lados dá 0,999. Saiu mesmo assim, por outro motivo: um teto sugere que a conta
+pode estourar e manda procurar o problema no lugar errado.
+
+### Alterado
+- Testes: 1 548 → 1 584 no app; 137 → 147 no backend.
+
 ## [3.8.0] — 2026-09-23
 
 Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
@@ -26,19 +75,7 @@ Detalhe em linguagem de quem usa: `src/lib/novidades.ts`.
 - README para 3.7.0; arquitetura apontando para `AGENTS.md`.
 - Testes: 1288 → 1548.
 
-### Adicionado (classes dinâmicas, fatia 3)
-- **Marcar direto na classe do protocolo.** Com protocolo declarado e diferente de `simples`, a barra de ferramentas ganha um botão por classe (plântula normal, anormal, dura, dormente, morta, vazia), com ícone próprio, a explicação da norma no `title` e tecla **1 a 6** — a tecla é a POSIÇÃO da classe na lista do protocolo. As teclas 1 e 2, que eram os modos de exibição, passaram para **N** (alterna pontos ↔ índices): número na mão de quem conta é classe. `V` e `I` não mudam de sentido: continuam marcando viável/inviável sem classe fina, e desarmam a classe. A onda por clique herda a classe armada. `features/classes/ferramentas-de-classe.ts`, 8 testes.
-- O menu radial (botão direito arrastando sobre um contorno) entrou nas instruções do mouse, onde sempre devia ter estado.
-
 ### Corrigido
-- **DPI de tela não vira mais palpite de escala.** TIFF reexportado por editor guarda 1, 72 ou 96 dpi — o padrão do editor, não o do scanner —, e o app aceitava como palpite inicial, começando a morfometria com escala até 25× errada. Piso de 120 dpi (`DPI_MINIMO_PLAUSIVEL`): abaixo dele não há palpite, e o app pede a régua, que decide de qualquer forma. Conversão de pontos/cm acontece antes da comparação.
-- **Separar um aglomerado avisa quando ainda sobra cintura.** 37% dos aglomerados medidos têm três ou mais sementes (um tinha 32) e um corte separa duas: a pessoa cortava, via duas metades e seguia, com um par inteiro escondido em uma delas. O recado agora distingue "separado em dois" de "uma das metades ainda tem cintura".
-- Comentários do corte e do detector de aglomerado atualizados com a medição de 22/09 (**341 pares deduplicados**, não 240; separação maior — mediana 1,278 no par contra 0,160 na isolada) e com o preço do limiar de produção: 0,40 pega 58,4% dos pares com 0,3% de corte falso; o ótimo do erro de contagem seria 0,27.
-- **Circularidade agora diz quando é estimativa.** Todo contorno é cortado em 48 vértices, e o corte suaviza reentrâncias: perímetro encurta, circularidade sobe (mediana +9,9%, pior caso +191%). A coluna `circularidade_estimada` marca `sim` quando a solidez fica abaixo de 0,975 — a solidez já era calculada na mesma passagem. O `Math.min(1, …)` que havia na conta saiu: pela desigualdade isoperimétrica ele era código morto, e sugeria que o valor podia estourar.
-- **O CSV declara a convenção do comprimento** (`convencao_comprimento = eixo-principal-pca`). O app mede sobre os eixos principais do contorno; boa parte da literatura publica o eixo maior da elipse ajustada — 1 a 2% de diferença, e ninguém dizia qual das duas tinha lido.
-- **O lote lia só a primeira página de um TIFF, sem avisar.** Sete dos doze TIFF do laboratório guardam várias varreduras — o de dez espécies virava uma linha e nove sumiam em silêncio. Agora cada página vira uma linha (`arquivo.tif#2`), e o painel diz quantas apareceram. Arquivo de uma página passa inalterado, com o mesmo id. `features/lote/paginas-do-lote.ts`, 7 testes.
-- **O denominador da porcentagem passa a excluir o material inerte.** Objeto declarado como `vazia` (unidade de dispersão sem semente dentro — material inerte pela RAS) sai de `viaveis`/`inviaveis` e do total, e aparece numa linha própria, "Inerte (fora da conta)". Antes ele contava como semente inviável, o que faz a germinação parecer menor do que é. Enquanto ninguém classificar nada como inerte, `sementes === total` e nenhum número muda. `contarObjetos` devolve `inertes` e `sementes`; os três grupos sempre somam o total.
-- A classe fina (`Mark.subclasse`, gravada pela galeria e pelo menu radial) e a classe externa de datasets de terceiros eram calculadas e **não saíam no CSV** — a curadoria morria na exportação. Agora saem em `classe_norma`, `classe_rotulo`, `conta_como_semente` e `classe_externa`; vazias quando ninguém declarou. Spec: `docs/superpowers/specs/2026-09-23-classes-dinamicas-design.md`.
 - **Exportação YOLO escrevia as classes invertidas em relação ao treino** (`CLASS_VIABLE = 0`, tabela própria): coerente consigo mesma, mas um dataset exportado somado ao conjunto de treino trocaria a classe de toda semente. Agora usa `indiceDaCategoria` (`classe-do-modelo.ts`): 0 inviável, 1 viável; o `dataset.yaml` traz sempre as duas classes (`nc: 2`), mesmo exportando só viáveis. 5 testes.
 - Lint: 72 → 27 avisos (só código morto — inclusive ~90 linhas de régua/região/anotações no `MarkingCanvas` que já viviam nos overlays); o CI bloqueia acima de 27 (`--max-warnings`).
 - A sugestão "Salvar sessão" do painel de sugestões não gravava nada: `handleAcaoDeSugestao` capturava o `saveCurrentSession` do primeiro render (`filename` vazio). Entra nas deps.

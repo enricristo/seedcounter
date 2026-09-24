@@ -8,7 +8,7 @@
 
 <sub>A marca é o que o aplicativo faz: a semente, e em volta o contorno tracejado que a segmentação propõe — ainda não aceito, esperando o olho de quem analisa.</sub>
 
-[![App](https://img.shields.io/badge/app-produção%20v3.8.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
+[![App](https://img.shields.io/badge/app-produção%20v3.9.0-10b981?style=flat-square)](https://seedcounter.vercel.app)
 [![Beta](https://img.shields.io/badge/beta-versão%20de%20teste-f0b45a?style=flat-square)](https://seedcounter-teste.vercel.app)
 [![PWA](https://img.shields.io/badge/PWA-offline-5a0fc8?style=flat-square)](#privacidade-e-dados)
 [![Licença](https://img.shields.io/badge/licença-MIT-3b82f6?style=flat-square)](LICENSE)
@@ -41,7 +41,7 @@ Uma aplicação web que roda **inteiramente no navegador**, sem servidor, sem en
 
 ## O que as versões 3.6 a 3.8 trouxeram
 
-**Pronto para a bancada.** A 3.6.0 é a versão que a primeira usuária real leva para o laboratório; a 3.7.0 é o que a verificação do trabalho seguinte encontrou — inclusive dois defeitos que teriam invalidado qualquer resultado da fila com IA (toda semente saía inviável; nenhum contorno chegava) e que nunca chegaram a produção; e a 3.8.0 é a versão que se explica sozinha — o critério foi: alguém que nunca viu uma análise vai da abertura ao CSV sem um PDF ao lado.
+**Pronto para a bancada.** A 3.6.0 é a versão que a primeira usuária real leva para o laboratório; a 3.7.0 é o que a verificação do trabalho seguinte encontrou — inclusive dois defeitos que teriam invalidado qualquer resultado da fila com IA (toda semente saía inviável; nenhum contorno chegava) e que nunca chegaram a produção; a 3.8.0 é a versão que se explica sozinha — o critério foi: alguém que nunca viu uma análise vai da abertura ao CSV sem um PDF ao lado; e a 3.9.0 sai do viável/inviável e fecha um laudo de problemas que encontrou dois lugares onde o servidor respondia número inventado com cara de verdadeiro.
 
 | | |
 |---|---|
@@ -182,7 +182,7 @@ Um levantamento das linhas de pesquisa do grupo, com o mapa entre o que os ensai
 
 | Versão | Endereço | Conteúdo |
 |---|---|---|
-| **Produção** | https://seedcounter.vercel.app | v3.8.0 — recursos validados para uso em pesquisa |
+| **Produção** | https://seedcounter.vercel.app | v3.9.0 — recursos validados para uso em pesquisa |
 | **Teste** | https://seedcounter-teste.vercel.app | O que está sendo avaliado antes de virar produção |
 
 O histórico completo, em linguagem de quem usa, está dentro do aplicativo (número da versão no rodapé) e, em detalhe técnico, no [`CHANGELOG.md`](CHANGELOG.md).
@@ -263,7 +263,7 @@ Registrado aqui porque lacuna conhecida vale mais que lacuna esquecida. O levant
 | **Classificador calibrável** | Um limiar sobre o a\* que se recalibra com o que a pessoa curou — auditável, ao contrário de uma rede | Desenhado; depende do registro |
 | **Regressão polinomial** | Os ensaios de estresse osmótico têm fator **quantitativo** (MPa), e a análise publicada é regressão com ponto de ótimo — não separação de médias por letras | Feito na 3.8.0: núcleo (`lib/regressao-polinomial.ts`) e cartão na aba Tratamentos. Falta só declarar o fator à mão quando o rótulo não tem número |
 | **Blocos casualizados (DBC)** | Delineamento dos ensaios de campo de produção de sementes. A ANOVA atual é só de um fator | Lacuna aberta |
-| **Classes dinâmicas** | Em forrageira, semente não germinada pode ser dormente, dura, vazia ou morta. A dicotomia viável/inviável não cobre, e contar espigueta vazia como semente produz porcentagem errada | Lacuna aberta |
+| **Classes dinâmicas** | Em forrageira, semente não germinada pode ser dormente, dura, vazia ou morta. A dicotomia viável/inviável não cobre, e contar espigueta vazia como semente produz porcentagem errada | Três quintos na 3.9.0: as classes da norma saem no CSV, o material inerte sai do denominador e dá para marcar direto na classe do protocolo (teclas 1–6). Falta a marca desenhada por classe (hoje dormente e morta saem iguais na tela) e as classes definidas por quem usa |
 | **Protocolo por espécie** | Pré-condicionamento, escarificação e clareamento variam por gênero — a Tabela 1 do boletim de 2021 é um catálogo pronto | Lacuna aberta |
 | **Separação de sementes encostadas** | O corte por concavidade separa 95,8% dos pares reais, e o aviso de aglomerado passou a sair da própria população da imagem (falso alarme em orquídea caiu de 78% para 13%). O que falta é separar automaticamente sem a pessoa pedir — e em semente alongada o watershed comprovadamente fatia a semente ao meio | Parcialmente resolvido |
 | **Textura (GLCM)** | As 28 características que faltam para completar as 54 do AIseed. Servem para pureza física e cariopse vazia, não para tetrazólio — por isso não são prioridade | Adiado com motivo |
