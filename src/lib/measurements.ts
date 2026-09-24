@@ -21,6 +21,16 @@ export { pointInPolygon };
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
 import { CLASSES } from './normas/classes-de-semente';
 
+/**
+ * Abaixo desta solidez, a circularidade é estimativa.
+ *
+ * O corte do contorno em 48 vértices suaviza reentrâncias; quanto mais
+ * reentrante o contorno, mais perímetro se perde e mais a circularidade
+ * sobe. 0,975 é o ponto a partir do qual o desvio medido deixa de ser ruído
+ * (`docs/datasets/auditoria-de-medida.md`).
+ */
+export const LIMIAR_DE_SOLIDEZ_CONFIAVEL = 0.975;
+
 export interface SeedMeasurement {
   /** Identificador sequencial dentro da amostra. */
   objectId: number;
@@ -81,6 +91,12 @@ export interface SeedMeasurement {
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
   circularidade?: number;
+  /**
+   * `sim` quando a circularidade é ESTIMATIVA: o contorno tem solidez abaixo
+   * de 0,975 e o corte em 48 vértices encurtou demais o perímetro. Vazia
+   * quando não há contorno — não há o que estimar.
+   */
+  circularidadeEstimada?: string;
   /** Solidez: área dividida pela área do fecho convexo — 1 = perfeitamente convexo. */
   solidez?: number;
   /** Confiança do modelo, quando aplicável. */
@@ -238,13 +254,36 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       row.larguraPx = Number(largura.toFixed(2));
       row.areaPx = Number(area.toFixed(1));
       row.razaoAspecto = largura > 0 ? Number((comprimento / largura).toFixed(3)) : undefined;
-      row.circularidade =
-        perim > 0
-          ? Number(Math.min(1, (4 * Math.PI * area) / (perim * perim)).toFixed(3))
-          : undefined;
       const fc = fechoConvexo(poly as [number, number][]);
       const areaFc = areaDoPoligono(fc);
       row.solidez = areaFc > 0 ? Number(Math.min(1, area / areaFc).toFixed(3)) : undefined;
+      // ---------------------------------------------------------------
+      // CIRCULARIDADE: o valor CRU, e o aviso de quando ele não vale.
+      //
+      // 4πA/P² é 1 no círculo perfeito e menos que 1 em qualquer outra
+      // forma — na geometria contínua. O contorno daqui não é contínuo: é
+      // cortado em 48 vértices, e a corda entre dois vértices é mais curta
+      // que o arco que ela substitui. Perímetro subestimado, circularidade
+      // superestimada: a mediana medida no projeto dá +9,9%, e o pior caso
+      // chega a +191%.
+      //
+      // Até 24/09/2026 havia um `Math.min(1, …)` aqui, e o laudo daquele dia
+      // dizia que ele escondia o viés. NÃO escondia: pela desigualdade
+      // isoperimétrica, 4πA/P² ≤ 1 em qualquer polígono simples, e as duas
+      // funções acima fecham o polígono. O teto era código MORTO — e pior,
+      // sugeria que a conta pode estourar, mandando procurar o problema no
+      // lugar errado. Saiu por isso, e o teste guarda o motivo.
+      //
+      // Quem manda no erro é a SOLIDEZ: contorno com reentrância profunda
+      // (semente encostada, quebrada, fungo) perde mais perímetro no corte.
+      // Abaixo de 0,975 a circularidade é estimativa, e a coluna diz isso —
+      // custa uma comparação, porque a solidez já está calculada acima.
+      row.circularidade =
+        perim > 0 ? Number(((4 * Math.PI * area) / (perim * perim)).toFixed(3)) : undefined;
+      if (row.circularidade !== undefined) {
+        row.circularidadeEstimada =
+          row.solidez !== undefined && row.solidez < LIMIAR_DE_SOLIDEZ_CONFIAVEL ? 'sim' : 'nao';
+      }
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
 
       // Feret: a medida do paquimetro e da peneira comercial (UBS classifica
@@ -365,6 +404,7 @@ const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'pixelsCor', label: 'pixels_cor' },
   { key: 'razaoAspecto', label: 'razao_aspecto' },
   { key: 'circularidade', label: 'circularidade' },
+  { key: 'circularidadeEstimada', label: 'circularidade_estimada' },
   { key: 'confianca', label: 'confianca' },
 ];
 
@@ -419,6 +459,13 @@ export function measurementsToCSV(
         { label: 'placa', value: metadata.plate ?? '' },
         { label: 'quadrante', value: metadata.quadrant ?? '' },
         { label: 'um_por_px', value: metadata.umPerPixel ?? '' },
+        // ---------------------------------------------------------------
+        // QUAL comprimento. O app mede o calibre sobre os eixos principais
+        // do contorno (PCA); boa parte da literatura publica o eixo maior da
+        // ELIPSE ajustada. A diferença é de 1 a 2% — pequena para um lote,
+        // grande para quem compara com um artigo e não sabe qual das duas
+        // leu. Constante em toda linha, como o resto da procedência.
+        { label: 'convencao_comprimento', value: 'eixo-principal-pca' },
         { label: 'origem_imagem', value: metadata.imageSource ?? '' },
         // ---------------------------------------------------------------
         // A espécie, que faltava — e sem ela a planilha não agrupa.
