@@ -31,7 +31,12 @@ import { detectObjects } from '../../lib/detect';
 import { categoriaDaDeteccao } from '../../lib/classe-do-modelo';
 import { segmentarNoCanvas } from '../segmentacao/onda-no-canvas';
 import { executarReceita } from '../ensaio/executar';
-import { resumir, type Receita, type ContornoProposto, type ResumoDaReceita } from '../ensaio/receitas';
+import {
+  resumir,
+  type Receita,
+  type ContornoProposto,
+  type ResumoDaReceita,
+} from '../ensaio/receitas';
 import { decodificarParaCanvas } from './abrir-imagem';
 import type { InferenceOptions, YoloDetection } from '../../lib/yolo-onnx';
 import type { ItemDoLote, ResultadoDeUmaImagem } from './lote';
@@ -53,7 +58,10 @@ export type Detector = (imagem: ImageData, opcoes: InferenceOptions) => Promise<
 /** Cor do contorno proposto - mesma técnica de `EnsaioPanel` (Miniatura): lê `--color-accent`, com fallback fixo fora do navegador/tema. */
 function corDoContorno(): string {
   if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return '#00e5ff';
-  return getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim() || '#00e5ff';
+  return (
+    getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim() ||
+    '#00e5ff'
+  );
 }
 
 /**
@@ -65,7 +73,11 @@ function corDoContorno(): string {
  * as linhas já desenhadas as esfumaçaria (aliasing) e a compressão JPEG de
  * qualidade baixa do Canvas faria vazar artefatos coloridos.
  */
-function desenharPreviaComContornos(origem: HTMLCanvasElement, propostos: ContornoProposto[], maxLado: number): string {
+function desenharPreviaComContornos(
+  origem: HTMLCanvasElement,
+  propostos: ContornoProposto[],
+  maxLado: number
+): string {
   const escala = Math.min(1, maxLado / Math.max(origem.width, origem.height));
   const w = Math.round(origem.width * escala);
   const h = Math.round(origem.height * escala);
@@ -142,8 +154,10 @@ export function propostosDeDeteccoes(deteccoes: YoloDetection[]): {
  */
 export function descreverFalhaDoModelo(erro: unknown): string {
   const msg = erro instanceof Error ? erro.message : String(erro);
-  if (/cancelad/i.test(msg)) return 'Detecção interrompida: outra detecção começou antes desta terminar.';
-  if (/fetch|404|not found|protobuf/i.test(msg)) return 'Modelo de IA não encontrado em public/models/.';
+  if (/cancelad/i.test(msg))
+    return 'Detecção interrompida: outra detecção começou antes desta terminar.';
+  if (/fetch|404|not found|protobuf/i.test(msg))
+    return 'Modelo de IA não encontrado em public/models/.';
   if (/wasm|backend|no available backend/i.test(msg)) {
     return 'Falha ao carregar o motor de inferência (WASM). Verifique a conexão na primeira execução.';
   }
@@ -171,11 +185,15 @@ export interface OpcoesDeProcessamento {
    * teste quer, e o resto do caminho — categoria, resumo, prévia, formato do
    * resultado — roda de verdade.
    */
-  abrirImagem?: (file: File) => Promise<HTMLCanvasElement>;
+  abrirImagem?: (file: File, pagina?: number) => Promise<HTMLCanvasElement>;
   detectar?: Detector;
 }
 
-type ResultadoDaLocalizacao = { propostos: ContornoProposto[]; escapes: number; resumo: ResumoDaReceita };
+type ResultadoDaLocalizacao = {
+  propostos: ContornoProposto[];
+  escapes: number;
+  resumo: ResumoDaReceita;
+};
 
 /**
  * Processa uma imagem do lote: decodifica, localiza, roda a onda (ou o
@@ -197,7 +215,10 @@ export async function processarImagemDoLote(
   const abrir = opcoes.abrirImagem ?? decodificarParaCanvas;
 
   const file = await item.obterFile();
-  const canvas = await abrir(file);
+  // A página vem do item: um TIFF de dez varreduras virou dez itens, e cada
+  // um decodifica a sua (`paginas-do-lote.ts`). Item sem página é a primeira,
+  // que é o caso de toda imagem de uma página só.
+  const canvas = await abrir(file, item.pagina ?? 0);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas indisponível');
 
@@ -225,7 +246,9 @@ export async function processarImagemDoLote(
   } else {
     const deteccao = detectObjects(canvas, receita.localizacao);
     const objetos =
-      deteccao.objects.length > TETO_DE_PONTOS ? deteccao.objects.slice(0, TETO_DE_PONTOS) : deteccao.objects;
+      deteccao.objects.length > TETO_DE_PONTOS
+        ? deteccao.objects.slice(0, TETO_DE_PONTOS)
+        : deteccao.objects;
     const pontos = objetos.map((o) => ({ x: o.x, y: o.y }));
 
     resultadoDoEnsaio = await executarReceita(

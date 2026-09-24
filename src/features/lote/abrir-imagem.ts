@@ -22,18 +22,35 @@ import { ehTiff } from '../../lib/image-crop';
 import { decodificarTiff } from '../../lib/tiff';
 
 /**
+ * Quantas páginas o arquivo tem. 1 para o que não é TIFF.
+ *
+ * Lê o arquivo inteiro para a memória por um instante (os IFDs estão
+ * espalhados por ele), mas NÃO decodifica pixels — o caro continua sendo uma
+ * página por vez, dentro do laço do lote.
+ */
+export async function contarPaginasDoArquivo(file: File): Promise<number> {
+  if (!ehTiff(file)) return 1;
+  const buffer = await file.arrayBuffer();
+  const dec = decodificarTiff(buffer, 0);
+  return dec?.paginas ?? 1;
+}
+
+/**
  * Decodifica `file` num canvas do tamanho da imagem.
  *
  * Lança com mensagem legível quando o arquivo não é imagem que este leitor
  * entenda — quem chama (o laço do lote) transforma em `erro` da linha.
  */
-export async function decodificarParaCanvas(file: File): Promise<HTMLCanvasElement> {
+export async function decodificarParaCanvas(file: File, pagina = 0): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas');
 
   if (ehTiff(file)) {
     const buffer = await file.arrayBuffer();
-    const dec = decodificarTiff(buffer, 0);
-    if (!dec) throw new Error('TIFF que este leitor não entende (compressão ou profundidade não suportada).');
+    const dec = decodificarTiff(buffer, pagina);
+    if (!dec)
+      throw new Error(
+        'TIFF que este leitor não entende (compressão ou profundidade não suportada).'
+      );
     canvas.width = dec.width;
     canvas.height = dec.height;
     const ctx = canvas.getContext('2d');

@@ -107,6 +107,12 @@ export const VERSOES: Versao[] = [
           'Clicar na sugestão do painel não fazia nada — ela guardava uma versão antiga da função, de antes de haver imagem. Ctrl+S e o botão sempre funcionaram; a sugestão agora também.',
       },
       {
+        tipo: 'corrigido',
+        titulo: 'O lote processava só a primeira página dos TIFF',
+        detalhe:
+          'Uma digitalização com várias varreduras no mesmo arquivo — dez espécies, uma por página — virava uma linha só no lote, e as outras páginas sumiam sem aviso. Agora cada página vira uma linha própria, com o nome "arquivo.tif#2", e o painel avisa quantas páginas a mais foram encontradas. Abrir uma imagem avulsa sempre soube escolher a página; o lote não sabia.',
+      },
+      {
         tipo: 'novo',
         titulo: 'Marcar direto na classe: dormente, dura, anormal, vazia',
         detalhe:
