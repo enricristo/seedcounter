@@ -19,12 +19,42 @@ import { enumerarObjetos, pointInPolygon, type ObjetoDaCena } from './objetos';
 
 export { pointInPolygon };
 import { extrairCaracteristicasDeCor, type DadosImagem } from './color-features';
+import { CLASSES } from './normas/classes-de-semente';
+
+/**
+ * Abaixo desta solidez, a circularidade é estimativa.
+ *
+ * O corte do contorno em 48 vértices suaviza reentrâncias; quanto mais
+ * reentrante o contorno, mais perímetro se perde e mais a circularidade
+ * sobe. 0,975 é o ponto a partir do qual o desvio medido deixa de ser ruído
+ * (`docs/datasets/auditoria-de-medida.md`).
+ */
+export const LIMIAR_DE_SOLIDEZ_CONFIAVEL = 0.975;
 
 export interface SeedMeasurement {
   /** Identificador sequencial dentro da amostra. */
   objectId: number;
   /** 'viavel' | 'inviavel' */
   classe: string;
+  /**
+   * A classe fina do teste, quando alguém a declarou: `normal`, `anormal`,
+   * `dura`, `dormente`, `morta`, `vazia` (`lib/normas/classes-de-semente.ts`).
+   *
+   * Vazia quando ninguém classificou — e vazia significa "não foi declarado",
+   * nunca "é normal" (Lei 2). A coluna `classe` continua dizendo viável ou
+   * inviável para toda linha, como sempre disse.
+   */
+  classeNorma?: string;
+  /** O rótulo da classe fina, para a planilha ser lida sem decorar chave. */
+  classeRotulo?: string;
+  /**
+   * `sim`/`nao`: esta linha entra no denominador da porcentagem?
+   *
+   * É a única coluna aqui que muda uma CONTA: pela RAS, unidade de dispersão
+   * sem semente dentro é material inerte e sai do denominador. Sem classe fina
+   * declarada, fica vazia — quem exporta decide, e o app não arbitra.
+   */
+  contaComoSemente?: string;
   /** Origem do dado: manual, ia ou assistida. */
   origem: string;
   /** Classe extra herdada do dataset multiclasse ou YOLO */
@@ -61,6 +91,12 @@ export interface SeedMeasurement {
   razaoAspecto?: number;
   /** Circularidade aproximada: 4πA / P² — 1 = círculo perfeito. */
   circularidade?: number;
+  /**
+   * `sim` quando a circularidade é ESTIMATIVA: o contorno tem solidez abaixo
+   * de 0,975 e o corte em 48 vértices encurtou demais o perímetro. Vazia
+   * quando não há contorno — não há o que estimar.
+   */
+  circularidadeEstimada?: string;
   /** Solidez: área dividida pela área do fecho convexo — 1 = perfeitamente convexo. */
   solidez?: number;
   /** Confiança do modelo, quando aplicável. */
@@ -158,6 +194,27 @@ function origemDaLinha(objeto: ObjetoDaCena): string {
 }
 
 /**
+ * As três colunas da classe fina, quando alguém a declarou.
+ *
+ * A classe mora na MARCA (`subclasse`), gravada pela galeria ou pelo menu
+ * radial; um contorno de modelo sem marca não tem onde carregá-la, e por isso
+ * a linha dele sai com as três vazias. Chave desconhecida — o que a fatia de
+ * classes definidas por quem usa vai produzir — também sai vazia, em vez de
+ * virar um `undefined` disfarçado de classe.
+ */
+function classeDaNorma(objeto: ObjetoDaCena): Partial<SeedMeasurement> {
+  const chave = objeto.marca?.subclasse;
+  if (!chave) return {};
+  const descricao = CLASSES[chave];
+  if (!descricao) return { classeNorma: chave };
+  return {
+    classeNorma: chave,
+    classeRotulo: descricao.rotulo,
+    contaComoSemente: descricao.ehSemente ? 'sim' : 'nao',
+  };
+}
+
+/**
  * Monta a tabela de medidas. Cada marcação vira uma linha; se houver um
  * contorno correspondente, a linha ganha as colunas morfométricas.
  */
@@ -177,6 +234,7 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
     const row: SeedMeasurement = {
       objectId: objeto.indice,
       classe: objeto.categoria === 'viable' ? 'viavel' : 'inviavel',
+      ...classeDaNorma(objeto),
       classeExterna: objeto.marca?.classeExterna || objeto.contorno?.classeExterna,
       origem: origemDaLinha(objeto),
       x: Math.round(objeto.x),
@@ -196,13 +254,36 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
       row.larguraPx = Number(largura.toFixed(2));
       row.areaPx = Number(area.toFixed(1));
       row.razaoAspecto = largura > 0 ? Number((comprimento / largura).toFixed(3)) : undefined;
-      row.circularidade =
-        perim > 0
-          ? Number(Math.min(1, (4 * Math.PI * area) / (perim * perim)).toFixed(3))
-          : undefined;
       const fc = fechoConvexo(poly as [number, number][]);
       const areaFc = areaDoPoligono(fc);
       row.solidez = areaFc > 0 ? Number(Math.min(1, area / areaFc).toFixed(3)) : undefined;
+      // ---------------------------------------------------------------
+      // CIRCULARIDADE: o valor CRU, e o aviso de quando ele não vale.
+      //
+      // 4πA/P² é 1 no círculo perfeito e menos que 1 em qualquer outra
+      // forma — na geometria contínua. O contorno daqui não é contínuo: é
+      // cortado em 48 vértices, e a corda entre dois vértices é mais curta
+      // que o arco que ela substitui. Perímetro subestimado, circularidade
+      // superestimada: a mediana medida no projeto dá +9,9%, e o pior caso
+      // chega a +191%.
+      //
+      // Até 24/09/2026 havia um `Math.min(1, …)` aqui, e o laudo daquele dia
+      // dizia que ele escondia o viés. NÃO escondia: pela desigualdade
+      // isoperimétrica, 4πA/P² ≤ 1 em qualquer polígono simples, e as duas
+      // funções acima fecham o polígono. O teto era código MORTO — e pior,
+      // sugeria que a conta pode estourar, mandando procurar o problema no
+      // lugar errado. Saiu por isso, e o teste guarda o motivo.
+      //
+      // Quem manda no erro é a SOLIDEZ: contorno com reentrância profunda
+      // (semente encostada, quebrada, fungo) perde mais perímetro no corte.
+      // Abaixo de 0,975 a circularidade é estimativa, e a coluna diz isso —
+      // custa uma comparação, porque a solidez já está calculada acima.
+      row.circularidade =
+        perim > 0 ? Number(((4 * Math.PI * area) / (perim * perim)).toFixed(3)) : undefined;
+      if (row.circularidade !== undefined) {
+        row.circularidadeEstimada =
+          row.solidez !== undefined && row.solidez < LIMIAR_DE_SOLIDEZ_CONFIAVEL ? 'sim' : 'nao';
+      }
       if (best.seg.confidence) row.confianca = Number(best.seg.confidence.toFixed(3));
 
       // Feret: a medida do paquimetro e da peneira comercial (UBS classifica
@@ -274,6 +355,16 @@ export function buildMeasurements(ctx: MeasurementContext): SeedMeasurement[] {
 const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'objectId', label: 'objeto_id' },
   { key: 'classe', label: 'classe' },
+  // A classe fina e o que ela significa para a conta. Vieram depois de
+  // `classe` de propósito: quem já tem planilha montada continua achando as
+  // colunas antigas nas mesmas posições relativas, e as novas chegam juntas.
+  { key: 'classeNorma', label: 'classe_norma' },
+  { key: 'classeRotulo', label: 'classe_rotulo' },
+  { key: 'contaComoSemente', label: 'conta_como_semente' },
+  // Calculada desde sempre e nunca exportada: o nome cru que veio de um
+  // dataset de terceiros ('amendoim com mofo', 'trigo duro'). Sem ela, a
+  // curadoria de quem abriu um dataset alheio sumia na exportação.
+  { key: 'classeExterna', label: 'classe_externa' },
   { key: 'origem', label: 'origem' },
   { key: 'x', label: 'x_px' },
   { key: 'y', label: 'y_px' },
@@ -313,6 +404,7 @@ const COLUMNS: { key: keyof SeedMeasurement; label: string }[] = [
   { key: 'pixelsCor', label: 'pixels_cor' },
   { key: 'razaoAspecto', label: 'razao_aspecto' },
   { key: 'circularidade', label: 'circularidade' },
+  { key: 'circularidadeEstimada', label: 'circularidade_estimada' },
   { key: 'confianca', label: 'confianca' },
 ];
 
@@ -367,6 +459,13 @@ export function measurementsToCSV(
         { label: 'placa', value: metadata.plate ?? '' },
         { label: 'quadrante', value: metadata.quadrant ?? '' },
         { label: 'um_por_px', value: metadata.umPerPixel ?? '' },
+        // ---------------------------------------------------------------
+        // QUAL comprimento. O app mede o calibre sobre os eixos principais
+        // do contorno (PCA); boa parte da literatura publica o eixo maior da
+        // ELIPSE ajustada. A diferença é de 1 a 2% — pequena para um lote,
+        // grande para quem compara com um artigo e não sabe qual das duas
+        // leu. Constante em toda linha, como o resto da procedência.
+        { label: 'convencao_comprimento', value: 'eixo-principal-pca' },
         { label: 'origem_imagem', value: metadata.imageSource ?? '' },
         // ---------------------------------------------------------------
         // A espécie, que faltava — e sem ela a planilha não agrupa.
@@ -393,7 +492,10 @@ export function measurementsToCSV(
         { label: 'dpi_declarado', value: metadata.procedencia?.dpiDeclarado ?? '' },
         { label: 'dpi_medido', value: arredondar(metadata.procedencia?.dpiMedido, 1) },
         { label: 'calibracao_n', value: metadata.procedencia?.leiturasDeCalibracao ?? '' },
-        { label: 'calibracao_cv_pct', value: arredondar(metadata.procedencia?.cvDaCalibracaoPercent, 3) },
+        {
+          label: 'calibracao_cv_pct',
+          value: arredondar(metadata.procedencia?.cvDaCalibracaoPercent, 3),
+        },
         { label: 'versao_app', value: metadata.procedencia?.versaoDoApp ?? '' },
         { label: 'commit', value: metadata.procedencia?.commit ?? '' },
       ]

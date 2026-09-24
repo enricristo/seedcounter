@@ -13,7 +13,7 @@
 // são a mesma lista.
 // =============================================================================
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
   X,
   Grid3x3,
@@ -32,6 +32,7 @@ import { lerPreferencia, gravarPreferencia } from '../settings/preferencias';
 import { ESPECIME } from '../../theme/specimen';
 import { montarGaleria, type ItemDaGaleria } from './recortes';
 import { recortarTodos, LADO_DA_MINIATURA } from './recortar';
+import { foraDaMedia } from './fora-da-media';
 import type { Mark, YoloSegmentation } from '../../types';
 import { useModalEscape } from '../../hooks/useModalEscape';
 import {
@@ -49,13 +50,14 @@ import {
   type LimiaresDeAglomerado,
 } from '../../lib/aglomerado';
 
-type Filtro = 'todos' | 'viable' | 'inviable' | 'sem-contorno' | (string & {});
+type Filtro = 'todos' | 'viable' | 'inviable' | 'sem-contorno' | 'fora-da-media' | (string & {});
 
 const FILTROS: { id: Filtro; rotulo: string }[] = [
   { id: 'todos', rotulo: 'Todos' },
   { id: 'viable', rotulo: 'Viáveis' },
   { id: 'inviable', rotulo: 'Inviáveis' },
   { id: 'sem-contorno', rotulo: 'Falta contornar' },
+  { id: 'fora-da-media', rotulo: 'Fora da média' },
 ];
 
 interface GaleriaModalProps {
@@ -153,12 +155,55 @@ export function GaleriaModal({
     if (!existe) setItemInspecionado(null);
   }, [itens, itemInspecionado]);
 
-  // O recorte roda por objeto e é caro; refazer a cada mudança de filtro seria
-  // desperdício. Depende só da imagem, dos itens e da opção de fundo.
+  /**
+   * Os recortes já feitos, entre renderizações.
+   *
+   * `itens` muda a CADA alteração de marca ou contorno — e trocar a classe de
+   * uma semente muda as duas listas. Sem cache, isso refazia os 120 recortes
+   * de uma amostra densa a cada clique, com a interface parada no meio. A
+   * chave é a GEOMETRIA (`chaveDeRecorte`), que é tudo o que o recorte lê:
+   * classe não entra nela, então trocar classe agora não custa recorte nenhum.
+   */
+  const cacheDeRecortes = useRef(new Map<string, string>());
+
+  // Imagem nova, cache novo: as chaves antigas apontariam para pixels de outra
+  // cena, e o item 3 da imagem anterior tem o mesmo `chave` do item 3 desta.
+  useEffect(() => {
+    cacheDeRecortes.current = new Map();
+  }, [image]);
+
   const miniaturas = useMemo(() => {
     if (!isOpen || !image || itens.length === 0) return new Map<string, string>();
-    return recortarTodos(image, itens, { semFundo });
+    return recortarTodos(image, itens, { semFundo }, cacheDeRecortes.current);
   }, [isOpen, image, itens, semFundo]);
+
+  /**
+   * Quem foge da mediana da PRÓPRIA CLASSE.
+   *
+   * É a lente pedida em 24/09: numa grade de 120 miniaturas, o contorno que
+   * pegou só o embrião ou metade da semente só aparece para quem passa por
+   * todas. Aqui ele sobe para o topo, com o motivo escrito. A classe usada é
+   * a fina quando há (a marca pareada), senão viável/inviável — é a mesma
+   * régua que a pessoa acabou de usar para classificar.
+   *
+   * Nada aqui muda número: é ordenação e explicação.
+   */
+  const desvios = useMemo(() => {
+    const porMarca = new Map(marks.map((m) => [m.id, m]));
+    const achados = foraDaMedia(
+      itens
+        .filter((i) => i.tipo === 'contorno')
+        .map((i) => {
+          const marca = i.segmentacao.marcaId != null ? porMarca.get(i.segmentacao.marcaId) : undefined;
+          return {
+            chave: i.chave,
+            classe: marca?.subclasse ?? i.categoria,
+            contorno: i.segmentacao.polygon_points,
+          };
+        })
+    );
+    return new Map(achados.map((d) => [d.chave, d]));
+  }, [itens, marks]);
 
   const protocolo = protocoloPorChave(chaveDoProtocolo);
   const classificaFino = protocolo.classes.length > 2 && !!onSubclasse;
@@ -182,6 +227,7 @@ export function GaleriaModal({
   const visiveis = itens.filter((i) => {
     if (filtro === 'todos') return true;
     if (filtro === 'sem-contorno') return i.tipo === 'ponto';
+    if (filtro === 'fora-da-media') return desvios.has(i.chave);
     if (filtro === 'viable' || filtro === 'inviable') return i.categoria === filtro;
     return i.classeExterna === filtro;
   });
@@ -350,6 +396,7 @@ export function GaleriaModal({
                     onInspecionar={() =>
                       setItemInspecionado((atual) => (atual?.chave === item.chave ? null : item))
                     }
+                    desvio={desvios.get(item.chave)?.texto}
                     onAlternarClasse={() =>
                       item.tipo === 'contorno'
                         ? onToggleSegmentationClass(item.segmentacao.id)
@@ -498,6 +545,7 @@ function Celula({
   protocolo,
   marca,
   onSubclasse,
+  desvio,
 }: {
   key?: React.Key;
   item: ItemDaGaleria;
@@ -514,6 +562,8 @@ function Celula({
   protocolo?: Protocolo;
   marca?: Mark;
   onSubclasse?: (marcaId: number, subclasse: ClasseDeSemente | undefined) => void;
+  /** Por que este contorno foge da mediana da classe. Ausente = está na média. */
+  desvio?: string;
 }) {
   const viavel = item.categoria === 'viable';
   const cor = viavel ? ESPECIME.viable : ESPECIME.inviable;
@@ -557,6 +607,20 @@ function Celula({
       >
         {indice}
       </span>
+
+      {/* Foge da mediana da classe. O motivo vai no title porque a célula tem
+          72 px e a frase tem uma linha inteira — e sem o motivo o aviso seria
+          só um dedo apontando. */}
+      {desvio && (
+        <span
+          title={desvio}
+          className="text-warn rounded-control absolute top-1.5 left-1/2 -translate-x-1/2 cursor-help px-1 py-0.5 text-[10px] font-bold"
+          style={{ background: 'rgba(0,0,0,0.62)' }}
+          aria-label={desvio}
+        >
+          ≠
+        </span>
+      )}
 
       {semContorno && !protocolo && (
         <span

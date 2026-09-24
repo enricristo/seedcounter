@@ -102,8 +102,10 @@ export function GerminationBarChart({
   if (stats.length === 0) return null;
 
   const data: ChartDatum[] = stats.map((s, i) => {
-    const lowerPct = s.ci.lower * 100;
-    const upperPct = s.ci.upper * 100;
+    // Sem o número de sementes não há intervalo binomial. A barra fica sem
+    // bigode em vez de ganhar um bigode inventado.
+    const lowerPct = s.ci ? s.ci.lower * 100 : s.mean;
+    const upperPct = s.ci ? s.ci.upper * 100 : s.mean;
     return {
       label: s.treatmentName,
       mean: s.mean,

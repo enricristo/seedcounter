@@ -169,8 +169,19 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
-import { limiaresDaPopulacao } from './lib/aglomerado';
+import {
+  analisarContorno,
+  areaDoPoligono,
+  limiaresDaPopulacao,
+  medianaDaCena,
+} from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
+import { CLASSES, contarPorClasse, protocoloPorChave } from './lib/normas/classes-de-semente';
+import {
+  categoriaDaClasse,
+  classeDaTecla,
+  ferramentasDoProtocolo,
+} from './features/classes/ferramentas-de-classe';
 import { calculateSeedDimensions } from './lib/pca-utils';
 import { buildMeasurements } from './lib/measurements';
 import {
@@ -426,13 +437,31 @@ function AppInterno() {
     isIdentificacaoOpen;
 
   // Fase F — ferramentas de edição (marcar / borracha / mover)
+  /**
+   * A classe fina do protocolo que está armada para o próximo clique.
+   *
+   * `null` = marcar como sempre se marcou, viável/inviável sem classe fina —
+   * é o estado de quem não declarou protocolo, e o de quem escolheu V ou I de
+   * propósito. Só o protocolo decide quais classes existem; a tecla é a
+   * posição dela na lista (`features/classes`).
+   */
+  const [classeAtiva, setClasseAtiva] = useState<ClasseDeSemente | null>(null);
+
   const {
     activeTool,
     setActiveTool,
     eraserRadius,
     setEraserRadius,
     isTemporary: isToolTemporary,
-  } = useTools({ disabled: isAnyModalOpen });
+  } = useTools({
+    disabled: isAnyModalOpen,
+    // V, I ou X pelo teclado = "agora eu marco grosso": a classe fina armada
+    // cai. Ferramenta de instrumento (onda, contorno) não desarma nada — a
+    // onda marca na classe armada de propósito.
+    onFerramentaPorTecla: (id) => {
+      if (id === 'viable' || id === 'inviable') setClasseAtiva(null);
+    },
+  });
 
   // Ctrl+Shift+D shortcut for Feature Flags Debug Panel
   const { toggle: toggleFlag } = useFeatureFlags();
@@ -462,10 +491,14 @@ function AppInterno() {
   const escolherClasse = useCallback(
     (tipo: 'viable' | 'inviable') => {
       setActiveClassification(tipo);
+      // Escolher V ou I é dizer "agora eu marco grosso": desarma a classe
+      // fina, em vez de deixá-la grudada num gesto que não a pediu.
+      setClasseAtiva(null);
       setActiveTool((atual) => (atual === 'viable' || atual === 'inviable' ? tipo : atual));
     },
     [setActiveTool]
   );
+
   const [visualMode, setVisualMode] = useState<'dots' | 'numbers'>('dots');
 
   // DOM Refs
@@ -734,7 +767,7 @@ function AppInterno() {
     setSubclasse,
     addYoloSegmentations,
     appendYoloSegmentation,
-    toggleSegmentationClass,
+    alternarClasseDoObjeto,
     deleteSegmentation,
     resetAllAnnotations,
     desfazer,
@@ -952,6 +985,38 @@ function AppInterno() {
     ? Math.max(0, (metadata.baselineCount ?? 0) - viableCount)
     : contagem.inviaveis;
 
+  // Inertes: objetos que alguém declarou como NÃO-semente (hoje só "vazia").
+  // Já saíram de `viaveis`/`inviaveis` em `contarObjetos`, então o total e as
+  // porcentagens abaixo são sobre sementes — o denominador que a RAS manda. A
+  // tela MOSTRA quantos são, porque número que muda em silêncio é pior que
+  // número errado. No modo diferencial o total é declarado por quem semeou, e
+  // não se mexe nele: ali o inerte é só informação.
+  const inertesCount = contagem.inertes;
+
+  /**
+   * A contagem por classe do protocolo, para os totalizadores da direita.
+   *
+   * Ela já existia (`contarPorClasse`, usada pelo laudo e pela galeria) e não
+   * aparecia onde a pessoa olha para conferir: quem marcava com as teclas 1 a
+   * 6 via só "viáveis" e "inviáveis" mudarem, e a classe escolhida sumia da
+   * tela. Vazio sem protocolo — ali as classes SÃO viável e inviável, e
+   * repetir os dois números não diria nada novo.
+   */
+  const contagemPorClasse = useMemo(() => {
+    const protocolo = protocoloPorChave(metadata.protocolo);
+    if (protocolo.classes.length <= 2) return { porClasse: [], semClasseFina: 0 };
+    const { contagens, naoClassificadas } = contarPorClasse(marks, protocolo);
+    return {
+      porClasse: protocolo.classes.map((c) => ({
+        classe: c,
+        rotulo: CLASSES[c].rotulo,
+        n: contagens[c] ?? 0,
+        ehSemente: CLASSES[c].ehSemente,
+      })),
+      semClasseFina: naoClassificadas,
+    };
+  }, [marks, metadata.protocolo]);
+
   const totalCount =
     metadata.useDifferential && metadata.baselineCount && metadata.baselineCount > 0
       ? metadata.baselineCount
@@ -1139,13 +1204,46 @@ function AppInterno() {
   // outros temas a leem (`handleDesenhoConcluido`), não só a onda.
   const classeExternaDaImagem = classeExternaDe(metadata.dataset?.classesDaImagem);
 
+  /** As classes que o protocolo declarado oferece. Vazio = só viável/inviável. */
+  const ferramentasDeClasse = useMemo(
+    () => ferramentasDoProtocolo(protocoloPorChave(metadata.protocolo)),
+    [metadata.protocolo]
+  );
+
+  /**
+   * Armar uma classe fina: ela vai no próximo clique, e a ferramenta de
+   * marcação passa a ser a que corresponde à categoria dela — o canvas não
+   * aprende classe nenhuma, continua sabendo só viável e inviável.
+   */
+  const escolherClasseFina = useCallback(
+    (classe: ClasseDeSemente) => {
+      const categoria = categoriaDaClasse(classe);
+      setClasseAtiva(classe);
+      setActiveClassification(categoria);
+      setActiveTool((atual) => (atual === 'viable' || atual === 'inviable' ? categoria : atual));
+    },
+    [setActiveTool]
+  );
+
+  /** A tecla 3..8 escolhe pela POSIÇÃO no protocolo; fora dele, não faz nada. */
+  const escolherClassePelaTecla = useCallback(
+    (tecla: string) => {
+      const classe = classeDaTecla(tecla, protocoloPorChave(metadata.protocolo));
+      if (classe) escolherClasseFina(classe);
+    },
+    [metadata.protocolo, escolherClasseFina]
+  );
+
   const marcarComSom = useCallback(
     (x: number, y: number, tipo: 'viable' | 'inviable') => {
-      const id = addMark(x, y, tipo, classeExternaDaImagem);
+      // A classe fina armada entra no MESMO gesto. Vale para o clique simples
+      // e para a onda, que chama isto por dentro: marcar "dormente" e medir o
+      // contorno é um gesto só.
+      const id = addMark(x, y, tipo, classeExternaDaImagem, undefined, classeAtiva ?? undefined);
       tocarMarca(tipo);
       return id;
     },
-    [addMark, classeExternaDaImagem]
+    [addMark, classeExternaDaImagem, classeAtiva]
   );
 
   // Limpa a placa atual: contagem, calibração e identificação da placa.
@@ -1618,8 +1716,34 @@ function AppInterno() {
       { fundir: criouMarca }
     );
     setContornoSelecionado(null);
-    setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
-  }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
+
+    // AINDA SOBRA CINTURA? 37% dos aglomerados reais medidos têm TRÊS ou mais
+    // sementes (um deles tinha 32), e um corte separa duas. Sem este aviso, a
+    // pessoa cortava uma vez, via duas metades e seguia — com um par inteiro
+    // escondido dentro de uma delas, contado como uma semente só.
+    // A população sai das REFS, não do estado: este callback roda no clique, e
+    // as refs são o que já está na cena neste instante — inclusive os cortes
+    // feitos há dois segundos.
+    const visiveis = bancada.cena.segmentacoesRef.current
+      .filter((s) => s.visible !== false && s.id !== contornoSelecionado)
+      .map((s) => s.polygon_points);
+    const referencia = medianaDaCena(visiveis.map((p) => areaDoPoligono(p)));
+    const limiares = limiaresDaPopulacao(visiveis) ?? undefined;
+    const aindaSuspeitas = filhas.filter(
+      (f) => analisarContorno(f.polygon_points, referencia, limiares).veredito === 'aglomerado'
+    ).length;
+    setRecadoDaOnda(
+      aindaSuspeitas > 0
+        ? {
+            tom: 'aviso',
+            texto:
+              aindaSuspeitas === 1
+                ? 'Separado em dois — mas uma das metades ainda tem cintura. Separe de novo.'
+                : 'Separado em dois — mas as duas metades ainda têm cintura. Separe de novo.',
+          }
+        : { tom: 'ok', texto: 'Contorno separado em dois.' }
+    );
+  }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark, bancada.cena.segmentacoesRef]);
 
   /**
    * "Processar Fila (IA)": o YOLO em cada imagem da fila, uma sessão por
@@ -2294,15 +2418,26 @@ function AppInterno() {
     [imagemDeTrabalho, setYoloSegmentations]
   );
 
+  // A classe de um objeto é UMA: inverter pela marca leva o contorno pareado
+  // junto (e vice-versa), e apaga a classe fina que passar a contradizer o
+  // tipo. Antes, cada porta mexia no seu lado: a cor virava e o número não,
+  // porque a contagem de um par lê a MARCA e a cor lê o CONTORNO.
   const handleToggleMarkClass = useCallback(
-    (id: number) => {
-      setMarks((prev) =>
-        prev.map((m) =>
-          m.id === id ? { ...m, type: m.type === 'viable' ? 'inviable' : 'viable' } : m
-        )
-      );
-    },
-    [setMarks]
+    (id: number) => alternarClasseDoObjeto({ marcaId: id }),
+    [alternarClasseDoObjeto]
+  );
+
+  /**
+   * Inverter pelo CONTORNO — no canvas, na galeria e no inspetor.
+   *
+   * Mesma operação: o contorno órfão (de modelo, sem marca) inverte sozinho; o
+   * contorno pareado leva a marca junto, que é quem a contagem lê.
+   * `toggleSegmentationClass` continua no hook para quem só tem contorno, mas
+   * a interface não o chama direto — por isso ele nem é desestruturado aqui.
+   */
+  const handleToggleSegmentationClass = useCallback(
+    (id: number) => alternarClasseDoObjeto({ segId: id }),
+    [alternarClasseDoObjeto]
   );
 
   // Fase F — arrastar reposiciona a marcação (correção fina da detecção).
@@ -2376,7 +2511,8 @@ function AppInterno() {
   useKeyboardShortcuts({
     onUndo: desfazer,
     onRedo: refazer,
-    onSetVisualMode: setVisualMode,
+    onAlternarVisualMode: () => setVisualMode((v) => (v === 'dots' ? 'numbers' : 'dots')),
+    onEscolherClasseFina: escolherClassePelaTecla,
     onNextImage: handleNextImage,
     onPrevImage: handlePrevImage,
     onTogglePanning: togglePanningMode,
@@ -2511,6 +2647,9 @@ function AppInterno() {
             handleImportJSON={handleImportHistoryJSON}
             viableCount={viableCount}
             inviableCount={inviableCount}
+            inertesCount={inertesCount}
+            porClasse={contagemPorClasse.porClasse}
+            semClasseFina={contagemPorClasse.semClasseFina}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}
@@ -2666,7 +2805,16 @@ function AppInterno() {
             {image && (
               <Toolbar
                 activeTool={activeTool}
-                onSelect={setActiveTool}
+                onSelect={(t) => {
+                  // Escolher a ferramenta na barra desarma a classe fina
+                  // quando se volta a V ou I: é o mesmo gesto de "agora eu
+                  // marco grosso" que `escolherClasse` faz pelo painel.
+                  if (t === 'viable' || t === 'inviable') setClasseAtiva(null);
+                  setActiveTool(t);
+                }}
+                ferramentasDeClasse={ferramentasDeClasse}
+                classeAtiva={classeAtiva}
+                onEscolherClasse={escolherClasseFina}
                 eraserRadius={eraserRadius}
                 onEraserRadiusChange={setEraserRadius}
                 isTemporary={isToolTemporary}
@@ -2890,7 +3038,7 @@ function AppInterno() {
                   isPanningMode={isPanningMode}
                   onCanvasClick={handleCanvasClick}
                   canvasRef={canvasRef}
-                  onToggleSegmentationClass={toggleSegmentationClass}
+                  onToggleSegmentationClass={handleToggleSegmentationClass}
                   onDeleteSegmentation={deleteSegmentation}
                   umPerPixel={metadata.umPerPixel}
                   detectionPreview={detectionPreview}
@@ -3008,6 +3156,9 @@ function AppInterno() {
           <RightSidebar
             viableCount={viableCount}
             inviableCount={inviableCount}
+            inertesCount={inertesCount}
+            porClasse={contagemPorClasse.porClasse}
+            semClasseFina={contagemPorClasse.semClasseFina}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}
@@ -3044,7 +3195,7 @@ function AppInterno() {
                   limiares={limiaresDaCena}
                   especieId={especieDeclarada}
                   perfilMedido={perfilMedidoAtivo}
-                  onToggleClass={toggleSegmentationClass}
+                  onToggleClass={handleToggleSegmentationClass}
                   onDelete={deleteSegmentation}
                   onProposeCut={handleProposeCut}
                   onClose={() => {
@@ -3098,7 +3249,7 @@ function AppInterno() {
                 image={image}
                 marks={marks}
                 yoloSegmentations={yoloSegmentations}
-                onToggleSegmentationClass={toggleSegmentationClass}
+                onToggleSegmentationClass={handleToggleSegmentationClass}
                 onDeleteSegmentation={deleteSegmentation}
                 onToggleMarkClass={handleToggleMarkClass}
                 onRemoveMark={removeMark}
@@ -3461,7 +3612,7 @@ function AppInterno() {
         image={image}
         marks={marks}
         yoloSegmentations={yoloSegmentations}
-        onToggleSegmentationClass={toggleSegmentationClass}
+        onToggleSegmentationClass={handleToggleSegmentationClass}
         onDeleteSegmentation={deleteSegmentation}
         onToggleMarkClass={handleToggleMarkClass}
         onRemoveMark={removeMark}

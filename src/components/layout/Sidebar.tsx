@@ -21,6 +21,11 @@ interface SidebarProps {
 
   viableCount: number;
   inviableCount: number;
+  /** Objetos declarados como não-semente. Zero até alguém classificar. */
+  inertesCount?: number;
+  /** Contagem por classe do protocolo declarado. Vazio = sem protocolo. */
+  porClasse?: { classe: string; rotulo: string; n: number; ehSemente: boolean }[];
+  semClasseFina?: number;
   viablePercent: string;
   inviablePercent: string;
   totalCount: number;
@@ -73,6 +78,9 @@ export function Sidebar({
   handleImportJSON,
   viableCount,
   inviableCount,
+  inertesCount = 0,
+  porClasse,
+  semClasseFina,
   viablePercent,
   inviablePercent,
   totalCount,
@@ -179,6 +187,9 @@ export function Sidebar({
           <Counters
             viableCount={viableCount}
             inviableCount={inviableCount}
+            inertesCount={inertesCount}
+            porClasse={porClasse}
+            semClasseFina={semClasseFina}
             viablePercent={viablePercent}
             inviablePercent={inviablePercent}
             totalCount={totalCount}

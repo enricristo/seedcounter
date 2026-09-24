@@ -177,6 +177,36 @@ function dentroDoPoligono(px: number, py: number, poly: [number, number][]): boo
 }
 
 /** Média e desvio padrão populacional de um acumulador. */
+/**
+ * Média e desvio de um ÂNGULO — o matiz.
+ *
+ * POR QUE ISTO EXISTE (24/09/2026). O matiz é circular: 350° e 10° são dois
+ * vermelhos vizinhos, e a média aritmética deles dá **180°, que é ciano**. Era
+ * exatamente o que saía em `h_mean` no CSV e no SQL — e o vermelho do
+ * tetrazólio vive em torno do zero, que é o pior lugar possível para essa
+ * conta. Uma semente bem corada podia sair descrita como azulada.
+ *
+ * A média certa é a direção do vetor resultante: `atan2(Σsen h, Σcos h)`. O
+ * "desvio" circular vem do COMPRIMENTO desse resultante R: quanto mais
+ * espalhados os ângulos, menor R. Uso o desvio circular clássico
+ * `sqrt(−2·ln R)` em radianos, convertido para graus — 0 quando todos os
+ * pixels têm o mesmo matiz, e grande quando não há matiz dominante.
+ *
+ * Isto NÃO afeta o a* do CIELAB, que é um eixo linear e por isso continua
+ * sendo o descritor de cor certo para o tetrazólio.
+ */
+function estatisticasCirculares(somaSen: number, somaCos: number, n: number): [number, number] {
+  if (n === 0) return [0, 0];
+  const mediaSen = somaSen / n;
+  const mediaCos = somaCos / n;
+  const R = Math.hypot(mediaSen, mediaCos);
+  if (R < 1e-12) return [0, 0]; // sem direção dominante: matiz não significa nada
+  let graus = (Math.atan2(mediaSen, mediaCos) * 180) / Math.PI;
+  if (graus < 0) graus += 360;
+  const desvio = (Math.sqrt(Math.max(0, -2 * Math.log(Math.min(1, R)))) * 180) / Math.PI;
+  return [graus, desvio];
+}
+
 function estatisticas(soma: number, somaQuadrados: number, n: number): [number, number] {
   if (n === 0) return [0, 0];
   const media = soma / n;
@@ -228,6 +258,10 @@ export function extrairCaracteristicasDeCor(
   const passo = Math.max(1, Math.floor(amostragem));
   const soma = new Float64Array(10);
   const somaQ = new Float64Array(10);
+  // O matiz é ângulo: acumula seno e cosseno, não o valor (ver
+  // `estatisticasCirculares`).
+  let somaSenH = 0;
+  let somaCosH = 0;
   let n = 0;
 
   for (let y = minY; y <= maxY; y += passo) {
@@ -248,6 +282,9 @@ export function extrairCaracteristicasDeCor(
         soma[k] += vals[k];
         somaQ[k] += vals[k] * vals[k];
       }
+      const hRad = (h * Math.PI) / 180;
+      somaSenH += Math.sin(hRad);
+      somaCosH += Math.cos(hRad);
       n++;
     }
   }
@@ -257,7 +294,7 @@ export function extrairCaracteristicasDeCor(
   const [rMean, rStd] = estatisticas(soma[0], somaQ[0], n);
   const [gMean, gStd] = estatisticas(soma[1], somaQ[1], n);
   const [bMean, bStd] = estatisticas(soma[2], somaQ[2], n);
-  const [hMean, hStd] = estatisticas(soma[3], somaQ[3], n);
+  const [hMean, hStd] = estatisticasCirculares(somaSenH, somaCosH, n);
   const [sMean, sStd] = estatisticas(soma[4], somaQ[4], n);
   const [vMean, vStd] = estatisticas(soma[5], somaQ[5], n);
   const [lMean, lStd] = estatisticas(soma[6], somaQ[6], n);

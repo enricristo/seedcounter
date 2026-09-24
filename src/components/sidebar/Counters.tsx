@@ -6,6 +6,23 @@ import type { Session } from '../../types';
 interface CountersProps {
   viableCount: number;
   inviableCount: number;
+  /**
+   * Objetos declarados como NÃO-semente (material inerte pela RAS: unidade de
+   * dispersão sem semente dentro). Já saíram de viáveis, inviáveis e do total;
+   * aparecem porque um número que encolhe sem explicação parece defeito.
+   */
+  inertesCount?: number;
+  /**
+   * A contagem por classe do protocolo declarado, quando há um.
+   *
+   * Vazio = protocolo simples ou nenhum, e o painel é o de sempre: dois
+   * totalizadores. Com protocolo, estes números são o que a pessoa acabou de
+   * marcar com as teclas 1 a 6 — e ficavam invisíveis aqui, que é onde ela
+   * olha para conferir.
+   */
+  porClasse?: { classe: string; rotulo: string; n: number; ehSemente: boolean }[];
+  /** Quantas marcas ainda não têm classe fina, com protocolo declarado. */
+  semClasseFina?: number;
   viablePercent: string;
   inviablePercent: string;
   totalCount: number;
@@ -20,6 +37,9 @@ interface CountersProps {
 export function Counters({
   viableCount,
   inviableCount,
+  inertesCount = 0,
+  porClasse = [],
+  semClasseFina = 0,
   viablePercent,
   inviablePercent,
   totalCount,
@@ -102,9 +122,53 @@ export function Counters({
           />
         </div>
 
+        {/* A contagem por classe do protocolo. Só existe com protocolo
+            declarado — sem ele, as classes SÃO viável e inviável, e repetir os
+            dois números abaixo deles não diria nada novo. */}
+        {porClasse.length > 0 && (
+          <div className="border-line-soft space-y-1 border-t pt-2">
+            <span className="text-ink-3 text-[10px] font-bold tracking-widest uppercase">
+              Por classe do protocolo
+            </span>
+            {porClasse.map((c) => (
+              <div
+                key={c.classe}
+                className="text-ink-2 flex items-baseline justify-between text-[11px]"
+              >
+                <span className={c.ehSemente ? '' : 'text-ink-3'}>
+                  {c.rotulo}
+                  {c.ehSemente ? '' : ' (fora da conta)'}
+                </span>
+                <span className="font-mono tabular-nums">{c.n}</span>
+              </div>
+            ))}
+            {semClasseFina > 0 && (
+              <div
+                className="text-ink-3 flex items-baseline justify-between text-[10px]"
+                title="Marcadas com V ou I, sem classe fina. Elas entram na conta pelo tipo — viável vira 'normal', inviável vira 'morta' — e é isso que o laudo vai dizer."
+              >
+                <span>sem classe fina</span>
+                <span className="font-mono tabular-nums">{semClasseFina}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* A linha do inerte só existe quando há inerte: sem classe fina
+            declarada, a tela é exatamente a de sempre. */}
+        {inertesCount > 0 && (
+          <div
+            className="text-ink-3 flex items-baseline justify-between px-1 text-[10px]"
+            title="Material inerte pela RAS: unidade de dispersão sem semente dentro. Fica FORA do total e das porcentagens — contar detrito como semente faz a germinação parecer menor do que é."
+          >
+            <span className="font-bold tracking-widest uppercase">Inerte (fora da conta)</span>
+            <span className="font-mono tabular-nums">{inertesCount}</span>
+          </div>
+        )}
+
         <div className="border-line flex items-baseline justify-between border-t px-1 pt-3">
           <span className="text-ink-3 text-[10px] font-bold tracking-widest uppercase">
-            Total computado
+            {inertesCount > 0 ? 'Total de sementes' : 'Total computado'}
           </span>
           <span className="text-ink-1 font-mono text-2xl font-semibold tracking-tight tabular-nums">
             {totalCount}
@@ -114,17 +178,19 @@ export function Counters({
         <div className="flex gap-2 pt-1">
           <button
             onClick={() => setVisualMode('dots')}
+            title="Marca como ponto. A tecla N alterna entre pontos e índices."
             className={botaoModo(visualMode === 'dots')}
           >
             <Circle size={14} strokeWidth={2.25} aria-hidden="true" />
-            <span>Pontos (1)</span>
+            <span>Pontos</span>
           </button>
           <button
             onClick={() => setVisualMode('numbers')}
+            title="Marca com o número do objeto. A tecla N alterna entre pontos e índices."
             className={botaoModo(visualMode === 'numbers')}
           >
             <Hash size={14} strokeWidth={2.25} aria-hidden="true" />
-            <span>Índices (2)</span>
+            <span>Índices</span>
           </button>
         </div>
 

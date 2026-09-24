@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Mark, YoloSegmentation, AnotacaoVisual } from '../types';
+import { nomeDaCategoria } from '../lib/classe-do-modelo';
+import { categoriaDaClasse } from '../features/classes/ferramentas-de-classe';
 import {
   abrirGesto as abrir,
   desfazer as voltar,
@@ -110,9 +112,19 @@ export function useMarks() {
   // VINCULAR os dois. Sem o id, o vinculo ficava implicito (ponto dentro do
   // poligono), e implicito quebra quando o poligono e cortado ao meio.
   const addMark = useCallback(
-    (x: number, y: number, type: 'viable' | 'inviable', classeExterna?: string, op?: OpcoesDeRegistro): number => {
+    (
+      x: number,
+      y: number,
+      type: 'viable' | 'inviable',
+      classeExterna?: string,
+      op?: OpcoesDeRegistro,
+      // A classe fina do protocolo, quando alguém marcou direto nela. Entra
+      // no MESMO gesto: marcar "dormente" e ter de reclassificar na galeria
+      // depois é o passo que esta fatia existe para tirar.
+      subclasse?: Mark['subclasse']
+    ): number => {
       const id = Date.now() + Math.random();
-      setMarks((prev) => [...prev, { x, y, type, id, classeExterna }], op);
+      setMarks((prev) => [...prev, { x, y, type, id, classeExterna, subclasse }], op);
       return id;
     },
     [setMarks]
@@ -145,12 +157,127 @@ export function useMarks() {
 
   const removeMark = useCallback((id: number) => removerMarcas([id]), [removerMarcas]);
 
-  /** Atribui (ou limpa, com undefined) a classe fina de uma marca. */
+  // ---------------------------------------------------------------------------
+  // A CLASSE DE UM OBJETO MORA NUM LUGAR SÓ.
+  //
+  // O defeito que isto conserta (relatado em 24/09/2026 como "toda vez que
+  // troco a classe na galeria dá bug"): a classe de uma semente contornada
+  // estava gravada em DOIS lugares que ninguém sincronizava.
+  //
+  //   - `marca.type` é o que a CONTAGEM usa quando há marca e contorno
+  //     pareados (`enumerarObjetos`);
+  //   - `segmentacao.category` é o que a COR no canvas e na galeria usa.
+  //
+  // Clicar na célula de um item contornado chamava só `toggleSegmentationClass`:
+  // a cor virava, e o NÚMERO não mudava. O seletor de classe fina era pior —
+  // gravava `subclasse` sem tocar em `type`, e uma semente marcada "morta"
+  // continuava contada como viável, ciano na tela.
+  //
+  // As três operações abaixo mexem na marca E no contorno pareado, numa
+  // transação só do histórico: um Ctrl+Z desfaz a troca inteira.
+  // ---------------------------------------------------------------------------
+
+  /** O contorno pareado a esta marca, se houver. */
+  function contornoDaMarca(segs: YoloSegmentation[], marcaId: number) {
+    return segs.find((s) => s.marcaId === marcaId && s.visible !== false);
+  }
+
+  const aplicarClasse = useCallback(
+    (
+      antes: Anotacoes,
+      alvo: { marcaId?: number; segId?: number },
+      categoria: 'viable' | 'inviable',
+      subclasse: Mark['subclasse'] | 'manter'
+    ): Anotacoes => {
+      // O par: a partir da marca, ou a partir do contorno.
+      const seg =
+        alvo.segId != null
+          ? antes.segmentacoes.find((s) => s.id === alvo.segId)
+          : alvo.marcaId != null
+            ? contornoDaMarca(antes.segmentacoes, alvo.marcaId)
+            : undefined;
+      const marcaId = alvo.marcaId ?? seg?.marcaId ?? undefined;
+
+      const marks =
+        marcaId == null
+          ? antes.marks
+          : antes.marks.map((m) =>
+              m.id === marcaId
+                ? {
+                    ...m,
+                    type: categoria,
+                    ...(subclasse === 'manter' ? {} : { subclasse }),
+                  }
+                : m
+            );
+      const segmentacoes =
+        seg === undefined
+          ? antes.segmentacoes
+          : antes.segmentacoes.map((s) =>
+              s.id === seg.id
+                ? {
+                    ...s,
+                    category: categoria,
+                    class_name: nomeDaCategoria(categoria),
+                    edited: true,
+                  }
+                : s
+            );
+      return marks === antes.marks && segmentacoes === antes.segmentacoes
+        ? antes
+        : { ...antes, marks, segmentacoes };
+    },
+    []
+  );
+
+  /**
+   * Atribui (ou limpa, com `undefined`) a classe fina — e o tipo vem junto.
+   *
+   * `categoriaDaClasse` é quem diz se a classe germinou; não existe uma
+   * segunda tabela decidindo isso (Lei 1). Limpar a classe fina NÃO mexe no
+   * tipo: quem limpa está dizendo "não sei qual das finas", não "inverta".
+   */
   const setSubclasse = useCallback(
     (id: number, subclasse: Mark['subclasse']) => {
-      setMarks((prev) => prev.map((m) => (m.id === id ? { ...m, subclasse } : m)));
+      mutar((antes) => {
+        const marca = antes.marks.find((m) => m.id === id);
+        if (!marca) return antes;
+        const categoria = subclasse ? categoriaDaClasse(subclasse) : marca.type;
+        return aplicarClasse(antes, { marcaId: id }, categoria, subclasse);
+      });
     },
-    [setMarks]
+    [mutar, aplicarClasse]
+  );
+
+  /**
+   * Inverte viável ↔ inviável do OBJETO — marca e contorno pareado.
+   *
+   * A classe fina que contradiz o tipo novo é apagada: manter "dormente" numa
+   * semente que a pessoa acabou de chamar de viável seria guardar uma
+   * afirmação que ela não fez.
+   */
+  const alternarClasseDoObjeto = useCallback(
+    (alvo: { marcaId?: number; segId?: number }) => {
+      mutar((antes) => {
+        const seg =
+          alvo.segId != null
+            ? antes.segmentacoes.find((s) => s.id === alvo.segId)
+            : alvo.marcaId != null
+              ? contornoDaMarca(antes.segmentacoes, alvo.marcaId)
+              : undefined;
+        const marcaId = alvo.marcaId ?? seg?.marcaId ?? undefined;
+        const marca = marcaId != null ? antes.marks.find((m) => m.id === marcaId) : undefined;
+        const atual = marca?.type ?? seg?.category;
+        if (!atual) return antes;
+        const categoria = atual === 'viable' ? 'inviable' : 'viable';
+        const subclasse =
+          marca?.subclasse && categoriaDaClasse(marca.subclasse) !== categoria
+            ? undefined
+            : 'manter';
+        return aplicarClasse(antes, alvo, categoria, subclasse);
+      });
+    },
+    [mutar, aplicarClasse]
   );
 
   // --- Contornos --------------------------------------------------------------
@@ -211,7 +338,11 @@ export function useMarks() {
   /** Limpa tudo num passo só — e um passo que o Ctrl+Z devolve. */
   const resetAllAnnotations = useCallback(() => {
     mutar((antes) =>
-      antes.marks.length === 0 && antes.segmentacoes.length === 0 && antes.anotacoesVisuais.length === 0 ? antes : VAZIO
+      antes.marks.length === 0 &&
+      antes.segmentacoes.length === 0 &&
+      antes.anotacoesVisuais.length === 0
+        ? antes
+        : VAZIO
     );
     setSegmentsVisible(true);
   }, [mutar]);
@@ -244,6 +375,7 @@ export function useMarks() {
     removeMark,
     removerMarcas,
     setSubclasse,
+    alternarClasseDoObjeto,
 
     // YOLO
     addYoloSegmentations,

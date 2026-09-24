@@ -107,10 +107,16 @@ export interface LimiaresDeAglomerado {
  * irregular, e o contorno anotado dela NÃO é convexo. Uma constante que serve a
  * uma soja lisa não pode servir a isso.
  *
- * Contra 240 pares que realmente se encostam, os mesmos sinais separam bem —
+ * Contra os pares que realmente se encostam, os mesmos sinais separam bem —
  * desde que o limiar mude: a profundidade em 0,60 dá 5,8% de falso alarme com
- * 95,8% dos pares pegos, e a mediana das fundidas (0,852) fica muito acima da
- * mediana das isoladas (0,199).
+ * 95,8% dos pares pegos.
+ *
+ * Os números acima vieram de 240 pares. Em 22/09/2026 o conjunto foi
+ * deduplicado (o export do Roboflow repetia cada imagem 7 vezes na mediana) e
+ * remedido: **341 pares e 2 390 isoladas**, com separação MAIOR — mediana 1,278
+ * no par contra 0,160 na isolada. A direção é a mesma; o ponto de operação
+ * acima não foi recalculado sobre o conjunto novo, e por isso continua
+ * atribuído aos 240.
  *
  * CONCLUSÃO DE PROJETO: constante absoluta é a forma errada para este problema.
  * O limiar certo é relativo à POPULAÇÃO DA PRÓPRIA IMAGEM — a mesma ideia que
@@ -131,6 +137,13 @@ const PADROES = {
  * 95,8% de detecção. Num painel de triagem, o custo de um falso alarme é a
  * pessoa olhar uma semente boa; o custo de um par não detectado é um número
  * errado no laudo — mas com 95,8% o segundo já é raro.
+ *
+ * O QUE A MEDIÇÃO DE 22/09/2026 ACRESCENTOU (341 pares deduplicados): o limiar
+ * de CORTE de 0,40 que está em produção tem preço — pega 58,4% dos pares, com
+ * 0,3% de corte falso. O ótimo do erro de contagem seria 0,27 (recall 0,760,
+ * 1,5% de corte falso, erro de 3,8% contra 4,9%). O 0,40 fica assim mesmo,
+ * porque os dois erros não custam igual: corte falso INVENTA uma semente em
+ * silêncio, e par não cortado fica visível para quem cura.
  */
 export const LIMIARES_DE_CONTORNO_IRREGULAR = {
   solidezMinima: 0.75,

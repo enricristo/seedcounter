@@ -31,6 +31,19 @@ import type {
 export interface GroupStat {
   label: string;
   values: number[]; // germination % values (0–100) per replicate
+  /**
+   * Quantas SEMENTES cada repetição tinha, na mesma ordem de `values`.
+   *
+   * POR QUE ISTO PASSOU A EXISTIR (24/09/2026). O intervalo de Wilson é
+   * binomial: o `n` dele é o número de SEMENTES, não o de repetições. O
+   * cálculo usava `values.length` — quatro repetições de 50 sementes viravam
+   * `n = 4` em vez de 200, e o intervalo saía cerca de 7× mais largo do que
+   * é. Os gráficos de germinação desenhavam essa barra.
+   *
+   * Ausente = não dá para calcular o intervalo, e ele sai VAZIO. Um intervalo
+   * inventado é pior que intervalo nenhum: ele entra em figura de artigo.
+   */
+  sementesPorRepeticao?: number[];
 }
 
 // ---------------------------------------------------------------------------
@@ -840,7 +853,17 @@ export function runStatsPipeline(
     const n = vals.length;
     const meanVal = ssMean(vals);
     const sd = n > 1 ? ssSd(vals) : 0;
-    const ci = wilsonCI(Math.round((meanVal / 100) * n), n, alpha);
+    // Wilson é BINOMIAL: `n` é semente, não repetição. Sem saber quantas
+    // sementes havia, não há intervalo — e vazio é a resposta honesta.
+    const sementes = g.sementesPorRepeticao;
+    const ci =
+      sementes && sementes.length === vals.length && sementes.every((x) => x > 0)
+        ? wilsonCI(
+            vals.reduce((acc, pct, i) => acc + Math.round((pct / 100) * sementes[i]), 0),
+            sementes.reduce((acc, x) => acc + x, 0),
+            alpha
+          )
+        : null;
     return {
       treatmentId: g.label,
       treatmentCode: g.label,

@@ -33,6 +33,14 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
     atalhos: [
       ...TOOLS.map((t) => ({ teclas: t.shortcut.toUpperCase(), acao: t.label })),
       { teclas: 'X', acao: 'Inverter viável ↔ inviável' },
+      // As classes finas do protocolo declarado. A ação fala da POSIÇÃO, não
+      // de uma classe: qual classe é o 3 depende do protocolo da amostra, e a
+      // ajuda não pode prometer "dormente" para quem declarou outro. Sem
+      // protocolo, as teclas não fazem nada.
+      ...[1, 2, 3, 4, 5, 6].map((posicao) => ({
+        teclas: String(posicao),
+        acao: `${posicao}ª classe do protocolo declarado`,
+      })),
       { teclas: 'Alt', acao: 'Borracha enquanto segurar' },
       { teclas: '[ ]', acao: 'Tamanho da borracha' },
     ],
@@ -53,8 +61,7 @@ export const GRUPOS_DE_ATALHOS: GrupoDeAtalhos[] = [
   {
     titulo: 'Visualização',
     atalhos: [
-      { teclas: '1', acao: 'Ver pontos' },
-      { teclas: '2', acao: 'Ver índices' },
+      { teclas: 'N', acao: 'Alterna pontos ↔ índices' },
       { teclas: 'M', acao: 'Máscara: tudo → só pontos → nada' },
       { teclas: 'G', acao: 'Galeria de objetos' },
       { teclas: '+ / −', acao: 'Zoom' },
@@ -123,6 +130,10 @@ export const INSTRUCOES_DO_MOUSE: GrupoDeInstrucoes[] = [
       { gesto: 'Arrastar uma marca', efeito: 'Reposiciona' },
       { gesto: 'Ctrl + clique numa marca', efeito: 'Inverte a classe' },
       { gesto: 'Shift / Alt + clique numa marca', efeito: 'Apaga a marca — e o contorno dela' },
+      {
+        gesto: 'Botão direito arrastando sobre um contorno',
+        efeito: 'Menu de classes: a direção do arraste escolhe a classe fina',
+      },
     ],
   },
   {
@@ -139,10 +150,16 @@ export const INSTRUCOES_DO_MOUSE: GrupoDeInstrucoes[] = [
     tecla: 'C',
     instrucoes: [
       { gesto: 'Clique num contorno', efeito: 'Seleciona para editar (ganha alças)' },
-      { gesto: 'Arrastar uma alça', efeito: 'Move o vértice; os vizinhos acompanham (Shift: só ele)' },
+      {
+        gesto: 'Arrastar uma alça',
+        efeito: 'Move o vértice; os vizinhos acompanham (Shift: só ele)',
+      },
       { gesto: 'Clique na borda', efeito: 'Cria um vértice ali e já sai arrastando' },
       { gesto: 'Duplo clique ou Ctrl + clique numa alça', efeito: 'Remove o vértice' },
-      { gesto: 'Arrastar por dentro', efeito: 'Raspa: a borda recua pelo caminho de menor esforço' },
+      {
+        gesto: 'Arrastar por dentro',
+        efeito: 'Raspa: a borda recua pelo caminho de menor esforço',
+      },
       { gesto: 'Shift + arrastar por fora', efeito: 'Acrescenta: a borda avança até o traço' },
       { gesto: 'Clique no vazio, ou Esc', efeito: 'Desmarca' },
     ],
@@ -160,7 +177,10 @@ export const INSTRUCOES_DO_MOUSE: GrupoDeInstrucoes[] = [
     titulo: 'Cota (régua)',
     tecla: 'R',
     instrucoes: [
-      { gesto: 'Arrastar', efeito: 'Traça a cota; o valor sai em px, ou em mm se a cena está calibrada' },
+      {
+        gesto: 'Arrastar',
+        efeito: 'Traça a cota; o valor sai em px, ou em mm se a cena está calibrada',
+      },
       { gesto: 'Soltar', efeito: 'Fixa a cota na prancheta' },
     ],
   },
@@ -175,15 +195,16 @@ export const INSTRUCOES_DO_MOUSE: GrupoDeInstrucoes[] = [
     titulo: 'Área de interesse',
     tecla: 'B',
     instrucoes: [
-      { gesto: 'Arrastar', efeito: 'Destaca uma região (fungo, praga, anomalia) sem associá-la a uma semente' },
+      {
+        gesto: 'Arrastar',
+        efeito: 'Destaca uma região (fungo, praga, anomalia) sem associá-la a uma semente',
+      },
     ],
   },
   {
     titulo: 'Anotação textual',
     tecla: 'T',
-    instrucoes: [
-      { gesto: 'Clique', efeito: 'Insere um texto de chamada no ponto' },
-    ],
+    instrucoes: [{ gesto: 'Clique', efeito: 'Insere um texto de chamada no ponto' }],
   },
   {
     titulo: 'Borracha',

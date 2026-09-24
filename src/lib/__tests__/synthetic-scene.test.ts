@@ -176,7 +176,8 @@ describe('cada modalidade apresenta o problema que promete', () => {
         for (let j = i + 1; j < c.sementes.length; j++) {
           const A = c.sementes[i];
           const B = c.sementes[j];
-          const folga = Math.hypot(A.x - B.x, A.y - B.y) - (Math.max(A.a, A.b) + Math.max(B.a, B.b));
+          const folga =
+            Math.hypot(A.x - B.x, A.y - B.y) - (Math.max(A.a, A.b) + Math.max(B.a, B.b));
           min = Math.min(min, folga);
         }
       }
@@ -187,21 +188,40 @@ describe('cada modalidade apresenta o problema que promete', () => {
   });
 });
 
+/**
+ * Quanto tempo os dois testes que RODAM A ONDA podem levar.
+ *
+ * Eles geram uma cena e executam crescimento de região em dez ou vinte
+ * sementes: é trabalho de verdade, não espera. Sozinhos levam cerca de dois
+ * segundos; com a suíte inteira em paralelo passavam dos 5 000 ms padrão do
+ * vitest e reprovavam por TEMPO — uma falha que não diz nada sobre a onda e
+ * que aparecia e sumia conforme a carga da máquina. Teste que reprova por
+ * acaso ensina a ignorar reprovação.
+ *
+ * O teto continua existindo — um travamento de verdade ainda reprova; ele só
+ * passou a ser compatível com o custo real da medida.
+ */
+const TEMPO_DA_ONDA = 30_000;
+
 describe('a cena serve para medir o erro da onda', () => {
-  it('a onda encontra a soja com a área certa, clicando no centro verdadeiro', () => {
-    // O ponto de gerar a cena: dá para dizer QUANTO o algoritmo erra.
-    const c = gerarCenaSintetica('soja', { quantidade: 10, semente: 21 });
-    const erros: number[] = [];
-    for (const s of c.sementes) {
-      const r = segmentarPorClique(c.imagem, { x: s.x, y: s.y });
-      if (!r || r.tocouBorda) continue;
-      erros.push((r.areaPx - s.areaPx) / s.areaPx);
-    }
-    expect(erros.length).toBeGreaterThanOrEqual(7);
-    erros.sort((a, b) => a - b);
-    const mediano = erros[Math.floor(erros.length / 2)];
-    expect(Math.abs(mediano), `erro mediano ${(mediano * 100).toFixed(1)}%`).toBeLessThan(0.2);
-  });
+  it(
+    'a onda encontra a soja com a área certa, clicando no centro verdadeiro',
+    () => {
+      // O ponto de gerar a cena: dá para dizer QUANTO o algoritmo erra.
+      const c = gerarCenaSintetica('soja', { quantidade: 10, semente: 21 });
+      const erros: number[] = [];
+      for (const s of c.sementes) {
+        const r = segmentarPorClique(c.imagem, { x: s.x, y: s.y });
+        if (!r || r.tocouBorda) continue;
+        erros.push((r.areaPx - s.areaPx) / s.areaPx);
+      }
+      expect(erros.length).toBeGreaterThanOrEqual(7);
+      erros.sort((a, b) => a - b);
+      const mediano = erros[Math.floor(erros.length / 2)];
+      expect(Math.abs(mediano), `erro mediano ${(mediano * 100).toFixed(1)}%`).toBeLessThan(0.2);
+    },
+    TEMPO_DA_ONDA
+  );
 });
 
 describe('rotulos e contorno', () => {
@@ -242,50 +262,89 @@ describe('rotulos e contorno', () => {
   // livre) — e um "95%" sobre 4 sementes não é medida. Por isso a cena usa
   // lado 1600 (no do preset, 1100, cabem 11), e o teste exige que pelo
   // menos 15 tenham cabido antes de calcular a fração.
-  it('a onda recupera ≥ 95% das sementes com IoU > 0,8 no preset soja', () => {
-    const cena = gerarCenaSintetica('soja', { semente: 5, quantidade: 20, lado: 1600 });
-    expect(cena.sementes.length).toBeGreaterThanOrEqual(15);
-    let bons = 0;
-    for (const s of cena.sementes) {
-      const r = segmentarPorClique(cena.imagem, { x: s.x, y: s.y }, { janela: 320 });
-      if (!r || r.tocouBorda) continue;
-      const { x: jx, y: jy, w, h } = r.janela;
-      const verdade = new Uint8Array(w * h);
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-        verdade[y * w + x] = cena.rotulos[(jy + y) * cena.imagem.width + (jx + x)] === s.id ? 1 : 0;
+  it(
+    'a onda recupera ≥ 95% das sementes com IoU > 0,8 no preset soja',
+    () => {
+      const cena = gerarCenaSintetica('soja', { semente: 5, quantidade: 20, lado: 1600 });
+      expect(cena.sementes.length).toBeGreaterThanOrEqual(15);
+      let bons = 0;
+      for (const s of cena.sementes) {
+        const r = segmentarPorClique(cena.imagem, { x: s.x, y: s.y }, { janela: 320 });
+        if (!r || r.tocouBorda) continue;
+        const { x: jx, y: jy, w, h } = r.janela;
+        const verdade = new Uint8Array(w * h);
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++) {
+            verdade[y * w + x] =
+              cena.rotulos[(jy + y) * cena.imagem.width + (jx + x)] === s.id ? 1 : 0;
+          }
+        if (iouDeMascaras(r.mascara, verdade) > 0.8) bons++;
       }
-      if (iouDeMascaras(r.mascara, verdade) > 0.8) bons++;
-    }
-    expect(bons / cena.sementes.length).toBeGreaterThanOrEqual(0.95);
-  });
+      expect(bons / cena.sementes.length).toBeGreaterThanOrEqual(0.95);
+    },
+    TEMPO_DA_ONDA
+  );
 });
 
 describe('comporCena', () => {
   function quadrado(lado: number, cor: [number, number, number]): Recorte {
     const rgba = new Uint8ClampedArray(lado * lado * 4);
     const mascara = new Uint8Array(lado * lado).fill(1);
-    for (let i = 0; i < lado * lado; i++) { rgba[i * 4] = cor[0]; rgba[i * 4 + 1] = cor[1]; rgba[i * 4 + 2] = cor[2]; rgba[i * 4 + 3] = 255; }
-    return { largura: lado, altura: lado, rgba, mascara, contorno: [[0, 0], [lado, 0], [lado, lado], [0, lado]] };
+    for (let i = 0; i < lado * lado; i++) {
+      rgba[i * 4] = cor[0];
+      rgba[i * 4 + 1] = cor[1];
+      rgba[i * 4 + 2] = cor[2];
+      rgba[i * 4 + 3] = 255;
+    }
+    return {
+      largura: lado,
+      altura: lado,
+      rgba,
+      mascara,
+      contorno: [
+        [0, 0],
+        [lado, 0],
+        [lado, lado],
+        [0, lado],
+      ],
+    };
   }
 
   it('coloca N recortes sem sobreposição, com rótulos e verdade consistentes', () => {
     const fundo = gerarCenaSintetica('soja', { semente: 1, quantidade: 0, lado: 300 }).imagem;
-    const cena = comporCena(fundo, Array.from({ length: 15 }, () => quadrado(12, [220, 200, 150])), { semente: 2, margem: 3 });
+    const cena = comporCena(
+      fundo,
+      Array.from({ length: 15 }, () => quadrado(12, [220, 200, 150])),
+      { semente: 2, margem: 3 }
+    );
     expect(cena.verdade).toHaveLength(15);
     expect(cena.naoColocados).toBe(0);
-    for (let i = 0; i < 15; i++) for (let j = i + 1; j < 15; j++) {
-      const a = cena.verdade[i].caixa, b = cena.verdade[j].caixa;
-      const separadas = a.x + a.largura <= b.x || b.x + b.largura <= a.x || a.y + a.altura <= b.y || b.y + b.altura <= a.y;
-      expect(separadas).toBe(true);
-    }
+    for (let i = 0; i < 15; i++)
+      for (let j = i + 1; j < 15; j++) {
+        const a = cena.verdade[i].caixa,
+          b = cena.verdade[j].caixa;
+        const separadas =
+          a.x + a.largura <= b.x ||
+          b.x + b.largura <= a.x ||
+          a.y + a.altura <= b.y ||
+          b.y + b.altura <= a.y;
+        expect(separadas).toBe(true);
+      }
     const ids = new Set(cena.rotulos);
-    for (const o of cena.verdade) { expect(ids.has(o.id)).toBe(true); expect(o.areaPx).toBe(144); }
+    for (const o of cena.verdade) {
+      expect(ids.has(o.id)).toBe(true);
+      expect(o.areaPx).toBe(144);
+    }
     expect(cena.rotulos[0]).toBe(0);
   });
 
   it('quando não cabe, devolve o que coube e conta os de fora', () => {
     const fundo = gerarCenaSintetica('soja', { semente: 1, quantidade: 0, lado: 40 }).imagem;
-    const cena = comporCena(fundo, Array.from({ length: 4 }, () => quadrado(30, [200, 200, 200])), { semente: 3, tentativas: 50 });
+    const cena = comporCena(
+      fundo,
+      Array.from({ length: 4 }, () => quadrado(30, [200, 200, 200])),
+      { semente: 3, tentativas: 50 }
+    );
     expect(cena.verdade.length).toBeLessThan(4);
     expect(cena.naoColocados).toBe(4 - cena.verdade.length);
   });

@@ -57,7 +57,8 @@ import { executarLote, type ItemDoLote, type ResultadoDeUmaImagem } from './lote
 import { processarImagemDoLote } from './processar-imagem';
 import { resumirLote } from './resumo';
 import { ehDuplicata } from './duplicata';
-import { decodificarParaCanvas } from './abrir-imagem';
+import { contarPaginasDoArquivo, decodificarParaCanvas } from './abrir-imagem';
+import { expandirPaginas, paginasExtras } from './paginas-do-lote';
 import { RECEITAS, receitaDeSalva, type Receita, type ContornoProposto } from '../ensaio/receitas';
 import { useReceitasSalvas } from '../../hooks/useReceitasSalvas';
 import { useLotes } from '../../hooks/useLotes';
@@ -315,6 +316,8 @@ export function LotePanel({
   const [aceitando, setAceitando] = useState<string | null>(null);
   const [repetindo, setRepetindo] = useState<Set<string>>(new Set());
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  /** "N páginas a mais foram encontradas dentro dos TIFF" — some na próxima rodada. */
+  const [recadoDasPaginas, setRecadoDasPaginas] = useState<string | null>(null);
   const [previaAberta, setPreviaAberta] = useState<ResultadoDeUmaImagem | null>(null);
   const [duplicataPendente, setDuplicataPendente] = useState<{
     resultado: ResultadoDeUmaImagem;
@@ -361,15 +364,27 @@ export function LotePanel({
       setErroGeral('Nenhuma receita disponível.');
       return;
     }
-    const itens = itensDaFonteEscolhida();
-    if (typeof itens === 'string') {
-      setErroGeral(itens);
+    const itensBrutos = itensDaFonteEscolhida();
+    if (typeof itensBrutos === 'string') {
+      setErroGeral(itensBrutos);
       return;
     }
+
+    // Um TIFF de várias varreduras vira uma linha por página ANTES de rodar:
+    // o `10 espécies.tif` do laboratório tem dez, e virava uma linha só, com
+    // nove espécies sumindo em silêncio. Arquivo de uma página passa
+    // inalterado, com o mesmo id.
+    const itens = await expandirPaginas(itensBrutos, contarPaginasDoArquivo);
+    const extras = paginasExtras(itensBrutos, itens);
 
     setErroGeral(null);
     setResultados([]);
     setAceitos(new Set());
+    setRecadoDasPaginas(
+      extras > 0
+        ? `${extras} página${extras === 1 ? '' : 's'} a mais ${extras === 1 ? 'foi encontrada' : 'foram encontradas'} dentro dos TIFF: cada uma virou uma linha.`
+        : null
+    );
     itensRef.current = new Map(itens.map((it) => [it.id, it]));
     propostosRef.current = new Map();
     resultadosAcumuladosRef.current = [];
@@ -718,6 +733,15 @@ export function LotePanel({
         <p className="border-line bg-surface-2 text-ink-2 flex items-start gap-1.5 rounded-lg border p-2 text-[11px]">
           <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-500" />
           {erroGeral}
+        </p>
+      )}
+
+      {/* O lote encontrou páginas dentro dos TIFF. Não é erro: é a tabela
+          dizendo a verdade sobre o arquivo, e a pessoa precisa saber por que
+          apareceram linhas que ela não listou. */}
+      {recadoDasPaginas && (
+        <p className="border-line bg-surface-2 text-ink-2 rounded-panel border p-2 text-[11px]">
+          {recadoDasPaginas}
         </p>
       )}
 

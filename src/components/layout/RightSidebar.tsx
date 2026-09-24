@@ -30,6 +30,11 @@ import { useVisibilidade } from '../../features/visualizacao/useModoDeVisualizac
 interface RightSidebarProps {
   viableCount: number;
   inviableCount: number;
+  /** Objetos declarados como não-semente. Zero até alguém classificar. */
+  inertesCount?: number;
+  /** Contagem por classe do protocolo declarado. Vazio = sem protocolo. */
+  porClasse?: { classe: string; rotulo: string; n: number; ehSemente: boolean }[];
+  semClasseFina?: number;
   viablePercent: string;
   inviablePercent: string;
   totalCount: number;
@@ -51,13 +56,17 @@ interface RightSidebarProps {
   regraSelecionadaId: string | null;
   limiaresCustomizados: Record<string, number>;
   onRegraChange: (id: string | null) => void;
-  onLimiarChange: (limiares: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
+  onLimiarChange: (
+    limiares: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)
+  ) => void;
 
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   hasImage: boolean;
   activeTab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics';
-  onTabChange: (tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics') => void;
+  onTabChange: (
+    tab: 'resultados' | 'inspetor' | 'galeria' | 'datasets' | 'lote' | 'analytics'
+  ) => void;
   inspectorContent?: React.ReactNode;
   galeriaContent?: React.ReactNode;
   /** Explorador de datasets (Lote B) — quarta aba, abaixo de Resultados/Inspetor/Galeria. */
@@ -77,6 +86,9 @@ interface RightSidebarProps {
 export function RightSidebar({
   viableCount,
   inviableCount,
+  inertesCount = 0,
+  porClasse,
+  semClasseFina,
   viablePercent,
   inviablePercent,
   totalCount,
@@ -121,7 +133,10 @@ export function RightSidebar({
         <button
           onClick={() => {
             if (activeTab === 'resultados' && !isCollapsed) onToggleCollapse();
-            else { onTabChange('resultados'); if (isCollapsed) onToggleCollapse(); }
+            else {
+              onTabChange('resultados');
+              if (isCollapsed) onToggleCollapse();
+            }
           }}
           title="Resultados"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'resultados' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
@@ -131,7 +146,10 @@ export function RightSidebar({
         <button
           onClick={() => {
             if (activeTab === 'inspetor' && !isCollapsed) onToggleCollapse();
-            else { onTabChange('inspetor'); if (isCollapsed) onToggleCollapse(); }
+            else {
+              onTabChange('inspetor');
+              if (isCollapsed) onToggleCollapse();
+            }
           }}
           title="Inspetor"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'inspetor' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
@@ -141,7 +159,10 @@ export function RightSidebar({
         <button
           onClick={() => {
             if (activeTab === 'galeria' && !isCollapsed) onToggleCollapse();
-            else { onTabChange('galeria'); if (isCollapsed) onToggleCollapse(); }
+            else {
+              onTabChange('galeria');
+              if (isCollapsed) onToggleCollapse();
+            }
           }}
           title="Galeria"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'galeria' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
@@ -151,7 +172,10 @@ export function RightSidebar({
         <button
           onClick={() => {
             if (activeTab === 'datasets' && !isCollapsed) onToggleCollapse();
-            else { onTabChange('datasets'); if (isCollapsed) onToggleCollapse(); }
+            else {
+              onTabChange('datasets');
+              if (isCollapsed) onToggleCollapse();
+            }
           }}
           title="Datasets"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'datasets' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
@@ -161,7 +185,10 @@ export function RightSidebar({
         <button
           onClick={() => {
             if (activeTab === 'lote' && !isCollapsed) onToggleCollapse();
-            else { onTabChange('lote'); if (isCollapsed) onToggleCollapse(); }
+            else {
+              onTabChange('lote');
+              if (isCollapsed) onToggleCollapse();
+            }
           }}
           title="Lote"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'lote' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
@@ -171,7 +198,10 @@ export function RightSidebar({
         <button
           onClick={() => {
             if (activeTab === 'analytics' && !isCollapsed) onToggleCollapse();
-            else { onTabChange('analytics'); if (isCollapsed) onToggleCollapse(); }
+            else {
+              onTabChange('analytics');
+              if (isCollapsed) onToggleCollapse();
+            }
           }}
           title="Analytics"
           className={`p-1.5 rounded-lg border transition-colors ${!isCollapsed && activeTab === 'analytics' ? 'bg-accent/20 border-accent text-accent' : 'border-line bg-surface-2 hover:bg-surface-3 text-ink-3'}`}
@@ -211,6 +241,9 @@ export function RightSidebar({
               <Counters
                 viableCount={viableCount}
                 inviableCount={inviableCount}
+                inertesCount={inertesCount}
+                porClasse={porClasse}
+                semClasseFina={semClasseFina}
                 viablePercent={viablePercent}
                 inviablePercent={inviablePercent}
                 totalCount={totalCount}
@@ -239,62 +272,68 @@ export function RightSidebar({
               </button>
 
               {visibilidade.morfometria && (
-              <>
-              <hr className="border-neutral-100 dark:border-zinc-800" />
+                <>
+                  <hr className="border-neutral-100 dark:border-zinc-800" />
 
-              <div className="space-y-2">
-                <CollapsibleSection
-                  title="Biometria Populacional"
-                  icon={<Ruler size={14} className="text-ink-3" />}
-                  summary={
-                    resumo?.areaMm2
-                      ? `Área: ${resumo.areaMm2.mediana.toFixed(1)} mm²`
-                      : resumo?.areaPx
-                      ? `Área: ${Math.round(resumo.areaPx.mediana)} px²`
-                      : undefined
-                  }
-                  defaultOpen={hasImage && (resumo?.comContorno ?? 0) > 0}
-                >
-                  <CardEstatisticasPopulacionais resumo={resumo} especie={especie} />
-                </CollapsibleSection>
+                  <div className="space-y-2">
+                    <CollapsibleSection
+                      title="Biometria Populacional"
+                      icon={<Ruler size={14} className="text-ink-3" />}
+                      summary={
+                        resumo?.areaMm2
+                          ? `Área: ${resumo.areaMm2.mediana.toFixed(1)} mm²`
+                          : resumo?.areaPx
+                            ? `Área: ${Math.round(resumo.areaPx.mediana)} px²`
+                            : undefined
+                      }
+                      defaultOpen={hasImage && (resumo?.comContorno ?? 0) > 0}
+                    >
+                      <CardEstatisticasPopulacionais resumo={resumo} especie={especie} />
+                    </CollapsibleSection>
 
-                <CollapsibleSection
-                  title="Distribuição & Dispersão"
-                  icon={<BarChart3 size={14} className="text-ink-3" />}
-                  summary={`${medicoes.length} medições`}
-                  defaultOpen={false}
-                >
-                  <CardHistogramas medicoes={medicoes} calibrado={calibrado} />
-                </CollapsibleSection>
+                    <CollapsibleSection
+                      title="Distribuição & Dispersão"
+                      icon={<BarChart3 size={14} className="text-ink-3" />}
+                      summary={`${medicoes.length} medições`}
+                      defaultOpen={false}
+                    >
+                      <CardHistogramas medicoes={medicoes} calibrado={calibrado} />
+                    </CollapsibleSection>
 
-                <CollapsibleSection
-                  title="Regras Semi-Automáticas"
-                  icon={<SlidersHorizontal size={14} className="text-accent" />}
-                  summary="Curadoria em lote"
-                  defaultOpen={false}
-                >
-                  <CardRegrasSemiAutomaticas
-                    medicoes={medicoes}
-                    calibrado={calibrado}
-                    onDestacarSementes={onDestacarSementes}
-                    onAplicarRegra={onAplicarRegra}
-                    regraSelecionadaId={regraSelecionadaId}
-                    limiaresCustomizados={limiaresCustomizados}
-                    onRegraChange={onRegraChange}
-                    onLimiarChange={onLimiarChange}
-                  />
-                </CollapsibleSection>
-              </div>
-              </>
+                    <CollapsibleSection
+                      title="Regras Semi-Automáticas"
+                      icon={<SlidersHorizontal size={14} className="text-accent" />}
+                      summary="Curadoria em lote"
+                      defaultOpen={false}
+                    >
+                      <CardRegrasSemiAutomaticas
+                        medicoes={medicoes}
+                        calibrado={calibrado}
+                        onDestacarSementes={onDestacarSementes}
+                        onAplicarRegra={onAplicarRegra}
+                        regraSelecionadaId={regraSelecionadaId}
+                        limiaresCustomizados={limiaresCustomizados}
+                        onRegraChange={onRegraChange}
+                        onLimiarChange={onLimiarChange}
+                      />
+                    </CollapsibleSection>
+                  </div>
+                </>
               )}
             </div>
 
             <div className={activeTab === 'inspetor' ? 'flex flex-col gap-4' : 'hidden'}>
-              {inspectorContent || <div className="text-ink-3 text-sm text-center mt-8">Selecione uma semente no canvas para inspecionar.</div>}
+              {inspectorContent || (
+                <div className="text-ink-3 text-sm text-center mt-8">
+                  Selecione uma semente no canvas para inspecionar.
+                </div>
+              )}
             </div>
-            
+
             <div className={activeTab === 'galeria' ? 'flex flex-col gap-4' : 'hidden'}>
-              {galeriaContent || <div className="text-ink-3 text-sm text-center mt-8">Nenhum dado na galeria.</div>}
+              {galeriaContent || (
+                <div className="text-ink-3 text-sm text-center mt-8">Nenhum dado na galeria.</div>
+              )}
             </div>
 
             <div className={activeTab === 'datasets' ? 'flex flex-col gap-4' : 'hidden'}>
@@ -306,9 +345,12 @@ export function RightSidebar({
             </div>
 
             <div className={activeTab === 'analytics' ? 'flex flex-col gap-4' : 'hidden'}>
-              {analyticsContent || <div className="text-ink-3 text-sm text-center mt-8">Sem dados analíticos no momento.</div>}
+              {analyticsContent || (
+                <div className="text-ink-3 text-sm text-center mt-8">
+                  Sem dados analíticos no momento.
+                </div>
+              )}
             </div>
-
           </div>
         </aside>
       )}

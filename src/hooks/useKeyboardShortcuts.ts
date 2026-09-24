@@ -3,7 +3,22 @@ import { useEffect } from 'react';
 interface KeyboardShortcutsProps {
   onUndo: () => void;
   onRedo: () => void;
-  onSetVisualMode: (mode: 'dots' | 'numbers') => void;
+  /**
+   * Alterna pontos ↔ índices.
+   *
+   * Era `1` e `2` até 23/09. As duas teclas passaram para as classes do
+   * protocolo — número na mão de quem conta é classe, não modo de exibição —
+   * e a alternância ganhou `N`, de "números".
+   */
+  onAlternarVisualMode: () => void;
+  /**
+   * Escolhe a classe fina pela tecla (3 a 8, a posição no protocolo).
+   *
+   * Quem decide se aquela posição existe é `classeDaTecla`, em
+   * `features/classes` — aqui só se repassa a tecla. Sem protocolo declarado
+   * a função não faz nada, e a tecla fica livre como sempre foi.
+   */
+  onEscolherClasseFina?: (tecla: string) => void;
   onNextImage: () => void;
   onPrevImage: () => void;
   onZoomIn: () => void;
@@ -35,7 +50,8 @@ interface KeyboardShortcutsProps {
 export function useKeyboardShortcuts({
   onUndo,
   onRedo,
-  onSetVisualMode,
+  onAlternarVisualMode,
+  onEscolherClasseFina,
   onNextImage,
   onPrevImage,
   onTogglePanning,
@@ -121,13 +137,22 @@ export function useKeyboardShortcuts({
       if (isTyping) return;
 
       switch (e.key.toLowerCase()) {
-        case '1':
+        case 'n':
+          // Pontos ↔ índices. Herdou o lugar do 1/2, que viraram classes.
           e.preventDefault();
-          onSetVisualMode('dots');
+          onAlternarVisualMode();
           break;
+        // As classes finas do protocolo, na ordem em que ele as declara — a
+        // tecla é a posição na lista. Só existem com protocolo declarado; sem
+        // ele, `onEscolherClasseFina` não faz nada e a tecla segue livre.
+        case '1':
         case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
           e.preventDefault();
-          onSetVisualMode('numbers');
+          onEscolherClasseFina?.(e.key);
           break;
         // 'h' é tratado pela barra de ferramentas (useTools), que é a fonte
         // única de verdade do modo de interação. Manter aqui causaria dois
@@ -187,7 +212,8 @@ export function useKeyboardShortcuts({
   }, [
     onUndo,
     onRedo,
-    onSetVisualMode,
+    onAlternarVisualMode,
+    onEscolherClasseFina,
     onNextImage,
     onPrevImage,
     onTogglePanning,
