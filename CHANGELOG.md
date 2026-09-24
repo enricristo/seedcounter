@@ -5,6 +5,12 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+### Adicionado
+- **Filtro "Fora da média" na galeria.** Acha o contorno que pegou só o embrião, o que pegou metade da semente e o que juntou duas — comparando cada objeto com a mediana da **própria classe** (mediana e MAD, não média e desvio, porque os próprios erros contaminariam a média). Classe com menos de 8 objetos cai na régua da cena, e a frase diz isso. A célula ganha um `≠` com o motivo escrito no `title`. Nada disso muda número: é lente. `features/galeria/fora-da-media.ts`, 10 testes.
+
+### Melhorado
+- **A galeria deixa de refazer todos os recortes a cada troca de classe.** O recorte lê a caixa, o polígono e a cor de fundo — nunca a classe —, mas era refeito sempre que `marks` ou `yoloSegmentations` mudava: numa amostra de 120 sementes, 120 `toDataURL` por clique, com a interface parada. Agora há cache por geometria (`chaveDeRecorte`), podado a cada passada. 6 testes.
+
 ### Corrigido
 - **Trocar a classe de uma semente contornada mudava a cor e não mudava o número.** A classe morava em dois lugares que ninguém sincronizava: `marca.type` (que a contagem usa no objeto pareado) e `segmentacao.category` (que a cor usa). Clicar na célula da galeria mexia só no contorno. O seletor de classe fina era pior: gravava `subclasse` sem tocar no tipo, e uma semente marcada "morta" seguia contada como viável, em ciano. Agora as três portas — célula da galeria, inspetor e canvas — passam por uma operação só, que mexe na marca e no contorno pareado numa transação do histórico (um Ctrl+Z desfaz a troca inteira). Inverter apaga a classe fina que passar a contradizer o tipo. 7 testes.
 - **Os totalizadores da direita não mostravam as classes do protocolo.** Quem marcava com as teclas 1 a 6 via só "viáveis" e "inviáveis" mudarem, e a classe escolhida sumia justamente onde se confere. Agora, com protocolo declarado, o painel lista a contagem por classe (e "sem classe fina", para as marcadas só com V ou I). Sem protocolo, o painel é o de sempre.

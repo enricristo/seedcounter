@@ -100,21 +100,71 @@ export function recortar(
 }
 
 /**
- * Recorta a galeria inteira.
+ * A identidade do RECORTE de um item — não a do item.
  *
- * Devolve um mapa por chave, e não um array, porque a grade filtra e reordena —
- * um índice de array deixaria de apontar para o mesmo objeto assim que a pessoa
- * mudasse o filtro.
+ * POR QUE ISTO EXISTE. `recortar` acima lê três coisas: a caixa, o polígono
+ * (só quando a máscara está ligada) e a cor de fundo. NÃO lê a classe. Mas a
+ * galeria refazia todos os recortes sempre que `marks` ou `yoloSegmentations`
+ * mudava — e trocar a classe de uma semente muda as duas listas. Numa amostra
+ * de 120 sementes eram 120 `toDataURL` por clique, com a interface parada no
+ * meio. Era a lentidão relatada em 24/09/2026.
+ *
+ * Com esta chave, trocar classe reaproveita o recorte inteiro; mover uma
+ * marca, editar um vértice ou ligar a máscara refazem só o que mudou.
+ *
+ * A assinatura do polígono é comprimento mais a soma das coordenadas
+ * arredondadas: barata, e sensível a qualquer vértice que ande um pixel.
+ */
+export function chaveDeRecorte(item: ItemDaGaleria, op: OpcoesDeRecorte): string {
+  const { caixa } = item;
+  const geometria = `${Math.round(caixa.x)},${Math.round(caixa.y)},${Math.round(caixa.largura)},${Math.round(caixa.altura)}`;
+  const lado = op.lado ?? LADO_DA_MINIATURA;
+  let mascara = '';
+  if (op.semFundo && item.tipo === 'contorno') {
+    const pontos = item.segmentacao.polygon_points;
+    let soma = 0;
+    for (const [x, y] of pontos) soma += Math.round(x) + Math.round(y);
+    mascara = `|m${pontos.length}:${soma}`;
+  }
+  return `${item.chave}|${geometria}|${lado}|${op.fundo ?? ''}${mascara}`;
+}
+
+/**
+ * Recorta a galeria inteira, reaproveitando o que não mudou.
+ *
+ * Devolve um mapa por chave DO ITEM, e não um array, porque a grade filtra e
+ * reordena — um índice de array deixaria de apontar para o mesmo objeto assim
+ * que a pessoa mudasse o filtro.
+ *
+ * `cache` é um mapa de recorte (`chaveDeRecorte` → data URL) que quem chama
+ * mantém entre renderizações. Ele é PODADO aqui: o que não está nos itens
+ * desta chamada sai, senão apagar e recontornar sementes o faria crescer sem
+ * limite numa sessão longa.
  */
 export function recortarTodos(
   imagem: HTMLImageElement | HTMLCanvasElement,
   itens: ItemDaGaleria[],
-  op: OpcoesDeRecorte
+  op: OpcoesDeRecorte,
+  cache?: Map<string, string>
 ): Map<string, string> {
   const mapa = new Map<string, string>();
+  const vivas = new Set<string>();
   for (const item of itens) {
+    const chave = cache ? chaveDeRecorte(item, op) : '';
+    if (cache) vivas.add(chave);
+    const guardado = cache?.get(chave);
+    if (guardado !== undefined) {
+      mapa.set(item.chave, guardado);
+      continue;
+    }
     const url = recortar(imagem, item, op);
-    if (url) mapa.set(item.chave, url);
+    if (url) {
+      mapa.set(item.chave, url);
+      cache?.set(chave, url);
+    }
+  }
+  if (cache) {
+    for (const chave of cache.keys()) if (!vivas.has(chave)) cache.delete(chave);
   }
   return mapa;
 }
