@@ -33,7 +33,7 @@ export interface ImagemDecodificada {
  * (`docs/datasets/auditoria-de-medida.md`). Quem decide continua sendo a
  * régua na imagem.
  */
-function lerDpiDeclarado(ifd: Record<string, unknown>): number | undefined {
+export function lerDpiDeclarado(ifd: Record<string, unknown>): number | undefined {
   const x = ifd['t282'];
   const unidade = ifd['t296'];
   if (!Array.isArray(x) || x.length === 0) return undefined;
@@ -42,7 +42,14 @@ function lerDpiDeclarado(ifd: Record<string, unknown>): number | undefined {
   // ResolutionUnit: 2 = polegada, 3 = centímetro. Ausente, assume polegada,
   // que é o que o TIFF 6.0 manda.
   const u = Array.isArray(unidade) && typeof unidade[0] === 'number' ? unidade[0] : 2;
-  return u === 3 ? valor * 2.54 : valor;
+  const dpi = u === 3 ? valor * 2.54 : valor;
+  // DPI DE TELA NÃO É DPI DE DIGITALIZAÇÃO. Arquivo reexportado por editor
+  // guarda 72, 96 ou 1 — o padrão do editor, não o do scanner. Aceitar isso
+  // como palpite faz a morfometria começar com escala até 25× errada, e o
+  // palpite errado é pior que palpite nenhum: ele parece um dado. Scanner de
+  // laboratório trabalha em 300 dpi para cima; abaixo do piso, devolve
+  // `undefined` e o app pede a régua, que é quem decide de qualquer forma.
+  return dpi >= DPI_MINIMO_PLAUSIVEL ? dpi : undefined;
 }
 
 /**
@@ -57,6 +64,14 @@ function lerDpiDeclarado(ifd: Record<string, unknown>): number | undefined {
  * transforma isso em mensagem; aqui não se lança, porque um arquivo ruim é
  * caso esperado, não bug.
  */
+/**
+ * Piso do DPI que vale como palpite inicial.
+ *
+ * 120 fica abaixo de qualquer digitalização de bancada (300, 600, 1200, 2400,
+ * 3600, 4800) e acima de todo padrão de editor de imagem (1, 72, 96).
+ */
+export const DPI_MINIMO_PLAUSIVEL = 120;
+
 export function decodificarTiff(buffer: ArrayBuffer, pagina = 0): ImagemDecodificada | null {
   let ifds: ReturnType<typeof UTIF.decode>;
   try {
