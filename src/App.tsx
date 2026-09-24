@@ -169,7 +169,12 @@ import { EQUIPAMENTOS_DO_LABORATORIO } from './lib/calibration';
 
 // Utils
 import { contarObjetos } from './lib/contagem';
-import { limiaresDaPopulacao } from './lib/aglomerado';
+import {
+  analisarContorno,
+  areaDoPoligono,
+  limiaresDaPopulacao,
+  medianaDaCena,
+} from './lib/aglomerado';
 import type { ClasseDeSemente } from './lib/normas/classes-de-semente';
 import { protocoloPorChave } from './lib/normas/classes-de-semente';
 import {
@@ -1687,8 +1692,34 @@ function AppInterno() {
       { fundir: criouMarca }
     );
     setContornoSelecionado(null);
-    setRecadoDaOnda({ tom: 'ok', texto: 'Contorno separado em dois.' });
-  }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark]);
+
+    // AINDA SOBRA CINTURA? 37% dos aglomerados reais medidos têm TRÊS ou mais
+    // sementes (um deles tinha 32), e um corte separa duas. Sem este aviso, a
+    // pessoa cortava uma vez, via duas metades e seguia — com um par inteiro
+    // escondido dentro de uma delas, contado como uma semente só.
+    // A população sai das REFS, não do estado: este callback roda no clique, e
+    // as refs são o que já está na cena neste instante — inclusive os cortes
+    // feitos há dois segundos.
+    const visiveis = bancada.cena.segmentacoesRef.current
+      .filter((s) => s.visible !== false && s.id !== contornoSelecionado)
+      .map((s) => s.polygon_points);
+    const referencia = medianaDaCena(visiveis.map((p) => areaDoPoligono(p)));
+    const limiares = limiaresDaPopulacao(visiveis) ?? undefined;
+    const aindaSuspeitas = filhas.filter(
+      (f) => analisarContorno(f.polygon_points, referencia, limiares).veredito === 'aglomerado'
+    ).length;
+    setRecadoDaOnda(
+      aindaSuspeitas > 0
+        ? {
+            tom: 'aviso',
+            texto:
+              aindaSuspeitas === 1
+                ? 'Separado em dois — mas uma das metades ainda tem cintura. Separe de novo.'
+                : 'Separado em dois — mas as duas metades ainda têm cintura. Separe de novo.',
+          }
+        : { tom: 'ok', texto: 'Contorno separado em dois.' }
+    );
+  }, [corteProposto, contornoSelecionado, setYoloSegmentations, addMark, bancada.cena.segmentacoesRef]);
 
   /**
    * "Processar Fila (IA)": o YOLO em cada imagem da fila, uma sessão por
