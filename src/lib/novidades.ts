@@ -54,6 +54,55 @@ export const ROTULOS: Record<TipoDeMudanca, string> = {
  */
 export const VERSOES: Versao[] = [
   {
+    numero: '3.9.0',
+    data: '2026-09-24',
+    titulo: 'Mais que viável e inviável — e seis números que não eram verdade',
+    mudancas: [
+      {
+        tipo: 'novo',
+        titulo: 'Marcar direto na classe: dormente, dura, anormal, vazia',
+        detalhe:
+          'Declare o protocolo na identificação da amostra (Germinação ou Forrageira) e a barra de ferramentas ganha um botão por classe da norma, com a explicação de cada uma ao passar o mouse e a tecla 1 a 6 — a tecla é a posição da classe na lista do protocolo. Por causa disso, as teclas 1 e 2 deixaram de alternar pontos e índices: agora quem faz isso é a tecla N. Antes era preciso marcar inviável e corrigir depois na galeria; agora a classe entra no mesmo clique, e a segmentação por clique herda ela. V e I continuam como sempre foram, marcando sem classe fina. Em orquídea, que usa viável/inviável, nada muda: os botões só aparecem com protocolo declarado.',
+      },
+      {
+        tipo: 'novo',
+        titulo: 'Detrito deixa de contar como semente inviável',
+        detalhe:
+          'Quando você classifica um objeto como "Vazia (inerte)" — casca, espigueta sem semente dentro, detrito —, ele sai da conta: não é semente viável nem inviável, e não entra no denominador da porcentagem. A norma manda assim, e a diferença não é pequena: 400 objetos com 80 vazios dão porcentagem sobre 320, não sobre 400. O painel mostra uma linha "Inerte (fora da conta)" para você ver quantos saíram, e o CSV ganhou as colunas classe_norma, classe_rotulo, conta_como_semente e classe_externa. Enquanto ninguém classificar nada como inerte, nenhum número muda.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'O lote processava só a primeira página dos TIFF',
+        detalhe:
+          'Uma digitalização com várias varreduras no mesmo arquivo — dez espécies, uma por página — virava uma linha só no lote, e as outras páginas sumiam sem aviso. Agora cada página vira uma linha própria, com o nome "arquivo.tif#2", e o painel avisa quantas páginas a mais foram encontradas. Abrir uma imagem avulsa sempre soube escolher a página; o lote não sabia.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'A circularidade avisa quando é estimativa',
+        detalhe:
+          'O contorno de cada semente é guardado com 48 pontos, e isso alisa reentrâncias: em semente encostada, quebrada ou com fungo, o perímetro sai mais curto do que é e a circularidade sai mais alta — até 191% no pior caso. Quem denuncia isso é a solidez, que já era calculada: abaixo de 0,975 o CSV passa a trazer "circularidade_estimada = sim". O número continua lá; agora ele diz o quanto vale.',
+      },
+      {
+        tipo: 'melhorado',
+        titulo: 'O CSV diz qual comprimento foi medido',
+        detalhe:
+          'O app mede o comprimento sobre o eixo principal do contorno; boa parte dos artigos publica o eixo maior da elipse ajustada. A diferença é de 1 a 2% — pequena para um lote, grande para quem compara com a literatura sem saber qual das duas leu. A coluna convencao_comprimento agora declara.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'Separar sementes grudadas avisa quando ainda falta um corte',
+        detalhe:
+          'Mais de um terço dos aglomerados tem três ou mais sementes, e cada corte separa duas. Antes você cortava, via duas metades e seguia — com um par inteiro escondido numa delas, contado como uma semente. Agora o recado diz quando uma das metades ainda tem cintura.',
+      },
+      {
+        tipo: 'corrigido',
+        titulo: 'DPI de tela não vira mais palpite de escala',
+        detalhe:
+          'Um TIFF reexportado por editor de imagem guarda 72 ou 96 pontos por polegada — o padrão do editor, não o do seu scanner. O app aceitava isso como palpite inicial, e a morfometria podia começar 25 vezes errada. Agora, abaixo de 120, não há palpite: o campo fica vazio e o app pede a régua, que é quem decide de qualquer forma.',
+      },
+    ],
+  },
+  {
     numero: '3.8.0',
     data: '2026-09-23',
     titulo: 'Quem está na bancada? — perfis, a curva de germinação na tela, e ajuda que explica o porquê',
@@ -105,24 +154,6 @@ export const VERSOES: Versao[] = [
         titulo: 'A sugestão "Salvar sessão" não salvava',
         detalhe:
           'Clicar na sugestão do painel não fazia nada — ela guardava uma versão antiga da função, de antes de haver imagem. Ctrl+S e o botão sempre funcionaram; a sugestão agora também.',
-      },
-      {
-        tipo: 'corrigido',
-        titulo: 'O lote processava só a primeira página dos TIFF',
-        detalhe:
-          'Uma digitalização com várias varreduras no mesmo arquivo — dez espécies, uma por página — virava uma linha só no lote, e as outras páginas sumiam sem aviso. Agora cada página vira uma linha própria, com o nome "arquivo.tif#2", e o painel avisa quantas páginas a mais foram encontradas. Abrir uma imagem avulsa sempre soube escolher a página; o lote não sabia.',
-      },
-      {
-        tipo: 'novo',
-        titulo: 'Marcar direto na classe: dormente, dura, anormal, vazia',
-        detalhe:
-          'Declare o protocolo na identificação da amostra (Germinação ou Forrageira) e a barra de ferramentas ganha um botão por classe da norma, com a explicação de cada uma ao passar o mouse e a tecla 1 a 6 — a tecla é a posição da classe na lista do protocolo. Por causa disso, as teclas 1 e 2 deixaram de alternar pontos e índices: agora quem faz isso é a tecla N. Antes era preciso marcar inviável e corrigir depois na galeria; agora a classe entra no mesmo clique, e a segmentação por clique herda ela. V e I continuam como sempre foram, marcando sem classe fina. Em orquídea, que usa viável/inviável, nada muda: os botões só aparecem com protocolo declarado.',
-      },
-      {
-        tipo: 'novo',
-        titulo: 'Detrito deixa de contar como semente inviável',
-        detalhe:
-          'Quando você classifica um objeto como "Vazia (inerte)" — casca, espigueta sem semente dentro, detrito —, ele sai da conta: não é semente viável nem inviável, e não entra no denominador da porcentagem. A norma manda assim, e a diferença não é pequena: 400 objetos com 80 vazios dão porcentagem sobre 320, não sobre 400. O painel mostra uma linha "Inerte (fora da conta)" para você ver quantos saíram, e o CSV ganhou as colunas classe_norma, classe_rotulo, conta_como_semente e classe_externa. Enquanto ninguém classificar nada como inerte, nenhum número muda.',
       },
       {
         tipo: 'corrigido',
