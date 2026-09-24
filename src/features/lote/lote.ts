@@ -24,6 +24,15 @@ export interface ItemDoLote {
   id: string;
   rotulo: string;
   obterFile(): Promise<File>;
+  /**
+   * A página do TIFF que esta linha representa. Ausente = a primeira, que é
+   * o caso de toda imagem de uma página só.
+   *
+   * Existe porque sete dos doze TIFF do laboratório guardam várias
+   * varreduras: o de dez espécies virava UMA linha, e nove espécies sumiam
+   * sem aviso (`paginas-do-lote.ts`).
+   */
+  pagina?: number;
 }
 
 export interface ResultadoDeUmaImagem {
