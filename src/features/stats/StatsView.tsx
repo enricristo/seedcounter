@@ -81,20 +81,26 @@ export function StatsView({ sessions, experiments = [], onViewSession }: StatsVi
 
   // Group sessions by treatment
   const treatmentGroups = useMemo(() => {
-    const groups: Record<string, number[]> = {};
+    // A porcentagem E o denominador: o intervalo de Wilson é binomial, e o
+    // `n` dele é o número de SEMENTES. Levar só a porcentagem obrigava o
+    // cálculo a usar o número de repetições, e o intervalo saía ~7× largo
+    // demais nas barras de germinação.
+    const groups: Record<string, { taxas: number[]; sementes: number[] }> = {};
     sessoesDaComparacao.forEach((s) => {
       const treatment = s.metadata.treatment?.trim() || 'Controle';
       const total = s.viableCount + s.inviableCount;
       if (total > 0) {
         const rate = (s.viableCount / total) * 100;
-        if (!groups[treatment]) groups[treatment] = [];
-        groups[treatment].push(rate);
+        if (!groups[treatment]) groups[treatment] = { taxas: [], sementes: [] };
+        groups[treatment].taxas.push(rate);
+        groups[treatment].sementes.push(total);
       }
     });
 
-    return Object.entries(groups).map(([label, values]) => ({
+    return Object.entries(groups).map(([label, g]) => ({
       label,
-      values,
+      values: g.taxas,
+      sementesPorRepeticao: g.sementes,
     })) as GroupStat[];
   }, [sessoesDaComparacao]);
 
